@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Herramientas Somos Diseño</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root { --mesa: #161616; --mesa-2: #1f1f1f; --linea: #333; --papel: #f4eee3; --tinta: #000; --azul: #0062b8; --celeste: #7fc8f8; --amarillo: #ffc20e; --texto: #f4eee3; --suave: #b8b1a6; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--mesa); color: var(--texto); font: 16px/1.5 "DM Sans", system-ui, sans-serif; }
+main { max-width: 980px; margin: 0 auto; padding-block: 40px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 28px; }
+.eyebrow { margin: 0; font: 500 12px "IBM Plex Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--celeste); }
+h1 { margin: 8px 0 0; font-size: clamp(34px, 6vw, 56px); line-height: 1; letter-spacing: -0.02em; }
+.bajada { margin: 10px 0 0; color: var(--suave); max-width: 60ch; }
+ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+a.tarjeta { display: flex; flex-direction: column; gap: 8px; height: 100%; padding: 20px; background: var(--papel); color: var(--tinta); text-decoration: none; border: 2px solid var(--tinta); box-shadow: 6px 6px 0 var(--azul); }
+a.tarjeta:hover, a.tarjeta:focus-visible { box-shadow: 6px 6px 0 var(--amarillo); outline: none; }
+a.tarjeta strong { font-size: 22px; }
+a.tarjeta span { font-size: 14.5px; }
+a.tarjeta small { margin-top: auto; font: 500 11.5px "IBM Plex Mono", monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--azul); }
+.nota { margin: 0; font-size: 13.5px; color: var(--suave); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">Somos Diseño · INACAP Sede Santiago Centro</p>
+    <h1>Herramientas</h1>
+    <p class="bajada">Tres herramientas del equipo para producir piezas con los lenguajes Pixel y Geométrica, siempre con la paleta Línea azul.</p>
+  </header>
+  <ul>
+    <li><a class="tarjeta" href="taller-de-pixeles/"><strong>Taller de Píxeles</strong><span>Convierte una foto en un boceto de módulo Pixel de 24 × 24 o en pixel art libre de 32 y 64. Exporta SVG para Figma y PNG.</span><small>Pixel · imagen a módulo</small></a></li>
+    <li><a class="tarjeta" href="credencial/"><strong>Credencial Somos Diseño</strong><span>Arma tu personaje, emite tu credencial de dos caras y junta los sellos de las 5 mesas.</span><small>Pixel · modo demo</small></a></li>
+    <li><a class="tarjeta" href="taller-mosaicos/"><strong>Taller de mosaicos</strong><span>Crea mosaicos desde cero con las formas base de la celda y las operaciones del sistema.</span><small>Geométrica · formas base</small></a></li>
+  </ul>
+  <p class="nota">La credencial publicada aquí corre en modo demo: todo queda en el dispositivo. La versión del evento, con sellos reales por QR, se publica con Supabase y Vercel (ver <code>credencial/README.md</code>).</p>
+</main>
+</body>
+</html>

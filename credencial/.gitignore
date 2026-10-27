@@ -1,0 +1,6 @@
+node_modules
+dist
+demo
+qr
+.env.local
+.DS_Store

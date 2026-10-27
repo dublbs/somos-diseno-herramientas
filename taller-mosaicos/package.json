@@ -1,0 +1,15 @@
+{
+  "name": "taller-mosaicos",
+  "version": "1.0.0",
+  "description": "Taller de mosaicos Pixel de Somos Diseño con el pool de figuras del archivo",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "vite": "5.4.10",
+    "vite-plugin-singlefile": "2.0.3"
+  },
+  "private": true,
+  "type": "module"
+}
