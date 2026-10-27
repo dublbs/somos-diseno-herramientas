@@ -10,7 +10,12 @@ Herramientas del equipo de Somos Diseño (INACAP Sede Santiago Centro) para prod
 
 ## Ver en línea
 
-La carpeta `docs/` tiene las tres herramientas compiladas, cada una en un solo archivo HTML. Para publicarlas con GitHub Pages: **Settings → Pages → Deploy from a branch → `main` / `/docs`**.
+La carpeta `docs/` es el sitio: una portada que lleva a las tres herramientas, agrupadas en **Taller** (para quienes diseñan) y **Patio** (para quienes visitan), más cada herramienta compilada en un solo archivo HTML.
+
+- **GitHub Pages:** Settings → Pages → Deploy from a branch → `main` / `/docs`.
+- **Vercel o Netlify:** sin comando de build y con `docs` como carpeta de salida.
+
+Si se despliega desde la raíz, `index.html` redirige a `docs/`.
 
 La credencial que queda en Pages corre en modo demo (todo se guarda en el dispositivo). La versión del evento, con sellos reales por QR, se publica aparte con Supabase y Vercel: ver [`credencial/README.md`](credencial/README.md).
 
