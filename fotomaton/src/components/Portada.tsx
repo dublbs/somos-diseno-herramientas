@@ -10,10 +10,10 @@ export function Portada({ alCamara, alSubir }: { alCamara: () => void; alSubir: 
   useEffect(() => { const t = setInterval(() => setI(n => (n + 1) % MARCOS.length), 1800); return () => clearInterval(t); }, []);
   const m = MARCOS[i], demosListas = useDemosListas();
   return (
-    <section className="hero">
-      <div>
-        <span className="chip">Mesa 3 · Imagen e identidad</span>
-        <h1>Foto&shy;matón</h1>
+    <main className="cuerpo-pantalla portada">
+    <section className="hero-texto">
+      <div className="hero-contenido">
+        <h2 className="titulo-portada">Foto&shy;matón</h2>
         <p className="bajada">Te sacas una foto, la pasamos por el efecto de cada lenguaje (trama CMYK, pantalla CRT o mosaico) y la enmarcas con las formas de Geométrica, Orgánica o Pixel.</p>
         <div className="pasos"><span className="chip">1 · Foto</span><span className="chip">2 · Efecto</span><span className="chip">3 · Marco</span><span className="chip">4 · Te la llevas</span></div>
         <div className="acciones">
@@ -21,7 +21,10 @@ export function Portada({ alCamara, alSubir }: { alCamara: () => void; alSubir: 
           <button className="btn" onClick={alSubir}>Subir una foto</button>
         </div>
       </div>
-      <Lienzo deps={[i, demosListas]} dibujar={(ctx, s) => componer(ctx, s, m.id, demoDe(m.visual), 2.5, TINTAS.cmyk)} />
     </section>
+    <section className="escenario-fit" aria-hidden="true">
+      <Lienzo className="lienzo-fit" deps={[i, demosListas]} dibujar={(ctx, s) => componer(ctx, s, m.id, demoDe(m.visual), 2.5, TINTAS.cmyk)} />
+    </section>
+    </main>
   );
 }

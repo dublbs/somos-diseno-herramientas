@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useCamara } from '../hooks/useCamara';
 import type { Cara } from '../lib/cara';
 import { Lienzo } from './Lienzo';
@@ -13,22 +13,26 @@ interface Props {
 export function Camara({ marco, celda, tinta, alFoto, alSubir, cambiando, textoCambio }: Props) {
   const { video, lienzo, setLado, error, personas, capturar } = useCamara({ marco, celda, tinta });
   const [cuenta, setCuenta] = useState(0), [flash, setFlash] = useState(false);
+  // Timers de la cuenta regresiva: se limpian si la persona sale (Inicio) antes de que termine.
+  const intervalo = useRef<number | undefined>(undefined), espera = useRef<number | undefined>(undefined);
+  useEffect(() => () => { window.clearInterval(intervalo.current); window.clearTimeout(espera.current); }, []);
 
   const disparar = () => {
     if (cuenta || error) return;
     let n = 3; setCuenta(n);
-    const iv = setInterval(() => {
+    intervalo.current = window.setInterval(() => {
       n--; if (n > 0) { setCuenta(n); return; }
-      clearInterval(iv); setCuenta(0); setFlash(true);
+      window.clearInterval(intervalo.current); setCuenta(0); setFlash(true);
       const { foto, cara } = capturar();
-      setTimeout(() => alFoto(foto, cara), 380);
+      espera.current = window.setTimeout(() => alFoto(foto, cara), 380);
     }, 750);
   };
 
   return (
-    <div>
+    <section className="zona-escenario" aria-label="Cámara">
       <video ref={video} className="oculto" playsInline muted autoPlay></video>
-      <Lienzo cref={lienzo}>
+      <div className="escenario-fit">
+      <Lienzo cref={lienzo} className="lienzo-fit">
         {cambiando ? <div className="carga"><span>{textoCambio}</span></div> : null}
         {cuenta ? <div className="cuenta">{cuenta}</div> : null}
         {flash ? <div className="flash"></div> : null}
@@ -40,6 +44,7 @@ export function Camara({ marco, celda, tinta, alFoto, alSubir, cambiando, textoC
           </div>
         ) : null}
       </Lienzo>
+      </div>
       <div className="acciones">
         <button className="redondo" onClick={alSubir} aria-label="Subir una foto">↑</button>
         <button className="obturador" onClick={disparar} disabled={!!error || !!cuenta || cambiando} aria-label="Sacar foto"></button>
@@ -49,6 +54,6 @@ export function Camara({ marco, celda, tinta, alFoto, alSubir, cambiando, textoC
         {error ? null : <span className="estado">{personas > 1 ? `Grupo de ${personas} personas ✓` : personas === 1 ? 'Cara centrada ✓' : 'Mira a la cámara, solo o en grupo'}</span>}
         Tu foto se procesa en este dispositivo y no se guarda en ningún servidor.
       </p>
-    </div>
+    </section>
   );
 }

@@ -1,4 +1,6 @@
 @import '../../shared/somos-ui.css';
+@import '../../shared/somos-fonts.css';
+@import '../../shared/somos-icons.css';
 
 /* Solo lo propio del Fotomatón; lo demás vive en shared/somos-ui.css */
 .tinta{display:inline-flex;gap:3px;margin-right:8px;vertical-align:middle}.tinta i{width:10px;height:10px;border-radius:var(--rt);display:block;border:1px solid rgba(0,0,0,.2)}
@@ -31,3 +33,43 @@ video.oculto{position:absolute;width:1px;height:1px;opacity:0;pointer-events:non
 .descarga{max-width:520px;margin:0 auto;padding:8px 20px 40px;display:grid;gap:18px;justify-items:center;text-align:center}
 .descarga img{width:100%;height:auto;border-radius:var(--r);box-shadow:var(--sombra);border:var(--borde)}
 .link-btn{text-decoration:none}
+
+/* --- Pantalla fija (ver shared/somos-ui.css) --- */
+.btn-inicio{min-height:44px;padding:0 18px;font-size:15px}
+.zona-escenario{min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;gap:10px}
+.zona-escenario .escenario-fit{flex:1 1 auto;width:100%}
+.zona-escenario .acciones{margin-top:0;flex:none}
+.zona-escenario .nota{margin:0;flex:none}
+
+/* Panel: dos secciones; en horizontal amplio se ven juntas, si no, como pestañas */
+.panel-foto .panel-pagina{gap:8px}
+.panel-foto .panel-pagina:not([data-activa="true"]){display:none}
+.panel-foto .label{margin:4px 0 6px}
+.marcos{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;overflow:visible;padding:4px 2px 0}
+.marcos .thumb{width:auto;min-width:0}
+.marcos .thumb img{width:100%;height:auto;aspect-ratio:1}
+.marcos .thumb span{font-size:11.5px}
+.tintas button{min-height:44px}
+@media (min-height:560px) and (min-width:600px) and (orientation:landscape) and (min-height:760px){
+  .panel-foto .pestanas{display:none}
+  .panel-foto .panel-pagina,.panel-foto .panel-pagina:not([data-activa="true"]){display:flex;flex:0 0 auto}
+}
+
+/* Portada: texto a la izquierda, demo a la derecha; todo cabe por alto */
+.portada .hero-texto{min-width:0;min-height:0;display:flex;align-items:center}
+.titulo-portada{font:800 clamp(56px,min(11vw,15dvh),140px)/.88 var(--fuente-tit);letter-spacing:-.045em;margin:0}
+[data-visual="Pixel"] .titulo-portada{font-size:clamp(40px,min(8vw,11dvh),100px);line-height:1;letter-spacing:0}
+.portada .bajada{margin-top:clamp(10px,2.4dvh,22px);font-size:clamp(16px,min(2vw,2.6dvh),21px)}
+.portada .pasos{margin-top:clamp(10px,2.4dvh,22px)}
+.portada .acciones{justify-content:flex-start;margin-top:clamp(14px,3dvh,28px)}
+@media (min-height:560px) and (min-width:600px) and (orientation:landscape){
+  .portada{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:clamp(20px,4vw,56px)}
+}
+@media (min-height:560px) and (min-width:600px) and (orientation:portrait){
+  .portada{grid-template-rows:auto minmax(0,1fr)}
+}
+
+/* Llévatela: el QR se mide por alto */
+.cuerpo-qr{grid-template-columns:minmax(0,1fr)!important;place-items:center}
+.qr-caja{width:min(100%,420px,46dvh)}
+@media (max-height:740px){.qr-wrap{gap:12px}.qr-wrap h2{font-size:28px}}

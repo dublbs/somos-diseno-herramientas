@@ -27,6 +27,7 @@ export function App() {
   const archivo = useRef<HTMLInputElement>(null);
   const [marcoMostrado, cambiando] = useRetardo(marcoId, RETARDO_MARCO);
   const [revelando, setRevelando] = useState(false), inicioRevelado = useRef(0);
+  const [pestana, setPestana] = useState<'marco' | 'efecto'>('marco');
   const revelar = () => { inicioRevelado.current = performance.now(); setRevelando(true); };
 
   useEffect(() => { document.documentElement.dataset.visual = visual; }, [visual]);
@@ -89,40 +90,55 @@ export function App() {
   };
 
   const destino = porId(marcoId), textoCambio = destino.visual + ' · ' + destino.name;
+  // En horizontal amplio se ven las dos secciones; en vertical o pantallas bajas, como pestañas (ver styles.css).
   const panel = (
-    <aside className="panel">
-      <Selector visual={visual} elegirVisual={elegirVisual} marcoId={marcoId} setMarcoId={setMarcoId} miniaturas={miniaturas} />
-      <Ajustes visual={visual} celda={celda} setCelda={setCelda} tinta={tinta} setTinta={setTinta} />
+    <aside className="panel-app panel-foto" aria-label="Ajustes de la foto">
+      <div className="pestanas" role="tablist" aria-label="Secciones">
+        <button type="button" role="tab" id="tab-marco" aria-selected={pestana === 'marco'} aria-controls="pag-marco" onClick={() => setPestana('marco')}>Lenguaje y marco</button>
+        <button type="button" role="tab" id="tab-efecto" aria-selected={pestana === 'efecto'} aria-controls="pag-efecto" onClick={() => setPestana('efecto')}>Efecto y paleta</button>
+      </div>
+      <div className="panel-pagina" role="tabpanel" id="pag-marco" aria-labelledby="tab-marco" data-activa={pestana === 'marco'}>
+        <Selector visual={visual} elegirVisual={elegirVisual} marcoId={marcoId} setMarcoId={setMarcoId} miniaturas={miniaturas} />
+      </div>
+      <div className="panel-pagina" role="tabpanel" id="pag-efecto" aria-labelledby="tab-efecto" data-activa={pestana === 'efecto'}>
+        <Ajustes visual={visual} celda={celda} setCelda={setCelda} tinta={tinta} setTinta={setTinta} />
+      </div>
     </aside>
   );
 
   return (
     <div className="app-pantalla">
       <input ref={archivo} type="file" accept="image/*" capture="user" style={{ display: 'none' }} onChange={alArchivo} />
-      <header className="top">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-          <a className="volver" href={HUB_URL} aria-label="Volver a las experiencias"><span aria-hidden="true">←</span> Experiencias</a>
-          <div className="marca">Fotomatón <span className="chip">Somos Diseño</span></div>
+      <header className="barra-superior">
+        <div className="lado-izq">
+          <a className="volver" href={HUB_URL} aria-label="Volver a las experiencias">
+            <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+            Experiencias
+          </a>
+          <div className="barra-info">
+            <h1>Fotomatón</h1>
+            <p className="bajada-corta">Tu foto con el efecto y el marco de cada lenguaje</p>
+          </div>
         </div>
-        {paso !== 'inicio' ? <button className="btn" style={{ minHeight: 44, padding: '0 18px', fontSize: 15 }} onClick={terminar}>Inicio</button> : null}
+        {paso !== 'inicio' ? <button className="btn btn-inicio" onClick={terminar}>Inicio</button> : null}
       </header>
       {paso === 'inicio' && <Portada alCamara={() => setPaso('camara')} alSubir={subir} />}
       {paso === 'camara' && (
-        <main className="layout">
+        <main className="cuerpo-pantalla">
           <Camara marco={marcoMostrado} celda={celda} tinta={tinta} cambiando={cambiando} textoCambio={textoCambio} alSubir={subir}
             alFoto={(f, c) => { revelar(); setFoto({ c: f, cara: c }); setPaso('editar'); }} />
           {panel}
         </main>
       )}
       {paso === 'editar' && (
-        <main className="layout">
+        <main className="cuerpo-pantalla">
           <Editor foto={foto} marco={marcoMostrado} celda={celda} tinta={tinta} revelando={revelando} cambiando={cambiando}
             textoCambio={textoCambio} ocupado={ocupado} alGuardar={guardar} alLlevatela={llevatela} alOtra={() => setPaso('camara')} />
           {panel}
         </main>
       )}
       {paso === 'qr' && tarjeta && (
-        <main className="layout" style={{ display: 'block' }}>
+        <main className="cuerpo-pantalla cuerpo-qr">
           <PasoQR blob={tarjeta} marco={marcoMostrado} tinta={tinta} alTerminar={terminar} alVolver={() => setPaso('editar')} />
         </main>
       )}

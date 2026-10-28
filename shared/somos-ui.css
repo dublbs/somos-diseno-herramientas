@@ -90,7 +90,7 @@ h1{font:800 clamp(68px,13vw,152px)/.86 var(--fuente-tit);letter-spacing:-.045em;
 }
 /* Vertical: escenario arriba, panel abajo con alto fijo */
 @media (min-height:560px) and (min-width:600px) and (orientation:portrait){
-  .cuerpo-pantalla{grid-template-rows:minmax(0,1fr) minmax(0,var(--alto-panel,44%))}
+  .cuerpo-pantalla{grid-template-rows:minmax(0,1fr) var(--alto-panel,44%)}
 }
 /* Pantallas bajas: todo un poco más compacto */
 @media (max-height:740px){

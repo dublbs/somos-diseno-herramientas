@@ -7,7 +7,7 @@ interface Props { visual: Visual; celda: number; setCelda: (n: number) => void; 
 export function Ajustes({ visual, celda, setCelda, tinta, setTinta }: Props) {
   const fx = EFECTOS[visual];
   return (
-    <div style={{ display: 'grid', gap: 20 }}>
+    <>
       <div>
         <p className="label">Efecto · {fx.nombre}</p>
         <input type="range" min="1" max="4" step="0.25" value={celda} onChange={e => setCelda(+e.target.value)} aria-label={`Tamaño: ${fx.control}`} />
@@ -24,6 +24,6 @@ export function Ajustes({ visual, celda, setCelda, tinta, setTinta }: Props) {
           ))}
         </div>
       </div>
-    </div>
+    </>
   );
 }

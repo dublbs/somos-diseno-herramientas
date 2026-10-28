@@ -1,17 +1,17 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { HashRouter, Route, Routes } from 'react-router-dom';
 import { App } from './App';
 import { Descarga } from './pages/Descarga';
 import './styles.css';
 
 createRoot(document.getElementById('app')!).render(
   <StrictMode>
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/f/:id" element={<Descarga />} />
         <Route path="*" element={<App />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   </StrictMode>,
 );
