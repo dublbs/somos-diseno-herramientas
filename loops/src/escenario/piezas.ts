@@ -264,6 +264,7 @@ export const FONDO: { dur: number; capas: Capa[] } = {
     { src: A('fondo/cielo'), x: 0, y: 0 },
     { src: A('fondo/cordon-lejano'), x: -1.7, y: 0, pistas: [{ prop: 'x', t: [0, 0.5, 1], v: [0, -10, 0], e: 'easeInOut' }] },
     { src: A('fondo/cordon-cercano'), x: -6.6, y: 0, pistas: [{ prop: 'x', t: [0, 0.5, 1], v: [0, 16, 0], e: 'easeInOut' }] },
+    { src: A('fondo/suelo'), x: 0, y: 0 },
   ],
 };
 

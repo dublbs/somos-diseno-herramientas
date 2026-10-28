@@ -1,6 +1,8 @@
 import { muestrear, type Pista } from './animacion';
 import { FONDO, FONDO_DESIERTO, FONDO_MAR, pieza, PIEZAS, type Capa } from './piezas';
 
+export type TipoTrayectoria = 'estatico' | 'cruzar' | 'ida-vuelta' | 'vaiven';
+
 export interface Item {
   uid: number;
   tipo: string;
@@ -9,9 +11,47 @@ export interface Item {
   escala: number; // 1 = tamaño del marco de Figma (240)
   espejo: boolean;
   variante?: number; // forma de moverse (índice en `variantes` de la pieza)
+  trayectoria?: TipoTrayectoria;
 }
 
 export const ESCENARIO = 240;
+
+export function posicionItem(it: Item, ms = 0): { x: number; y: number; espejo: boolean } {
+  const tray = it.trayectoria || 'estatico';
+  if (tray === 'estatico') return { x: it.x, y: it.y, espejo: it.espejo };
+
+  const dur = 4000;
+  const u = (ms % dur) / dur; // 0..1
+
+  if (tray === 'cruzar') {
+    const ancho = 300;
+    const inicio = -30;
+    const offset = u * ancho;
+    const x = it.espejo ? 270 - offset : inicio + offset;
+    return { x, y: it.y, espejo: it.espejo };
+  }
+
+  if (tray === 'ida-vuelta') {
+    const rango = 40;
+    if (u < 0.5) {
+      const p = u / 0.5;
+      const x = it.x + (it.espejo ? -rango : rango) * p;
+      return { x, y: it.y, espejo: it.espejo };
+    } else {
+      const p = (u - 0.5) / 0.5;
+      const x = it.x + (it.espejo ? -rango : rango) * (1 - p);
+      return { x, y: it.y, espejo: !it.espejo };
+    }
+  }
+
+  if (tray === 'vaiven') {
+    const rango = 20;
+    const dx = Math.sin(u * Math.PI * 2) * rango;
+    return { x: it.x + dx, y: it.y, espejo: it.espejo };
+  }
+
+  return { x: it.x, y: it.y, espejo: it.espejo };
+}
 
 const cache = new Map<string, HTMLImageElement>();
 export function cargarImagen(src: string): Promise<HTMLImageElement> {
@@ -81,24 +121,26 @@ export function dibujarPieza(ctx: CanvasRenderingContext2D, tipo: string, ms: nu
 }
 
 // Borde de papel: cada pieza se recorta con un contorno de hueso y una sombra suave, como un papel pegado encima.
-// Así una pieza se distingue del fondo aunque tenga los mismos colores (por ejemplo, sobre la cordillera morada).
 const HUESO = '#F4EEE3', BORDE = 1.5; // grosor del borde, en unidades del escenario
 const tmp = document.createElement('canvas'), sil = document.createElement('canvas');
 
 function dibujarItem(ctx: CanvasRenderingContext2D, it: Item, ms: number, size: number, borde: boolean) {
+  const pos = posicionItem(it, ms);
   const trazar = (c: CanvasRenderingContext2D) => {
     c.save();
-    c.translate(it.x, it.y);
-    c.scale(it.escala * (it.espejo ? -1 : 1), it.escala);
+    c.translate(pos.x, pos.y);
+    c.scale(it.escala * (pos.espejo ? -1 : 1), it.escala);
     dibujarPieza(c, it.tipo, ms, it.variante ?? 0);
     c.restore();
   };
   if (!borde) { trazar(ctx); return; }
 
-  const k = size / ESCENARIO, b = cajaItem(it), m = BORDE + 3;
+  const k = size / ESCENARIO, b = cajaItem(it, ms), m = BORDE + 3;
   const bx = b.x - m, by = b.y - m, w = Math.max(1, Math.ceil((b.w + 2 * m) * k)), h = Math.max(1, Math.ceil((b.h + 2 * m) * k));
   tmp.width = sil.width = w; tmp.height = sil.height = h;
   const t = tmp.getContext('2d')!;
+  t.imageSmoothingEnabled = true;
+  t.imageSmoothingQuality = 'high';
   t.setTransform(k, 0, 0, k, -bx * k, -by * k);
   trazar(t);
   const sx = sil.getContext('2d')!;
@@ -107,9 +149,10 @@ function dibujarItem(ctx: CanvasRenderingContext2D, it: Item, ms: number, size: 
   sx.globalCompositeOperation = 'source-in';
   sx.fillStyle = HUESO; sx.fillRect(0, 0, w, h);
 
-  // se dibuja en píxeles del lienzo, sin la escala del escenario
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
   const ox = bx * k, oy = by * k, r = BORDE * k;
   ctx.save();
   ctx.shadowColor = 'rgba(0,0,0,0.32)'; ctx.shadowBlur = 2.5 * k; ctx.shadowOffsetX = 1 * k; ctx.shadowOffsetY = 1.8 * k;
@@ -128,6 +171,8 @@ export function dibujarEscenario(
   fondo: { dur: number; capas: Capa[] } = FONDO, borde = true
 ) {
   ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
   ctx.setTransform(size / ESCENARIO, 0, 0, size / ESCENARIO, 0, 0);
   ctx.clearRect(0, 0, ESCENARIO, ESCENARIO);
   dibujarCapas(ctx, fondo.capas, fondo.dur, ms);
@@ -139,17 +184,18 @@ export function dibujarEscenario(
 }
 
 // Caja del item en coordenadas del escenario (para tocar, seleccionar y escalar).
-export function cajaItem(it: Item) {
+export function cajaItem(it: Item, ms = 0) {
   const [, , bw, bh] = pieza(it.tipo).caja;
   const w = bw * it.escala, h = bh * it.escala;
-  return { x: it.x - w / 2, y: it.y - h / 2, w, h };
+  const pos = posicionItem(it, ms);
+  return { x: pos.x - w / 2, y: pos.y - h / 2, w, h };
 }
 
-export function dibujarSeleccion(ctx: CanvasRenderingContext2D, size: number, it: Item) {
-  const k = size / ESCENARIO, b = cajaItem(it);
+export function dibujarSeleccion(ctx: CanvasRenderingContext2D, size: number, it: Item, ms = 0) {
+  const k = size / ESCENARIO, b = cajaItem(it, ms);
   ctx.save();
   ctx.setTransform(k, 0, 0, k, 0, 0);
-  ctx.lineWidth = 1.4; ctx.strokeStyle = '#FFC20E'; ctx.setLineDash([4, 3]);
+  ctx.lineWidth = 1.5; ctx.strokeStyle = '#FFC20E'; ctx.setLineDash([5, 4]);
   ctx.strokeRect(b.x, b.y, b.w, b.h);
   ctx.setLineDash([]);
   ctx.fillStyle = '#FFC20E'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1.2;

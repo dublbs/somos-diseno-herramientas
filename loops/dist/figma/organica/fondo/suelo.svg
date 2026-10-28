@@ -1,0 +1,29 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="suelo_noise" x="-30" y="195" width="300" height="60" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+      <feTurbulence type="fractalNoise" baseFrequency="1.2 1.2" numOctaves="3" result="noise" seed="4"/>
+      <feColorMatrix in="noise" type="luminanceToAlpha" result="alphaNoise"/>
+      <feComponentTransfer in="alphaNoise" result="cNoise">
+        <feFuncA type="discrete" tableValues="0 0 0 0 0 0 0 0 1 1 1 1 1 0 0 0 0 0 0 0"/>
+      </feComponentTransfer>
+      <feComposite operator="in" in2="shape" in="cNoise" result="clippedNoise"/>
+      <feFlood flood-color="rgba(0, 50, 20, 0.22)" result="shade"/>
+      <feComposite operator="in" in2="clippedNoise" in="shade" result="shaded"/>
+      <feMerge>
+        <feMergeNode in="shape"/>
+        <feMergeNode in="shaded"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Suelo base andino verde orgánico -->
+  <g filter="url(#suelo_noise)">
+    <path d="M-20 250 L-20 216 Q20 210, 60 215 T140 211 T220 217 T270 212 L270 250 Z" fill="#00A651"/>
+  </g>
+  <!-- Capa frontal de relieve con borde de papel -->
+  <g filter="url(#suelo_noise)">
+    <path d="M-20 250 L-20 226 Q40 220, 95 225 T190 221 T270 224 L270 250 Z" fill="#008842"/>
+  </g>
+  <path d="M-20 216 Q20 210, 60 215 T140 211 T220 217 T270 212" stroke="#F4EEE3" stroke-width="1.2" fill="none" opacity="0.6"/>
+</svg>

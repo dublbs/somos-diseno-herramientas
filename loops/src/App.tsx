@@ -22,9 +22,19 @@ export const App: React.FC = () => {
   return (
     <>
       <header className="top">
-        <a className="volver" href="../../" id="volver-hub"><span aria-hidden="true">←</span> Experiencias</a>
-        <div className="marca">Teatro de Papel <span className="chip">Orgánica</span></div>
+        <a className="volver" href="../../" id="volver-hub">
+          <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+          Experiencias
+        </a>
       </header>
+
+      <div className="intro-teatro">
+        <h1>Teatro de Papel</h1>
+        <p className="bajada">
+          Elige un paisaje, añade personajes y elementos de la naturaleza, y anímalos en un teatro de papel en loop.
+          Ajusta sus movimientos, tamaño y llévate tu video o tarjeta.
+        </p>
+      </div>
 
       <EscenarioOrganico
         onExportar={exportarPng}
