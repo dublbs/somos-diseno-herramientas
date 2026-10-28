@@ -54,9 +54,59 @@ export function posicionItem(it: Item, ms = 0): { x: number; y: number; espejo: 
 }
 
 const cache = new Map<string, HTMLImageElement>();
-export function cargarImagen(src: string): Promise<HTMLImageElement> {
+const dimensionesLogicas = new Map<string, { w: number; h: number }>();
+
+export async function cargarImagen(src: string): Promise<HTMLImageElement> {
   const hay = cache.get(src);
   if (hay) return hay.complete ? Promise.resolve(hay) : new Promise(r => hay.addEventListener('load', () => r(hay), { once: true }));
+
+  if (src.endsWith('.svg')) {
+    try {
+      const resp = await fetch(src);
+      if (resp.ok) {
+        let svg = await resp.text();
+        const vbMatch = svg.match(/viewBox="([^"]+)"/);
+        const wMatch = svg.match(/width="([^"]+)"/);
+        const hMatch = svg.match(/height="([^"]+)"/);
+
+        let origW = wMatch ? parseFloat(wMatch[1]) : 240;
+        let origH = hMatch ? parseFloat(hMatch[1]) : 240;
+
+        if (vbMatch) {
+          const parts = vbMatch[1].trim().split(/\s+/).map(Number);
+          if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+            origW = parts[2];
+            origH = parts[3];
+          }
+        } else {
+          svg = svg.replace('<svg', `<svg viewBox="0 0 ${origW} ${origH}"`);
+        }
+
+        dimensionesLogicas.set(src, { w: origW, h: origH });
+
+        // Multiplicador 4x (mínimo 960px) para máxima nitidez vectorial en pantallas Retina y al agrandar figuras
+        const mult = Math.max(4, Math.ceil(960 / Math.max(origW, origH)));
+        const nuevoW = Math.round(origW * mult);
+        const nuevoH = Math.round(origH * mult);
+
+        svg = svg.replace(/width="[^"]+"/, `width="${nuevoW}"`);
+        svg = svg.replace(/height="[^"]+"/, `height="${nuevoH}"`);
+
+        const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+        const blobUrl = URL.createObjectURL(blob);
+        const im = new Image();
+        cache.set(src, im);
+        return new Promise((res, rej) => {
+          im.onload = () => res(im);
+          im.onerror = rej;
+          im.src = blobUrl;
+        });
+      }
+    } catch {
+      // Fallback a carga estándar si fetch no está disponible
+    }
+  }
+
   const im = new Image();
   cache.set(src, im);
   return new Promise((res, rej) => { im.onload = () => res(im); im.onerror = rej; im.src = src; });
@@ -86,9 +136,12 @@ function dibujarCapas(ctx: CanvasRenderingContext2D, capas: Capa[], durMs: numbe
     const c = capas[i];
     const im = cache.get(c.src);
     if (!im || !im.complete) continue;
+    const dim = dimensionesLogicas.get(c.src);
+    const w = c.w ?? dim?.w ?? (im.naturalWidth > 500 ? 240 : im.naturalWidth);
+    const h = c.h ?? dim?.h ?? (im.naturalHeight > 500 ? 240 : im.naturalHeight);
     ctx.save();
     aplicar(ctx, pistas ? pistas[i] : c.pistas, u, c.pivote);
-    ctx.drawImage(im, c.x, c.y, c.w ?? im.naturalWidth, c.h ?? im.naturalHeight);
+    ctx.drawImage(im, c.x, c.y, w, h);
     ctx.restore();
   }
 }
