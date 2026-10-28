@@ -9,7 +9,7 @@
 | A2 miniatura de Teatro de Papel con arte real | Hecha (verificada con capturas Playwright) |
 | A3 miniaturas Graffiti/Audioreactiva/Jardín, retirar Píxeles del hub y de los scripts raíz | Hecha. La carpeta `taller-de-pixeles/` **sigue en el repo**: falta tu OK para archivarla |
 | A4 `fullscreenchange`, reduced-motion, fuentes autoalojadas (`shared/somos-fonts.css`), texto del footer | Hecha (sin ninguna petición externa en el hub) |
-| A5 assets de Graffiti | **Parcial:** muros generados; stickers/persiana/tag de Figma bloqueados porque la red del entorno no permite `www.figma.com` (ver `docs/plans/002-graffiti/assets.manifest.md`) |
+| A5 assets de Graffiti | Hecha: 7 muros (2 generados), 8 stickers, tag y cuentagotas descargados de Figma; manifiesto completo |
 | A6 QR del Fotomatón | Diagnosticado y confirmado; la corrección va como tarea T-002 (toca `fotomaton/src`, zona de Antigravity) |
 | A7 planes y tareas para Antigravity | Hecha (`docs/plans/001-*`, `002-*`, `docs/tasks/001-*`, `002-*`) |
 | A8 revisión final | Pendiente (cuando Antigravity termine) |
@@ -283,7 +283,7 @@ Contexto a entregarle: `AGENTS.md`, `docs/plans/00X`, `docs/tasks/00X` y el mani
 ## 9. Decisiones abiertas
 1. Alcance exacto de Graffiti (herramientas, stencils, exportación).
 2. Despliegue: un dominio con todo vs. Fotomatón aparte (condiciona el QR).
-3. ¿TypeScript 5.9 o 7 para todos?
+3. ~~¿TypeScript 5.9 o 7?~~ **Decidido: 7.0.2 en todas las apps** (pendiente: `taller-mosaicos` y, cuando su responsable lo decida, `loops`).
 4. ¿Se retoma `credencial/`? ¿Qué Pixel entra después de Graffiti?
 5. Quién administra Supabase y sus claves.
 

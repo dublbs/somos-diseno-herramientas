@@ -5,7 +5,7 @@ Contexto y reglas: `AGENTS.md` y `docs/plans/002-graffiti.md`. Un commit por tar
 ## T-010 · Scaffold de `graffiti/`
 - Archivos a crear: `graffiti/package.json`, `graffiti/tsconfig.json`, `graffiti/vite.config.ts`, `graffiti/index.html`, `graffiti/.gitignore`, `graffiti/src/main.tsx`, `graffiti/src/App.tsx`, `graffiti/src/styles.css`. Archivos a editar: `package.json` (raíz).
 - Cambio:
-  - Copia `package.json`, `tsconfig.json` y `vite.config.ts` de `taller-mosaicos/` cambiando `name` a `graffiti`. En `vite.config.ts` conserva `base: './'` y agrega `server: { fs: { allow: ['..'] } }`.
+  - Copia `package.json`, `tsconfig.json` y `vite.config.ts` de `taller-mosaicos/` cambiando `name` a `graffiti` y `typescript` a `^7.0.2` (decisión del equipo: TypeScript 7 en todas las apps). En `vite.config.ts` conserva `base: './'` y agrega `server: { fs: { allow: ['..'] } }`.
   - `index.html`: título "Graffiti y Tags · Somos Diseño", `<html lang="es">`, **sin** `<link>` a Google Fonts (las fuentes salen de `shared/`).
   - `styles.css`: primera línea `@import '../../shared/somos-ui.css';` y luego `@import '../../shared/somos-fonts.css';`.
   - `App.tsx`: `useEffect` que fija `document.documentElement.dataset.visual = 'Pixel'`; encabezado con `<a className="volver" href="../../">` y el título; un `<main>` vacío por ahora.
@@ -16,7 +16,7 @@ Contexto y reglas: `AGENTS.md` y `docs/plans/002-graffiti.md`. Un commit por tar
 
 ## T-011 · Lienzo con muro y cuadrícula
 - Archivos: `graffiti/src/components/Lienzo.tsx` (nuevo), `graffiti/src/data/config.ts` (nuevo: `COLS = 60`, `FILAS = 60`, `PALETA`, `MUROS`), `graffiti/src/App.tsx`.
-- Cambio: un `<canvas>` cuadrado que ocupa el ancho disponible (`ResizeObserver`, DPR máximo 2). Dibuja el muro elegido (`public/figma/muros/ladrillo.svg` o `hormigon.svg`, rutas con `import.meta.env.BASE_URL`) con `imageSmoothingEnabled = false` y encima el estado de pintura (`Uint8Array(COLS*FILAS)`, color = `PALETA[i-1]`, 0 = vacío) como `fillRect` por celda. Selector de muro con dos botones (`role="radiogroup"`). Cuadrícula tenue opcional (botón on/off, apagada por defecto).
+- Cambio: un `<canvas>` cuadrado que ocupa el ancho disponible (`ResizeObserver`, DPR máximo 2). Dibuja el muro elegido (`public/figma/muros/ladrillo.svg` o `hormigon.svg`, rutas con `import.meta.env.BASE_URL`) con `imageSmoothingEnabled = false` y encima el estado de pintura (`Uint8Array(COLS*FILAS)`, color = `PALETA[i-1]`, 0 = vacío) como `fillRect` por celda. Selector de muro con cuatro botones (`role="radiogroup"`). Cuadrícula tenue opcional (botón on/off, apagada por defecto).
 - No tocar: el estado compartido aún no existe; mantén el estado en `App.tsx` con `useState`/`useRef`.
 - Verificar: build; ver ambos muros en viewport 1024×768 y 768×1024.
 - [ ] Hecha
@@ -48,9 +48,11 @@ Contexto y reglas: `AGENTS.md` y `docs/plans/002-graffiti.md`. Un commit por tar
 - Verificar: build; descargar el PNG y abrirlo: arte nítido (sin suavizado) y franja con el texto legible.
 - [ ] Hecha
 
-## T-016 · Stickers y stencils *(BLOQUEADA hasta que Claude complete el manifiesto)*
-- Depende de que `docs/plans/002-graffiti/assets.manifest.md` marque como descargados los SVG de `graffiti/public/figma/stickers/`. **No inventes ni dibujes stickers.**
-- Cambio (cuando se desbloquee): herramienta "Sticker" que estampa el SVG elegido en la celda tocada, rasterizado a la cuadrícula; entra a la pila de deshacer.
+## T-016 · Stickers y stencils
+- Assets listos: `graffiti/public/figma/stickers/*.svg` (8 stickers de 240×240) y `tag/tag-ejemplo.svg` (ver manifiesto). **No inventes ni dibujes stickers.**
+- Archivos: `graffiti/src/data/config.ts` (lista `STICKERS` con id, nombre y ruta), `graffiti/src/components/Panel.tsx`, `graffiti/src/components/Lienzo.tsx`.
+- Cambio: herramienta "Sticker" con una grilla de miniaturas (botones de 56 px mínimo). Con un sticker elegido, tocar el lienzo lo estampa centrado en la celda tocada con tamaño 24×24 celdas (1 toque = 1 estampa, no arrastra). El estampado se guarda **como imagen sobre una capa aparte** (`stickers[]` con `{id, x, y}`) y se dibuja encima de la pintura con `imageSmoothingEnabled = false`; entra a la pila de deshacer (la pila guarda pintura + lista de stickers). El borrador no afecta stickers; "Vaciar" sí los quita. Incluye los stickers en la exportación de T-015.
+- Verificar: `npm --prefix graffiti run build`; estampar 3 stickers, deshacer uno, exportar el PNG: aparecen.
 - [ ] Hecha
 
 ## T-017 · README de `graffiti/` y checklist

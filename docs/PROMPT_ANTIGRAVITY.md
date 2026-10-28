@@ -20,4 +20,4 @@ Cuando termines un plan, resume qué tareas quedaron hechas y cuáles bloqueadas
 Empieza por: docs/tasks/001-limpieza.md
 ```
 
-Orden sugerido: `001-limpieza` (independiente) → `002-graffiti` (T-010 a T-015 y T-017; T-016 espera los stickers de Figma).
+Orden sugerido: `001-limpieza` (independiente) → `002-graffiti` (T-010 a T-017; los assets ya están descargados).

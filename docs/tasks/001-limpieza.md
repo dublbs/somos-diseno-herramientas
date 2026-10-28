@@ -66,6 +66,9 @@ Contexto y reglas: `AGENTS.md` y `docs/plans/001-limpieza.md`. Un commit por tar
 - Verificar: las rutas citadas existen.
 - [ ] Hecha
 
-## T-010 · Unificar TypeScript *(en espera de decisión)*
-- **No ejecutar hasta que la persona responsable elija versión.** Fotomatón usa `^7.0.2`; Loops y Mosaicos `^5.6.3`.
+## T-010 · Unificar TypeScript en `^7.0.2`
+- Decisión del equipo: **TypeScript 7.0.2 en todas las apps**.
+- Archivos: `taller-mosaicos/package.json` y su `package-lock.json`. **`loops/` queda fuera:** lo trabaja otra persona; anótalo al final de `docs/ESTADO_DEL_HUB.md` como pendiente para quien lo mantiene. (`fotomaton` ya está en `^7.0.2`; `graffiti` nace con 7.)
+- Cambio: en `taller-mosaicos/package.json` cambia `"typescript"` a `"^7.0.2"` y corre `npm --prefix taller-mosaicos install` para actualizar el lockfile.
+- Verificar: `npm --prefix taller-mosaicos run build` sin errores de tipos (si TypeScript 7 rompe algo, anota el error exacto en la tarea y detente).
 - [ ] Hecha
