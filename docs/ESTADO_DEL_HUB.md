@@ -2,6 +2,18 @@
 
 > Actualizado: 2026-10-28 · Rama: `claude/ecstatic-lovelace-xjgq6d`
 
+### Estado de ejecución (Set A)
+| Tarea | Estado |
+|---|---|
+| A1 documento, `AGENTS.md`, carpetas de planes | Hecha |
+| A2 miniatura de Teatro de Papel con arte real | Hecha (verificada con capturas Playwright) |
+| A3 miniaturas Graffiti/Audioreactiva/Jardín, retirar Píxeles del hub y de los scripts raíz | Hecha. La carpeta `taller-de-pixeles/` **sigue en el repo**: falta tu OK para archivarla |
+| A4 `fullscreenchange`, reduced-motion, fuentes autoalojadas (`shared/somos-fonts.css`), texto del footer | Hecha (sin ninguna petición externa en el hub) |
+| A5 assets de Graffiti | **Parcial:** muros generados; stickers/persiana/tag de Figma bloqueados porque la red del entorno no permite `www.figma.com` (ver `docs/plans/002-graffiti/assets.manifest.md`) |
+| A6 QR del Fotomatón | Diagnosticado y confirmado; la corrección va como tarea T-002 (toca `fotomaton/src`, zona de Antigravity) |
+| A7 planes y tareas para Antigravity | Hecha (`docs/plans/001-*`, `002-*`, `docs/tasks/001-*`, `002-*`) |
+| A8 revisión final | Pendiente (cuando Antigravity termine) |
+
 ## 1. Resumen en 60 segundos
 
 - El hub es una **portada táctil para tablet/quiosco** (`index.html`, HTML plano, 472 líneas) con tarjetas hacia apps Vite independientes.
@@ -56,7 +68,7 @@ Tarjetas: Fotomatón (`:89`), Mosaicos (`:104`), Píxeles (`:119`, "Próximament
 - **Pendiente declarado:** 15 marcos; envío en tiempo real a "Pantalla Flip".
 - **Riesgos a verificar antes de usarlo en vivo:**
   1. `Camara.tsx:19-25`: `setInterval` de la cuenta regresiva sin limpiar al desmontar.
-  2. **QR (inferido, sin probar):** el enlace es `${location.origin}/f/${id}`, pero la app usa `base: './'` y `vercel.json` solo reescribe `/f/:id`. Dentro del hub (`/fotomaton/dist/`) la ruta no existe → probablemente solo funciona desplegado como proyecto independiente en raíz.
+  2. **QR (bug confirmado con Playwright):** `/f/<id>` queda en blanco: con `base: './'` los assets se piden a `/f/assets/…` y el servidor responde HTML (`vercel.json` solo reescribe `/f/:id`). Además el enlace `${location.origin}/f/${id}` no existe si la app se sirve desde `<hub>/fotomaton/dist/`. Solución decidida: `HashRouter` + enlace con `location.pathname` (tarea T-002 del plan 001).
   3. El cron `pg_cron` de borrado a 24 h está comentado en la migración.
   4. Sin `prefers-reduced-motion`; canvas sin `aria-label`.
 
