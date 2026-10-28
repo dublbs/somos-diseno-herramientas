@@ -54,22 +54,47 @@
   text-wrap: pretty;
 }
 
+/* Layout responsivo Viewport-Fit para Tablets y Desktop (cero scroll de body) */
+.layout-mosaicos {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  padding: 4px 16px 20px;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+}
+@media (min-width: 768px) and (min-height: 500px) {
+  .layout-mosaicos {
+    grid-template-columns: minmax(0, 1.2fr) minmax(320px, 390px);
+    align-items: stretch;
+    gap: 20px;
+    padding: 2px 16px 12px;
+    flex: 1;
+    min-height: 0;
+    height: calc(100dvh - 54px);
+    overflow: hidden;
+  }
+}
+
 .escena {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   min-width: 0;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
 }
-@media (min-width: 900px) {
+@media (min-width: 768px) and (min-height: 500px) {
   .escena {
-    position: sticky;
-    top: 16px;
+    position: static;
   }
 }
 
 .marco {
   width: 100%;
-  margin: 0 auto;
+  margin: auto;
   border: var(--borde);
   box-shadow: 6px 6px 0 var(--accent);
   background: #F4EEE3;
@@ -90,11 +115,27 @@
   outline-offset: 4px;
 }
 
-/* Panel */
+/* Panel con scroll interno táctil y altura contenida */
 .panel {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
+  padding: 16px;
+  background: var(--surface);
+  border-radius: var(--r);
+  box-shadow: var(--sombra-btn);
+}
+@media (min-width: 768px) and (min-height: 500px) {
+  .panel {
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .pool {
+    max-height: 170px;
+  }
 }
 
 .bloque {

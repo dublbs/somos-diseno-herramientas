@@ -410,23 +410,21 @@ export const App: React.FC = () => {
   };
 
   return (
-    <>
-      <header className="top">
-        <a className="volver" href="../../" id="volver-hub">
-          <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
-          Experiencias
-        </a>
+    <div className="app-pantalla">
+      <header className="barra-superior">
+        <div className="lado-izq">
+          <a className="volver" href="../../" id="volver-hub">
+            <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+            Experiencias
+          </a>
+          <div className="barra-info">
+            <h1>Taller de Mosaicos</h1>
+            <p className="bajada-corta">Diseña símbolos y patrones geométricos interactivos</p>
+          </div>
+        </div>
       </header>
 
-      <div className="intro-mosaicos">
-        <h1>Taller de Mosaicos</h1>
-        <p className="bajada">
-          Elige un formato, selecciona una forma y toca el lienzo para diseñar tu símbolo o patrón.
-          Experimenta con giros, simetrías y paletas de color.
-        </p>
-      </div>
-
-      <div className="layout">
+      <div className="layout layout-mosaicos">
         <section className="escena" aria-label="Mosaico">
           <Lienzo
             formato={formato}
@@ -472,6 +470,6 @@ export const App: React.FC = () => {
           estadoMsg={estadoMsg}
         />
       </div>
-    </>
+    </div>
   );
 };
