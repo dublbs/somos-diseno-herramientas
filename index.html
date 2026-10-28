@@ -353,41 +353,186 @@ footer{margin-top:auto;padding-top:16px;border-top:1.5px solid var(--line);font-
     });
   }
 
-  // 4. Estación de Loops (Motion)
+  // 4. Teatro de Papel: usa el arte real de loops/ (los mismos SVG de Figma y los mismos movimientos
+  // de loops/src/escenario/piezas.ts). Si los SVG no cargan, queda el dibujo a mano de respaldo.
   const cvLoops = document.getElementById("cv-loops");
   if (cvLoops) {
     const ctx = cvLoops.getContext("2d");
+
+    // Rutas de los SVG publicados por loops (build en loops/dist/). Si Loops renombra algo, se cambia solo aquí.
+    const BASE_LOOPS = "loops/dist/figma/organica/";
+    const ASSETS_LOOPS = {
+      cielo: "fondo/cielo", lejano: "fondo/cordon-lejano", cercano: "fondo/cordon-cercano", suelo: "fondo/suelo",
+      sol: "sol/sol", araucaria: "araucaria/araucaria",
+      pCola: "pudu/cola", pPata1: "pudu/pata1", pPata2: "pudu/pata2", pPata3: "pudu/pata3", pPata4: "pudu/pata4",
+      pCuerpo: "pudu/cuerpo", pCabeza: "pudu/cabeza",
+      aCola: "paloma/cola", aAlaS: "paloma/ala-superior", aAlaI: "paloma/ala-inferior",
+      aCuerpo: "paloma/cuerpo", aCabeza: "paloma/cabeza", aPico: "paloma/pico", aOjo: "paloma/ojo"
+    };
+    const imgs = {};
+    let listo = false;
+    Promise.all(Object.entries(ASSETS_LOOPS).map(([k, ruta]) => new Promise((ok, no) => {
+      const im = new Image();
+      im.onload = () => { imgs[k] = im; ok(); };
+      im.onerror = no;
+      im.src = BASE_LOOPS + ruta + ".svg";
+    }))).then(() => { listo = true; }).catch(() => { /* sin SVG: se queda el respaldo */ });
+
+    const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const FPS_LOOPS = 12;                 // stop-motion, como la experiencia
+    const ESCENA = 240, OY = 66;          // escena cuadrada de 240; se muestra una franja de alto OY..OY+alto
+    const rad = g => g * Math.PI / 180;
+
+    // Muestreo de pistas (t = 0..1) con easeInOut aproximado, o lineal para curvas ya muestreadas.
+    const suave = f => f < 0.5 ? 2 * f * f : 1 - Math.pow(-2 * f + 2, 2) / 2;
+    const pista = (t, v, u, lineal) => {
+      for (let i = 0; i < t.length - 1; i++) {
+        if (u <= t[i + 1]) {
+          const f = (u - t[i]) / (t[i + 1] - t[i]);
+          return v[i] + (v[i + 1] - v[i]) * (lineal ? f : suave(f));
+        }
+      }
+      return v[v.length - 1];
+    };
+    const T5 = [0, 0.25, 0.5, 0.75, 1];
+    const U13 = Array.from({ length: 13 }, (_, i) => i / 12);
+    const ALA = [0, 2.391, 4.741, 6.576, 6.831, 4.502, 0, -4.502, -6.831, -6.576, -4.741, -2.391, 0];
+    const ALA_Y = [1, 0.977, 0.9, 0.75, 0.537, 0.329, 0.24, 0.329, 0.537, 0.75, 0.9, 0.977, 1];
+
+    // Una capa: se dibuja en (x, y) con su tamaño natural y rota/escala alrededor de su pivote.
+    const capa = (g, k, x, y, pivote, rot, sx, sy) => {
+      const im = imgs[k];
+      g.save();
+      if (pivote) {
+        g.translate(pivote[0], pivote[1]); g.rotate(rad(rot || 0)); g.scale(sx == null ? 1 : sx, sy == null ? 1 : sy); g.translate(-pivote[0], -pivote[1]);
+      }
+      g.drawImage(im, x, y, im.naturalWidth, im.naturalHeight);
+      g.restore();
+    };
+
+    // Piezas en su marco de 240 (mismas coordenadas, pivotes y pistas que piezas.ts).
+    const sol = (g, ms) => {
+      const u = (ms % 8000) / 8000, e = pista(T5, [1, 1.05, 1, 1.05, 1], (ms % 4000) / 4000);
+      capa(g, "sol", 0, 0, [120, 58], 360 * u, e, e);
+    };
+    const araucaria = (g, ms) => {
+      const u = (ms % 4000) / 4000;
+      capa(g, "araucaria", 0, 0, [120, 222.8], pista(T5, [0, -2.5, 0, 2.5, 0], u), 1, pista(T5, [1, 1.02, 1, 1.02, 1], u));
+    };
+    const pudu = (g, ms) => {
+      const u = (ms % 1000) / 1000, patas = pista([0, 0.5, 1], [-16, 16, -16], u);
+      g.save(); g.translate(0, pista(T5, [0, -3, 0, -3, 0], u));
+      capa(g, "pCola", 0, 0, [63.6, 116.4], pista(T5, [0, -20, 0, -20, 0], u));
+      capa(g, "pPata1", 0, 0, [72, 139], patas);
+      capa(g, "pPata2", 0, 0, [91.2, 139], -patas);
+      capa(g, "pPata3", 0, 0, [132, 139], -patas);
+      capa(g, "pPata4", 0, 0, [148.8, 139], patas);
+      capa(g, "pCuerpo", 0, 0);
+      capa(g, "pCabeza", 0, 0, [153.6, 120], pista(T5, [0, 5, 0, 5, 0], u));
+      g.restore();
+    };
+    const paloma = (g, ms) => {
+      const u = (ms % 1000) / 1000;
+      g.save(); g.translate(pista(U13, [0, 1.025, 2.032, 2.818, 2.927, 1.929, 0, -1.929, -2.927, -2.818, -2.032, -1.025, 0], u, true), 0);
+      capa(g, "aCola", -148, -119, [92, 121], pista(U13, [-2.524, -2.926, -2.955, -2.388, -1.03, 0.891, 2.524, 2.976, 2.134, 0.657, -0.759, -1.819, -2.524], u, true));
+      const ala = pista(U13, ALA, u, true), alaY = pista(U13, ALA_Y, u, true);
+      capa(g, "aAlaS", -130, -127, [110, 113], ala, 1, alaY);
+      capa(g, "aAlaI", -130, -112, [110, 128], -ala, 1, alaY);
+      capa(g, "aCuerpo", 75.7, 98.9); capa(g, "aCabeza", 169.3, 102.8); capa(g, "aPico", 199.6, 115.3); capa(g, "aOjo", 185.7, 108.3);
+      g.restore();
+    };
+    // caja = [x, y, ancho, alto] de piezas.ts; la pieza se centra en (px, py) de la escena.
+    const PIEZAS_LOOPS = [
+      { dibujar: sol, caja: [76, 14, 88, 88], x: 184, y: 106, e: 0.72 },
+      { dibujar: araucaria, caja: [72, 146, 96, 80], x: 34, y: 172, e: 0.9 },
+      { dibujar: pudu, caja: [40, 62, 176, 134], x: 126, y: 168, e: 0.6 },
+      { dibujar: paloma, caja: [20, 10, 200, 222], x: 0, y: 110, e: 0.42, vuela: true }
+    ];
+
+    // Papel recortado: sombra suave + contorno de hueso alrededor de cada pieza.
+    const fuera = document.createElement("canvas"), sil = document.createElement("canvas");
+    function conPapel(W, H, k, dibujar) {
+      fuera.width = sil.width = W; fuera.height = sil.height = H;
+      dibujar(fuera.getContext("2d"));
+      const s = sil.getContext("2d");
+      s.drawImage(fuera, 0, 0);
+      s.globalCompositeOperation = "source-in"; s.fillStyle = HEX.Hueso; s.fillRect(0, 0, W, H);
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0); // las capas auxiliares ya vienen en píxeles del canvas
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,.28)"; ctx.shadowBlur = 3 * k; ctx.shadowOffsetX = k; ctx.shadowOffsetY = 2 * k;
+      ctx.drawImage(sil, 0, 0);
+      ctx.restore();
+      const r = 1.5 * k;
+      for (let i = 0; i < 8; i++) ctx.drawImage(sil, Math.cos(i * Math.PI / 4) * r, Math.sin(i * Math.PI / 4) * r);
+      ctx.drawImage(fuera, 0, 0);
+      ctx.restore();
+    }
+
+    function escenaReal(ms) {
+      const { width: W, height: H } = cvLoops, k = W / ESCENA;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = HEX.Hueso; ctx.fillRect(0, 0, W, H);
+      ctx.setTransform(k, 0, 0, k, 0, -OY * k);
+      const u4 = (ms % 4000) / 4000;
+      capa(ctx, "cielo", 0, 0);
+      capa(ctx, "lejano", -1.7 + pista([0, 0.5, 1], [0, -10, 0], u4), 0);
+      capa(ctx, "cercano", -6.6 + pista([0, 0.5, 1], [0, 16, 0], u4), 0);
+      capa(ctx, "suelo", 0, 0);
+      for (const p of PIEZAS_LOOPS) {
+        const cx = p.caja[0] + p.caja[2] / 2, cy = p.caja[1] + p.caja[3] / 2;
+        const px = p.vuela ? -30 + ((ms % 9000) / 9000) * 300 : p.x;
+        const py = p.vuela ? p.y + Math.sin(ms * 0.0011) * 4 : p.y;
+        conPapel(W, H, k, g => {
+          g.setTransform(k, 0, 0, k, 0, -OY * k);
+          g.translate(px, py); g.scale(p.e, p.e); g.translate(-cx, -cy);
+          g.imageSmoothingQuality = "high";
+          p.dibujar(g, ms);
+        });
+      }
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+
+    // Respaldo: el dibujo a mano anterior, por si los SVG no llegan a cargar.
+    function escenaRespaldo(t) {
+      const { width: W, height: H } = cvLoops, u = H / 250;
+      ctx.fillStyle = HEX.Rosa; ctx.fillRect(0, 0, W, H);
+      ctx.save(); ctx.translate(W * 0.72, H * 0.3); ctx.rotate(t * 0.0008);
+      const R = 34 * u, rayos = 14;
+      for (let i = 0; i < rayos; i++) {
+        ctx.save(); ctx.rotate((i * 2 * Math.PI) / rayos);
+        ctx.fillStyle = i % 2 ? HEX.Lapislázuli : HEX.Amarillo;
+        ctx.beginPath(); ctx.moveTo(R, -6 * u); ctx.lineTo(R * 1.55, 0); ctx.lineTo(R, 6 * u); ctx.fill();
+        ctx.restore();
+      }
+      ctx.fillStyle = HEX.Hueso; ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      const mece = Math.sin(t * 0.0016) * 6 * u;
+      const cerro = (base, alto, color, desp) => {
+        ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(-10, H);
+        for (let x = -10; x <= W + 60 * u; x += 60 * u) { ctx.lineTo(x + desp + 30 * u, base - alto); ctx.lineTo(x + desp + 60 * u, base); }
+        ctx.lineTo(W + 10, H); ctx.fill();
+      };
+      cerro(H * 0.72, 70 * u, HEX.Morado, -mece);
+      cerro(H * 0.86, 44 * u, HEX.Verde, mece * 1.4);
+      ctx.fillStyle = "#007A3D"; ctx.fillRect(0, H * 0.9, W, H * 0.1);
+      const bote = Math.abs(Math.sin(t * 0.006)) * 5 * u;
+      ctx.fillStyle = HEX.Rosa; ctx.strokeStyle = HEX.Negro; ctx.lineWidth = 2 * u;
+      ctx.beginPath(); ctx.ellipse(W * 0.3, H * 0.8 - bote, 22 * u, 13 * u, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(W * 0.3 + 22 * u, H * 0.72 - bote, 8 * u, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+
+    let ultimoCuadro = -1, ultimoAncho = 0, ultimoAlto = 0, ultimoListo = false;
     miniaturas.push({
       cv: cvLoops, ctx,
       draw: t => {
-        const { width: W, height: H } = cvLoops, u = H / 250;
-        ctx.fillStyle = HEX.Rosa; ctx.fillRect(0, 0, W, H);
-        // sol de papel que gira
-        ctx.save(); ctx.translate(W * 0.72, H * 0.3); ctx.rotate(t * 0.0008);
-        const R = 34 * u, rayos = 14;
-        for (let i = 0; i < rayos; i++) {
-          ctx.save(); ctx.rotate((i * 2 * Math.PI) / rayos);
-          ctx.fillStyle = i % 2 ? HEX.Lapislázuli : HEX.Amarillo;
-          ctx.beginPath(); ctx.moveTo(R, -6 * u); ctx.lineTo(R * 1.55, 0); ctx.lineTo(R, 6 * u); ctx.fill();
-          ctx.restore();
-        }
-        ctx.fillStyle = HEX.Hueso; ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
-        ctx.restore();
-        // cerros que se mecen
-        const mece = Math.sin(t * 0.0016) * 6 * u;
-        const cerro = (base, alto, color, desp) => {
-          ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(-10, H);
-          for (let x = -10; x <= W + 60 * u; x += 60 * u) { ctx.lineTo(x + desp + 30 * u, base - alto); ctx.lineTo(x + desp + 60 * u, base); }
-          ctx.lineTo(W + 10, H); ctx.fill();
-        };
-        cerro(H * 0.72, 70 * u, HEX.Morado, -mece);
-        cerro(H * 0.86, 44 * u, HEX.Verde, mece * 1.4);
-        ctx.fillStyle = "#007A3D"; ctx.fillRect(0, H * 0.9, W, H * 0.1);
-        // pudú que sube y baja
-        const bote = Math.abs(Math.sin(t * 0.006)) * 5 * u;
-        ctx.fillStyle = HEX.Rosa; ctx.strokeStyle = HEX.Negro; ctx.lineWidth = 2 * u;
-        ctx.beginPath(); ctx.ellipse(W * 0.3, H * 0.8 - bote, 22 * u, 13 * u, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        ctx.beginPath(); ctx.arc(W * 0.3 + 22 * u, H * 0.72 - bote, 8 * u, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        const { width: W, height: H } = cvLoops;
+        if (!listo) { escenaRespaldo(t); ultimoListo = false; return; }
+        const ms = quieto ? 1500 : t;
+        const cuadro = Math.floor(ms / (1000 / FPS_LOOPS));
+        if (cuadro === ultimoCuadro && W === ultimoAncho && H === ultimoAlto && ultimoListo) return;
+        ultimoCuadro = cuadro; ultimoAncho = W; ultimoAlto = H; ultimoListo = true;
+        escenaReal(cuadro * (1000 / FPS_LOOPS));
       }
     });
   }
