@@ -412,20 +412,17 @@ footer {
       </li>
 
       <!-- 4. ESTACIÓN DE LOOPS -->
-      <li class="tarjeta proxima" data-lenguajes="pixel geometrica organica" id="exp-loops">
+      <li class="tarjeta" data-lenguajes="pixel geometrica organica" id="exp-loops">
         <div class="miniatura">
-          <div class="miniatura-placeholder">
-            <span>Loop 12 FPS</span>
-          </div>
-          <span class="etiqueta">Transversal · Animación</span>
-          <span class="badge-estado">En desarrollo</span>
+          <canvas id="cv-loops" aria-hidden="true"></canvas>
+          <span class="etiqueta">Transversal · 3 Modos</span>
         </div>
         <div class="cuerpo">
           <h2>Estación de Loops</h2>
-          <p>Crea animaciones en bucle continuo: nivel de juego 8-bit, caleidoscopio geométrico o teatro de marionetas recortadas.</p>
+          <p>Crea animaciones en bucle a 12 FPS: Nivel de juego 8-bit, Caleidoscopio simétrico o Teatro de marionetas recortadas.</p>
         </div>
         <div class="acciones">
-          <div class="btn-disabled">Próximamente</div>
+          <a class="btn-entrar" href="loops/dist/" id="link-loops" aria-label="Entrar a la Estación de Loops">Entrar <span aria-hidden="true">→</span></a>
         </div>
       </li>
 
@@ -631,6 +628,59 @@ footer {
             }
           }
         }
+      }
+    });
+  }
+
+  // 4. Estación de Loops (Motion)
+  const cvLoops = document.getElementById("cv-loops");
+  if (cvLoops) {
+    const ctx = cvLoops.getContext("2d");
+    miniaturas.push({
+      cv: cvLoops, ctx,
+      draw: t => {
+        const { width: W, height: H } = cvLoops;
+        ctx.fillStyle = HEX.Hueso;
+        ctx.fillRect(0, 0, W, H);
+        const cx = W / 2;
+        const cy = H / 2;
+        const radio = Math.min(W, H) * 0.38;
+        const giro = t * 0.0015;
+        const rayos = 8;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(giro);
+
+        for (let s = 0; s < rayos; s++) {
+          ctx.save();
+          ctx.rotate((s * 2 * Math.PI) / rayos);
+          if (s % 2 === 1) ctx.scale(-1, 1);
+
+          // Damero y acordeón rotativo
+          ctx.fillStyle = s % 2 === 0 ? HEX.Lapislázuli : HEX.Rosa;
+          ctx.beginPath();
+          ctx.arc(0, 0, radio, 0, Math.PI / rayos);
+          ctx.arc(0, 0, radio * 0.5, Math.PI / rayos, 0, true);
+          ctx.fill();
+
+          ctx.fillStyle = HEX.Amarillo;
+          ctx.fillRect(radio * 0.25, -2, radio * 0.2, 4);
+
+          ctx.restore();
+        }
+
+        // Centro orgánico / flor
+        const escalaCentro = 1 + Math.sin(t * 0.006) * 0.15;
+        ctx.fillStyle = HEX.Verde;
+        ctx.beginPath();
+        ctx.arc(0, 0, 14 * escalaCentro, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = HEX.Negro;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.restore();
       }
     });
   }
