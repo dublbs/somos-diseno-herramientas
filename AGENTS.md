@@ -13,7 +13,8 @@ Hub de experiencias interactivas de Somos Diseño para tablet (horizontal) y pan
 | `taller-mosaicos/` | Taller de Mosaicos | Geométrica |
 | `loops/` | Teatro de Papel | Orgánica |
 | `graffiti/` | Graffiti y Tags | Pixel |
-| `taller-de-pixeles/` | **Descartado** (fuera del hub y de los scripts; pendiente de archivar) | Pixel |
+
+Taller de Píxeles (descartado) vive solo en la rama `archive/taller-de-pixeles`.
 
 ## Stack (no cambiar sin pedirlo)
 React 18.3.1 · **TypeScript 7.0.2** · Vite 8.3.5 · `@vitejs/plugin-react` 6.1.2 · CSS plano · canvas con `requestAnimationFrame`. Sin librerías ni dependencias nuevas sin aprobación. Nada por CDN: fuentes en `shared/somos-fonts.css`, íconos en `shared/somos-icons.css` (subconjunto de Material Symbols; ver `shared/fonts/README.md` para sumar íconos).
@@ -53,7 +54,6 @@ Toda experiencia usa el sistema de `shared/somos-ui.css` (desde 600 × 560 px no
 | `index.html`, `shared/`, `docs/`, `AGENTS.md`, assets de Figma | Claude Code |
 | `fotomaton/`, `taller-mosaicos/`, `graffiti/` | Claude Code; Antigravity solo mediante tareas escritas en `docs/tasks/` |
 | `loops/` | La persona del equipo que lo trabaja; los agentes lo editan **solo cuando se pide** |
-| `taller-de-pixeles/` | No tocar |
 
 ## Reglas de trabajo
 - Un commit por tarea, mensajes convencionales: `tipo(app): descripción` (`feat`, `fix`, `docs`, `refactor`, `chore`).

@@ -16,13 +16,13 @@
 | Graffiti y Tags (nuevo) | Muro 60×60, spray interpolado, **goteo** animado (máx. 40 chorros; con «reducir movimiento» se pinta de una vez), borrador, deshacer (40), vaciar con doble toque; 4 muros, 8 stickers + tag de Figma (sin fondos de marcos), 8 colores; tarjeta 1080×1350. Tarjeta activa en el hub. |
 | Hub | Miniatura de Teatro de Papel con el arte real; miniaturas canvas para Graffiti, Audioreactiva y Jardín; Píxeles retirado; `fullscreenchange`; reduced-motion sin bucle. Navegación hub → app → volver probada en las 4. |
 | Stack | React 18.3.1 + **TypeScript 7.0.2 en las 4 apps** + Vite 8.3.5. |
+| Taller de Píxeles | Archivado: la carpeta se borró de `main` y el código vive en la rama `archive/taller-de-pixeles`. |
 
 **Sigue pendiente (decisión tuya o fuera del código):**
-1. Archivar `taller-de-pixeles/` (rama `archive/taller-de-pixeles` y borrar la carpeta): falta tu OK.
-2. Fotomatón con Supabase real: activar el `cron.schedule` de limpieza (24 h) en la migración y probar el QR con un celular en la red del evento.
-3. 15 marcos del Fotomatón (hoy 12) y envío a «Pantalla Flip».
-4. Probar todo en la tablet física (táctil real, rendimiento del goteo y de los videos de Teatro de Papel).
-5. Post-MVP: workspaces + `packages/shared`, sacar `dist/` de git, lint/CI, Framer Motion acotado.
+1. Fotomatón con Supabase real: activar el `cron.schedule` de limpieza (24 h) en la migración y probar el QR con un celular en la red del evento.
+2. 15 marcos del Fotomatón (hoy 12) y envío a «Pantalla Flip».
+3. Probar todo en la tablet física (táctil real, rendimiento del goteo y de los videos de Teatro de Papel).
+4. Post-MVP: workspaces + `packages/shared`, sacar `dist/` de git, lint/CI, Framer Motion acotado.
 
 > Las secciones de abajo son el **diagnóstico original** (antes de estos cambios). Se conservan como contexto; varias cosas que describen ya están resueltas (ver tabla de arriba).
 

@@ -9,7 +9,7 @@ Estaciones interactivas para **tablet (horizontal) y pantallas del stand** duran
 | [`loops/`](loops/) | Teatro de Papel | Orgánica | Escena de papel recortado con piezas animadas en loop; exporta video o PNG |
 | [`graffiti/`](graffiti/) | Graffiti y Tags | Pixel | Spray sobre un muro pixel con goteo, muros y stickers; exporta PNG |
 
-`taller-de-pixeles/` está **descartado**: no aparece en el hub ni en los scripts. Estación Audioreactiva y Jardín de Papel figuran como «Próximamente».
+Taller de Píxeles se **descartó** y se archivó en la rama `archive/taller-de-pixeles`. Estación Audioreactiva y Jardín de Papel figuran como «Próximamente».
 
 ## Correr
 ```bash
