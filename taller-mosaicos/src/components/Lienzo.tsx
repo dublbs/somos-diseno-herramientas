@@ -8,7 +8,6 @@ interface LienzoProps {
   herramienta: string;
   grilla: boolean;
   sel: { x: number; y: number; w: number; h: number } | null;
-  misFiguras: { id: string; w: number; h: number; celdas: (Celda & { x: number; y: number })[] }[];
   onAplicar: (x: number, y: number) => void;
   onBorrar: (x: number, y: number) => void;
   onGirarPincel: () => void;
@@ -58,7 +57,6 @@ export const Lienzo: React.FC<LienzoProps> = ({
   herramienta,
   grilla,
   sel,
-  misFiguras,
   onAplicar,
   onBorrar,
   onGirarPincel,
@@ -72,17 +70,12 @@ export const Lienzo: React.FC<LienzoProps> = ({
   const ultimaRef = useRef<string>('');
 
   const celdasDelPincel = useCallback(() => {
-    if (pincel.tipo === 'forma') {
-      return {
-        w: 1,
-        h: 1,
-        celdas: [{ x: 0, y: 0, f: pincel.id, r: pincel.r, e: pincel.e, c: { ...pincel.c } }],
-      };
-    }
-    const fig = misFiguras.find((m) => m.id === pincel.id);
-    if (!fig) return { w: 1, h: 1, celdas: [] };
-    return { w: fig.w, h: fig.h, celdas: fig.celdas };
-  }, [pincel, misFiguras]);
+    return {
+      w: 1,
+      h: 1,
+      celdas: [{ x: 0, y: 0, f: pincel.id, r: pincel.r, e: pincel.e, c: { ...pincel.c } }],
+    };
+  }, [pincel]);
 
   const dentro = useCallback(
     (x: number, y: number) => x >= 0 && y >= 0 && x < formato.cols && y < formato.filas,
@@ -118,8 +111,8 @@ export const Lienzo: React.FC<LienzoProps> = ({
     }
 
     if (grilla) {
-      ctx.strokeStyle = 'rgba(0,0,0,.16)';
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(0,0,0,.15)';
+      ctx.lineWidth = Math.max(1.5, Math.round(t / 90));
       ctx.beginPath();
       for (let x = 1; x < formato.cols; x++) {
         ctx.moveTo(x * t, 0);
@@ -132,12 +125,19 @@ export const Lienzo: React.FC<LienzoProps> = ({
       ctx.stroke();
     }
 
+    const grosorBorde = Math.max(4, Math.round(t * 0.045));
+    const mitadGrosor = grosorBorde / 2;
     const marcar = (x: number, y: number, w: number, h: number, color: string, guion?: boolean) => {
       ctx.save();
-      ctx.lineWidth = 6;
+      ctx.lineWidth = grosorBorde;
       ctx.strokeStyle = color;
-      if (guion) ctx.setLineDash([14, 10]);
-      ctx.strokeRect(x * t + 3, y * t + 3, w * t - 6, h * t - 6);
+      if (guion) ctx.setLineDash([Math.round(t * 0.1), Math.round(t * 0.07)]);
+      ctx.strokeRect(
+        x * t + mitadGrosor,
+        y * t + mitadGrosor,
+        w * t - grosorBorde,
+        h * t - grosorBorde
+      );
       ctx.restore();
     };
 

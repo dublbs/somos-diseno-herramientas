@@ -1,16 +1,25 @@
 import { HEX } from '../data/paletas';
 
-export function exportarTarjetaMotion(
+export const PIE_PNG = 'Fotograma de tu loop · Creado en la estación interactiva';
+
+export async function cargarFuentesTarjeta() {
+  // Espera las fuentes para que la tarjeta no salga con la tipografía de respaldo.
+  try {
+    await Promise.all([
+      document.fonts.load("800 28px 'DM Sans'"),
+      document.fonts.load("600 20px 'IBM Plex Mono'"),
+    ]);
+  } catch { /* usa la fuente de respaldo */ }
+}
+
+// Dibuja la tarjeta de 1080 × 1350 alrededor del lienzo de origen (se usa para el PNG y para cada cuadro del video).
+export function dibujarTarjetaMotion(
+  ctx: CanvasRenderingContext2D,
   canvasOrigen: HTMLCanvasElement,
   nombreModo: string,
-  subtitulo: string
-): Promise<Blob | null> {
-  const tarjeta = document.createElement('canvas');
-  tarjeta.width = 1080;
-  tarjeta.height = 1350;
-  const ctx = tarjeta.getContext('2d');
-  if (!ctx) return Promise.resolve(null);
-
+  subtitulo: string,
+  pie: string = PIE_PNG
+) {
   // Fondo mesa/papel
   ctx.fillStyle = HEX.Hueso;
   ctx.fillRect(0, 0, 1080, 1350);
@@ -27,7 +36,7 @@ export function exportarTarjetaMotion(
 
   ctx.fillStyle = HEX.Lapislázuli;
   ctx.font = "600 20px 'IBM Plex Mono', monospace";
-  ctx.fillText(`ESTACIÓN DE LOOPS · ${subtitulo.toUpperCase()}`, 70, 145);
+  ctx.fillText(`TEATRO DE PAPEL · ${subtitulo.toUpperCase()}`, 70, 145);
 
   // Marco de la animación (cuadrado 940 × 940)
   const marcoX = 70;
@@ -57,7 +66,7 @@ export function exportarTarjetaMotion(
 
   ctx.fillStyle = '#55555e';
   ctx.font = "500 22px 'DM Sans', sans-serif";
-  ctx.fillText('Loop animado a 12 FPS · Creado en la estación interactiva', 70, 1240);
+  ctx.fillText(pie, 70, 1240);
 
   // Logo INACAP en rojo oficial (#E2001A)
   ctx.fillStyle = '#E2001A';
@@ -67,6 +76,20 @@ export function exportarTarjetaMotion(
   ctx.fillStyle = HEX.Negro;
   ctx.font = "600 16px 'IBM Plex Mono', monospace";
   ctx.fillText('SEDE SANTIAGO CENTRO', 780, 1246);
+}
+
+export async function exportarTarjetaMotion(
+  canvasOrigen: HTMLCanvasElement,
+  nombreModo: string,
+  subtitulo: string
+): Promise<Blob | null> {
+  await cargarFuentesTarjeta();
+  const tarjeta = document.createElement('canvas');
+  tarjeta.width = 1080;
+  tarjeta.height = 1350;
+  const ctx = tarjeta.getContext('2d');
+  if (!ctx) return null;
+  dibujarTarjetaMotion(ctx, canvasOrigen, nombreModo, subtitulo);
 
   return new Promise((resolve) => {
     tarjeta.toBlob(resolve, 'image/png');

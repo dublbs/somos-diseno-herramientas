@@ -10,7 +10,8 @@ import { Selector } from './components/Selector';
 import { useRetardo } from './hooks/useRetardo';
 import { cargarCara, detectarCara } from './lib/cara';
 import { exportarTarjeta, nombreArchivo } from './lib/tarjeta';
-import { DEMO, componer, leerArchivo } from './lib/trama';
+import { componer, leerArchivo } from './lib/trama';
+import { demoDe, useDemosListas } from './lib/demo';
 
 const REVELADO_MIN = 1800, RETARDO_MARCO = 1500;
 type Paso = 'inicio' | 'camara' | 'editar' | 'qr';
@@ -29,11 +30,12 @@ export function App() {
   const revelar = () => { inicioRevelado.current = performance.now(); setRevelando(true); };
 
   useEffect(() => { document.documentElement.dataset.visual = visual; }, [visual]);
+  const demosListas = useDemosListas();
   const miniaturas = useMemo(() => {
     const o: Record<string, string> = {}, c = document.createElement('canvas'); c.width = c.height = 160; const x = c.getContext('2d')!;
-    MARCOS.forEach(m => { componer(x, 160, m.id, DEMO, 4, TINTAS[tinta]); o[m.id] = c.toDataURL('image/png'); });
+    MARCOS.forEach(m => { componer(x, 160, m.id, demoDe(m.visual), 4, TINTAS[tinta]); o[m.id] = c.toDataURL('image/png'); });
     return o;
-  }, [tinta]);
+  }, [tinta, demosListas]);
   useEffect(() => { cargarCara(); }, []);
 
   // Afinar la cara sobre la foto final (más resolución que la vista previa).
@@ -90,7 +92,7 @@ export function App() {
   const panel = (
     <aside className="panel">
       <Selector visual={visual} elegirVisual={elegirVisual} marcoId={marcoId} setMarcoId={setMarcoId} miniaturas={miniaturas} />
-      <Ajustes celda={celda} setCelda={setCelda} tinta={tinta} setTinta={setTinta} />
+      <Ajustes visual={visual} celda={celda} setCelda={setCelda} tinta={tinta} setTinta={setTinta} />
     </aside>
   );
 

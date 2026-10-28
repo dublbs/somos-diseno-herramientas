@@ -4,18 +4,16 @@ import {
   FORMATOS,
   FORMAS,
   COLORES,
-  MAX_COLORES,
   Celda,
   Pincel,
-  FiguraGuardada,
+  PaletaDef,
+  PALETAS,
   girar,
   reflejarH,
   reflejarV,
-  usaA,
-  usaB,
 } from './data/formas';
 import { leerStorage, guardarStorage } from './lib/almacen';
-import { construirSVG, guardarArchivo } from './lib/exportar';
+import { guardarArchivo } from './lib/exportar';
 import { Lienzo, pintarCelda } from './components/Lienzo';
 import { Panel } from './components/Panel';
 import './styles.css';
@@ -24,6 +22,15 @@ interface EstadoPersistido {
   formato: string;
   celdas: Record<string, Celda>;
   pincel: Pincel;
+}
+
+function normalizarFormato(id?: string): string {
+  if (!id) return 'cuadrado';
+  if (id === 'post') return 'flyer';
+  if (id === 'pantalla') return 'horizontal';
+  if (id === 'modulo') return 'modulo2';
+  if (id === 'figura4') return 'modulo4';
+  return FORMATOS.some((f) => f.id === id) ? id : 'cuadrado';
 }
 
 function azar(seed: number) {
@@ -39,27 +46,27 @@ function azar(seed: number) {
 export const App: React.FC = () => {
   const estadoInicial = leerStorage<EstadoPersistido | null>('geo:estado', null);
 
-  const [formatoId, setFormatoId] = useState<string>(estadoInicial?.formato || 'post');
+  const [formatoId, setFormatoId] = useState<string>(
+    normalizarFormato(estadoInicial?.formato)
+  );
   const [celdas, setCeldas] = useState<Record<string, Celda>>(estadoInicial?.celdas || {});
   const [pincel, setPincel] = useState<Pincel>(
     estadoInicial?.pincel || {
-      tipo: 'forma',
       id: 'media',
       r: 0,
       e: false,
-      c: { f: 'Rosa', a: 'Lapislázuli', b: 'Amarillo' },
+      c: { f: 'Hueso', a: 'Azul', b: 'Amarillo' },
     }
   );
   const [herramienta, setHerramienta] = useState<string>('poner');
-  const [pestana, setPestana] = useState<'base' | 'mias'>('base');
   const [sel, setSel] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
   const [grilla, setGrilla] = useState<boolean>(true);
-  const [misFiguras, setMisFiguras] = useState<FiguraGuardada[]>(() =>
-    leerStorage<FiguraGuardada[]>('geo:figuras', [])
-  );
   const [estadoMsg, setEstadoMsg] = useState<string>('');
-  const [svgTexto, setSvgTexto] = useState<string | null>(null);
+
+  useEffect(() => {
+    document.documentElement.dataset.visual = 'Geométrica';
+  }, []);
 
   const formato = FORMATOS.find((f) => f.id === formatoId) || FORMATOS[0];
   const dentro = useCallback(
@@ -83,21 +90,6 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  const coloresUsados = useCallback(() => {
-    const set = new Set<string>();
-    for (const [clave, cel] of Object.entries(celdas)) {
-      const [x, y] = clave.split(',').map(Number);
-      if (!dentro(x, y)) continue;
-      set.add(cel.c.f);
-      if (usaA(cel.f)) set.add(cel.c.a);
-      if (usaB(cel.f)) set.add(cel.c.b);
-    }
-    if (Object.keys(celdas).length < formato.cols * formato.filas) {
-      set.add('Hueso');
-    }
-    return Array.from(set);
-  }, [celdas, formato, dentro]);
-
   const aplicarHerramienta = (x: number, y: number) => {
     if (!dentro(x, y)) return;
     const clave = `${x},${y}`;
@@ -105,32 +97,15 @@ export const App: React.FC = () => {
 
     switch (herramienta) {
       case 'poner': {
-        const nuevas = { ...celdas };
-        if (pincel.tipo === 'forma') {
-          nuevas[clave] = {
+        setCeldas({
+          ...celdas,
+          [clave]: {
             f: pincel.id,
             r: pincel.r,
             e: pincel.e,
             c: { ...pincel.c },
-          };
-        } else {
-          const fig = misFiguras.find((m) => m.id === pincel.id);
-          if (fig) {
-            fig.celdas.forEach((c) => {
-              const nx = x + c.x;
-              const ny = y + c.y;
-              if (dentro(nx, ny)) {
-                nuevas[`${nx},${ny}`] = {
-                  f: c.f,
-                  r: c.r,
-                  e: c.e,
-                  c: { ...c.c },
-                };
-              }
-            });
-          }
-        }
-        setCeldas(nuevas);
+          },
+        });
         break;
       }
       case 'girar': {
@@ -156,19 +131,6 @@ export const App: React.FC = () => {
           const copia = { ...celdas };
           delete copia[clave];
           setCeldas(copia);
-        }
-        break;
-      }
-      case 'gotero': {
-        if (celActual) {
-          setPincel({
-            tipo: 'forma',
-            id: celActual.f,
-            r: celActual.r,
-            e: celActual.e,
-            c: { ...celActual.c },
-          });
-          setHerramienta('poner');
         }
         break;
       }
@@ -232,7 +194,7 @@ export const App: React.FC = () => {
           }
         }
         setCeldas(nuevas);
-        setEstadoMsg('Repetido en todo el lienzo.');
+        setEstadoMsg('Selección repetida en todo el lienzo.');
         break;
       }
       case 'escalonar': {
@@ -252,7 +214,7 @@ export const App: React.FC = () => {
           }
         }
         setCeldas(nuevas);
-        setEstadoMsg('Escalonado: cada fila corre una celda.');
+        setEstadoMsg('Patrón escalonado.');
         break;
       }
       case 'derecha': {
@@ -301,7 +263,7 @@ export const App: React.FC = () => {
         }));
         setCeldas(nuevas);
         setSel({ ...selDoble, h: selDoble.h * 2 });
-        setEstadoMsg('Reflejado en cuatro: figura simétrica.');
+        setEstadoMsg('Simetría en 4 aplicada.');
         break;
       }
       case 'girar': {
@@ -318,7 +280,7 @@ export const App: React.FC = () => {
         }));
         setCeldas(nuevas);
         setSel({ ...sel, w: sel.h, h: sel.w });
-        setEstadoMsg('Selección girada 90°.');
+        setEstadoMsg('Área girada 90°.');
         break;
       }
       case 'vaciar': {
@@ -328,32 +290,7 @@ export const App: React.FC = () => {
           }
         }
         setCeldas(nuevas);
-        setEstadoMsg('Selección vaciada.');
-        break;
-      }
-      case 'guardarFigura': {
-        const lista = bloqueDeSeleccion(sel)
-          .filter((c) => c.cel !== null)
-          .map(({ x, y, cel }) => ({ x, y, ...cel! }));
-        if (!lista.length) {
-          setEstadoMsg('La selección está vacía: no hay figura que guardar.');
-          return;
-        }
-        const id = 'fig' + Date.now();
-        const nuevaFig: FiguraGuardada = {
-          id,
-          nombre: `Figura ${misFiguras.length + 1}`,
-          w: sel.w,
-          h: sel.h,
-          celdas: lista,
-        };
-        const actualizadas = [...misFiguras, nuevaFig];
-        setMisFiguras(actualizadas);
-        guardarStorage('geo:figuras', actualizadas);
-        setPincel({ tipo: 'figura', id, r: 0, e: false, c: pincel.c });
-        setPestana('mias');
-        setHerramienta('poner');
-        setEstadoMsg('Figura guardada en «Mis figuras».');
+        setEstadoMsg('Área borrada.');
         break;
       }
     }
@@ -361,32 +298,19 @@ export const App: React.FC = () => {
 
   const generarMosaico = (seed = Date.now()) => {
     const r = azar(seed);
-    const elegir = <T,>(l: T[]): T => l[Math.floor(r() * l.length)];
-    const pares = [
-      ['Lapislázuli', 'Rosa'],
-      ['Azul', 'Celeste'],
-      ['Morado', 'Amarillo'],
-      ['Negro', 'Amarillo'],
-      ['Verde', 'Azul'],
-      ['Rosa', 'Lapislázuli'],
-      ['Hueso', 'Negro'],
-      ['Celeste', 'Azul'],
-    ];
-    const [f, a] = elegir(pares);
-    const resto = COLORES.filter((c) => c !== f && c !== a);
-    const b = elegir(resto);
+    const paletaElegida = PALETAS[Math.floor(r() * PALETAS.length)];
     const formasIds = FORMAS.filter((x) => x.id !== 'vacia').map((x) => x.id);
+    const elegir = <T,>(l: T[]): T => l[Math.floor(r() * l.length)];
 
     const nuevas: Record<string, Celda> = {};
     const lado = r() < 0.5 ? 2 : 3;
     for (let y = 0; y < lado; y++) {
       for (let x = 0; x < lado; x++) {
-        const invertir = r() < 0.3;
         nuevas[`${x},${y}`] = {
           f: elegir(formasIds),
           r: Math.floor(r() * 4),
           e: false,
-          c: invertir ? { f: a, a: f, b } : { f, a, b },
+          c: { f: paletaElegida.f, a: paletaElegida.a, b: paletaElegida.b },
         };
       }
     }
@@ -438,8 +362,21 @@ export const App: React.FC = () => {
 
     setCeldas(nuevas);
     setSel(null);
-    setPincel((p) => ({ ...p, c: { f, a, b } }));
-    setEstadoMsg('Mosaico generado: una figura de formas base reflejada en cuatro y repetida.');
+    setPincel((p) => ({ ...p, c: { f: paletaElegida.f, a: paletaElegida.a, b: paletaElegida.b } }));
+    setEstadoMsg(`Mosaico generado con paleta «${paletaElegida.nombre}».`);
+  };
+
+  const aplicarPaletaMosaico = (paleta: PaletaDef) => {
+    const nuevas: Record<string, Celda> = {};
+    for (const [clave, cel] of Object.entries(celdas)) {
+      nuevas[clave] = {
+        ...cel,
+        c: { f: paleta.f, a: paleta.a, b: paleta.b },
+      };
+    }
+    setCeldas(nuevas);
+    setPincel((p) => ({ ...p, c: { f: paleta.f, a: paleta.a, b: paleta.b } }));
+    setEstadoMsg(`Paleta «${paleta.nombre}» aplicada a todo el diseño.`);
   };
 
   const exportarPNG = async () => {
@@ -460,7 +397,7 @@ export const App: React.FC = () => {
     const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/png'));
     if (!blob) return;
     const res = await guardarArchivo(
-      `geometrica-${formato.id}-${canvas.width}x${canvas.height}.png`,
+      `mosaico-${formato.id}-${canvas.width}x${canvas.height}.png`,
       blob
     );
     setEstadoMsg(
@@ -468,57 +405,26 @@ export const App: React.FC = () => {
         ? 'Descarga cancelada.'
         : res === 'ocupado'
         ? 'Ya hay una descarga pendiente.'
-        : 'PNG descargado.'
+        : '¡Imagen descargada con éxito!'
     );
   };
-
-  const exportarSVG = async () => {
-    const svg = construirSVG(formato, celdas);
-    const blob = new Blob([svg], { type: 'image/svg+xml' });
-    const res = await guardarArchivo(`geometrica-${formato.id}.svg`, blob);
-    setEstadoMsg(
-      res === 'cancelado'
-        ? 'Descarga cancelada.'
-        : res === 'ocupado'
-        ? 'Ya hay una descarga pendiente.'
-        : 'SVG descargado.'
-    );
-  };
-
-  const copiarSVG = () => {
-    const svg = construirSVG(formato, celdas);
-    const respaldo = () => {
-      setSvgTexto(svg);
-      setEstadoMsg('Copia el SVG del recuadro y pégalo en Figma.');
-    };
-    try {
-      navigator.clipboard
-        .writeText(svg)
-        .then(() => {
-          setEstadoMsg('SVG copiado. Pégalo en Figma con Ctrl/Cmd+V.');
-        })
-        .catch(respaldo);
-    } catch {
-      respaldo();
-    }
-  };
-
-  const usados = coloresUsados();
 
   return (
-    <div className="app">
-      <a className="volver" href="../../" id="volver-hub">
-        <span aria-hidden="true">←</span> Experiencias
-      </a>
-
-      <header>
-        <p className="eyebrow">Somos Diseño · Visual Geométrica · Herramienta del equipo</p>
-        <h1>Taller de mosaicos</h1>
-        <p className="bajada">
-          Todo sale de la celda. Pon formas base en la grilla, arma tu figura y multiplícala con las
-          operaciones del sistema: repetir, reflejar, escalonar y girar.
-        </p>
+    <>
+      <header className="top">
+        <a className="volver" href="../../" id="volver-hub">
+          <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+          Experiencias
+        </a>
       </header>
+
+      <div className="intro-mosaicos">
+        <h1>Taller de Mosaicos</h1>
+        <p className="bajada">
+          Elige un formato, selecciona una forma y toca el lienzo para diseñar tu símbolo o patrón.
+          Experimenta con giros, simetrías y paletas de color.
+        </p>
+      </div>
 
       <div className="layout">
         <section className="escena" aria-label="Mosaico">
@@ -529,7 +435,6 @@ export const App: React.FC = () => {
             herramienta={herramienta}
             grilla={grilla}
             sel={sel}
-            misFiguras={misFiguras}
             onAplicar={aplicarHerramienta}
             onBorrar={borrarCelda}
             onGirarPincel={() => setPincel((p) => ({ ...p, ...girar(p) }))}
@@ -537,32 +442,6 @@ export const App: React.FC = () => {
             hover={hover}
             setHover={setHover}
           />
-
-          <div className="info-fila">
-            <span className="mono" id="info">
-              {`${formato.cols} × ${formato.filas} celdas de ${formato.celda} px`}
-            </span>
-            <span
-              className={`pill ${usados.length > MAX_COLORES ? 'warn' : 'ok'}`}
-              id="regla"
-              title={usados.join(', ')}
-            >
-              {`${usados.length} de ${MAX_COLORES} colores`}
-            </span>
-          </div>
-
-          {usados.length > MAX_COLORES && (
-            <p className="aviso" id="aviso-colores" role="status">
-              {`Regla 3: hasta ${MAX_COLORES} colores por pieza (un fondo y tres de figura). Ahora hay ${
-                usados.length
-              }: ${usados.join(', ')}.`}
-            </p>
-          )}
-
-          <p className="nota">
-            Teclado: flechas para moverte, Enter para aplicar la herramienta, R para girar la forma y
-            Supr para borrar.
-          </p>
         </section>
 
         <Panel
@@ -578,25 +457,8 @@ export const App: React.FC = () => {
           }}
           pincel={pincel}
           onCambiarPincel={setPincel}
-          pestana={pestana}
-          onCambiarPestana={setPestana}
           sel={sel}
           onEjecutarOp={ejecutarOp}
-          misFiguras={misFiguras}
-          onBorrarFigura={(id) => {
-            const actualizadas = misFiguras.filter((m) => m.id !== id);
-            setMisFiguras(actualizadas);
-            guardarStorage('geo:figuras', actualizadas);
-            if (pincel.tipo === 'figura' && pincel.id === id) {
-              setPincel({
-                tipo: 'forma',
-                id: 'media',
-                r: 0,
-                e: false,
-                c: { f: 'Rosa', a: 'Lapislázuli', b: 'Amarillo' },
-              });
-            }
-          }}
           grilla={grilla}
           onToggleGrilla={setGrilla}
           onGenerar={() => generarMosaico()}
@@ -606,12 +468,10 @@ export const App: React.FC = () => {
             setEstadoMsg('Lienzo vaciado.');
           }}
           onExportarPNG={exportarPNG}
-          onExportarSVG={exportarSVG}
-          onCopiarSVG={copiarSVG}
+          onAplicarPaletaMosaico={aplicarPaletaMosaico}
           estadoMsg={estadoMsg}
-          svgTexto={svgTexto}
         />
       </div>
-    </div>
+    </>
   );
 };

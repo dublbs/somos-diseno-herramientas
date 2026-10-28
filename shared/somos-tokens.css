@@ -1,0 +1,16 @@
+/* Somos Diseño · tokens y tema por lenguaje (data-visual en <html>). Lo usan todas las experiencias. */
+:root{--bg:#F4EEE3;--surface:#FFFFFF;--ink:#141414;--muted:#5f5a52;--line:rgba(0,0,0,.12);--accent:#0062B8;--chip:#E9E1D2;color-scheme:light;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121212;--surface:#1D1D1D;--ink:#F4EEE3;--muted:#ABA59A;--line:rgba(255,255,255,.14);--accent:#7FC8F8;--chip:#2A2A2A;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121212;--surface:#1D1D1D;--ink:#F4EEE3;--muted:#ABA59A;--line:rgba(255,255,255,.14);--accent:#7FC8F8;--chip:#2A2A2A;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;overflow-x:hidden;background:var(--bg);color:var(--ink);font-family:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-height:100%}
+button{font-family:inherit}
+/* Tema por lenguaje: la UI cambia de forma y acento según la visual elegida */
+:root{--on-accent:#fff;--r:28px;--rb:999px;--rt:18px;--sombra:0 24px 60px -30px rgba(0,0,0,.45);--borde:0px solid transparent;--fuente-etq:"DM Sans",sans-serif;--fuente-tit:"Bricolage Grotesque",system-ui,sans-serif;--sombra-btn:none}
+:root[data-visual="Geométrica"]{--accent:#0062B8;--r:0px;--rb:0px;--rt:0px;--borde:2px solid var(--ink);--sombra:none}
+:root[data-visual="Orgánica"]{--accent:#00A651;--r:40px;--rb:999px;--rt:50%;--sombra:0 30px 70px -34px rgba(0,80,40,.45)}
+:root[data-visual="Pixel"]{--accent:#7A2E8E;--r:0px;--rb:0px;--rt:0px;--borde:3px solid var(--ink);--sombra:8px 8px 0 var(--ink);--sombra-btn:4px 4px 0 var(--ink);--fuente-etq:"Silkscreen",monospace;--fuente-tit:"Silkscreen",monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--on-accent:#141414}:root:not([data-theme="light"])[data-visual="Geométrica"]{--accent:#7FC8F8}:root:not([data-theme="light"])[data-visual="Orgánica"]{--accent:#3DD68C}:root:not([data-theme="light"])[data-visual="Pixel"]{--accent:#FF8FB1}}
+:root[data-theme="dark"]{--on-accent:#141414}:root[data-theme="dark"][data-visual="Geométrica"]{--accent:#7FC8F8}:root[data-theme="dark"][data-visual="Orgánica"]{--accent:#3DD68C}:root[data-theme="dark"][data-visual="Pixel"]{--accent:#FF8FB1}

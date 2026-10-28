@@ -3,13 +3,10 @@ import {
   Formato,
   FORMATOS,
   FORMAS,
-  COLORES,
   HEX,
   Pincel,
-  FiguraGuardada,
-  forma,
-  usaA,
-  usaB,
+  PALETAS,
+  PaletaDef,
   girar,
   reflejarH,
   Celda,
@@ -23,21 +20,15 @@ interface PanelProps {
   onCambiarHerramienta: (h: string) => void;
   pincel: Pincel;
   onCambiarPincel: (p: Pincel) => void;
-  pestana: 'base' | 'mias';
-  onCambiarPestana: (p: 'base' | 'mias') => void;
   sel: { x: number; y: number; w: number; h: number } | null;
   onEjecutarOp: (op: string) => void;
-  misFiguras: FiguraGuardada[];
-  onBorrarFigura: (id: string) => void;
   grilla: boolean;
   onToggleGrilla: (g: boolean) => void;
   onGenerar: () => void;
   onVaciar: () => void;
   onExportarPNG: () => void;
-  onExportarSVG: () => void;
-  onCopiarSVG: () => void;
+  onAplicarPaletaMosaico: (paleta: PaletaDef) => void;
   estadoMsg: string;
-  svgTexto: string | null;
 }
 
 const Miniatura: React.FC<{
@@ -45,7 +36,7 @@ const Miniatura: React.FC<{
   h: number;
   celdas: (Celda & { x?: number; y?: number })[];
   tam?: number;
-}> = ({ w, h, celdas, tam = 56 }) => {
+}> = ({ w, h, celdas, tam = 52 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -54,12 +45,17 @@ const Miniatura: React.FC<{
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const dpr = typeof window !== 'undefined' ? Math.max(2, window.devicePixelRatio || 2) : 2;
     const lado = tam / Math.max(w, h);
     const W = Math.round(w * lado);
     const H = Math.round(h * lado);
-    canvas.width = W;
-    canvas.height = H;
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    canvas.style.width = `${W}px`;
+    canvas.style.height = `${H}px`;
 
+    ctx.save();
+    ctx.scale(dpr, dpr);
     ctx.fillStyle = HEX.Hueso;
     ctx.fillRect(0, 0, W, H);
 
@@ -68,6 +64,7 @@ const Miniatura: React.FC<{
       const cy = (cel.y ?? 0) * lado;
       pintarCelda(ctx, cel, cx, cy, lado);
     });
+    ctx.restore();
   }, [w, h, celdas, tam]);
 
   return <canvas ref={canvasRef} />;
@@ -80,21 +77,15 @@ export const Panel: React.FC<PanelProps> = ({
   onCambiarHerramienta,
   pincel,
   onCambiarPincel,
-  pestana,
-  onCambiarPestana,
   sel,
   onEjecutarOp,
-  misFiguras,
-  onBorrarFigura,
   grilla,
   onToggleGrilla,
   onGenerar,
   onVaciar,
   onExportarPNG,
-  onExportarSVG,
-  onCopiarSVG,
+  onAplicarPaletaMosaico,
   estadoMsg,
-  svgTexto,
 }) => {
   const [confirmarVaciar, setConfirmarVaciar] = React.useState(false);
 
@@ -108,22 +99,31 @@ export const Panel: React.FC<PanelProps> = ({
     }
   };
 
-  const setColorPincel = (ranura: 'f' | 'a' | 'b', color: string) => {
+  const seleccionarPaleta = (p: PaletaDef) => {
     onCambiarPincel({
       ...pincel,
-      c: { ...pincel.c, [ranura]: color },
+      c: { f: p.f, a: p.a, b: p.b },
     });
   };
 
-  const fDef = pincel.tipo === 'forma' ? forma(pincel.id) : null;
-  const figActual = pincel.tipo === 'figura' ? misFiguras.find((m) => m.id === pincel.id) : null;
+  const paletaActiva = PALETAS.find(
+    (p) => p.f === pincel.c.f && p.a === pincel.c.a && p.b === pincel.c.b
+  );
+
+  const herramientasConfig = [
+    { id: 'poner', label: 'Poner', icon: 'draw' },
+    { id: 'girar', label: 'Girar', icon: 'rotate_right' },
+    { id: 'reflejar', label: 'Reflejar', icon: 'flip' },
+    { id: 'borrar', label: 'Borrar', icon: 'ink_eraser' },
+    { id: 'seleccionar', label: 'Multiplicar', icon: 'highlight_alt' },
+  ];
 
   return (
     <aside className="panel" aria-label="Herramientas">
       {/* Formato */}
       <div className="bloque">
         <label className="etiqueta" htmlFor="formato">
-          Formato
+          Formato de diseño
         </label>
         <select
           id="formato"
@@ -142,15 +142,19 @@ export const Panel: React.FC<PanelProps> = ({
       <div className="bloque">
         <span className="etiqueta">Herramienta</span>
         <div className="seg herramientas">
-          {['poner', 'girar', 'reflejar', 'gotero', 'borrar', 'seleccionar'].map((h) => (
+          {herramientasConfig.map((h) => (
             <button
-              key={h}
+              key={h.id}
               type="button"
-              data-herramienta={h}
-              aria-pressed={herramienta === h}
-              onClick={() => onCambiarHerramienta(h)}
+              data-herramienta={h.id}
+              aria-pressed={herramienta === h.id}
+              onClick={() => onCambiarHerramienta(h.id)}
+              className="btn-herramienta"
             >
-              {h.charAt(0).toUpperCase() + h.slice(1)}
+              <span className="material-symbols-outlined" aria-hidden="true">
+                {h.icon}
+              </span>
+              <span>{h.label}</span>
             </button>
           ))}
         </div>
@@ -159,18 +163,19 @@ export const Panel: React.FC<PanelProps> = ({
       {/* Operaciones sobre la selección */}
       {herramienta === 'seleccionar' && (
         <div className="bloque operaciones" id="operaciones">
-          <span className="etiqueta">Operaciones</span>
+          <span className="etiqueta">Operaciones de multiplicación</span>
           <p className="seleccion" id="sel-info">
             {sel
-              ? `Selección: ${sel.w} × ${sel.h} celdas`
-              : 'Arrastra sobre el lienzo para marcar la figura.'}
+              ? `Área: ${sel.w} × ${sel.h} celdas`
+              : 'Arrastra sobre el mosaico para seleccionar un área.'}
           </p>
-          <div className="seg ops">
+          <div className="ops">
             <button
               type="button"
               disabled={!sel}
               onClick={() => onEjecutarOp('repetir')}
             >
+              <span className="material-symbols-outlined" aria-hidden="true">repeat</span>
               Repetir
             </button>
             <button
@@ -178,6 +183,7 @@ export const Panel: React.FC<PanelProps> = ({
               disabled={!sel}
               onClick={() => onEjecutarOp('escalonar')}
             >
+              <span className="material-symbols-outlined" aria-hidden="true">stairs</span>
               Escalonar
             </button>
             <button
@@ -185,6 +191,7 @@ export const Panel: React.FC<PanelProps> = ({
               disabled={!sel}
               onClick={() => onEjecutarOp('derecha')}
             >
+              <span className="material-symbols-outlined" aria-hidden="true">flip</span>
               Reflejar →
             </button>
             <button
@@ -192,6 +199,7 @@ export const Panel: React.FC<PanelProps> = ({
               disabled={!sel}
               onClick={() => onEjecutarOp('abajo')}
             >
+              <span className="material-symbols-outlined" aria-hidden="true">swap_vert</span>
               Reflejar ↓
             </button>
             <button
@@ -199,295 +207,174 @@ export const Panel: React.FC<PanelProps> = ({
               disabled={!sel}
               onClick={() => onEjecutarOp('cuatro')}
             >
-              Reflejar en 4
+              <span className="material-symbols-outlined" aria-hidden="true">grid_view</span>
+              Simetría 4
             </button>
             <button
               type="button"
               disabled={!sel}
               onClick={() => onEjecutarOp('girar')}
             >
+              <span className="material-symbols-outlined" aria-hidden="true">rotate_90_degrees_cw</span>
               Girar 90°
-            </button>
-          </div>
-          <div className="seg">
-            <button
-              type="button"
-              className="destacado"
-              disabled={!sel}
-              onClick={() => onEjecutarOp('guardarFigura')}
-            >
-              Guardar como figura
             </button>
             <button
               type="button"
               disabled={!sel}
               onClick={() => onEjecutarOp('vaciar')}
             >
-              Vaciar selección
+              <span className="material-symbols-outlined" aria-hidden="true">backspace</span>
+              Borrar área
             </button>
           </div>
         </div>
       )}
 
-      {/* Pool */}
+      {/* Colección de Formas */}
       <div className="bloque">
-        <span className="etiqueta">Pool</span>
-        <div className="pestanas" role="tablist" aria-label="Pool">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={pestana === 'base'}
-            onClick={() => onCambiarPestana('base')}
-          >
-            Formas base
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={pestana === 'mias'}
-            onClick={() => onCambiarPestana('mias')}
-          >
-            Mis figuras
-          </button>
+        <span className="etiqueta">Forma seleccionada</span>
+        <div className="pincel-previa">
+          <div className="pincel-muestra">
+            <Miniatura
+              w={1}
+              h={1}
+              celdas={[{ f: pincel.id, r: pincel.r, e: pincel.e, c: pincel.c }]}
+              tam={64}
+            />
+          </div>
+          <div className="pincel-acciones">
+            <button
+              type="button"
+              className="btn-accion-pincel"
+              onClick={() => onCambiarPincel({ ...pincel, ...girar(pincel) })}
+              title="Girar forma 90° (Tecla R)"
+            >
+              <span className="material-symbols-outlined" aria-hidden="true">rotate_right</span>
+              Girar
+            </button>
+            <button
+              type="button"
+              className="btn-accion-pincel"
+              onClick={() => onCambiarPincel({ ...pincel, ...reflejarH(pincel) })}
+              title="Reflejar horizontalmente"
+            >
+              <span className="material-symbols-outlined" aria-hidden="true">flip</span>
+              Reflejar
+            </button>
+          </div>
         </div>
-        <div className="pool" id="pool" role="radiogroup" aria-label="Formas">
-          {pestana === 'base' ? (
-            FORMAS.map((f) => {
-              const esActivo = pincel.tipo === 'forma' && pincel.id === f.id;
-              const cel = {
-                x: 0,
-                y: 0,
-                f: f.id,
-                r: pincel.tipo === 'forma' ? pincel.r : 0,
-                e: pincel.tipo === 'forma' ? pincel.e : false,
-                c: pincel.c,
-              };
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  className="item"
-                  role="radio"
-                  aria-checked={esActivo}
-                  aria-label={`${f.nombre}, ${f.nota}`}
-                  title={`${f.nombre} · ${f.nota}`}
-                  onClick={() => {
-                    onCambiarPincel({
-                      tipo: 'forma',
-                      id: f.id,
-                      r: pincel.tipo === 'forma' ? pincel.r : 0,
-                      e: pincel.tipo === 'forma' ? pincel.e : false,
-                      c: pincel.c,
-                    });
-                    onCambiarHerramienta('poner');
-                  }}
-                >
-                  <Miniatura w={1} h={1} celdas={[cel]} />
-                  <span>{f.nombre}</span>
-                </button>
-              );
-            })
-          ) : misFiguras.length === 0 ? (
-            <p className="nota vacio">
-              Aún no hay figuras. Arma una con las formas base, elige la herramienta Seleccionar,
-              marca la figura y toca «Guardar como figura».
-            </p>
-          ) : (
-            misFiguras.map((m) => {
-              const esActivo = pincel.tipo === 'figura' && pincel.id === m.id;
-              return (
-                <div key={m.id} className="item-envoltorio">
-                  <button
-                    type="button"
-                    className="item"
-                    role="radio"
-                    aria-checked={esActivo}
-                    aria-label={`${m.nombre} · ${m.w}×${m.h}`}
-                    title={`${m.nombre} · ${m.w}×${m.h}`}
-                    onClick={() => {
-                      onCambiarPincel({
-                        tipo: 'figura',
-                        id: m.id,
-                        r: 0,
-                        e: false,
-                        c: pincel.c,
-                      });
-                      onCambiarHerramienta('poner');
-                    }}
-                  >
-                    <Miniatura w={m.w} h={m.h} celdas={m.celdas} />
-                    <span>{`${m.nombre} · ${m.w}×${m.h}`}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="quitar"
-                    aria-label={`Quitar ${m.nombre}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onBorrarFigura(m.id);
-                    }}
-                  >
-                    ×
-                  </button>
-                </div>
-              );
-            })
-          )}
+
+        <span className="etiqueta" style={{ marginTop: '8px' }}>Elegir forma</span>
+        <div className="pool" id="pool" role="radiogroup" aria-label="Formas geométricas">
+          {FORMAS.map((f) => {
+            const esActivo = pincel.id === f.id;
+            const cel = {
+              x: 0,
+              y: 0,
+              f: f.id,
+              r: pincel.r,
+              e: pincel.e,
+              c: pincel.c,
+            };
+            return (
+              <button
+                key={f.id}
+                type="button"
+                className="item"
+                role="radio"
+                aria-checked={esActivo}
+                aria-label={f.nombre}
+                title={`${f.nombre} · ${f.nota}`}
+                onClick={() => onCambiarPincel({ ...pincel, id: f.id })}
+              >
+                <Miniatura w={1} h={1} celdas={[cel]} tam={44} />
+                <span>{f.nombre}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Pincel */}
+      {/* Paletas de Color Predefinidas */}
       <div className="bloque">
-        <span className="etiqueta">Pincel</span>
-        <div className="pincel" id="pincel">
-          {pincel.tipo === 'figura' && figActual ? (
-            <div className="pincel-fila">
-              <Miniatura w={figActual.w} h={figActual.h} celdas={figActual.celdas} tam={72} />
-              <p className="seleccion">
-                {`${figActual.nombre} · ${figActual.w} × ${figActual.h} celdas. Se pone completa con sus colores.`}
-              </p>
-            </div>
-          ) : fDef ? (
-            <>
-              <div className="pincel-fila">
-                <Miniatura
-                  w={1}
-                  h={1}
-                  celdas={[{ x: 0, y: 0, f: pincel.id, r: pincel.r, e: pincel.e, c: pincel.c }]}
-                  tam={72}
-                />
-                <div className="pincel-info">
-                  <strong>{fDef.nombre}</strong>
-                  <span className="nota">
-                    {`${fDef.nota} · giro ${pincel.r * 90}°${pincel.e ? ' · reflejada' : ''}`}
-                  </span>
-                  <div className="seg">
-                    <button
-                      type="button"
-                      aria-label="Girar la forma 90 grados"
-                      onClick={() => onCambiarPincel({ ...pincel, ...girar(pincel) })}
-                    >
-                      Girar 90°
-                    </button>
-                    <button
-                      type="button"
-                      aria-label="Reflejar la forma"
-                      onClick={() => onCambiarPincel({ ...pincel, ...reflejarH(pincel) })}
-                    >
-                      Reflejar
-                    </button>
-                    <button
-                      type="button"
-                      aria-label="Intercambiar fondo y figura"
-                      onClick={() =>
-                        onCambiarPincel({
-                          ...pincel,
-                          c: { ...pincel.c, f: pincel.c.a, a: pincel.c.f },
-                        })
-                      }
-                    >
-                      Invertir colores
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Selectores de color */}
-              <div className="fila-color">
-                <span className="etiqueta">{`Fondo de la celda · ${pincel.c.f}`}</span>
-                <div className="chips" role="radiogroup" aria-label="Fondo de la celda">
-                  {COLORES.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      className="chip"
-                      style={{ ['--c' as string]: HEX[c] }}
-                      role="radio"
-                      aria-checked={pincel.c.f === c}
-                      aria-label={c}
-                      title={c}
-                      onClick={() => setColorPincel('f', c)}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {usaA(pincel.id) && (
-                <div className="fila-color">
-                  <span className="etiqueta">{`Figura · ${pincel.c.a}`}</span>
-                  <div className="chips" role="radiogroup" aria-label="Figura">
-                    {COLORES.map((c) => (
-                      <button
-                        key={c}
-                        type="button"
-                        className="chip"
-                        style={{ ['--c' as string]: HEX[c] }}
-                        role="radio"
-                        aria-checked={pincel.c.a === c}
-                        aria-label={c}
-                        title={c}
-                        onClick={() => setColorPincel('a', c)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {usaB(pincel.id) && (
-                <div className="fila-color">
-                  <span className="etiqueta">{`Detalle · ${pincel.c.b}`}</span>
-                  <div className="chips" role="radiogroup" aria-label="Detalle">
-                    {COLORES.map((c) => (
-                      <button
-                        key={c}
-                        type="button"
-                        className="chip"
-                        style={{ ['--c' as string]: HEX[c] }}
-                        role="radio"
-                        aria-checked={pincel.c.b === c}
-                        aria-label={c}
-                        title={c}
-                        onClick={() => setColorPincel('b', c)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          ) : null}
+        <div className="etiqueta-fila">
+          <span className="etiqueta">Paletas de color</span>
+          <button
+            type="button"
+            className="btn-enlace"
+            onClick={() =>
+              onCambiarPincel({
+                ...pincel,
+                c: { f: pincel.c.a, a: pincel.c.f, b: pincel.c.b },
+              })
+            }
+            title="Invertir colores de fondo y figura"
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">swap_horiz</span>
+            Invertir
+          </button>
         </div>
+
+        <div className="paletas-grid" role="radiogroup" aria-label="Paletas de color">
+          {PALETAS.map((p) => {
+            const esActiva =
+              pincel.c.f === p.f && pincel.c.a === p.a && pincel.c.b === p.b;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                className={`paleta-btn ${esActiva ? 'activa' : ''}`}
+                role="radio"
+                aria-checked={esActiva}
+                onClick={() => seleccionarPaleta(p)}
+                title={`${p.nombre}: Fondo ${p.f}, Figura ${p.a}, Detalle ${p.b}`}
+              >
+                <div className="paleta-muestras">
+                  <span className="paleta-muestra" style={{ backgroundColor: HEX[p.f] }} />
+                  <span className="paleta-muestra" style={{ backgroundColor: HEX[p.a] }} />
+                  <span className="paleta-muestra" style={{ backgroundColor: HEX[p.b] }} />
+                </div>
+                <span className="paleta-nombre">{p.nombre}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {paletaActiva && (
+          <button
+            type="button"
+            className="btn secundario btn-aplicar-paleta"
+            onClick={() => onAplicarPaletaMosaico(paletaActiva)}
+            title="Cambiar todo el diseño a esta paleta"
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">palette</span>
+            Aplicar paleta a todo el diseño
+          </button>
+        )}
       </div>
 
       {/* Exportar */}
-      <div className="bloque acciones">
-        <button type="button" className="primario" onClick={onExportarPNG}>
-          Descargar PNG
-        </button>
-        <button type="button" className="secundario" onClick={onExportarSVG}>
-          Descargar SVG
-        </button>
-        <button type="button" className="secundario" onClick={onCopiarSVG}>
-          Copiar SVG para Figma
+      <div className="bloque exportar-bloque">
+        <button
+          type="button"
+          className="btn primario btn-descargar"
+          onClick={onExportarPNG}
+          id="btn-descargar-png"
+        >
+          <span className="material-symbols-outlined" aria-hidden="true">download</span>
+          Descargar imagen (PNG)
         </button>
       </div>
 
-      {svgTexto && (
-        <textarea
-          className="svg-texto"
-          readOnly
-          value={svgTexto}
-          aria-label="Código SVG"
-          onClick={(e) => (e.target as HTMLTextAreaElement).select()}
-        />
-      )}
-
-      {/* Acciones generales */}
+      {/* Acciones del lienzo */}
       <div className="bloque acciones">
-        <button type="button" className="secundario" onClick={onGenerar}>
-          Generar al azar
+        <button type="button" className="btn secundario" onClick={onGenerar} id="btn-generar">
+          <span className="material-symbols-outlined" aria-hidden="true">shuffle</span>
+          Sorpréndeme
         </button>
-        <button type="button" className="secundario" onClick={handleVaciar}>
-          {confirmarVaciar ? '¿Vaciar todo? Toca de nuevo' : 'Vaciar lienzo'}
+        <button type="button" className="btn secundario" onClick={handleVaciar} id="btn-vaciar">
+          <span className="material-symbols-outlined" aria-hidden="true">restart_alt</span>
+          {confirmarVaciar ? '¿Seguro? Toca de nuevo' : 'Limpiar'}
         </button>
       </div>
 
@@ -503,6 +390,7 @@ export const Panel: React.FC<PanelProps> = ({
           checked={grilla}
           onChange={(e) => onToggleGrilla(e.target.checked)}
         />
+        <span className="material-symbols-outlined" aria-hidden="true">grid_on</span>
         Mostrar grilla
       </label>
     </aside>
