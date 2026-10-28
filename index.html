@@ -4,9 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Experiencias Interactivas · Somos Diseño 2026</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;600;700&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/somos-fonts.css">
 <link rel="stylesheet" href="shared/somos-ui.css">
 <style>
 /* Solo lo propio del hub; tokens, tema por lenguaje y componentes base viven en shared/ */
@@ -183,7 +181,7 @@ footer{margin-top:auto;padding-top:16px;border-top:1.5px solid var(--line);font-
 
   <footer>
     <span>Somos Diseño · INACAP Sede Santiago Centro</span>
-    <span>Modo Quiosco Tablet · Auto-reset 90s</span>
+    <span>Modo quiosco · vuelve al inicio tras 90 s sin uso</span>
   </footer>
 </div>
 
@@ -611,17 +609,22 @@ footer{margin-top:auto;padding-top:16px;border-top:1.5px solid var(--line);font-
   let visible = true;
   document.addEventListener("visibilitychange", () => { visible = !document.hidden; });
   let ultimoRender = 0;
+  // Con "reducir movimiento" las miniaturas se dibujan quietas: unos segundos para que carguen las
+  // imágenes y de nuevo al cambiar el tamaño de la ventana. No queda ningún bucle corriendo.
+  const FOTO_FIJA = 1200;
+  const PASO_CARGA = 4000;
   function animar(t) {
     if (visible && t - ultimoRender >= 33) {
       ultimoRender = t;
       for (const m of miniaturas) {
         ajustar(m);
-        m.draw(t);
+        m.draw(quieto ? FOTO_FIJA : t);
       }
     }
-    requestAnimationFrame(animar);
+    if (!quieto || t < PASO_CARGA) requestAnimationFrame(animar);
   }
   requestAnimationFrame(animar);
+  if (quieto) window.addEventListener("resize", () => requestAnimationFrame(animar), { passive: true });
 
   // Filtros dinámicos
   const botonesFiltro = document.querySelectorAll(".btn-filtro");
@@ -674,11 +677,13 @@ footer{margin-top:auto;padding-top:16px;border-top:1.5px solid var(--line);font-
       resetTimerInactividad();
       if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen?.().catch(() => {});
-        if (fsTexto) fsTexto.textContent = "Salir de pantalla completa";
       } else {
         document.exitFullscreen?.().catch(() => {});
-        if (fsTexto) fsTexto.textContent = "Pantalla completa";
       }
+    });
+    // El texto sigue al estado real (también cuando se sale con Esc o con el gesto del sistema)
+    document.addEventListener("fullscreenchange", () => {
+      if (fsTexto) fsTexto.textContent = document.fullscreenElement ? "Salir de pantalla completa" : "Pantalla completa";
     });
   }
 })();
