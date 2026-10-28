@@ -1,34 +1,13 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { MARCOS, VISUALES, porId, type Visual } from '../../../shared/marcos';
-import { Miniatura, useCuadro } from '../components/Pixel';
+import { MarcoVivo, Miniatura } from '../components/Pixel';
 import { PARTES, RANURAS, type IdRanura } from '../pixel/parts';
-import { recetaAlAzar, coloresUsados, parte, tieneZona, cabeEnPaleta, componer, type LlaveColor, type Receta } from '../pixel/generator';
+import { recetaAlAzar, coloresUsados, parte, tieneZona, cabeEnPaleta, type LlaveColor, type Receta } from '../pixel/generator';
 import { HEX, COLORES_PIEL, COLORES_ELEGIBLES, MAX_COLORES } from '../pixel/palette';
-import { pintarMarco } from '../pixel/render';
 import { crear, limpiarNombre, guardarMiCredencial } from '../lib/store';
 import type { Ir } from '../App';
 
 type Pestana = IdRanura | 'marco';
-
-// Marco con el personaje adentro, animado y a la resolución real del elemento.
-const MarcoVivo: React.FC<{ marco: string; receta: Receta; animado?: boolean; className?: string }> = ({ marco, receta, animado = true, className }) => {
-  const ref = useRef<HTMLCanvasElement>(null);
-  const cuadro = useCuadro();
-  const [lado, setLado] = useState(0);
-  useEffect(() => {
-    const c = ref.current!;
-    const ro = new ResizeObserver(() => setLado(Math.round(c.clientWidth * Math.min(window.devicePixelRatio || 1, 3))));
-    ro.observe(c);
-    return () => ro.disconnect();
-  }, []);
-  useEffect(() => {
-    const c = ref.current!;
-    if (!lado) return;
-    if (c.width !== lado) { c.width = c.height = lado; }
-    pintarMarco(c.getContext('2d')!, marco, componer(receta, animado ? cuadro : 0), lado / 240);
-  }, [marco, receta, animado ? cuadro : 0, lado]);
-  return <canvas ref={ref} className={className} aria-hidden="true" />;
-};
 
 export const Crear: React.FC<{ ir: Ir }> = ({ ir }) => {
   const [receta, setReceta] = useState<Receta>(() => recetaAlAzar(Date.now()));

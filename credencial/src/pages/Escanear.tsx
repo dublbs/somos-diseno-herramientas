@@ -1,14 +1,37 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { sellar, miCredencial } from '../lib/store';
+import { SELLOS } from '../pixel/render';
 import type { Ir } from '../App';
 
 // Lector de QR con la API nativa BarcodeDetector (Chrome/Android). Si el navegador no la tiene,
 // se explica cómo usar la cámara del teléfono: el QR del sello es un enlace y abre esta misma app.
+// Siempre queda el código corto impreso bajo cada QR (sirve en iPhone y dentro de claude.ai).
 interface Detector { detect: (fuente: CanvasImageSource) => Promise<{ rawValue: string }[]> }
 declare global { interface Window { BarcodeDetector?: new (opciones: { formats: string[] }) => Detector } }
 
 export const Escanear: React.FC<{ ir: Ir }> = ({ ir }) => {
   const video = useRef<HTMLVideoElement>(null);
   const [estado, setEstado] = useState<'iniciando' | 'buscando' | 'sin-soporte' | 'sin-camara'>('iniciando');
+  const [sello, setSello] = useState(1);
+  const [codigo, setCodigo] = useState('');
+  const [aviso, setAviso] = useState('');
+  const [enviando, setEnviando] = useState(false);
+
+  const sellarConCodigo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const mia = miCredencial();
+    if (!mia) { ir('#/crear'); return; }
+    const limpio = codigo.trim().toUpperCase();
+    if (limpio.length !== 4) { setAviso('El código tiene 4 letras o números.'); return; }
+    setEnviando(true); setAviso('');
+    try {
+      await sellar(mia, sello, limpio);
+      ir(`#/c/${mia}`, { aviso: `¡Sello ${sello} conseguido!` });
+    } catch (err) {
+      setAviso((err as Error).message);
+      setEnviando(false);
+    }
+  };
 
   useEffect(() => {
     if (!window.BarcodeDetector) { setEstado('sin-soporte'); return; }
@@ -37,18 +60,35 @@ export const Escanear: React.FC<{ ir: Ir }> = ({ ir }) => {
 
   return (
     <main className="pantalla escanear">
-      {(estado === 'iniciando' || estado === 'buscando') && (
-        <div className="visor">
-          <video ref={video} playsInline muted autoPlay />
-          <span className="mira" aria-hidden="true" />
-        </div>
-      )}
+      <div className="visor">
+        {(estado === 'iniciando' || estado === 'buscando') ? (
+          <>
+            <video ref={video} playsInline muted autoPlay />
+            <span className="mira" aria-hidden="true" />
+          </>
+        ) : (
+          <span className="material-symbols-outlined visor-icono" aria-hidden="true">highlight_alt</span>
+        )}
+      </div>
       <p className="progreso" role="status">
         {estado === 'buscando' ? 'Apunta al QR del sello' :
          estado === 'iniciando' ? 'Abriendo la cámara…' :
          estado === 'sin-camara' ? 'No pudimos abrir la cámara. Revisa el permiso del navegador.' :
-         'Abre la cámara de tu teléfono y apunta al QR del sello: se abrirá tu credencial con el sello puesto.'}
+         'Apunta la cámara de tu teléfono al QR del sello, o escribe el código que está bajo el QR.'}
       </p>
+      <form className="codigo-sello" onSubmit={sellarConCodigo}>
+        <div className="seg-movil cuatro" role="radiogroup" aria-label="Número de sello">
+          {Array.from({ length: SELLOS }, (_, i) => i + 1).map(n => (
+            <button key={n} type="button" role="radio" aria-checked={sello === n} onClick={() => setSello(n)}>Sello {n}</button>
+          ))}
+        </div>
+        <div className="pie-movil">
+          <input id="codigo-sello" value={codigo} onChange={e => setCodigo(e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 4))}
+            autoComplete="off" autoCapitalize="characters" placeholder="Código" aria-label="Código del sello" />
+          <button className="btn primario" disabled={enviando}>{enviando ? 'Sellando…' : 'Sellar'}</button>
+        </div>
+        {aviso && <p className="aviso-movil" role="alert">{aviso}</p>}
+      </form>
       <div className="acciones-movil">
         <button type="button" className="btn" onClick={() => ir('#/')}>Volver a mi credencial</button>
       </div>

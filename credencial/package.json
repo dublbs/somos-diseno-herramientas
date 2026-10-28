@@ -8,7 +8,8 @@
     "dev:movil": "vite --host",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "qr:sellos": "node scripts/qr-sellos.mjs"
+    "qr:sellos": "node scripts/qr-sellos.mjs",
+    "artifact": "node scripts/artifact.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

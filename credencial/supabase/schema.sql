@@ -50,7 +50,7 @@ as $$
 declare
   v_id uuid;
 begin
-  if not exists (select 1 from sellos_def where id = p_sello and token = p_token) then
+  if not exists (select 1 from sellos_def where id = p_sello and upper(token) = upper(p_token)) then
     raise exception 'token_invalido';
   end if;
   select id into v_id from credenciales where codigo = upper(p_codigo);
@@ -65,13 +65,14 @@ $$;
 revoke all on function public.sellar(text, smallint, text) from public;
 grant execute on function public.sellar(text, smallint, text) to anon, authenticated;
 
--- Sellos con tokens aleatorios. Después de correrlo, copia los tokens con:
+-- Sellos con códigos aleatorios de 4 caracteres (van en el QR y se pueden escribir a mano).
+-- Después de correrlo, copia los códigos con:
 --   select id, nombre, token from public.sellos_def order by id;
 insert into public.sellos_def (id, nombre, token) values
-  (1, 'Sello 1', encode(gen_random_bytes(6), 'hex')),
-  (2, 'Sello 2', encode(gen_random_bytes(6), 'hex')),
-  (3, 'Sello 3', encode(gen_random_bytes(6), 'hex')),
-  (4, 'Sello 4', encode(gen_random_bytes(6), 'hex'))
+  (1, 'Sello 1', (select string_agg(substr('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 1 + floor(random() * 32)::int, 1), '') from generate_series(1, 4))),
+  (2, 'Sello 2', (select string_agg(substr('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 1 + floor(random() * 32)::int, 1), '') from generate_series(1, 4))),
+  (3, 'Sello 3', (select string_agg(substr('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 1 + floor(random() * 32)::int, 1), '') from generate_series(1, 4))),
+  (4, 'Sello 4', (select string_agg(substr('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 1 + floor(random() * 32)::int, 1), '') from generate_series(1, 4)))
 on conflict (id) do nothing;
 
 -- Para la Pantalla Flip y las métricas: credenciales con su cantidad de sellos.

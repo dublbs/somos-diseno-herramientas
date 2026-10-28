@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { componer, ESPERA, FPS, N, type Receta } from '../pixel/generator';
 import { HEX } from '../pixel/palette';
-import { CARTA, DISENOS, type DatosCarta } from '../pixel/render';
+import { CARTA, DISENOS, pintarMarco, type Cara, type DatosCarta } from '../pixel/render';
 
 // Reloj compartido de 12 fps (cuadro a cuadro). Con «reducir movimiento» queda quieto.
 export function useCuadro() {
@@ -15,7 +15,7 @@ export function useCuadro() {
 }
 
 // Credencial animada. Se dibuja a la resolución real del elemento (sin suavizado).
-export const Carta: React.FC<{ datos: DatosCarta; diseno?: 'frente' | 'hello'; className?: string }> = ({ datos, diseno = 'frente', className }) => {
+export const Carta: React.FC<{ datos: DatosCarta; diseno?: Cara; className?: string }> = ({ datos, diseno = 'frente', className }) => {
   const ref = useRef<HTMLCanvasElement>(null);
   const cuadro = useCuadro();
   const [escala, setEscala] = useState(2);
@@ -41,7 +41,7 @@ export const Carta: React.FC<{ datos: DatosCarta; diseno?: 'frente' | 'hello'; c
       ref={ref}
       className={className}
       role="img"
-      aria-label={`Credencial de ${datos.nombre}, ${datos.sellos.length} de 4 sellos`}
+      aria-label={diseno === 'foto' ? `Foto de ${datos.nombre} en su marco` : `Credencial de ${datos.nombre}, ${datos.sellos.length} de 4 sellos`}
     />
   );
 };
@@ -72,4 +72,25 @@ export const Miniatura: React.FC<{ receta: Receta; recorte?: { x: number; y: num
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clave, recorte, tam]);
   return <canvas ref={ref} style={{ width: tam, height: tam }} aria-hidden="true" />;
+};
+
+// Marco con el personaje (o la foto) adentro, animado y a la resolución real del elemento.
+export const MarcoVivo: React.FC<{ marco: string; receta: Receta; foto?: DatosCarta['foto']; animado?: boolean; className?: string }> = ({ marco, receta, foto, animado = true, className }) => {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const cuadro = useCuadro();
+  const [lado, setLado] = useState(0);
+  useEffect(() => {
+    const c = ref.current!;
+    const ro = new ResizeObserver(() => setLado(Math.round(c.clientWidth * Math.min(window.devicePixelRatio || 1, 3))));
+    ro.observe(c);
+    return () => ro.disconnect();
+  }, []);
+  const paso = animado && !foto ? cuadro : 0;
+  useEffect(() => {
+    const c = ref.current!;
+    if (!lado) return;
+    if (c.width !== lado) { c.width = c.height = lado; }
+    pintarMarco(c.getContext('2d')!, marco, foto ? null : componer(receta, paso), lado / 240, foto);
+  }, [marco, receta, foto, paso, lado]);
+  return <canvas ref={ref} className={className} aria-hidden="true" />;
 };

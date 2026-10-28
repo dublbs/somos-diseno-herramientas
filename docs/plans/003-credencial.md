@@ -11,7 +11,11 @@
 - Se descargan PNG de cada cara. Es una PWA mínima (manifest e ícono). La tarjeta «Credencial» del hub enlaza a `credencial/dist/`.
 - Los QR imprimibles de los sellos se generan con `npm --prefix credencial run qr:sellos`.
 
-**No se hizo (queda en pausa):** home móvil con apps, sello *Creador* desde las experiencias, foto del Fotomatón en la credencial y galería para la Pantalla Flip.
+- **Fotomatón sin efectos** (`#/foto`): selfie con la cámara nativa, dentro del marco elegido. Es la tercera cara de la credencial (Frente → HELLO → Foto) y se descarga en PNG. La foto queda solo en el celular.
+- **Sellos por código**: bajo cada QR va un código de 4 caracteres (el `token` de `sellos_def`). Se escribe en «Sellar» cuando no hay lector (iPhone, claude.ai). `sellar()` compara sin mayúsculas.
+- **Para verla en el celular**: `vercel.json` en la raíz (sin build) y vista previa como Artifact de claude.ai (`npm run artifact`).
+
+**No se hizo (queda en pausa):** home móvil con apps, sello *Creador* desde las experiencias, efectos del Fotomatón en la foto, subir la foto a Supabase y galería para la Pantalla Flip.
 
 ## Contexto
 La credencial es la pieza que va **en el celular** de cada persona y que une todo el recorrido. Hoy no hay nada para ver en móvil: el hub y las 4 experiencias están pensados para la tablet del stand y **no están publicados en ninguna URL**.
@@ -97,5 +101,6 @@ Vincular con el correo de inscripción, premio físico, Hub 1 y Hub 2.
 ## Verificación
 - [x] Fit test en teléfonos (390 × 844, 412 × 915, 360 × 740): «Crear», en cada pestaña, y la credencial sin scroll.
 - [x] Flujo en modo demo: crear → credencial → abrir `#/sello/N` → ver el sello → girar → descargar PNG.
+- [x] Foto: elegir imagen → «Usar foto» → tercera cara → PNG; sello por código (390 × 844 y 360 × 740), y la página del Artifact dentro de un iframe.
 - [ ] Flujo con Supabase en un celular real (requiere Vercel + `schema.sql`).
 - Escáner probado con una figura impresa bajo la luz de la sede (fase 2).

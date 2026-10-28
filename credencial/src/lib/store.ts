@@ -73,3 +73,18 @@ export async function sellar(codigo: string, sello: number, token: string) {
 export function miCredencial(): string | null { try { return localStorage.getItem('sd:mia'); } catch { return null; } }
 export function guardarMiCredencial(codigo: string) { try { localStorage.setItem('sd:mia', codigo); } catch { /* sin almacenamiento */ } }
 export function olvidarMiCredencial() { try { localStorage.removeItem('sd:mia'); } catch { /* nada */ } }
+
+// Foto del Fotomatón: en el MVP queda solo en este celular (no se sube).
+const llaveFoto = (codigo: string) => 'sd:foto:' + codigo;
+const fotosEnMemoria: Record<string, string> = {};
+export function fotoDe(codigo: string): string | null {
+  try { return localStorage.getItem(llaveFoto(codigo)) ?? fotosEnMemoria[codigo] ?? null; } catch { return fotosEnMemoria[codigo] ?? null; }
+}
+export function guardarFoto(codigo: string, dataUrl: string) {
+  fotosEnMemoria[codigo] = dataUrl;
+  try { localStorage.setItem(llaveFoto(codigo), dataUrl); } catch { /* queda en memoria */ }
+}
+export function borrarFoto(codigo: string) {
+  delete fotosEnMemoria[codigo];
+  try { localStorage.removeItem(llaveFoto(codigo)); } catch { /* nada */ }
+}

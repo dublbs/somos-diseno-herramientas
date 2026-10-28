@@ -9,7 +9,7 @@
     <link rel="apple-touch-icon" href="./icono.svg" />
     <title>Credencial · Somos Diseño</title>
     <script>
-      if (window.location.pathname.includes('/credencial') && !window.location.pathname.includes('/dist')) {
+      if (/\/credencial\/?$/.test(window.location.pathname)) {
         window.location.replace(window.location.pathname.replace(/\/credencial\/?$/, '/credencial/dist/') + window.location.search + window.location.hash);
       }
     </script>

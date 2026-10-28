@@ -4,9 +4,10 @@ Cada persona arma su personaje Pixel en su propio celular, lo pone dentro de uno
 
 ## Pantallas (rutas con `#`, funcionan en cualquier carpeta)
 - `#/crear` — arma el personaje (cabeza, ojos, boca, mejillas, pelo, ropa, accesorio; máximo 4 colores contando el Negro del contorno) y elige lenguaje y marco.
-- `#/c/SD-XXXXX` — la credencial: frente con la forma y los colores del marco, reverso «HELLO my name is» (se gira con un toque). Guardar como PNG.
+- `#/c/SD-XXXXX` — la credencial: frente con la forma y los colores del marco, «HELLO my name is» y la foto (se gira con un toque). Guardar como PNG.
 - `#/sello/1..4?t=TOKEN` — lo abre el QR impreso de cada sello y timbra la credencial guardada en ese celular.
-- `#/escanear` — lector de QR con la cámara (`BarcodeDetector`). Si el navegador no lo soporta (iPhone), se usa la cámara del teléfono: el QR es un enlace que abre la app.
+- `#/escanear` — «Sellar»: lector de QR con la cámara (`BarcodeDetector`). Si el navegador no lo soporta (iPhone), se usa la cámara del teléfono: el QR es un enlace que abre la app. Siempre se puede **escribir el código de 4 caracteres** impreso bajo cada QR.
+- `#/foto` — **Fotomatón sin efectos**: una selfie (cámara nativa del teléfono) que queda dentro del marco de la credencial. Es la tercera cara de la tarjeta (Frente → HELLO → Foto) y se guarda como PNG. La foto queda solo en el celular; no se sube.
 
 Todo cabe en la pantalla del teléfono, sin scroll (probado en 390 × 844, 412 × 915 y 360 × 740).
 
@@ -17,14 +18,19 @@ Todo cabe en la pantalla del teléfono, sin scroll (probado en 390 × 844, 412 �
 
 ## QR de los sellos
 ```bash
-SITIO_URL=https://tu-sitio.vercel.app SELLO_TOKENS=t1,t2,t3,t4 npm --prefix credencial run qr:sellos
+SITIO_URL=https://tu-sitio.vercel.app SELLO_TOKENS=K7QF,M2XA,P9RT,Z4HB npm --prefix credencial run qr:sellos
 ```
-Deja `credencial/qr/sello-1.svg` … `sello-4.svg`. Si un token se filtra, cámbialo en `sellos_def` y vuelve a generar ese QR.
+Los códigos son los `token` de `sellos_def` (4 caracteres). Deja `credencial/qr/sello-1.svg` … `sello-4.svg`, con «SELLO N · CÓDIGO» bajo cada QR. Si un token se filtra, cámbialo en `sellos_def` y vuelve a generar ese QR.
+
+## Verla en el celular
+- **Vercel** (sitio real): importa `dublbs/somos-diseno-herramientas` en Vercel. `vercel.json` en la raíz ya evita el build (los `dist/` están versionados). Elige como rama de producción `claude/ecstatic-lovelace-xjgq6d` (o haz merge a `main`). La credencial queda en `https://<proyecto>.vercel.app/credencial/dist/`.
+- **Vista previa en claude.ai** (sin hosting): `npm run build && npm run artifact` arma `artifact/index.html`, una sola página con todo adentro, para publicarla como Artifact. Ahí las rutas viven en la app (el visor no acepta `#/rutas`), los sellos se ponen con el código o «Simular» y las imágenes se guardan con el permiso de descargas de claude.ai.
 
 ## Código
 - `src/pixel/`: generador de personajes 24 × 24 (`parts.ts`, `generator.ts`), paleta Línea azul, alfabeto pixel 5 × 7 y el render de la credencial (`render.ts`).
-- `src/lib/store.ts`: Supabase o modo demo.
-- `src/pages/`: Crear, Credencial, Sello, Escanear.
+- `src/lib/store.ts`: Supabase o modo demo; la foto en `localStorage`.
+- `src/lib/foto.ts` (selfie a 720 px) y `src/lib/descargar.ts` (claude.ai → compartir → enlace).
+- `src/pages/`: Crear, Credencial, Sello, Escanear, Foto.
 
 ```bash
 npm --prefix credencial install

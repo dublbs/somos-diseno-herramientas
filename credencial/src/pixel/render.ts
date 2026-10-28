@@ -11,6 +11,7 @@ export interface DatosCarta {
   receta: Receta;
   marco: string; // id de shared/marcos.ts (GM01, OM05, PM05…)
   sellos: number[]; // 1..SELLOS
+  foto?: CanvasImageSource & { width: number; height: number } | null; // selfie del Fotomatón (solo en este celular)
 }
 
 // Tarjeta vertical en unidades lógicas: arriba el marco de 240 × 240, abajo la ficha.
@@ -77,8 +78,18 @@ function pintarSello(ctx: CanvasRenderingContext2D, s: number, x: number, y: num
   pintarTexto(ctx, String(n), sx + w / 2 - 5, sy + h / 2 - 7, tinta, s, 2);
 }
 
-// Marco de 240 × 240 (fondo, figura y zona de foto) con el personaje adentro, a escala s.
-export function pintarMarco(ctx: CanvasRenderingContext2D, marcoId: string, celdas: Celdas, s: number) {
+type Foto = NonNullable<DatosCarta['foto']>;
+
+// Foto que cubre la caja lógica [x, y, w, h] sin deformarse (recorta lo que sobra).
+function pintarFotoCubriendo(ctx: CanvasRenderingContext2D, foto: Foto, [x, y, w, h]: [number, number, number, number]) {
+  const k = Math.max(w / foto.width, h / foto.height);
+  const fw = foto.width * k, fh = foto.height * k;
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(foto, x + (w - fw) / 2, y + (h - fh) / 2, fw, fh);
+}
+
+// Marco de 240 × 240 (fondo, figura y zona de foto) con el personaje (o la foto) adentro, a escala s.
+export function pintarMarco(ctx: CanvasRenderingContext2D, marcoId: string, celdas: Celdas | null, s: number, foto?: Foto | null) {
   const m = marcoListo(marcoId);
   ctx.save();
   ctx.fillStyle = m.bg;
@@ -90,8 +101,9 @@ export function pintarMarco(ctx: CanvasRenderingContext2D, marcoId: string, celd
   ctx.clip(m._clip.path);
   ctx.fillStyle = HEX.Hueso;
   ctx.fill(m._clip.path);
+  if (foto) pintarFotoCubriendo(ctx, foto, m._clip.box);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  pintarPersonaje(ctx, celdas, s, m._clip.box);
+  if (!foto && celdas) pintarPersonaje(ctx, celdas, s, m._clip.box);
   ctx.restore();
 }
 
@@ -167,12 +179,45 @@ export function pintarHello(ctx: CanvasRenderingContext2D, d: DatosCarta, cuadro
   ctx.restore();
 }
 
+// Cara C: Fotomatón sin efectos. La selfie dentro del marco y la franja negra de las tarjetas del hub.
+export function pintarFoto(ctx: CanvasRenderingContext2D, d: DatosCarta, _cuadro: number, s: number) {
+  const R = caja(ctx, s);
+  const m = marcoListo(d.marco);
+  const { acento } = coloresDeMarco(d.marco);
+  const W = CARTA.ancho, H = CARTA.alto;
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  R(0, 0, W, H, HEX.Negro);
+  pintarMarco(ctx, d.marco, null, s, d.foto);
+  if (!d.foto) {
+    const [bx, by, bw, bh] = m._clip.box;
+    const t1 = 'SACA TU', t2 = 'FOTO';
+    pintarTexto(ctx, t1, bx + (bw - anchoDe(t1, 2)) / 2, by + bh / 2 - 16, HEX.Negro, s, 2);
+    pintarTexto(ctx, t2, bx + (bw - anchoDe(t2, 2)) / 2, by + bh / 2 + 2, HEX.Negro, s, 2);
+  }
+  const y0 = ALTO_MARCO + 14;
+  pintarTexto(ctx, 'FOTOMATÓN', 12, y0, acento === HEX.Negro ? HEX.Amarillo : acento, s, 1);
+  const nombre = d.nombre || 'SIN NOMBRE';
+  const tam = anchoDe(nombre, 3) <= W - 24 ? 3 : 2;
+  pintarTexto(ctx, nombre, 12, y0 + 16, HEX.Hueso, s, tam);
+  const y1 = y0 + 16 + 7 * tam + 10;
+  pintarTexto(ctx, d.codigo || 'SD-?????', 12, y1, HEX.Hueso, s, 2);
+  const etiqueta = `${m.visual} ${m.code}`;
+  pintarTexto(ctx, etiqueta, W - 12 - anchoDe(etiqueta, 1), y1 + 4, HEX.Hueso, s, 1);
+  pintarTexto(ctx, 'SOMOS DISEÑO 2026', 12, H - 20, HEX.Hueso, s, 1);
+  R(0, 0, W, 2, HEX.Negro); R(0, H - 2, W, 2, HEX.Negro); R(0, 0, 2, H, HEX.Negro); R(W - 2, 0, 2, H, HEX.Negro);
+  ctx.restore();
+}
+
+export type Cara = 'frente' | 'hello' | 'foto';
+
 export const DISENOS = [
   { id: 'frente', nombre: 'Credencial', pintar: pintarFrente },
   { id: 'hello', nombre: 'HELLO my name is', pintar: pintarHello },
+  { id: 'foto', nombre: 'Fotomatón', pintar: pintarFoto },
 ] as const;
 
-export function cartaEnLienzo(d: DatosCarta, s = 4, cuadro = 0, diseno: 'frente' | 'hello' = 'frente') {
+export function cartaEnLienzo(d: DatosCarta, s = 4, cuadro = 0, diseno: Cara = 'frente') {
   const c = document.createElement('canvas');
   c.width = CARTA.ancho * s; c.height = CARTA.alto * s;
   (DISENOS.find(x => x.id === diseno) || DISENOS[0]).pintar(c.getContext('2d')!, d, cuadro, s);
