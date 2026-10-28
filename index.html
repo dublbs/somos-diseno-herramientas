@@ -3,78 +3,56 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Experiencias · Somos Diseño</title>
-<meta name="description" content="Experiencias interactivas de Somos Diseño para jugar con los lenguajes visuales: Fotomatón, Taller de Mosaicos y Taller de Píxeles. INACAP Sede Santiago Centro.">
-<meta name="theme-color" content="#121214">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23121214'/%3E%3Cpath d='M0 0H16L0 16Z' fill='%232B4BD8'/%3E%3Ccircle cx='11' cy='5' r='3' fill='%23FFC20E'/%3E%3Cpath d='M16 16V8H8Z' fill='%23FF8FB1'/%3E%3C/svg%3E">
+<title>Experiencias Interactivas · Somos Diseño 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=DM+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..800;1,9..40,400..800&family=IBM+Plex+Mono:wght@400;500;600&family=Silkscreen&display=swap" rel="stylesheet">
 <style>
 :root {
-  --mesa: #121214;
-  --mesa-hover: #222228;
-  --linea: #2c2d35;
-  --linea-fuerte: #424450;
-  --papel: #F4EEE3;
-  --tinta: #0a0a0c;
-  --suave: #9c9ba6;
+  --mesa: #0f1013;
+  --mesa-panel: #17181d;
+  --mesa-hover: #1f2129;
+  --linea: #292a34;
+  --linea-fuerte: #3f4252;
+  --papel: #f4eee3;
+  --tinta: #0a0a0d;
+  --suave: #9ea3b5;
   --texto: #f4eee3;
-
-  --azul: #0062B8;
-  --lapis: #2B4BD8;
-  --celeste: #7FC8F8;
-  --amarillo: #FFC20E;
-  --verde: #00A651;
-  --rosa: #FF8FB1;
-  --morado: #7A2E8E;
-
-  --f-display: "Bricolage Grotesque", "DM Sans", system-ui, sans-serif;
-  --f-cuerpo: "DM Sans", system-ui, -apple-system, sans-serif;
-  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
-
+  --azul: #0062b8;
+  --lapis: #2b4bd8;
+  --celeste: #7fc8f8;
+  --amarillo: #ffc20e;
+  --verde: #00a651;
+  --rosa: #ff8fb1;
+  --morado: #7a2e8e;
+  --rojo: #e2001a;
+  --f-display: "DM Sans", -apple-system, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --f-pixel: "Silkscreen", monospace;
   color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
 html, body {
   margin: 0;
+  padding: 0;
   background: var(--mesa);
   color: var(--texto);
-  font-family: var(--f-cuerpo);
-  font-size: 16px;
-  line-height: 1.5;
-  min-height: 100vh;
-  min-height: 100dvh;
+  font-family: var(--f-display);
   -webkit-font-smoothing: antialiased;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background-image:
-    linear-gradient(to right, rgba(255,255,255,.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255,255,255,.03) 1px, transparent 1px);
-  background-size: 40px 40px;
-  pointer-events: none;
+  min-height: 100vh;
 }
 
 .contenedor {
-  position: relative;
-  max-width: 1120px;
-  min-height: 100vh;
-  min-height: 100dvh;
+  max-width: 1320px;
   margin: 0 auto;
   padding: max(20px, env(safe-area-inset-top, 0px)) max(28px, env(safe-area-inset-right, 0px)) max(28px, env(safe-area-inset-bottom, 0px)) max(28px, env(safe-area-inset-left, 0px));
   display: flex;
   flex-direction: column;
-  gap: clamp(20px, 4vh, 36px);
+  gap: clamp(20px, 3.5vh, 32px);
 }
 
-/* ---------- Barra superior ---------- */
+/* Barra superior */
 .top-nav {
   display: flex;
   align-items: center;
@@ -120,29 +98,79 @@ body::before {
   align-items: center;
   gap: 8px;
   flex: none;
+  touch-action: manipulation;
 }
 .btn-quiosco:active { background: var(--mesa-hover); border-color: var(--papel); }
 
-/* ---------- Introducción ---------- */
-.intro h1 {
+/* Introducción y Filtros */
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.intro-text h1 {
   margin: 0;
-  font: 800 clamp(30px, 4.4vw, 48px)/1.02 var(--f-display);
+  font: 800 clamp(30px, 4.4vw, 46px)/1.02 var(--f-display);
   letter-spacing: -.03em;
   text-wrap: balance;
 }
-.intro p {
+.intro-text p {
   margin: 10px 0 0;
-  max-width: 56ch;
-  font-size: clamp(16px, 1.8vw, 19px);
+  max-width: 62ch;
+  font-size: clamp(15.5px, 1.8vw, 18.5px);
   color: var(--suave);
   text-wrap: pretty;
 }
 
-/* ---------- Tarjetas ---------- */
+/* Filtro por Lenguaje */
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+.filtro-etiqueta {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--suave);
+  margin-right: 4px;
+  letter-spacing: .06em;
+}
+.btn-filtro {
+  background: var(--mesa-panel);
+  color: var(--suave);
+  border: 1px solid var(--linea-fuerte);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-family: var(--f-mono);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .15s ease;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  touch-action: manipulation;
+}
+.btn-filtro:hover {
+  color: var(--texto);
+  border-color: var(--texto);
+}
+.btn-filtro.activo {
+  background: var(--amarillo);
+  color: var(--tinta);
+  border-color: var(--amarillo);
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(255, 194, 14, 0.25);
+}
+
+/* Grid de Experiencias */
 .experiencias-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(16px, 2.4vw, 26px);
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: clamp(16px, 2.2vw, 24px);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -156,13 +184,26 @@ body::before {
   color: var(--tinta);
   border: 2px solid var(--tinta);
   box-shadow: 6px 6px 0 var(--tinta);
-  transition: transform .15s ease, box-shadow .15s ease;
+  transition: transform .15s ease, box-shadow .15s ease, opacity .2s ease;
+}
+.tarjeta.oculta {
+  display: none;
 }
 .tarjeta:active { transform: translate(2px, 2px); box-shadow: 3px 3px 0 var(--tinta); }
 @media (hover: hover) {
   .tarjeta:hover { transform: translate(-3px, -3px); box-shadow: 10px 10px 0 var(--amarillo); }
 }
 .tarjeta:has(.btn-entrar:focus-visible) { outline: 3px solid var(--celeste); outline-offset: 4px; }
+
+.tarjeta.proxima {
+  background: #ebe6dc;
+  border-color: #3f4252;
+  box-shadow: 4px 4px 0 #292a34;
+}
+.tarjeta.proxima:hover {
+  transform: none;
+  box-shadow: 4px 4px 0 #292a34;
+}
 
 .miniatura {
   position: relative;
@@ -172,6 +213,21 @@ body::before {
   overflow: hidden;
 }
 .miniatura canvas { display: block; width: 100%; height: 100%; }
+
+.miniatura-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: repeating-conic-gradient(#1f2129 0 25%, #17181d 0 50%) 0 0 / 24px 24px;
+  font-family: var(--f-mono);
+  font-size: 14px;
+  color: var(--suave);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
 .etiqueta {
   position: absolute;
   top: 10px; left: 10px;
@@ -182,6 +238,20 @@ body::before {
   color: var(--papel);
   padding: 4px 8px;
   border: 1px solid var(--papel);
+  z-index: 2;
+}
+
+.badge-estado {
+  position: absolute;
+  top: 10px; right: 10px;
+  font: 600 10px var(--f-mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  background: var(--linea-fuerte);
+  color: var(--papel);
+  padding: 4px 8px;
+  border-radius: 3px;
+  z-index: 2;
 }
 
 .cuerpo {
@@ -189,49 +259,72 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: clamp(14px, 2vw, 22px);
+  padding: clamp(14px, 2vw, 20px);
 }
 .cuerpo h2 {
   margin: 0;
-  font: 800 clamp(20px, 2.5vw, 26px)/1.1 var(--f-display);
+  font: 800 clamp(20px, 2.2vw, 25px)/1.1 var(--f-display);
   letter-spacing: -.02em;
 }
 .cuerpo p {
   margin: 0;
-  font-size: clamp(14px, 1.5vw, 15.5px);
+  font-size: clamp(14px, 1.4vw, 15px);
   line-height: 1.45;
   color: #2b2b2e;
   text-wrap: pretty;
 }
 
 .acciones {
-  padding: 14px clamp(14px, 2vw, 22px) clamp(14px, 2vw, 22px);
+  padding: 12px clamp(14px, 2vw, 20px) clamp(14px, 2vw, 20px);
 }
 .btn-entrar {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 52px;
+  min-height: 50px;
   background: var(--amarillo);
   color: var(--tinta);
   font-weight: 700;
-  font-size: 17px;
+  font-size: 16.5px;
   text-decoration: none;
   border: 2px solid var(--tinta);
   box-shadow: 4px 4px 0 var(--tinta);
+  touch-action: manipulation;
 }
-/* Toda la tarjeta es zona táctil del botón */
 .btn-entrar::after { content: ""; position: absolute; inset: 0; }
 .btn-entrar:focus-visible { outline: none; }
 
-@media (max-width: 700px) {
+.btn-disabled {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  background: #ded9cd;
+  color: #6a6a70;
+  font-family: var(--f-mono);
+  font-size: 13.5px;
+  border: 1px dashed #7a7a82;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
   .experiencias-grid { grid-template-columns: minmax(0, 1fr); }
-  .contenedor { padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+  .contenedor { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
   .brand-sub { display: none; }
 }
 
-footer { margin-top: auto; font-size: 13px; color: var(--suave); }
+footer {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--linea);
+  font-size: 12.5px;
+  color: var(--suave);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: .01ms !important; }
@@ -246,7 +339,7 @@ footer { margin-top: auto; font-size: 13px; color: var(--suave); }
       <div class="brand-simbolo" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
       <div class="brand-texto">
         <span class="brand-titulo">Somos Diseño</span>
-        <span class="brand-sub">INACAP Santiago Centro · Semana del Diseño</span>
+        <span class="brand-sub">INACAP Santiago Centro · Semana del Diseño 2026</span>
       </div>
     </div>
     <button class="btn-quiosco" id="btn-fullscreen" type="button" aria-label="Alternar pantalla completa">
@@ -255,59 +348,148 @@ footer { margin-top: auto; font-size: 13px; color: var(--suave); }
   </header>
 
   <section class="intro" aria-labelledby="titulo">
-    <h1 id="titulo">Experiencias interactivas</h1>
-    <p>Cada una juega con un lenguaje visual distinto: Geométrica, Pixel y Orgánica. Elige una y ponle tu estilo.</p>
+    <div class="intro-text">
+      <h1 id="titulo">Experiencias interactivas</h1>
+      <p>Explora los tres lenguajes visuales de la campaña: Geométrica, Pixel y Orgánica. Toca una actividad para comenzar.</p>
+    </div>
+
+    <!-- Barra de Filtros -->
+    <div class="filtros" role="tablist" aria-label="Filtrar por lenguaje visual">
+      <span class="filtro-etiqueta">Filtrar:</span>
+      <button class="btn-filtro activo" data-filtro="todos" role="tab" aria-selected="true">Todos</button>
+      <button class="btn-filtro" data-filtro="pixel" role="tab" aria-selected="false">Pixel</button>
+      <button class="btn-filtro" data-filtro="geometrica" role="tab" aria-selected="false">Geométrica</button>
+      <button class="btn-filtro" data-filtro="organica" role="tab" aria-selected="false">Orgánica</button>
+    </div>
   </section>
 
   <main>
-    <ul class="experiencias-grid">
+    <ul class="experiencias-grid" id="grid-experiencias">
 
-      <li class="tarjeta" id="exp-fotomaton">
+      <!-- 1. FOTOMATÓN -->
+      <li class="tarjeta" data-lenguajes="pixel geometrica organica" id="exp-fotomaton">
         <div class="miniatura">
           <canvas id="cv-fotomaton" aria-hidden="true"></canvas>
-          <span class="etiqueta">Pixel · Geométrica · Orgánica</span>
+          <span class="etiqueta">Transversal · 3 Lenguajes</span>
         </div>
         <div class="cuerpo">
-          <h2>Fotomatón</h2>
-          <p>Sácate una foto y mírala convertirse en puntitos de colores. Elige tu marco favorito y llévatela al celular con un QR.</p>
+          <h2>Fotomatón CMYK</h2>
+          <p>Sácate una foto y mírala convertirse en puntitos de colores. Elige tu marco favorito y llévatela a tu celular con un QR.</p>
         </div>
         <div class="acciones">
           <a class="btn-entrar" href="fotomaton/dist/" id="link-fotomaton" aria-label="Entrar al Fotomatón">Entrar <span aria-hidden="true">→</span></a>
         </div>
       </li>
 
-      <li class="tarjeta" id="exp-mosaicos">
+      <!-- 2. TALLER DE MOSAICOS / TU SÍMBOLO -->
+      <li class="tarjeta" data-lenguajes="geometrica" id="exp-mosaicos">
         <div class="miniatura">
           <canvas id="cv-mosaicos" aria-hidden="true"></canvas>
           <span class="etiqueta">Geométrica</span>
         </div>
         <div class="cuerpo">
           <h2>Taller de Mosaicos</h2>
-          <p>Arma tu propio mosaico con formas y colores. Pon una pieza, repítela, gírala y mira cómo nace un patrón.</p>
+          <p>Arma tu propio símbolo con formas base y colores de Línea Azul. Aplica giros, simetrías y repeticiones matemáticas.</p>
         </div>
         <div class="acciones">
           <a class="btn-entrar" href="taller-mosaicos/dist/" id="link-mosaicos" aria-label="Entrar al Taller de Mosaicos">Entrar <span aria-hidden="true">→</span></a>
         </div>
       </li>
 
-      <li class="tarjeta" id="exp-pixeles">
+      <!-- 3. TALLER DE PÍXELES -->
+      <li class="tarjeta" data-lenguajes="pixel" id="exp-pixeles">
         <div class="miniatura">
           <canvas id="cv-pixeles" aria-hidden="true"></canvas>
           <span class="etiqueta">Pixel</span>
         </div>
         <div class="cuerpo">
           <h2>Taller de Píxeles</h2>
-          <p>Convierte una foto en un personaje de pixel art, o dibuja el tuyo cuadradito a cuadradito.</p>
+          <p>Convierte cualquier imagen en un módulo de pixel art de 24 × 24 con reglas de contraste WCAG y paleta oficial.</p>
         </div>
         <div class="acciones">
           <a class="btn-entrar" href="taller-de-pixeles/dist/" id="link-pixeles" aria-label="Entrar al Taller de Píxeles">Entrar <span aria-hidden="true">→</span></a>
         </div>
       </li>
 
+      <!-- 4. ESTACIÓN DE LOOPS -->
+      <li class="tarjeta proxima" data-lenguajes="pixel geometrica organica" id="exp-loops">
+        <div class="miniatura">
+          <div class="miniatura-placeholder">
+            <span>Loop 12 FPS</span>
+          </div>
+          <span class="etiqueta">Transversal · Animación</span>
+          <span class="badge-estado">En desarrollo</span>
+        </div>
+        <div class="cuerpo">
+          <h2>Estación de Loops</h2>
+          <p>Crea animaciones en bucle continuo: nivel de juego 8-bit, caleidoscopio geométrico o teatro de marionetas recortadas.</p>
+        </div>
+        <div class="acciones">
+          <div class="btn-disabled">Próximamente</div>
+        </div>
+      </li>
+
+      <!-- 5. GRAFFITI Y TAGS -->
+      <li class="tarjeta proxima" data-lenguajes="pixel" id="exp-graffiti">
+        <div class="miniatura">
+          <div class="miniatura-placeholder">
+            <span>Pixel Tag</span>
+          </div>
+          <span class="etiqueta">Pixel</span>
+          <span class="badge-estado">En desarrollo</span>
+        </div>
+        <div class="cuerpo">
+          <h2>Graffiti y Tags</h2>
+          <p>Pinta tu firma o ilustración urbana con trazo grueso y goteo de pintura en estética pixel digital.</p>
+        </div>
+        <div class="acciones">
+          <div class="btn-disabled">Próximamente</div>
+        </div>
+      </li>
+
+      <!-- 6. ESTACIÓN AUDIOREACTIVA -->
+      <li class="tarjeta proxima" data-lenguajes="geometrica" id="exp-audioreactiva">
+        <div class="miniatura">
+          <div class="miniatura-placeholder">
+            <span>Audio WebAPI</span>
+          </div>
+          <span class="etiqueta">Geométrica</span>
+          <span class="badge-estado">En desarrollo</span>
+        </div>
+        <div class="cuerpo">
+          <h2>Estación Audioreactiva</h2>
+          <p>Usa tu voz o música para deformar y dar vida a patrones geométricos reactivos en tiempo real.</p>
+        </div>
+        <div class="acciones">
+          <div class="btn-disabled">Próximamente</div>
+        </div>
+      </li>
+
+      <!-- 7. JARDÍN DE PAPEL -->
+      <li class="tarjeta proxima" data-lenguajes="organica" id="exp-jardin">
+        <div class="miniatura">
+          <div class="miniatura-placeholder">
+            <span>Botánica Táctil</span>
+          </div>
+          <span class="etiqueta">Orgánica</span>
+          <span class="badge-estado">En desarrollo</span>
+        </div>
+        <div class="cuerpo">
+          <h2>Jardín de Papel</h2>
+          <p>Compone flores, hojas y formas botánicas recortando y combinando texturas orgánicas de papel.</p>
+        </div>
+        <div class="acciones">
+          <div class="btn-disabled">Próximamente</div>
+        </div>
+      </li>
+
     </ul>
   </main>
 
-  <footer>Somos Diseño · INACAP Sede Santiago Centro</footer>
+  <footer>
+    <span>Somos Diseño · INACAP Sede Santiago Centro</span>
+    <span>Modo Quiosco Tablet · Auto-reset 90s</span>
+  </footer>
 </div>
 
 <script>
@@ -330,166 +512,200 @@ footer { margin-top: auto; font-size: 13px; color: var(--suave); }
   const paths = new Map();
   const path = d => paths.get(d) || (paths.set(d, new Path2D(d)), paths.get(d));
 
-  // Todas las miniaturas dibujan en un espacio virtual de 400×250 y se escalan
-  // a la resolución real del canvas: nítidas en tablets retina y en cualquier ancho.
   const VW = 400, VH = 250, DPR_MAX = 2;
   const miniaturas = [];
 
   function ajustar(m) {
     const dpr = Math.min(window.devicePixelRatio || 1, DPR_MAX);
     const w = Math.max(1, Math.round(m.cv.clientWidth * dpr));
-    const h = Math.round(w * VH / VW);
-    if (m.cv.width !== w || m.cv.height !== h) { m.cv.width = w; m.cv.height = h; }
-    m.ctx.setTransform(w / VW, 0, 0, h / VH, 0, 0);
-    m.sucio = true;
-  }
-
-  // ---- Mosaicos (estático, se redibuja solo al cambiar de tamaño)
-  function dibujarMosaicos(ctx) {
-    const cols = 8, rows = 5, t = VW / cols;
-    ctx.fillStyle = HEX.Lapislázuli;
-    ctx.fillRect(0, 0, VW, VH);
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const mc = c < cols / 2 ? c : cols - 1 - c;
-        const espejo = c >= cols / 2;
-        const rot = (r + mc) % 4;
-        const capas = FORMAS[MOSAICO[(mc + r * 3) % MOSAICO.length]];
-        ctx.save();
-        ctx.translate(c * t, r * t);
-        ctx.scale(t / 12, t / 12);
-        ctx.translate(6, 6);
-        if (espejo) ctx.scale(-1, 1);
-        ctx.rotate(rot * Math.PI / 2);
-        ctx.translate(-6, -6);
-        for (const [d, rol] of capas) {
-          ctx.fillStyle = rol === "b" ? HEX.Rosa : HEX.Amarillo;
-          ctx.fill(path(d), "evenodd");
-        }
-        ctx.restore();
-      }
+    const h = Math.max(1, Math.round(m.cv.clientHeight * dpr));
+    if (m.cv.width !== w || m.cv.height !== h) {
+      m.cv.width = w;
+      m.cv.height = h;
     }
   }
 
-  // ---- Fotomatón (trama CMYK animada, trazos agrupados por color)
-  function dibujarFotomaton(ctx, now) {
-    const t = now / 1000 * 2.4;
-    const sp = 16, cols = Math.ceil(VW / sp), rows = Math.ceil(VH / sp);
-    const cx = VW / 2, cy = VH / 2;
-    ctx.fillStyle = "#0c0d12";
-    ctx.fillRect(0, 0, VW, VH);
-    const capas = [["#FF8FB1", -1.5, 0, .85], ["#7FC8F8", 1.5, -1, .85], ["#FFC20E", 0, 1.5, .75]];
-    for (const [color, dx, dy, k] of capas) {
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      for (let y = 0; y < rows; y++) {
-        for (let x = 0; x < cols; x++) {
-          const px = x * sp + sp / 2, py = y * sp + sp / 2;
-          const dist = Math.hypot(px - cx, py - cy);
-          const rad = Math.max(1, Math.min(7, (1 - dist / (VW * .55)) * 7.5 + Math.sin(t + dist * .05) * 2)) * k;
-          ctx.moveTo(px + dx + rad, py + dy);
-          ctx.arc(px + dx, py + dy, rad, 0, Math.PI * 2);
+  // 1. Fotomatón (Puntos Halftone simulados)
+  const cvFoto = document.getElementById("cv-fotomaton");
+  if (cvFoto) {
+    const ctx = cvFoto.getContext("2d");
+    miniaturas.push({
+      cv: cvFoto, ctx,
+      draw: t => {
+        const { width: W, height: H } = cvFoto;
+        ctx.fillStyle = HEX.Hueso;
+        ctx.fillRect(0, 0, W, H);
+        const sx = W / VW, sy = H / VH;
+        const paso = 14 * sx;
+        const radBase = 5 * sx;
+        const cols = Math.ceil(W / paso);
+        const filas = Math.ceil(H / paso);
+        const cx = W / 2, cy = H / 2;
+        for (let j = 0; j < filas; j++) {
+          for (let i = 0; i < cols; i++) {
+            const x = (i + 0.5) * paso;
+            const y = (j + 0.5) * paso;
+            const d = Math.hypot(x - cx, y - cy);
+            const onda = Math.sin(d * 0.04 - t * 0.002);
+            const r = Math.max(1.5, radBase * (0.45 + 0.55 * onda));
+            ctx.fillStyle = (i + j) % 2 === 0 ? HEX.Azul : HEX.Rosa;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
       }
-      ctx.fill();
-    }
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(cx - 50, cy - 60, 100, 120);
-    ctx.fillStyle = "#7FC8F8";
-    ctx.font = "10px monospace";
-    ctx.fillText("ROSTRO DETECTADO · 98%", cx - 44, cy - 66);
+    });
   }
 
-  // ---- Píxeles (avatar que parpadea; solo redibuja cuando cambia el parpadeo)
-  const AVATAR = [
-    "....00000000....", "...0111111110...", "..011111111110..", "..012211112210..",
-    ".01123111123110.", ".01111111111110.", ".01111444411110.", ".01114444441110.",
-    "..011444444110..", "..001111111100..", "...0005555000...", "..055555555550..",
-    ".05555555555550.", ".05555555555550.", "..000000000000.."
-  ];
-  const PAL = { 0: "#000", 1: "#F4EEE3", 2: "#0062B8", 3: "#7FC8F8", 4: "#FF8FB1", 5: "#2B4BD8" };
-  function dibujarPixeles(ctx, now) {
-    const parpadeo = Math.floor(now / 1000) % 5 === 0 && (now % 1000) < 120;
-    ctx.fillStyle = "#181920";
-    ctx.fillRect(0, 0, VW, VH);
-    const s = 13, ox = (VW - 16 * s) / 2, oy = (VH - 15 * s) / 2;
-    for (let r = 0; r < AVATAR.length; r++) {
-      for (let c = 0; c < 16; c++) {
-        let ch = AVATAR[r][c];
-        if (ch === ".") continue;
-        if (parpadeo && (ch === "2" || ch === "3")) ch = "1";
-        ctx.fillStyle = PAL[ch];
-        ctx.fillRect(ox + c * s, oy + r * s, s - 1, s - 1);
+  // 2. Mosaicos
+  const cvMos = document.getElementById("cv-mosaicos");
+  if (cvMos) {
+    const ctx = cvMos.getContext("2d");
+    miniaturas.push({
+      cv: cvMos, ctx,
+      draw: t => {
+        const { width: W, height: H } = cvMos;
+        ctx.fillStyle = HEX.Hueso;
+        ctx.fillRect(0, 0, W, H);
+        const lado = Math.min(W / 6, H / 3.75);
+        const paso = t * 0.0008;
+        for (let j = 0; j < 4; j++) {
+          for (let i = 0; i < 6; i++) {
+            const formaKey = MOSAICO[(i + j + Math.floor(paso)) % MOSAICO.length];
+            const def = FORMAS[formaKey] || FORMAS.media;
+            const x = i * lado + (W - 6 * lado) / 2;
+            const y = j * lado + (H - 4 * lado) / 2;
+            ctx.save();
+            ctx.translate(x + lado / 2, y + lado / 2);
+            ctx.rotate(Math.floor((i + j + paso * 2) % 4) * Math.PI / 2);
+            ctx.translate(-lado / 2, -lado / 2);
+            ctx.scale(lado / 12, lado / 12);
+            for (const [d, ranura] of def) {
+              ctx.fillStyle = ranura === "b" ? HEX.Amarillo : ((i + j) % 2 ? HEX.Lapislázuli : HEX.Negro);
+              ctx.fill(path(d), "evenodd");
+            }
+            ctx.restore();
+          }
+        }
       }
-    }
-    return parpadeo;
+    });
   }
 
-  const reducir = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const defs = [
-    { id: "cv-mosaicos", animada: false, dibujar: dibujarMosaicos },
-    { id: "cv-fotomaton", animada: true, dibujar: dibujarFotomaton },
-    { id: "cv-pixeles", animada: true, dibujar: dibujarPixeles }
-  ];
-  for (const d of defs) {
-    const cv = document.getElementById(d.id);
-    if (!cv) continue;
-    miniaturas.push({ ...d, cv, ctx: cv.getContext("2d"), visible: true, sucio: true, ultimo: null });
+  // 3. Píxeles
+  const cvPix = document.getElementById("cv-pixeles");
+  if (cvPix) {
+    const ctx = cvPix.getContext("2d");
+    const SPRITE = [
+      "....2222....",
+      "...222222...",
+      "..22666622..",
+      "..26666662..",
+      ".2664444662.",
+      ".2644444462.",
+      ".2644444462.",
+      ".2664444662.",
+      "..26666662..",
+      "..22666622..",
+      "...222222...",
+      "....2222...."
+    ];
+    const PAL = { "2": HEX.Lapislázuli, "6": HEX.Celeste, "4": HEX.Amarillo };
+    miniaturas.push({
+      cv: cvPix, ctx,
+      draw: t => {
+        const { width: W, height: H } = cvPix;
+        ctx.fillStyle = HEX.Hueso;
+        ctx.fillRect(0, 0, W, H);
+        const tam = Math.min(W, H) * 0.72;
+        const px = tam / 12;
+        const ox = (W - tam) / 2;
+        const oy = (H - tam) / 2;
+        const salto = Math.sin(t * 0.005) * 4;
+        for (let y = 0; y < 12; y++) {
+          for (let x = 0; x < 12; x++) {
+            const ch = SPRITE[y][x];
+            if (ch !== ".") {
+              ctx.fillStyle = PAL[ch] || HEX.Negro;
+              ctx.fillRect(ox + x * px, oy + y * px + salto, px, px);
+            }
+          }
+        }
+      }
+    });
   }
 
-  // Un solo bucle: 30 fps máx, solo miniaturas visibles, pausa si la pestaña está oculta.
-  let raf = 0, ultimoFrame = 0;
-  function bucle(now) {
-    raf = 0;
-    if (document.hidden) return;
-    let hayAnimadas = false;
-    if (now - ultimoFrame >= 33) {
-      ultimoFrame = now;
+  // Animation Loop Throttled a 30fps
+  let visible = true;
+  document.addEventListener("visibilitychange", () => { visible = !document.hidden; });
+  let ultimoRender = 0;
+  function animar(t) {
+    if (visible && t - ultimoRender >= 33) {
+      ultimoRender = t;
       for (const m of miniaturas) {
-        if (!m.visible) continue;
-        if (m.animada && !reducir) {
-          hayAnimadas = true;
-          const r = m.dibujar(m.ctx, now);
-          m.sucio = false;
-          m.ultimo = r;
-        } else if (m.sucio) {
-          m.dibujar(m.ctx, 0);
-          m.sucio = false;
-        }
+        ajustar(m);
+        m.draw(t);
       }
-    } else {
-      hayAnimadas = miniaturas.some(m => m.visible && m.animada) && !reducir;
     }
-    if (hayAnimadas || miniaturas.some(m => m.visible && m.sucio)) raf = requestAnimationFrame(bucle);
+    requestAnimationFrame(animar);
   }
-  const despertar = () => { if (!raf) raf = requestAnimationFrame(bucle); };
+  requestAnimationFrame(animar);
 
-  const ro = new ResizeObserver(entries => {
-    for (const e of entries) { const m = miniaturas.find(x => x.cv === e.target); if (m) ajustar(m); }
-    despertar();
-  });
-  const io = new IntersectionObserver(entries => {
-    for (const e of entries) { const m = miniaturas.find(x => x.cv === e.target); if (m) m.visible = e.isIntersecting; }
-    despertar();
-  });
-  miniaturas.forEach(m => { ro.observe(m.cv); io.observe(m.cv); ajustar(m); });
-  document.addEventListener("visibilitychange", despertar);
-  despertar();
+  // Filtros dinámicos
+  const botonesFiltro = document.querySelectorAll(".btn-filtro");
+  const tarjetas = document.querySelectorAll(".tarjeta");
 
-  // ---- Pantalla completa (modo quiosco)
+  function aplicarFiltro(lenguaje) {
+    botonesFiltro.forEach(b => {
+      const activo = b.dataset.filtro === lenguaje;
+      b.classList.toggle("activo", activo);
+      b.setAttribute("aria-selected", String(activo));
+    });
+
+    tarjetas.forEach(card => {
+      if (lenguaje === "todos") {
+        card.classList.remove("oculta");
+      } else {
+        const lengs = card.dataset.lenguajes || "";
+        card.classList.toggle("oculta", !lengs.includes(lenguaje));
+      }
+    });
+  }
+
+  botonesFiltro.forEach(btn => {
+    btn.addEventListener("click", () => {
+      resetTimerInactividad();
+      aplicarFiltro(btn.dataset.filtro);
+    });
+  });
+
+  // Modo Quiosco: Inactividad de 90 segundos
+  let timeoutQuiosco;
+  function resetTimerInactividad() {
+    clearTimeout(timeoutQuiosco);
+    timeoutQuiosco = setTimeout(() => {
+      // Volver a la vista por defecto de todos los lenguajes y scroll top
+      aplicarFiltro("todos");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 90000); // 90 segundos
+  }
+  ["pointerdown", "keydown", "scroll"].forEach(ev => window.addEventListener(ev, resetTimerInactividad, { passive: true }));
+  resetTimerInactividad();
+
+  // Botón Pantalla Completa
   const btnFs = document.getElementById("btn-fullscreen");
-  const txtFs = document.getElementById("fs-texto");
-  if (btnFs && document.documentElement.requestFullscreen) {
+  const fsTexto = document.getElementById("fs-texto");
+  if (btnFs) {
     btnFs.addEventListener("click", () => {
-      if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
-      else document.exitFullscreen().catch(() => {});
+      resetTimerInactividad();
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.().catch(() => {});
+        if (fsTexto) fsTexto.textContent = "Salir de pantalla completa";
+      } else {
+        document.exitFullscreen?.().catch(() => {});
+        if (fsTexto) fsTexto.textContent = "Pantalla completa";
+      }
     });
-    document.addEventListener("fullscreenchange", () => {
-      txtFs.textContent = document.fullscreenElement ? "Salir de pantalla completa" : "Pantalla completa";
-    });
-  } else if (btnFs) {
-    btnFs.hidden = true;
   }
 })();
 </script>
