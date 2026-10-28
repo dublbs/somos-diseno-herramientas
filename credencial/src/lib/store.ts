@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { normalizar } from '../pixel/font';
-import type { Receta } from '../pixel/generator';
-import { SELLOS, type DatosCarta } from '../pixel/render';
+import { SELLOS, normalizarRetrato, type DatosCarta, type Retrato } from '../pixel/render';
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const clave = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -22,7 +21,7 @@ const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const codigoNuevo = () => 'SD-' + Array.from({ length: 5 }, () => ALFABETO[Math.floor(Math.random() * ALFABETO.length)]).join('');
 
 // ---------- API ----------
-export async function crear({ nombre, receta, marco }: { nombre: string; receta: Receta; marco: string }): Promise<string> {
+export async function crear({ nombre, receta, marco }: { nombre: string; receta: Retrato; marco: string }): Promise<string> {
   const limpio = limpiarNombre(nombre);
   if (!limpio) throw new Error('Escribe un nombre.');
   if (sb) {
@@ -43,11 +42,11 @@ export async function obtener(codigo: string): Promise<DatosCarta> {
     const { data, error } = await sb.from('credenciales').select('codigo,nombre,receta,marco,sellos(sello)').eq('codigo', codigo).maybeSingle();
     if (error) throw new Error(error.message);
     if (!data) throw new Error('No encontramos esa credencial.');
-    return { ...(data as unknown as DatosCarta), sellos: ((data.sellos as { sello: number }[]) || []).map(s => s.sello).sort() };
+    return { ...(data as unknown as DatosCarta), receta: normalizarRetrato(data.receta), sellos: ((data.sellos as { sello: number }[]) || []).map(s => s.sello).sort() };
   }
   const c = leer()[codigo];
   if (!c) throw new Error('No encontramos esa credencial en este celular.');
-  return { ...c, sellos: [...c.sellos] };
+  return { ...c, receta: normalizarRetrato(c.receta), sellos: [...c.sellos] };
 }
 
 export async function sellar(codigo: string, sello: number, token: string) {

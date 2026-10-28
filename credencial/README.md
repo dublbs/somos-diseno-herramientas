@@ -1,15 +1,27 @@
 # Credencial · Somos Diseño (en el celular)
 
-Cada persona arma su personaje Pixel en su propio celular, lo pone dentro de uno de los **marcos** del sistema (los mismos del Fotomatón, `shared/marcos.ts`) y recibe una credencial con **4 sellos**. Los sellos se ganan escaneando los QR impresos repartidos por la sede.
+Cada persona arma su credencial en su propio celular: elige uno de los **6 marcos del MVP** (M02 y M05 de cada lenguaje), pone adentro **su foto o un personaje**, y consigue **4 timbres** escaneando los QR repartidos por la sede.
+
+**La interfaz completa toma el tema del marco elegido.** Usa el `data-visual` del lenguaje (forma, tipografía y sombras) y, del marco, el color de la banda, un patrón de Figma de fondo y el acento. Los temas están en `src/temas.ts`:
+
+| Marco | Banda | Patrón | Personaje del lenguaje | Timbres |
+|---|---|---|---|---|
+| Pixel M02 Vinilo / M05 Metro | Morado / Negro | Surcos de vinilo / Lateral Línea 1 | Invasor (FA10) | Metro, Vinilo, Spray, Ecualizador |
+| Geométrica M02 Estallido / M05 Túnel | Morado / Negro | Allqa / Damero | Glifo (FA10, provisorio) | Polar, Túnel, Damero, Cruz escalonada |
+| Orgánica M02 Estallido / M05 Túnel | Azul / Rosa | Medio sol / Anillos | Pingüino (FA01) | Sol, Pudú, Paloma, Helecho |
+
+Los assets vienen de Figma: ver [`docs/plans/003-credencial/assets.manifest.md`](../docs/plans/003-credencial/assets.manifest.md).
 
 ## Pantallas (rutas con `#`, funcionan en cualquier carpeta)
-- `#/crear` — arma el personaje (cabeza, ojos, boca, mejillas, pelo, ropa, accesorio; máximo 4 colores contando el Negro del contorno) y elige lenguaje y marco.
-- `#/c/SD-XXXXX` — la credencial: frente con la forma y los colores del marco, «HELLO my name is» y la foto (se gira con un toque). Guardar como PNG.
-- `#/sello/1..4?t=TOKEN` — lo abre el QR impreso de cada sello y timbra la credencial guardada en ese celular.
-- `#/escanear` — «Sellar»: lector de QR con la cámara (`BarcodeDetector`). Si el navegador no lo soporta (iPhone), se usa la cámara del teléfono: el QR es un enlace que abre la app. Siempre se puede **escribir el código de 4 caracteres** impreso bajo cada QR.
-- `#/foto` — **Fotomatón sin efectos**: una selfie (cámara nativa del teléfono) que queda dentro del marco de la credencial. Es la tercera cara de la tarjeta (Frente → HELLO → Foto) y se guarda como PNG. La foto queda solo en el celular; no se sube.
+- `#/crear` — 1 · Marco (6, en filas por lenguaje) · 2 · Foto o personaje (3 predeterminados, uno por lenguaje; la foto es el Fotomatón sin efectos con la cámara nativa) · nombre.
+- `#/c/SD-XXXXX` — la credencial: frente con el marco y los 4 timbres; con un toque se gira al **álbum de timbres** (conseguidos a color, los que faltan como silueta). Guardar como PNG.
+- `#/sello/1..4?t=CODIGO` — lo abre el QR impreso de cada estación y timbra la credencial de ese celular.
+- `#/escanear` — «Timbrar»: lector de QR con la cámara (`BarcodeDetector`) o la estación + el **código de 4 caracteres** impreso bajo el QR (iPhone, claude.ai).
+- `#/foto` — cambiar la foto (si la credencial usa foto). La foto queda solo en el celular.
 
-Todo cabe en la pantalla del teléfono, sin scroll (probado en 390 × 844, 412 × 915 y 360 × 740).
+Al conseguir un timbre aparece **el momento del timbre**: el sticker cae y se timbra sobre el patrón del tema (en Pixel, cuadro a cuadro), con vibración si el teléfono la tiene. Con los 4, llueven los timbres. Respeta «reducir movimiento».
+
+Todo cabe en la pantalla del teléfono, sin scroll (probado en 360 × 740, 390 × 844 y 412 × 915, en los 6 temas).
 
 ## Datos
 - **Modo demo** (sin variables): todo queda en el celular (`localStorage`) y aparece «Simular» para probar los sellos; cualquier QR de sello timbra.
@@ -27,10 +39,14 @@ Los códigos son los `token` de `sellos_def` (4 caracteres). Deja `credencial/qr
 - **Vista previa en claude.ai** (sin hosting): `npm run build && npm run artifact` arma `artifact/index.html`, una sola página con todo adentro, para publicarla como Artifact. Ahí las rutas viven en la app (el visor no acepta `#/rutas`), los sellos se ponen con el código o «Simular» y las imágenes se guardan con el permiso de descargas de claude.ai.
 
 ## Código
-- `src/pixel/`: generador de personajes 24 × 24 (`parts.ts`, `generator.ts`), paleta Línea azul, alfabeto pixel 5 × 7 y el render de la credencial (`render.ts`).
+- `src/temas.ts`: los 6 temas, los 3 personajes y los timbres de cada lenguaje.
+- `src/pixel/`: paleta Línea azul, alfabeto pixel 5 × 7 y el render de la credencial (`render.ts`: marco con retrato, timbres, álbum y la silueta de la tarjeta según el lenguaje).
+- `src/lib/imagenes.ts`: carga y rasteriza una vez los SVG de Figma.
+- `src/components/Timbrado.tsx`: el momento del timbre.
 - `src/lib/store.ts`: Supabase o modo demo; la foto en `localStorage`.
 - `src/lib/foto.ts` (selfie a 720 px) y `src/lib/descargar.ts` (claude.ai → compartir → enlace).
 - `src/pages/`: Crear, Credencial, Sello, Escanear, Foto.
+- `scripts/`: `qr-sellos.mjs` (QR imprimibles), `artifact.mjs` (vista previa en claude.ai), `limpiar-figma.mjs` (quita el fondo de las exportaciones de Figma).
 
 ```bash
 npm --prefix credencial install

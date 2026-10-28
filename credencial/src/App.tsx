@@ -4,15 +4,16 @@ import { Credencial } from './pages/Credencial';
 import { Sello } from './pages/Sello';
 import { Escanear } from './pages/Escanear';
 import { Foto } from './pages/Foto';
-import type { Cara } from './pixel/render';
 import { miCredencial, remoto } from './lib/store';
+import { temaDe, type Tema } from './temas';
+import type { Cara } from './pixel/render';
 import './styles.css';
 
 // Rutas con hash (funcionan en cualquier carpeta o dominio, como el QR del Fotomatón):
-//   #/crear · #/c/SD-XXXXX · #/sello/1..4?t=TOKEN · #/escanear · #/foto
+//   #/crear · #/c/SD-XXXXX · #/sello/1..4?t=CODIGO · #/escanear · #/foto
 export type Ruta =
   | { vista: 'crear' }
-  | { vista: 'carta'; codigo: string; aviso?: string; cara?: Cara }
+  | { vista: 'carta'; codigo: string; aviso?: string; cara?: Cara; timbre?: number }
   | { vista: 'sello'; sello: number; token: string }
   | { vista: 'escanear' }
   | { vista: 'foto' };
@@ -30,13 +31,34 @@ export function leerRuta(hash: string): Ruta {
   return mia ? { vista: 'carta', codigo: mia } : { vista: 'crear' };
 }
 
-export type Ir = (hash: string, extra?: { aviso?: string; cara?: Cara }) => void;
+export type Ir = (hash: string, extra?: { aviso?: string; cara?: Cara; timbre?: number }) => void;
+// Cada pantalla avisa qué marco manda: la UI completa toma su tema.
+export type PonerTema = (marco: string) => void;
+
+// El tema se aplica en <html>: data-visual (forma, tipografía y sombras de shared/somos-tokens.css)
+// y los colores del marco, que mandan sobre el modo oscuro del sistema.
+function aplicarTema(t: Tema) {
+  const r = document.documentElement;
+  r.dataset.visual = t.visual;
+  const v: Record<string, string> = {
+    '--tema-banda': t.banda, '--tema-tinta': t.tinta,
+    // URL absoluta: dentro de una variable CSS, una ruta relativa se resolvería contra la hoja de estilos.
+    '--tema-patron': `url("${new URL(t.patron, document.baseURI).href}")`,
+    '--accent': t.acento, '--on-accent': t.sobreAcento,
+    '--bg': '#F4EEE3', '--surface': '#F4EEE3', '--ink': '#000000', '--muted': '#4A453E', '--line': 'rgba(0,0,0,.18)', '--chip': '#E5DCCB',
+  };
+  for (const [k, val] of Object.entries(v)) r.style.setProperty(k, val);
+  r.style.colorScheme = 'light';
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t.banda);
+}
 
 export const App: React.FC = () => {
   const [ruta, setRuta] = useState<Ruta>(() => leerRuta(window.location.hash));
+  const [tema, setTema] = useState<Tema>(() => temaDe(undefined));
+  const ponerTema: PonerTema = useCallback(marco => setTema(temaDe(marco)), []);
 
+  useEffect(() => { aplicarTema(tema); }, [tema]);
   useEffect(() => {
-    document.documentElement.dataset.visual = 'Pixel';
     const alCambiar = () => setRuta(leerRuta(window.location.hash));
     window.addEventListener('hashchange', alCambiar);
     return () => window.removeEventListener('hashchange', alCambiar);
@@ -53,14 +75,14 @@ export const App: React.FC = () => {
     <div className="movil">
       <header className="barra-movil">
         <span className="marca">Credencial</span>
-        <span className="marca-sub">Somos Diseño</span>
+        <span className="marca-sub">Somos Diseño · {tema.visual}</span>
         {!remoto && <span className="pill">Demo</span>}
       </header>
-      {ruta.vista === 'crear' && <Crear ir={ir} />}
-      {ruta.vista === 'carta' && <Credencial key={ruta.codigo + (ruta.cara || '')} codigo={ruta.codigo} aviso={ruta.aviso} cara={ruta.cara} ir={ir} />}
+      {ruta.vista === 'crear' && <Crear ir={ir} ponerTema={ponerTema} />}
+      {ruta.vista === 'carta' && <Credencial key={ruta.codigo + (ruta.cara || '') + (ruta.timbre || '')} codigo={ruta.codigo} aviso={ruta.aviso} cara={ruta.cara} timbre={ruta.timbre} ir={ir} ponerTema={ponerTema} tema={tema} />}
       {ruta.vista === 'sello' && <Sello sello={ruta.sello} token={ruta.token} ir={ir} />}
       {ruta.vista === 'escanear' && <Escanear ir={ir} />}
-      {ruta.vista === 'foto' && <Foto ir={ir} />}
+      {ruta.vista === 'foto' && <Foto ir={ir} ponerTema={ponerTema} />}
     </div>
   );
 };

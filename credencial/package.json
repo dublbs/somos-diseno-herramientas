@@ -9,7 +9,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "qr:sellos": "node scripts/qr-sellos.mjs",
-    "artifact": "node scripts/artifact.mjs"
+    "artifact": "node scripts/artifact.mjs",
+    "limpiar:figma": "node scripts/limpiar-figma.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

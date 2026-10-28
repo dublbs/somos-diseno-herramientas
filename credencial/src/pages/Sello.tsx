@@ -10,7 +10,7 @@ export const Sello: React.FC<{ sello: number; token: string; ir: Ir }> = ({ sell
     const codigo = miCredencial();
     if (!codigo) { setEstado({ tipo: 'sin-credencial' }); return; }
     sellar(codigo, sello, token)
-      .then(() => ir(`#/c/${codigo}`, { aviso: `¡Sello ${sello} conseguido!` }))
+      .then(() => ir(`#/c/${codigo}`, { timbre: sello }))
       .catch(e => setEstado({ tipo: 'error', mensaje: (e as Error).message }));
   }, [sello, token, ir]);
 

@@ -1,0 +1,67 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Geom&#195;&#169;trica &#194;&#183; Sistema">
+<g id="Geom&#195;&#169;trica / P04 &#194;&#183; Allqa cuatripartito" clip-path="url(#clip0_324_54606)">
+<g id="Celda 1">
+<g id="Fondo">
+<rect id="Celda" width="120" height="120" fill="#7A2E8E"/>
+</g>
+<g id="Figura">
+<g id="Allqa">
+<path d="M60 120H30V90H60V120Z" fill="#2B4BD8"/>
+<path d="M90 120H60V90H90V120Z" fill="#2B4BD8"/>
+<path d="M30 90H0V30H30V90Z" fill="#2B4BD8"/>
+<path d="M120 90H90V30H120V90Z" fill="#2B4BD8"/>
+<path d="M90 0V30H30V0H90Z" fill="#2B4BD8"/>
+</g>
+</g>
+</g>
+<g id="Celda 2">
+<g id="Fondo_2">
+<rect id="Celda_2" x="120" width="120" height="120" fill="#7A2E8E"/>
+</g>
+<g id="Figura_2">
+<g id="Allqa_2">
+<path d="M150 120H120V90H150V120Z" fill="#2B4BD8"/>
+<path d="M240 120H210V90H240V120Z" fill="#2B4BD8"/>
+<path d="M210 90H150V30H210V90Z" fill="#2B4BD8"/>
+<path d="M150 30H120V0H150V30Z" fill="#2B4BD8"/>
+<path d="M240 30H210V0H240V30Z" fill="#2B4BD8"/>
+</g>
+</g>
+</g>
+<g id="Celda 3">
+<g id="Fondo_3">
+<rect id="Celda_3" y="120" width="120" height="120" fill="#7A2E8E"/>
+</g>
+<g id="Figura_3">
+<g id="Allqa_3">
+<path d="M30 240H0V210H30V240Z" fill="#2B4BD8"/>
+<path d="M120 240H90V210H120V240Z" fill="#2B4BD8"/>
+<path d="M90 210H30V150H90V210Z" fill="#2B4BD8"/>
+<path d="M30 150H0V120H30V150Z" fill="#2B4BD8"/>
+<path d="M120 150H90V120H120V150Z" fill="#2B4BD8"/>
+</g>
+</g>
+</g>
+<g id="Celda 4">
+<g id="Fondo_4">
+<rect id="Celda_4" x="120" y="120" width="120" height="120" fill="#7A2E8E"/>
+</g>
+<g id="Figura_4">
+<g id="Allqa_4">
+<path d="M180 240H150V210H180V240Z" fill="#2B4BD8"/>
+<path d="M210 240H180V210H210V240Z" fill="#2B4BD8"/>
+<path d="M150 210H120V150H150V210Z" fill="#2B4BD8"/>
+<path d="M240 210H210V150H240V210Z" fill="#2B4BD8"/>
+<path d="M210 120V150H150V120H210Z" fill="#2B4BD8"/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_324_54606">
+<rect width="240" height="240" fill="white"/>
+</clipPath>
+</defs>
+</svg>

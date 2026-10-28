@@ -1,42 +1,43 @@
-import { marcoListo } from '../../../shared/marcos';
+import { marcoListo, type Visual } from '../../../shared/marcos';
 import { HEX, contraste, type NombreColor } from './palette';
 import { GLIFOS, AVANCE, normalizar } from './font';
-import { N, componer, type Receta, type Celdas } from './generator';
+import { TIMBRES, type IdPersonaje, type Tema } from '../temas';
+import { raster } from '../lib/imagenes';
 
 export const SELLOS = 4;
+
+// Lo que va dentro del marco: la foto del Fotomatón (sin efectos) o uno de los 3 personajes.
+export type Retrato = { retrato: 'foto' } | { retrato: 'personaje'; id: IdPersonaje };
+// Credenciales del demo anterior (generador pixel) se muestran con el personaje Pixel.
+export function normalizarRetrato(r: unknown): Retrato {
+  const x = r as Partial<Retrato> | null;
+  if (x?.retrato === 'foto') return { retrato: 'foto' };
+  if (x?.retrato === 'personaje' && (x.id === 'pixel' || x.id === 'geometrica' || x.id === 'organica')) return { retrato: 'personaje', id: x.id };
+  return { retrato: 'personaje', id: 'pixel' };
+}
 
 export interface DatosCarta {
   nombre: string;
   codigo: string;
-  receta: Receta;
-  marco: string; // id de shared/marcos.ts (GM01, OM05, PM05…)
+  receta: Retrato;
+  marco: string; // id de shared/marcos.ts (PM02, PM05, GM02, GM05, OM02, OM05)
   sellos: number[]; // 1..SELLOS
-  foto?: CanvasImageSource & { width: number; height: number } | null; // selfie del Fotomatón (solo en este celular)
 }
+// Imágenes ya cargadas: la foto o el personaje, y los 4 timbres del lenguaje del marco.
+export interface Recursos { retrato: HTMLImageElement | null; timbres: (HTMLImageElement | null)[] }
+export type Cara = 'frente' | 'album';
 
 // Tarjeta vertical en unidades lógicas: arriba el marco de 240 × 240, abajo la ficha.
 export const CARTA = { ancho: 240, alto: 384 };
 const ALTO_MARCO = 240;
 
-type Caja = (x: number, y: number, w: number, h: number, color: string) => void;
-const caja = (ctx: CanvasRenderingContext2D, s: number): Caja => (x, y, w, h, color) => {
+type Caja4 = [number, number, number, number];
+const caja = (ctx: CanvasRenderingContext2D, s: number) => (x: number, y: number, w: number, h: number, color: string) => {
   ctx.fillStyle = HEX[color as NombreColor] || color;
   ctx.fillRect(Math.round(x * s), Math.round(y * s), Math.round((x + w) * s) - Math.round(x * s), Math.round((y + h) * s) - Math.round(y * s));
 };
 
-// Personaje con celdas de tamaño entero en pixeles de pantalla, centrado en una caja lógica.
-function pintarPersonaje(ctx: CanvasRenderingContext2D, celdas: Celdas, s: number, [bx, by, bw, bh]: [number, number, number, number], llenar = 0.86) {
-  const lado = Math.max(1, Math.floor((Math.min(bw, bh) * s * llenar) / N));
-  const x0 = Math.round((bx + bw / 2) * s - (lado * N) / 2);
-  const y0 = Math.round((by + bh) * s - lado * N); // apoyado abajo, como un retrato
-  for (let i = 0; i < N * N; i++) {
-    const c = celdas[i];
-    if (!c) continue;
-    ctx.fillStyle = HEX[c];
-    ctx.fillRect(x0 + (i % N) * lado, y0 + Math.floor(i / N) * lado, lado, lado);
-  }
-}
-
+// Alfabeto pixel 5 × 7 (tam = tamaño del pixel en unidades lógicas).
 export function pintarTexto(ctx: CanvasRenderingContext2D, texto: string, x: number, y: number, color: string, s: number, tam = 1) {
   const R = caja(ctx, s);
   let cx = x;
@@ -46,7 +47,32 @@ export function pintarTexto(ctx: CanvasRenderingContext2D, texto: string, x: num
     cx += AVANCE * tam;
   }
 }
-const anchoDe = (texto: string, tam: number) => Math.max(0, normalizar(texto).length * AVANCE * tam - tam);
+const anchoPixel = (texto: string, tam: number) => Math.max(0, normalizar(texto).length * AVANCE * tam - tam);
+
+// Texto según el lenguaje: Pixel usa el alfabeto pixel; Geométrica, Bricolage en mayúsculas; Orgánica, Bricolage normal.
+// alto = altura de mayúscula aproximada en unidades lógicas. Devuelve el ancho dibujado.
+function escribir(ctx: CanvasRenderingContext2D, visual: Visual, texto: string, x: number, y: number, alto: number, color: string, s: number, alinear: 'izq' | 'centro' | 'der' = 'izq', maxAncho = Infinity): number {
+  if (visual === 'Pixel') {
+    let tam = Math.max(1, Math.round(alto / 7));
+    while (tam > 1 && anchoPixel(texto, tam) > maxAncho) tam--;
+    const w = anchoPixel(texto, tam);
+    const x0 = alinear === 'centro' ? x - w / 2 : alinear === 'der' ? x - w : x;
+    pintarTexto(ctx, texto, Math.round(x0), Math.round(y), color, s, tam);
+    return w;
+  }
+  const t = visual === 'Geométrica' ? texto.toUpperCase() : texto;
+  let px = alto * 1.38;
+  const fuente = (p: number) => `${visual === 'Geométrica' ? 800 : 700} ${p * s}px "Bricolage Grotesque", system-ui, sans-serif`;
+  ctx.font = fuente(px);
+  while (px > 6 && ctx.measureText(t).width / s > maxAncho) { px -= 1; ctx.font = fuente(px); }
+  const w = ctx.measureText(t).width / s;
+  ctx.fillStyle = color;
+  ctx.textBaseline = 'top';
+  ctx.textAlign = alinear === 'centro' ? 'center' : alinear === 'der' ? 'right' : 'left';
+  ctx.fillText(t, x * s, (y - px * 0.18) * s);
+  ctx.textAlign = 'left';
+  return w;
+}
 
 function hash(str: string) {
   let h = 2166136261;
@@ -54,42 +80,20 @@ function hash(str: string) {
   return h >>> 0;
 }
 
-// Colores de la ficha a partir del marco: fondo, texto legible y un acento de la figura para los sellos.
-export function coloresDeMarco(marcoId: string) {
-  const m = marcoListo(marcoId);
-  const fondo = m.bg.toUpperCase();
-  const texto = contraste(fondo, HEX.Hueso) >= contraste(fondo, HEX.Negro) ? HEX.Hueso : HEX.Negro;
-  const usados = m.paths.map(([, f]) => f.toUpperCase()).filter(f => f !== fondo && f !== '#000' && f !== '#000000');
-  const acento = usados.find(f => contraste(f, fondo) >= 1.6) || (texto === HEX.Hueso ? HEX.Amarillo : HEX.Lapislázuli);
-  return { fondo, texto, acento };
-}
-
-// Sello entintado con un leve corrimiento y pixeles sin tinta, como un timbre real.
-function pintarSello(ctx: CanvasRenderingContext2D, s: number, x: number, y: number, w: number, h: number, n: number, codigo: string, tinta: string) {
-  const R = caja(ctx, s);
-  const k = hash(codigo + ':' + n);
-  const jx = (k % 3) - 1, jy = ((k >> 3) % 3) - 1;
-  const sx = x + jx, sy = y + jy;
-  let i = 0;
-  const punto = (px: number, py: number, t = 2) => { i++; if ((k >> (i % 24)) % 9 === 0) return; R(px, py, t, t, tinta); };
-  for (let a = 4; a < w - 4; a += 2) { punto(sx + a, sy); punto(sx + a, sy + h - 2); }
-  for (let a = 4; a < h - 4; a += 2) { punto(sx, sy + a); punto(sx + w - 2, sy + a); }
-  punto(sx + 2, sy + 2); punto(sx + w - 4, sy + 2); punto(sx + 2, sy + h - 4); punto(sx + w - 4, sy + h - 4);
-  pintarTexto(ctx, String(n), sx + w / 2 - 5, sy + h / 2 - 7, tinta, s, 2);
-}
-
-type Foto = NonNullable<DatosCarta['foto']>;
-
-// Foto que cubre la caja lógica [x, y, w, h] sin deformarse (recorta lo que sobra).
-function pintarFotoCubriendo(ctx: CanvasRenderingContext2D, foto: Foto, [x, y, w, h]: [number, number, number, number]) {
-  const k = Math.max(w / foto.width, h / foto.height);
-  const fw = foto.width * k, fh = foto.height * k;
+// Imagen ajustada a una caja lógica: cover (la foto llena la zona) o contain (el personaje entero).
+function pintarImagen(ctx: CanvasRenderingContext2D, im: HTMLImageElement, s: number, [x, y, w, h]: Caja4, modo: 'cover' | 'contain', abajo = false) {
+  const iw = im.naturalWidth || im.width || 1, ih = im.naturalHeight || im.height || 1;
+  const k = modo === 'cover' ? Math.max(w / iw, h / ih) : Math.min(w / iw, h / ih);
+  const dw = iw * k, dh = ih * k;
+  const dx = x + (w - dw) / 2, dy = abajo ? y + h - dh : y + (h - dh) / 2;
   ctx.imageSmoothingEnabled = true;
-  ctx.drawImage(foto, x + (w - fw) / 2, y + (h - fh) / 2, fw, fh);
+  if (modo === 'cover') ctx.drawImage(im, dx * s, dy * s, dw * s, dh * s);
+  else ctx.drawImage(raster(im, dw * s, dh * s), Math.round(dx * s), Math.round(dy * s));
 }
 
-// Marco de 240 × 240 (fondo, figura y zona de foto) con el personaje (o la foto) adentro, a escala s.
-export function pintarMarco(ctx: CanvasRenderingContext2D, marcoId: string, celdas: Celdas | null, s: number, foto?: Foto | null) {
+// Marco de 240 × 240 (fondo, figura y zona de foto) con la foto o el personaje adentro, a escala s.
+// paso alterna 0/1 para que el personaje respire (con «reducir movimiento» queda en 0).
+export function pintarMarco(ctx: CanvasRenderingContext2D, marcoId: string, s: number, retrato: HTMLImageElement | null, modo: Retrato['retrato'], paso = 0) {
   const m = marcoListo(marcoId);
   ctx.save();
   ctx.fillStyle = m.bg;
@@ -101,126 +105,131 @@ export function pintarMarco(ctx: CanvasRenderingContext2D, marcoId: string, celd
   ctx.clip(m._clip.path);
   ctx.fillStyle = HEX.Hueso;
   ctx.fill(m._clip.path);
-  if (foto) pintarFotoCubriendo(ctx, foto, m._clip.box);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  if (!foto && celdas) pintarPersonaje(ctx, celdas, s, m._clip.box);
-  ctx.restore();
-}
-
-// Cara A: la credencial con la forma, los colores y la figura del marco elegido.
-export function pintarFrente(ctx: CanvasRenderingContext2D, d: DatosCarta, cuadro: number, s: number) {
-  const R = caja(ctx, s);
-  const m = marcoListo(d.marco);
-  const { fondo, texto, acento } = coloresDeMarco(d.marco);
-  ctx.save();
-  ctx.imageSmoothingEnabled = false;
-  R(0, 0, CARTA.ancho, CARTA.alto, fondo);
-
-  pintarMarco(ctx, d.marco, componer(d.receta, cuadro), s);
-
-  // Ficha: nombre, código y lenguaje del marco
-  const y0 = ALTO_MARCO + 10;
-  const nombre = d.nombre || 'SIN NOMBRE';
-  const tam = anchoDe(nombre, 3) <= CARTA.ancho - 24 ? 3 : 2;
-  pintarTexto(ctx, nombre, 12, y0, texto, s, tam);
-  const y1 = y0 + 7 * tam + 8;
-  pintarTexto(ctx, d.codigo || 'SD-?????', 12, y1, acento, s, 2);
-  const etiqueta = `${m.visual} ${m.code}`;
-  pintarTexto(ctx, etiqueta, CARTA.ancho - 12 - anchoDe(etiqueta, 1), y1 + 4, texto, s, 1);
-
-  // Sellos
-  const ys = CARTA.alto - 58, ancho = 48, alto = 44, gap = (CARTA.ancho - 24 - SELLOS * ancho) / (SELLOS - 1);
-  for (let i = 0; i < SELLOS; i++) {
-    const x = 12 + i * (ancho + gap), n = i + 1;
-    if (d.sellos.includes(n)) {
-      R(x, ys, ancho, alto, acento);
-      pintarSello(ctx, s, x + 3, ys + 3, ancho - 6, alto - 6, n, d.codigo, contraste(acento, HEX.Negro) > 6 ? HEX.Negro : HEX.Hueso);
-    } else {
-      for (let k = 0; k < ancho; k += 4) { R(x + k, ys, 2, 2, texto); R(x + k, ys + alto - 2, 2, 2, texto); }
-      for (let k = 4; k < alto - 2; k += 4) { R(x, ys + k, 2, 2, texto); R(x + ancho - 2, ys + k, 2, 2, texto); }
-      pintarTexto(ctx, String(n), x + ancho / 2 - 5, ys + alto / 2 - 7, texto, s, 2);
+  if (retrato) {
+    const [bx, by, bw, bh] = m._clip.box;
+    if (modo === 'foto') pintarImagen(ctx, retrato, s, [bx, by, bw, bh], 'cover');
+    else {
+      const margen = Math.min(bw, bh) * 0.08;
+      pintarImagen(ctx, retrato, s, [bx + margen, by + margen - paso * 2, bw - 2 * margen, bh - margen * 1.4], 'contain', true);
     }
   }
-  // Borde de la tarjeta (se lee aunque el fondo del marco sea igual al de la página)
-  R(0, 0, CARTA.ancho, 2, HEX.Negro); R(0, CARTA.alto - 2, CARTA.ancho, 2, HEX.Negro);
-  R(0, 0, 2, CARTA.alto, HEX.Negro); R(CARTA.ancho - 2, 0, 2, CARTA.alto, HEX.Negro);
   ctx.restore();
 }
 
-// Cara B: sticker «HELLO my name is» de la propuesta Lo urbano, con la ruta de los sellos.
-export function pintarHello(ctx: CanvasRenderingContext2D, d: DatosCarta, cuadro: number, s: number) {
-  const R = caja(ctx, s);
-  const W = CARTA.ancho, H = CARTA.alto;
-  const { fondo } = coloresDeMarco(d.marco);
+// Silueta de la tarjeta según el lenguaje: Orgánica redondeada, Geométrica recta, Pixel con esquinas escalonadas.
+function recortarCarta(ctx: CanvasRenderingContext2D, visual: Visual, s: number) {
+  const W = CARTA.ancho * s, H = CARTA.alto * s;
+  ctx.beginPath();
+  if (visual === 'Orgánica') ctx.roundRect(0, 0, W, H, 26 * s);
+  else if (visual === 'Pixel') {
+    const e = 6 * s;
+    ctx.moveTo(e, 0); ctx.lineTo(W - e, 0); ctx.lineTo(W - e, e); ctx.lineTo(W, e); ctx.lineTo(W, H - e); ctx.lineTo(W - e, H - e);
+    ctx.lineTo(W - e, H); ctx.lineTo(e, H); ctx.lineTo(e, H - e); ctx.lineTo(0, H - e); ctx.lineTo(0, e); ctx.lineTo(e, e); ctx.closePath();
+  } else ctx.rect(0, 0, W, H);
+  ctx.clip();
+}
+function bordeCarta(ctx: CanvasRenderingContext2D, visual: Visual, s: number) {
+  if (visual === 'Orgánica') return; // sin borde: papel recortado
+  const R = caja(ctx, s), W = CARTA.ancho, H = CARTA.alto, g = visual === 'Pixel' ? 3 : 2;
+  R(0, 0, W, g, HEX.Negro); R(0, H - g, W, g, HEX.Negro); R(0, 0, g, H, HEX.Negro); R(W - g, 0, g, H, HEX.Negro);
+}
+
+// Un timbre puesto: el sticker de Figma levemente girado, como un timbre de goma real.
+function pintarTimbre(ctx: CanvasRenderingContext2D, im: HTMLImageElement, s: number, [x, y, w, h]: Caja4, semilla: string, opacidad = 1) {
+  const giro = ((hash(semilla) % 15) - 7) * (Math.PI / 180);
   ctx.save();
-  R(0, 0, W, H, HEX.Negro);
-  R(3, 3, W - 6, 66, HEX.Azul);
-  R(3, 69, W - 6, H - 69 - 64, HEX.Blanco);
-  R(3, H - 64, W - 6, 61, HEX.Azul);
-  pintarTexto(ctx, 'HELLO', (W - anchoDe('HELLO', 5)) / 2, 12, HEX.Blanco, s, 5);
-  pintarTexto(ctx, 'MY NAME IS', (W - anchoDe('MY NAME IS', 2)) / 2, 54, HEX.Hueso, s, 2);
-
-  R(70, 82, 100, 100, fondo);
-  pintarPersonaje(ctx, componer(d.receta, cuadro), s, [70, 82, 100, 100], 0.96);
-  const nombre = d.nombre || 'SIN NOMBRE';
-  const tam = anchoDe(nombre, 3) <= W - 24 ? 3 : 2;
-  pintarTexto(ctx, nombre, (W - anchoDe(nombre, tam)) / 2, 196, HEX.Negro, s, tam);
-  pintarTexto(ctx, d.codigo || 'SD-?????', (W - anchoDe(d.codigo || 'SD-?????', 2)) / 2, 232, HEX.Azul, s, 2);
-
-  // Ruta: los sellos como estaciones de una línea
-  pintarTexto(ctx, 'RUTA', 14, H - 50, HEX.Blanco, s, 2);
-  R(80, H - 34, 140, 2, HEX.Blanco);
-  for (let i = 0; i < SELLOS; i++) {
-    const cx = 92 + i * 38, cy = H - 33, ok = d.sellos.includes(i + 1);
-    R(cx - 8, cy - 8, 16, 16, HEX.Blanco);
-    R(cx - 6, cy - 6, 12, 12, ok ? HEX.Amarillo : HEX.Azul);
-    if (ok) R(cx - 2, cy - 2, 4, 4, HEX.Negro);
-  }
+  ctx.globalAlpha = opacidad;
+  ctx.translate((x + w / 2) * s, (y + h / 2) * s);
+  ctx.rotate(opacidad < 1 ? 0 : giro);
+  const lado = Math.min(w, h);
+  ctx.drawImage(raster(im, lado * s, lado * s), (-lado / 2) * s, (-lado / 2) * s);
   ctx.restore();
 }
-
-// Cara C: Fotomatón sin efectos. La selfie dentro del marco y la franja negra de las tarjetas del hub.
-export function pintarFoto(ctx: CanvasRenderingContext2D, d: DatosCarta, _cuadro: number, s: number) {
+function hueco(ctx: CanvasRenderingContext2D, s: number, [x, y, w, h]: Caja4, color: string, n: number, visual: Visual) {
   const R = caja(ctx, s);
+  if (visual === 'Orgánica') {
+    ctx.save();
+    ctx.strokeStyle = color; ctx.lineWidth = 2 * s; ctx.setLineDash([4 * s, 4 * s]);
+    ctx.beginPath(); ctx.arc((x + w / 2) * s, (y + h / 2) * s, (Math.min(w, h) / 2 - 1) * s, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  } else {
+    for (let k = 0; k < w; k += 4) { R(x + k, y, 2, 2, color); R(x + k, y + h - 2, 2, 2, color); }
+    for (let k = 4; k < h - 2; k += 4) { R(x, y + k, 2, 2, color); R(x + w - 2, y + k, 2, 2, color); }
+  }
+  escribir(ctx, visual, String(n), x + w / 2, y + h / 2 - 7, 14, color, s, 'centro');
+}
+
+// Colores de la ficha a partir del fondo del marco.
+function tintaSobre(fondo: string) {
+  return contraste(fondo, HEX.Hueso) >= contraste(fondo, HEX.Negro) ? HEX.Hueso : HEX.Negro;
+}
+
+// Cara A: la credencial con la forma, los colores y la figura del marco elegido, y los 4 timbres.
+export function pintarFrente(ctx: CanvasRenderingContext2D, d: DatosCarta, rec: Recursos, tema: Tema, s: number, paso = 0) {
   const m = marcoListo(d.marco);
-  const { acento } = coloresDeMarco(d.marco);
-  const W = CARTA.ancho, H = CARTA.alto;
+  const fondo = m.bg.toUpperCase();
+  const texto = tintaSobre(fondo);
+  const acento = contraste(tema.acento, fondo) >= 1.8 ? tema.acento : texto;
+  const W = CARTA.ancho;
   ctx.save();
-  ctx.imageSmoothingEnabled = false;
-  R(0, 0, W, H, HEX.Negro);
-  pintarMarco(ctx, d.marco, null, s, d.foto);
-  if (!d.foto) {
-    const [bx, by, bw, bh] = m._clip.box;
-    const t1 = 'SACA TU', t2 = 'FOTO';
-    pintarTexto(ctx, t1, bx + (bw - anchoDe(t1, 2)) / 2, by + bh / 2 - 16, HEX.Negro, s, 2);
-    pintarTexto(ctx, t2, bx + (bw - anchoDe(t2, 2)) / 2, by + bh / 2 + 2, HEX.Negro, s, 2);
+  recortarCarta(ctx, tema.visual, s);
+  ctx.fillStyle = fondo;
+  ctx.fillRect(0, 0, W * s, CARTA.alto * s);
+  pintarMarco(ctx, d.marco, s, rec.retrato, d.receta.retrato, paso);
+
+  // Ficha: nombre, código y marco
+  const y0 = ALTO_MARCO + 12;
+  escribir(ctx, tema.visual, d.nombre || 'Sin nombre', 14, y0, 18, texto, s, 'izq', W - 28);
+  escribir(ctx, tema.visual, d.codigo || 'SD-?????', 14, y0 + 28, 11, acento, s, 'izq');
+  escribir(ctx, tema.visual, `${m.visual} · ${m.name}`, W - 14, y0 + 30, 7, texto, s, 'der');
+
+  // Timbres
+  const lado = 46, gap = (W - 28 - SELLOS * lado) / (SELLOS - 1), ys = CARTA.alto - lado - 14;
+  for (let i = 0; i < SELLOS; i++) {
+    const x = 14 + i * (lado + gap), n = i + 1, im = rec.timbres[i];
+    if (d.sellos.includes(n) && im) pintarTimbre(ctx, im, s, [x - 2, ys - 2, lado + 4, lado + 4], d.codigo + n);
+    else hueco(ctx, s, [x, ys, lado, lado], texto, n, tema.visual);
   }
-  const y0 = ALTO_MARCO + 14;
-  pintarTexto(ctx, 'FOTOMATÓN', 12, y0, acento === HEX.Negro ? HEX.Amarillo : acento, s, 1);
-  const nombre = d.nombre || 'SIN NOMBRE';
-  const tam = anchoDe(nombre, 3) <= W - 24 ? 3 : 2;
-  pintarTexto(ctx, nombre, 12, y0 + 16, HEX.Hueso, s, tam);
-  const y1 = y0 + 16 + 7 * tam + 10;
-  pintarTexto(ctx, d.codigo || 'SD-?????', 12, y1, HEX.Hueso, s, 2);
-  const etiqueta = `${m.visual} ${m.code}`;
-  pintarTexto(ctx, etiqueta, W - 12 - anchoDe(etiqueta, 1), y1 + 4, HEX.Hueso, s, 1);
-  pintarTexto(ctx, 'SOMOS DISEÑO 2026', 12, H - 20, HEX.Hueso, s, 1);
-  R(0, 0, W, 2, HEX.Negro); R(0, H - 2, W, 2, HEX.Negro); R(0, 0, 2, H, HEX.Negro); R(W - 2, 0, 2, H, HEX.Negro);
   ctx.restore();
+  bordeCarta(ctx, tema.visual, s);
 }
 
-export type Cara = 'frente' | 'hello' | 'foto';
+// Cara B: el álbum de timbres. Los conseguidos a todo color; los que faltan, como silueta.
+export function pintarAlbum(ctx: CanvasRenderingContext2D, d: DatosCarta, rec: Recursos, tema: Tema, s: number) {
+  const W = CARTA.ancho, H = CARTA.alto;
+  const timbres = TIMBRES[tema.visual];
+  ctx.save();
+  recortarCarta(ctx, tema.visual, s);
+  ctx.fillStyle = tema.banda;
+  ctx.fillRect(0, 0, W * s, H * s);
+  escribir(ctx, tema.visual, 'Timbres', 16, 18, 16, tema.tinta, s);
+  escribir(ctx, tema.visual, `${d.sellos.length}/${SELLOS}`, W - 16, 18, 16, tema.acento, s, 'der');
+  const cw = (W - 16 * 2 - 10) / 2, ch = (H - 60 - 16 - 10) / 2;
+  for (let i = 0; i < SELLOS; i++) {
+    const x = 16 + (i % 2) * (cw + 10), y = 52 + Math.floor(i / 2) * (ch + 10), n = i + 1;
+    const tengo = d.sellos.includes(n), im = rec.timbres[i];
+    ctx.fillStyle = tengo ? 'rgba(244,238,227,.16)' : 'rgba(0,0,0,.16)';
+    if (tema.visual === 'Orgánica') { ctx.beginPath(); ctx.roundRect(x * s, y * s, cw * s, ch * s, 16 * s); ctx.fill(); }
+    else ctx.fillRect(x * s, y * s, cw * s, ch * s);
+    const lado = Math.min(cw - 20, ch - 46);
+    if (im) pintarTimbre(ctx, im, s, [x + (cw - lado) / 2, y + 8, lado, lado], d.codigo + n, tengo ? 1 : 0.22);
+    escribir(ctx, tema.visual, timbres[i].nombre, x + cw / 2, y + ch - 32, 9, tema.tinta, s, 'centro', cw - 10);
+    escribir(ctx, tema.visual, tengo ? '¡Conseguido!' : `Estación ${n}`, x + cw / 2, y + ch - 16, 6, tengo ? tema.acento : tema.tinta, s, 'centro', cw - 10);
+  }
+  ctx.restore();
+  bordeCarta(ctx, tema.visual, s);
+}
 
-export const DISENOS = [
-  { id: 'frente', nombre: 'Credencial', pintar: pintarFrente },
-  { id: 'hello', nombre: 'HELLO my name is', pintar: pintarHello },
-  { id: 'foto', nombre: 'Fotomatón', pintar: pintarFoto },
-] as const;
+export function pintarCara(ctx: CanvasRenderingContext2D, cara: Cara, d: DatosCarta, rec: Recursos, tema: Tema, s: number, paso = 0) {
+  if (cara === 'album') pintarAlbum(ctx, d, rec, tema, s);
+  else pintarFrente(ctx, d, rec, tema, s, paso);
+}
 
-export function cartaEnLienzo(d: DatosCarta, s = 4, cuadro = 0, diseno: Cara = 'frente') {
+export function cartaEnLienzo(d: DatosCarta, rec: Recursos, tema: Tema, cara: Cara = 'frente', s = 4) {
   const c = document.createElement('canvas');
   c.width = CARTA.ancho * s; c.height = CARTA.alto * s;
-  (DISENOS.find(x => x.id === diseno) || DISENOS[0]).pintar(c.getContext('2d')!, d, cuadro, s);
+  pintarCara(c.getContext('2d')!, cara, d, rec, tema, s);
   return c;
 }
 

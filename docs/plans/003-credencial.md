@@ -2,6 +2,13 @@
 
 > Estado: **Fase 1 construida** en `credencial/` (2026-10-28), en modo demo y lista para Supabase. Falta publicar en Vercel y correr `supabase/schema.sql`.
 
+## MVP definido (2026-10-28)
+Pedido: marco de foto, sistema de timbres (predeterminados, foco en la experiencia de conseguirlos), **foto o personaje** con 3 personajes predeterminados (uno por lenguaje) y, lo más importante, **la UI temática de 2 marcos por lenguaje** (M02 y M05).
+- 6 temas (`credencial/src/temas.ts`). La UI entera cambia con el marco: banda, patrón de Figma, acento y forma del lenguaje (Pixel: Silkscreen, sombra dura, animación cuadro a cuadro; Geométrica: recto, mayúsculas; Orgánica: redondeado, sombra suave). La tarjeta también toma la silueta del lenguaje.
+- Personajes: Pixel FA10 Personaje, Orgánica FA01 Pingüino, Geométrica FA10 Glifo en espejo (provisorio).
+- Timbres: 4 stickers de Figma por lenguaje; álbum en el reverso de la credencial y «momento del timbre» a pantalla completa.
+- Se retiró el generador pixel de 8 pestañas y la cara «HELLO».
+
 ## Qué quedó construido (Fase 1)
 - App `credencial/` (React 18 + TypeScript 7 + Vite 8), **mobile-first**: todo cabe sin scroll en 390 × 844, 412 × 915 y 360 × 740. Es la excepción a la regla de tablet de `AGENTS.md`.
 - **Crear** (`#/crear`): el generador Pixel del código anterior portado a TS, en 8 pestañas (Cabeza, Ojos, Boca, Mejillas, Pelo, Ropa, Accesorio, Marco). El personaje se ve arriba, adentro del marco elegido.
@@ -12,7 +19,7 @@
 - Los QR imprimibles de los sellos se generan con `npm --prefix credencial run qr:sellos`.
 
 - **Fotomatón sin efectos** (`#/foto`): selfie con la cámara nativa, dentro del marco elegido. Es la tercera cara de la credencial (Frente → HELLO → Foto) y se descarga en PNG. La foto queda solo en el celular.
-- **Sellos por código**: bajo cada QR va un código de 4 caracteres (el `token` de `sellos_def`). Se escribe en «Sellar» cuando no hay lector (iPhone, claude.ai). `sellar()` compara sin mayúsculas.
+- **Sellos por código**: bajo cada QR va un código de 4 caracteres (el `token` de `sellos_def`). Se escribe en «Timbrar» cuando no hay lector (iPhone, claude.ai). `sellar()` compara sin mayúsculas.
 - **Para verla en el celular**: `vercel.json` en la raíz (sin build) y vista previa como Artifact de claude.ai (`npm run artifact`).
 
 **No se hizo (queda en pausa):** home móvil con apps, sello *Creador* desde las experiencias, efectos del Fotomatón en la foto, subir la foto a Supabase y galería para la Pantalla Flip.

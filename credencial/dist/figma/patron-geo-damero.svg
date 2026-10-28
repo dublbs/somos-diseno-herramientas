@@ -1,0 +1,79 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Geom&#195;&#169;trica &#194;&#183; Sistema">
+<g id="Geom&#195;&#169;trica / P01 &#194;&#183; Damero" clip-path="url(#clip0_324_54606)">
+<g id="Celda 1">
+<g id="Fondo">
+<rect id="Celda" width="120" height="120" fill="#F4EEE3"/>
+</g>
+<g id="Figura">
+<g id="Damero">
+<path d="M30 120H0V90H30V120Z" fill="#00A651"/>
+<path d="M90 120H60V90H90V120Z" fill="#00A651"/>
+<path d="M60 90H30V60H60V90Z" fill="#00A651"/>
+<path d="M120 90H90V60H120V90Z" fill="#00A651"/>
+<path d="M30 60H0V30H30V60Z" fill="#00A651"/>
+<path d="M90 60H60V30H90V60Z" fill="#00A651"/>
+<path d="M60 30H30V0H60V30Z" fill="#00A651"/>
+<path d="M120 30H90V0H120V30Z" fill="#00A651"/>
+</g>
+</g>
+</g>
+<g id="Celda 2">
+<g id="Fondo_2">
+<rect id="Celda_2" x="120" width="120" height="120" fill="#F4EEE3"/>
+</g>
+<g id="Figura_2">
+<g id="Damero_2">
+<path d="M150 120H120V90H150V120Z" fill="#00A651"/>
+<path d="M210 120H180V90H210V120Z" fill="#00A651"/>
+<path d="M180 90H150V60H180V90Z" fill="#00A651"/>
+<path d="M240 90H210V60H240V90Z" fill="#00A651"/>
+<path d="M150 60H120V30H150V60Z" fill="#00A651"/>
+<path d="M210 60H180V30H210V60Z" fill="#00A651"/>
+<path d="M180 30H150V0H180V30Z" fill="#00A651"/>
+<path d="M240 30H210V0H240V30Z" fill="#00A651"/>
+</g>
+</g>
+</g>
+<g id="Celda 3">
+<g id="Fondo_3">
+<rect id="Celda_3" y="120" width="120" height="120" fill="#F4EEE3"/>
+</g>
+<g id="Figura_3">
+<g id="Damero_3">
+<path d="M30 240H0V210H30V240Z" fill="#00A651"/>
+<path d="M90 240H60V210H90V240Z" fill="#00A651"/>
+<path d="M60 210H30V180H60V210Z" fill="#00A651"/>
+<path d="M120 210H90V180H120V210Z" fill="#00A651"/>
+<path d="M30 180H0V150H30V180Z" fill="#00A651"/>
+<path d="M90 180H60V150H90V180Z" fill="#00A651"/>
+<path d="M60 150H30V120H60V150Z" fill="#00A651"/>
+<path d="M120 150H90V120H120V150Z" fill="#00A651"/>
+</g>
+</g>
+</g>
+<g id="Celda 4">
+<g id="Fondo_4">
+<rect id="Celda_4" x="120" y="120" width="120" height="120" fill="#F4EEE3"/>
+</g>
+<g id="Figura_4">
+<g id="Damero_4">
+<path d="M150 240H120V210H150V240Z" fill="#00A651"/>
+<path d="M210 240H180V210H210V240Z" fill="#00A651"/>
+<path d="M180 210H150V180H180V210Z" fill="#00A651"/>
+<path d="M240 210H210V180H240V210Z" fill="#00A651"/>
+<path d="M150 180H120V150H150V180Z" fill="#00A651"/>
+<path d="M210 180H180V150H210V180Z" fill="#00A651"/>
+<path d="M180 150H150V120H180V150Z" fill="#00A651"/>
+<path d="M240 150H210V120H240V150Z" fill="#00A651"/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_324_54606">
+<rect width="240" height="240" fill="white"/>
+</clipPath>
+</defs>
+</svg>

@@ -3,7 +3,8 @@
 
 create extension if not exists pgcrypto;
 
--- Credenciales emitidas desde el celular. receta = personaje del generador; marco = id de shared/marcos.ts.
+-- Credenciales emitidas desde el celular. receta = {retrato:'foto'} o {retrato:'personaje', id:'pixel'|'geometrica'|'organica'};
+-- marco = id de shared/marcos.ts (MVP: PM02, PM05, GM02, GM05, OM02, OM05). La foto queda solo en el celular.
 create table if not exists public.credenciales (
   id uuid primary key default gen_random_uuid(),
   codigo text unique not null default ('SD-' || upper(substr(encode(gen_random_bytes(4), 'hex'), 1, 5))),

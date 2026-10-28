@@ -1,96 +1,79 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { componer, ESPERA, FPS, N, type Receta } from '../pixel/generator';
-import { HEX } from '../pixel/palette';
-import { CARTA, DISENOS, pintarMarco, type Cara, type DatosCarta } from '../pixel/render';
+import { CARTA, pintarCara, pintarMarco, type Cara, type DatosCarta, type Recursos, type Retrato } from '../pixel/render';
+import { personajeDe, TIMBRES, type Tema } from '../temas';
+import { useImagenes } from '../lib/imagenes';
 
-// Reloj compartido de 12 fps (cuadro a cuadro). Con «reducir movimiento» queda quieto.
-export function useCuadro() {
-  const [tick, setTick] = useState(0);
+// Respiración del personaje: alterna 0/1 cada 450 ms. Con «reducir movimiento» queda quieto.
+export function usePaso() {
+  const [paso, setPaso] = useState(0);
   useEffect(() => {
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    const id = setInterval(() => setTick(t => t + 1), 1000 / FPS);
+    const id = setInterval(() => setPaso(p => 1 - p), 450);
     return () => clearInterval(id);
   }, []);
-  return ESPERA[tick % ESPERA.length];
+  return paso;
 }
 
-// Credencial animada. Se dibuja a la resolución real del elemento (sin suavizado).
-export const Carta: React.FC<{ datos: DatosCarta; diseno?: Cara; className?: string }> = ({ datos, diseno = 'frente', className }) => {
+// Las fuentes del lienzo (Bricolage) llegan después del primer dibujo: se vuelve a pintar al cargar.
+function useFuentes() {
+  const [listas, setListas] = useState(false);
+  useEffect(() => {
+    let vivo = true;
+    Promise.all([document.fonts?.load('800 20px "Bricolage Grotesque"'), document.fonts?.load('700 20px "Bricolage Grotesque"')])
+      .catch(() => null).then(() => vivo && setListas(true));
+    return () => { vivo = false; };
+  }, []);
+  return listas;
+}
+
+// src de la imagen que va en el marco: la foto guardada o el SVG del personaje.
+export const srcRetrato = (receta: Retrato, foto: string | null) =>
+  receta.retrato === 'foto' ? foto : personajeDe(receta.id).src;
+
+export function useRecursos(receta: Retrato, foto: string | null, tema: Tema): Recursos {
+  const [retrato, ...timbres] = useImagenes([srcRetrato(receta, foto), ...TIMBRES[tema.visual].map(t => t.src)]);
+  return { retrato, timbres };
+}
+
+// Lienzo que se dibuja a la resolución real del elemento.
+function useLienzo(ancho: number, alto: number, pintar: (ctx: CanvasRenderingContext2D, s: number) => void, deps: unknown[]) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const cuadro = useCuadro();
-  const [escala, setEscala] = useState(2);
+  const [escala, setEscala] = useState(0);
+  const fuentes = useFuentes();
   useEffect(() => {
     const c = ref.current!;
-    const ro = new ResizeObserver(() => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 3);
-      setEscala(Math.max(1, (c.clientWidth * dpr) / CARTA.ancho));
-    });
+    const ro = new ResizeObserver(() => setEscala((c.clientWidth * Math.min(window.devicePixelRatio || 1, 3)) / ancho));
     ro.observe(c);
     return () => ro.disconnect();
-  }, []);
+  }, [ancho]);
   useEffect(() => {
     const c = ref.current!;
-    const w = Math.round(CARTA.ancho * escala), h = Math.round(CARTA.alto * escala);
+    if (!escala) return;
+    const w = Math.round(ancho * escala), h = Math.round(alto * escala);
     if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
     const ctx = c.getContext('2d')!;
     ctx.clearRect(0, 0, w, h);
-    (DISENOS.find(d => d.id === diseno) || DISENOS[0]).pintar(ctx, datos, cuadro, escala);
-  }, [datos, cuadro, escala, diseno]);
+    pintar(ctx, escala);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [escala, fuentes, ...deps]);
+  return ref;
+}
+
+// Credencial (frente o álbum de timbres).
+export const Carta: React.FC<{ datos: DatosCarta; recursos: Recursos; tema: Tema; cara?: Cara; className?: string }> = ({ datos, recursos, tema, cara = 'frente', className }) => {
+  const paso = usePaso();
+  const animado = cara === 'frente' && datos.receta.retrato === 'personaje' ? paso : 0;
+  const ref = useLienzo(CARTA.ancho, CARTA.alto, (ctx, s) => pintarCara(ctx, cara, datos, recursos, tema, s, animado), [datos, recursos.retrato, ...recursos.timbres, tema, cara, animado]);
   return (
-    <canvas
-      ref={ref}
-      className={className}
-      role="img"
-      aria-label={diseno === 'foto' ? `Foto de ${datos.nombre} en su marco` : `Credencial de ${datos.nombre}, ${datos.sellos.length} de 4 sellos`}
-    />
+    <canvas ref={ref} className={className} role="img"
+      aria-label={cara === 'album' ? `Álbum de timbres: ${datos.sellos.length} de 4` : `Credencial de ${datos.nombre}, ${datos.sellos.length} de 4 timbres`} />
   );
 };
 
-// Vista fija y pequeña del personaje para los botones de partes. recorte acerca la vista a una zona.
-export const Miniatura: React.FC<{ receta: Receta; recorte?: { x: number; y: number; w: number } | null; tam?: number }> = ({ receta, recorte, tam = 56 }) => {
-  const ref = useRef<HTMLCanvasElement>(null);
-  const clave = JSON.stringify(receta);
-  useEffect(() => {
-    const c = ref.current!;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const lado = Math.round(tam * dpr);
-    c.width = c.height = lado;
-    const ctx = c.getContext('2d')!;
-    const { x = 0, y = 0, w = N } = recorte || {};
-    const s = lado / w;
-    ctx.fillStyle = HEX.Hueso;
-    ctx.fillRect(0, 0, lado, lado);
-    const celdas = componer(receta, 0);
-    for (let i = 0; i < N * N; i++) {
-      const col = celdas[i];
-      if (!col) continue;
-      const cx = (i % N) - x, cy = Math.floor(i / N) - y;
-      if (cx < 0 || cy < 0 || cx >= w || cy >= w) continue;
-      ctx.fillStyle = HEX[col];
-      ctx.fillRect(Math.round(cx * s), Math.round(cy * s), Math.ceil(s), Math.ceil(s));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clave, recorte, tam]);
-  return <canvas ref={ref} style={{ width: tam, height: tam }} aria-hidden="true" />;
-};
-
-// Marco con el personaje (o la foto) adentro, animado y a la resolución real del elemento.
-export const MarcoVivo: React.FC<{ marco: string; receta: Receta; foto?: DatosCarta['foto']; animado?: boolean; className?: string }> = ({ marco, receta, foto, animado = true, className }) => {
-  const ref = useRef<HTMLCanvasElement>(null);
-  const cuadro = useCuadro();
-  const [lado, setLado] = useState(0);
-  useEffect(() => {
-    const c = ref.current!;
-    const ro = new ResizeObserver(() => setLado(Math.round(c.clientWidth * Math.min(window.devicePixelRatio || 1, 3))));
-    ro.observe(c);
-    return () => ro.disconnect();
-  }, []);
-  const paso = animado && !foto ? cuadro : 0;
-  useEffect(() => {
-    const c = ref.current!;
-    if (!lado) return;
-    if (c.width !== lado) { c.width = c.height = lado; }
-    pintarMarco(c.getContext('2d')!, marco, foto ? null : componer(receta, paso), lado / 240, foto);
-  }, [marco, receta, foto, paso, lado]);
+// Marco con la foto o el personaje adentro (vista previa al crear y miniaturas).
+export const MarcoVivo: React.FC<{ marco: string; retrato: HTMLImageElement | null; modo: Retrato['retrato']; animado?: boolean; className?: string }> = ({ marco, retrato, modo, animado = true, className }) => {
+  const paso = usePaso();
+  const p = animado && modo === 'personaje' ? paso : 0;
+  const ref = useLienzo(240, 240, (ctx, s) => pintarMarco(ctx, marco, s, retrato, modo, p), [marco, retrato, modo, p]);
   return <canvas ref={ref} className={className} aria-hidden="true" />;
 };

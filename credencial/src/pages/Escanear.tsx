@@ -26,7 +26,7 @@ export const Escanear: React.FC<{ ir: Ir }> = ({ ir }) => {
     setEnviando(true); setAviso('');
     try {
       await sellar(mia, sello, limpio);
-      ir(`#/c/${mia}`, { aviso: `¡Sello ${sello} conseguido!` });
+      ir(`#/c/${mia}`, { timbre: sello });
     } catch (err) {
       setAviso((err as Error).message);
       setEnviando(false);
@@ -71,21 +71,21 @@ export const Escanear: React.FC<{ ir: Ir }> = ({ ir }) => {
         )}
       </div>
       <p className="progreso" role="status">
-        {estado === 'buscando' ? 'Apunta al QR del sello' :
+        {estado === 'buscando' ? 'Apunta al QR del timbre' :
          estado === 'iniciando' ? 'Abriendo la cámara…' :
          estado === 'sin-camara' ? 'No pudimos abrir la cámara. Revisa el permiso del navegador.' :
-         'Apunta la cámara de tu teléfono al QR del sello, o escribe el código que está bajo el QR.'}
+         'Apunta la cámara de tu teléfono al QR del timbre, o elige la estación y escribe el código que está bajo el QR.'}
       </p>
       <form className="codigo-sello" onSubmit={sellarConCodigo}>
-        <div className="seg-movil cuatro" role="radiogroup" aria-label="Número de sello">
+        <div className="seg-movil cuatro" role="radiogroup" aria-label="Número de estación">
           {Array.from({ length: SELLOS }, (_, i) => i + 1).map(n => (
-            <button key={n} type="button" role="radio" aria-checked={sello === n} onClick={() => setSello(n)}>Sello {n}</button>
+            <button key={n} type="button" role="radio" aria-checked={sello === n} onClick={() => setSello(n)}>{n}</button>
           ))}
         </div>
         <div className="pie-movil">
           <input id="codigo-sello" value={codigo} onChange={e => setCodigo(e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 4))}
-            autoComplete="off" autoCapitalize="characters" placeholder="Código" aria-label="Código del sello" />
-          <button className="btn primario" disabled={enviando}>{enviando ? 'Sellando…' : 'Sellar'}</button>
+            autoComplete="off" autoCapitalize="characters" placeholder="Código" aria-label="Código del timbre" />
+          <button className="btn primario" disabled={enviando}>{enviando ? 'Timbrando…' : 'Timbrar'}</button>
         </div>
         {aviso && <p className="aviso-movil" role="alert">{aviso}</p>}
       </form>

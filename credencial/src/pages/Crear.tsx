@@ -1,130 +1,128 @@
-import React, { useMemo, useState } from 'react';
-import { MARCOS, VISUALES, porId, type Visual } from '../../../shared/marcos';
-import { MarcoVivo, Miniatura } from '../components/Pixel';
-import { PARTES, RANURAS, type IdRanura } from '../pixel/parts';
-import { recetaAlAzar, coloresUsados, parte, tieneZona, cabeEnPaleta, type LlaveColor, type Receta } from '../pixel/generator';
-import { HEX, COLORES_PIEL, COLORES_ELEGIBLES, MAX_COLORES } from '../pixel/palette';
-import { crear, limpiarNombre, guardarMiCredencial } from '../lib/store';
-import type { Ir } from '../App';
+import React, { useEffect, useState } from 'react';
+import { porId, VISUALES } from '../../../shared/marcos';
+import { MarcoVivo } from '../components/Pixel';
+import { useImagenes } from '../lib/imagenes';
+import { leerFoto } from '../lib/foto';
+import { crear, limpiarNombre, guardarMiCredencial, guardarFoto } from '../lib/store';
+import { PERSONAJES, TEMAS, MARCO_INICIAL, type IdPersonaje } from '../temas';
+import type { Retrato } from '../pixel/render';
+import type { Ir, PonerTema } from '../App';
 
-type Pestana = IdRanura | 'marco';
+type Pestana = 'marco' | 'retrato';
+const ID_VISUAL = { Pixel: 'pixel', Geométrica: 'geometrica', Orgánica: 'organica' } as const;
 
-export const Crear: React.FC<{ ir: Ir }> = ({ ir }) => {
-  const [receta, setReceta] = useState<Receta>(() => recetaAlAzar(Date.now()));
-  const [marco, setMarco] = useState('PM05');
-  const [visual, setVisual] = useState<Visual>(porId('PM05').visual);
-  const [pestana, setPestana] = useState<Pestana>('cabeza');
+export const Crear: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTema }) => {
+  const [marco, setMarco] = useState(MARCO_INICIAL);
+  const [modo, setModo] = useState<Retrato['retrato']>('personaje');
+  const [personaje, setPersonaje] = useState<IdPersonaje>(ID_VISUAL[porId(MARCO_INICIAL).visual]);
+  const [elegido, setElegido] = useState(false); // si la persona ya eligió personaje, no lo cambiamos al cambiar de marco
+  const [foto, setFoto] = useState<string | null>(null);
+  const [pestana, setPestana] = useState<Pestana>('marco');
   const [nombre, setNombre] = useState('');
   const [aviso, setAviso] = useState('');
   const [creando, setCreando] = useState(false);
-  const usados = useMemo(() => coloresUsados(receta), [receta]);
 
-  const elegirColor = (llave: LlaveColor, color: (typeof COLORES_ELEGIBLES)[number]) => {
-    if (!cabeEnPaleta(receta, llave, color)) {
-      setAviso(`Máximo ${MAX_COLORES} colores contando el Negro del contorno. Usa uno de los que ya tienes.`);
-      return;
-    }
+  useEffect(() => { ponerTema(marco); }, [marco, ponerTema]);
+  const srcPersonaje = PERSONAJES.find(p => p.id === personaje)!.src;
+  const [imPersonaje, imFoto, ...miniaturas] = useImagenes([srcPersonaje, foto, ...PERSONAJES.map(p => p.src)]);
+  const retrato = modo === 'foto' ? imFoto : imPersonaje;
+
+  const elegirMarco = (id: string) => {
+    setMarco(id);
+    if (!elegido) setPersonaje(ID_VISUAL[porId(id).visual]);
+  };
+  const alElegirFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const archivo = e.target.files?.[0];
+    e.target.value = '';
+    if (!archivo) return;
     setAviso('');
-    setReceta({ ...receta, colores: { ...receta.colores, [llave]: color } });
+    try { setFoto(await leerFoto(archivo)); setModo('foto'); } catch (err) { setAviso((err as Error).message); }
   };
 
   const emitir = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (modo === 'foto' && !foto) { setPestana('retrato'); setAviso('Sácate la foto o elige un personaje.'); return; }
     if (!limpiarNombre(nombre)) { setAviso('Escribe tu nombre para la credencial.'); return; }
     setCreando(true);
     try {
+      const receta: Retrato = modo === 'foto' ? { retrato: 'foto' } : { retrato: 'personaje', id: personaje };
       const codigo = await crear({ nombre, receta, marco });
+      if (modo === 'foto' && foto) guardarFoto(codigo, foto);
       guardarMiCredencial(codigo);
-      ir(`#/c/${codigo}`, { aviso: 'Credencial lista. Busca los 4 sellos en la sede.' });
+      ir(`#/c/${codigo}`, { aviso: 'Credencial lista. Consigue los 4 timbres en la sede.' });
     } catch (err) {
       setAviso('No se pudo crear: ' + (err as Error).message);
       setCreando(false);
     }
   };
 
-  const ranura = pestana === 'marco' ? null : RANURAS.find(r => r.id === pestana)!;
-  const filasColor = ranura ? ranura.colores.filter(c => !c.soloSi || tieneZona(ranura.id, receta[ranura.id], c.soloSi)) : [];
-  const PESTANAS: { id: Pestana; nombre: string }[] = [...RANURAS.map(r => ({ id: r.id, nombre: r.id === 'pelo' ? 'Pelo' : r.nombre })), { id: 'marco', nombre: 'Marco' }];
-
+  const m = porId(marco);
   return (
     <main className="pantalla crear">
-      <section className="vista-previa" aria-label="Tu personaje en su marco">
-        <MarcoVivo marco={marco} receta={receta} className="marco-vivo" />
-        <div className="vista-info">
-          <span>{porId(marco).visual} · {porId(marco).name}</span>
-          <span>{usados.length}/{MAX_COLORES} colores</span>
-          <button type="button" className="btn-mini" onClick={() => { setAviso(''); setReceta(recetaAlAzar(Date.now())); }}>
-            <span className="material-symbols-outlined" aria-hidden="true">shuffle</span>Al azar
-          </button>
-        </div>
+      <section className="vista-previa" aria-label="Tu credencial en su marco">
+        <MarcoVivo marco={marco} retrato={retrato} modo={modo} className="marco-vivo" />
+        <p className="vista-info"><span className="etq">{m.visual}</span> {m.code} · {m.name}</p>
       </section>
 
-      <section className="panel-movil" aria-label="Personaliza">
-        <div className="pestanas-grilla" role="tablist" aria-label="Características">
-          {PESTANAS.map(p => (
-            <button key={p.id} type="button" role="tab" id={`tab-${p.id}`} aria-selected={pestana === p.id} aria-controls="pag-crear" onClick={() => { setPestana(p.id); setAviso(''); }}>
-              {p.nombre}
-            </button>
-          ))}
+      <section className="panel-movil" aria-label="Arma tu credencial">
+        <div className="pestanas-grilla dos" role="tablist" aria-label="Pasos">
+          <button type="button" role="tab" id="tab-marco" aria-selected={pestana === 'marco'} aria-controls="pag-crear" onClick={() => setPestana('marco')}>1 · Marco</button>
+          <button type="button" role="tab" id="tab-retrato" aria-selected={pestana === 'retrato'} aria-controls="pag-crear" onClick={() => setPestana('retrato')}>2 · Foto o personaje</button>
         </div>
 
         <div className="pagina-movil" role="tabpanel" id="pag-crear" aria-labelledby={`tab-${pestana}`}>
-          {ranura && (
-            <>
-              <div className="opciones" role="radiogroup" aria-label={`Forma de ${ranura.nombre.toLowerCase()}`}>
-                {PARTES[ranura.id].map(p => (
-                  <button key={p.id} type="button" role="radio" aria-checked={receta[ranura.id] === p.id} aria-label={p.nombre} title={p.nombre} className="opcion"
-                    onClick={() => { setAviso(''); setReceta({ ...receta, [ranura.id]: p.id }); }}>
-                    <Miniatura receta={{ ...receta, [ranura.id]: p.id }} recorte={ranura.recorte} tam={44} />
-                  </button>
-                ))}
-              </div>
-              <p className="nombre-parte">{parte(ranura.id, receta[ranura.id]).nombre}</p>
-              {filasColor.map(fc => {
-                const llave = fc.id as LlaveColor;
-                const opciones = llave === 'cabeza' ? COLORES_PIEL : COLORES_ELEGIBLES;
-                return (
-                  <div key={fc.id} className="fila-color">
-                    <span className="etq">{fc.nombre}</span>
-                    <div className="chips" role="radiogroup" aria-label={`${fc.nombre} de ${ranura.nombre.toLowerCase()}`}>
-                      {opciones.map(c => {
-                        const cabe = cabeEnPaleta(receta, llave, c);
-                        return (
-                          <button key={c} type="button" role="radio" aria-checked={receta.colores[llave] === c}
-                            aria-label={cabe ? c : `${c}, superaría ${MAX_COLORES} colores`}
-                            className={'chip' + (cabe ? '' : ' fuera')} style={{ '--c': HEX[c] } as React.CSSProperties}
-                            onClick={() => elegirColor(llave, c)} />
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </>
-          )}
           {pestana === 'marco' && (
+            <div className="marcos-mvp" role="radiogroup" aria-label="Marco">
+              {VISUALES.map(v => (
+                <div key={v} className="fila-marcos">
+                  <span className="etq">{v}</span>
+                  {TEMAS.filter(t => t.visual === v).map(t => {
+                    const mm = porId(t.marco);
+                    return (
+                      <button key={t.marco} type="button" role="radio" aria-checked={marco === t.marco} aria-label={`${v} ${mm.name}`} title={mm.name}
+                        className="marco-opcion" style={{ '--c': t.banda } as React.CSSProperties} onClick={() => elegirMarco(t.marco)}>
+                        <MarcoVivo marco={t.marco} retrato={retrato} modo={modo} animado={false} className="marco-mini" />
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
+          {pestana === 'retrato' && (
             <>
-              <div className="seg-movil" role="radiogroup" aria-label="Lenguaje">
-                {VISUALES.map(v => (
-                  <button key={v} type="button" role="radio" aria-checked={visual === v} onClick={() => setVisual(v)}>{v}</button>
-                ))}
+              <div className="seg-movil dos" role="radiogroup" aria-label="Qué va en el marco">
+                <button type="button" role="radio" aria-checked={modo === 'personaje'} onClick={() => setModo('personaje')}>Personaje</button>
+                <button type="button" role="radio" aria-checked={modo === 'foto'} onClick={() => setModo('foto')}>Foto</button>
               </div>
-              <div className="marcos-grilla" role="radiogroup" aria-label="Marco">
-                {MARCOS.filter(m => m.visual === visual).map(m => (
-                  <button key={m.id} type="button" role="radio" aria-checked={marco === m.id} aria-label={`${m.visual} ${m.name}`} className="marco-opcion" onClick={() => setMarco(m.id)}>
-                    <MarcoVivo marco={m.id} receta={receta} animado={false} className="marco-mini" />
-                    <span>{m.name}</span>
-                  </button>
-                ))}
-              </div>
+              {modo === 'personaje' ? (
+                <div className="personajes" role="radiogroup" aria-label="Personaje">
+                  {PERSONAJES.map((p, i) => (
+                    <button key={p.id} type="button" role="radio" aria-checked={personaje === p.id} className="personaje-opcion"
+                      onClick={() => { setPersonaje(p.id); setElegido(true); }}>
+                      {miniaturas[i] ? <img src={miniaturas[i]!.src} alt="" /> : <span className="img-vacia" />}
+                      <span className="nombre">{p.nombre}</span>
+                      <span className="etq">{p.visual}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="foto-paso">
+                  <p>Fotomatón sin efectos: tu selfie queda dentro del marco.</p>
+                  <label className={'btn' + (foto ? '' : ' primario')}>
+                    <input type="file" accept="image/*" capture="user" hidden onChange={alElegirFoto} aria-label="Sacar foto" />
+                    <span className="material-symbols-outlined" aria-hidden="true">photo_camera</span>{foto ? 'Otra foto' : 'Sacar foto'}
+                  </label>
+                </div>
+              )}
             </>
           )}
           {aviso && <p className="aviso-movil" role="alert">{aviso}</p>}
         </div>
 
         <form className="pie-movil" onSubmit={emitir}>
-          <input value={nombre} onChange={e => setNombre(e.target.value)} maxLength={20} autoComplete="off" placeholder="Tu nombre" aria-label="Nombre en la credencial" />
-          <button className="btn primario" disabled={creando}>{creando ? 'Creando…' : 'Crear credencial'}</button>
+          <input id="nombre" value={nombre} onChange={e => setNombre(e.target.value)} maxLength={20} autoComplete="off" placeholder="Tu nombre" aria-label="Nombre en la credencial" />
+          <button className="btn primario" disabled={creando}>{creando ? 'Creando…' : 'Crear'}</button>
         </form>
       </section>
     </main>
