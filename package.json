@@ -10,15 +10,12 @@
     "dev:fotomaton:tablet": "npm --prefix fotomaton run dev:tablet",
     "dev:mosaicos": "npm --prefix taller-mosaicos run dev",
     "dev:mosaicos:tablet": "npm --prefix taller-mosaicos run dev:tablet",
-    "dev:pixeles": "npm --prefix taller-de-pixeles run dev",
-    "dev:pixeles:tablet": "npm --prefix taller-de-pixeles run dev:tablet",
     "dev:loops": "npm --prefix loops run dev",
     "dev:loops:tablet": "npm --prefix loops run dev:tablet",
     "build:fotomaton": "npm --prefix fotomaton run build",
     "build:mosaicos": "npm --prefix taller-mosaicos run build",
-    "build:pixeles": "npm --prefix taller-de-pixeles run build",
     "build:loops": "npm --prefix loops run build",
-    "build": "npm run build:fotomaton && npm run build:mosaicos && npm run build:pixeles && npm run build:loops",
+    "build": "npm run build:fotomaton && npm run build:mosaicos && npm run build:loops",
     "build:all": "npm run build"
   },
   "devDependencies": {
