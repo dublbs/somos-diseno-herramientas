@@ -248,20 +248,64 @@ const palomaV = conVariantes(paloma, 'Aletea', [
     grupo: [{ prop: 'y', t: T5, v: [0, -5, 0, -5, 0], e: 'easeInOut' }],
     pistas: aleteo },
 ]);
-// Pingüino (figura entera): camina, salta o se mece.
+// Sol: gira, pulsa o calma.
+const solV = conVariantes(sol, 'Gira', [
+  { id: 'pulso', nombre: 'Pulso', durMs: 2000,
+    pistas: [[{ prop: 'scaleX', t: T5, v: [1, 1.1, 1, 1.1, 1], e: 'easeInOut' }, { prop: 'scaleY', t: T5, v: [1, 1.1, 1, 1.1, 1], e: 'easeInOut' }]] },
+  { id: 'calma', nombre: 'Calma', durMs: 4000, pistas: [undefined] },
+]);
+
+// Araucaria: brisa suave, viento andino o firme.
+const araucariaV = conVariantes(araucaria, 'Brisa', [
+  { id: 'viento', nombre: 'Viento andino', durMs: 2000,
+    pistas: [[{ prop: 'rotate', t: T5, v: [0, -5, 0, 5, 0], e: 'easeInOut' }, { prop: 'scaleY', t: T5, v: [1, 1.04, 1, 1.04, 1], e: 'easeInOut' }]] },
+  { id: 'firme', nombre: 'Firme', durMs: 4000, pistas: [undefined] },
+]);
+
+// Pez: nada, rápido o flota.
+const pezV = conVariantes(pez, 'Nada', [
+  { id: 'rapido', nombre: 'Rápido', durMs: 1000,
+    grupo: [{ prop: 'y', t: T5, v: [0, -4, 0, 4, 0], e: 'easeInOut' }],
+    pistas: [nada([0, 22, 0, -22, 0]), nada([0, -8, 0, 8, 0]), nada([0, 10, 0, -10, 0]), undefined, undefined, undefined, undefined, undefined] },
+  { id: 'flota', nombre: 'Flota', durMs: 3000,
+    grupo: [{ prop: 'y', t: T5, v: [0, -2, 0, 2, 0], e: 'easeInOut' }],
+    pistas: [nada([0, 6, 0, -6, 0]), undefined, undefined, undefined, undefined, undefined, undefined, undefined] },
+]);
+
+// Quisco y Helecho con variantes
+const quiscoV = conVariantes(quisco, 'Brisa', [
+  { id: 'firme', nombre: 'Firme', durMs: 4000, pistas: [undefined] },
+]);
+const helechoV = conVariantes(helecho, 'Mecer', [
+  { id: 'brisa', nombre: 'Brisa rápida', durMs: 1000, pistas: [[mece(6), respira(1.03)]] },
+  { id: 'quieto', nombre: 'Quieto', durMs: 4000, pistas: [undefined] },
+]);
+
+// K'isa: ondula, flameo o reposo
+const kisaV = conVariantes(kisa, 'Ondula', [
+  { id: 'flameo', nombre: 'Flameo', durMs: 1800,
+    grupo: [{ prop: 'rotate', t: T5, v: [0, 6, 0, -6, 0], e: 'easeInOut' }, { prop: 'scaleY', t: T5, v: [1, 1.05, 1, 1.05, 1], e: 'easeInOut' }],
+    pistas: kisa.capas.map(c => c.pistas) },
+  { id: 'reposo', nombre: 'Reposo', durMs: 4000,
+    grupo: undefined,
+    pistas: kisa.capas.map(c => c.pistas) },
+]);
+
+// Pingüino: camina, salta o se mece.
 const pinguinoV = conVariantes(pinguino, 'Camina', [
   { id: 'salta', nombre: 'Salta', durMs: 1000,
     pistas: [[{ prop: 'y', t: T5, v: [0, -14, 0, -14, 0], e: 'easeInOut' }, { prop: 'scaleY', t: T5, v: [0.93, 1.04, 0.93, 1.04, 0.93], e: 'easeInOut' }]] },
   { id: 'mece', nombre: 'Se mece', durMs: 2000, pistas: [girar([0, 8, 0, -8, 0])] },
 ]);
-// Flor (figura entera): se mece, gira o late.
+
+// Flor: se mece, gira o late.
 const florV = conVariantes(flor, 'Se mece', [
   { id: 'gira', nombre: 'Gira', durMs: 8000, pistas: [[{ prop: 'rotate', t: [0, 1], v: [0, 360] }]] },
   { id: 'late', nombre: 'Late', durMs: 2000,
     pistas: [[{ prop: 'scaleX', t: T5, v: [1, 1.1, 1, 1.1, 1], e: 'easeInOut' }, { prop: 'scaleY', t: T5, v: [1, 1.1, 1, 1.1, 1], e: 'easeInOut' }]] },
 ]);
 
-export const PIEZAS: Pieza[] = [pudu2, palomaV, sol, araucaria, pina, helecho, quisco, florV, pez, pinguinoV, cantaro, canasto, kisa];
+export const PIEZAS: Pieza[] = [pudu2, palomaV, solV, araucariaV, pina, helechoV, quiscoV, florV, pezV, pinguinoV, cantaro, canasto, kisaV];
 
 export const pieza = (id: string) => PIEZAS.find(p => p.id === id)!;
 

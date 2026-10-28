@@ -7,7 +7,7 @@ import { duracionLoop, grabarLoop, puedeGrabar } from '../lib/grabarLoop';
 import type { VideoLoop } from './ModalExportar';
 import {
   ASA, ESCENARIO, cajaItem, cargarTodo, dibujarEscenario, dibujarPieza, dibujarSeleccion,
-  posicionItem, type Item, type TipoTrayectoria,
+  posicionItem, type Item,
 } from '../escenario/dibujar';
 
 interface Props {
@@ -205,11 +205,8 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
     registrar();
     const n = vivo.current.items.length, uid = uidSig.current++;
     const zona = esc.piezas[tipo];
-    // Por defecto, animales tienen trayectoria caminante
-    const esCaminante = ['pudu', 'pinguino', 'paloma', 'pez'].includes(tipo);
     const it: Item = {
       uid, tipo, escala: ESCALA_INICIAL[tipo] ?? 1, espejo: false, variante: 0,
-      trayectoria: esCaminante ? 'ida-vuelta' : 'estatico',
       x: ESCENARIO / 2 + ((n * 23) % 70) - 35, y: zona === 'cielo' ? 70 : zona === 'agua' ? 128 : 172,
     };
     actualizar(l => [...l, it]);
@@ -237,12 +234,17 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
   const alFondo = () => { registrar(); actualizar(l => { const it = l.find(i => i.uid === vivo.current.sel); return it ? [it, ...l.filter(i => i !== it)] : l; }); };
   const vaciar = () => { registrar(); actualizar(() => []); setSel(null); };
 
+  const ES_MOVIL = (tipo: string) => ['pudu', 'pinguino', 'paloma', 'pez'].includes(tipo);
+
   const sorprender = () => {
     registrar();
-    const nuevas: Item[] = sorprendeme(vivo.current.escId, uidSig.current).map(it => ({
-      ...it,
-      trayectoria: (['pudu', 'pinguino', 'paloma', 'pez'].includes(it.tipo) ? 'ida-vuelta' : 'estatico') as TipoTrayectoria,
-    }));
+    const nuevas: Item[] = sorprendeme(vivo.current.escId, uidSig.current).map(it => {
+      const movil = ES_MOVIL(it.tipo);
+      return {
+        ...it,
+        destino: movil ? { x: Math.max(30, Math.min(210, it.x + (it.espejo ? -60 : 60))), y: it.y } : undefined,
+      };
+    });
     uidSig.current += nuevas.length;
     actualizar(() => nuevas);
     setSel(null);
@@ -314,12 +316,6 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
     : elegido ? `Seleccionado: ${pieza(elegido.tipo).nombre} · Arrastra para mover o tira de la esquina amarilla para tamaño`
     : 'Toca cualquier figura del escenario para seleccionarla';
 
-  const trayectorias: { id: TipoTrayectoria; label: string; icon: string }[] = [
-    { id: 'estatico', label: 'En su lugar', icon: 'place' },
-    { id: 'ida-vuelta', label: 'Ida y vuelta', icon: 'sync_alt' },
-    { id: 'cruzar', label: 'Cruzar todo', icon: 'trending_flat' },
-    { id: 'vaiven', label: 'Vaivén', icon: 'waves' },
-  ];
 
   return (
     <main className="layout layout-teatro">
@@ -462,39 +458,85 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
           <div className="bloque bloque-ajustes">
             <p className="label">3 · Ajusta {pieza(elegido.tipo).nombre}</p>
 
-            {/* Trayectoria de desplazamiento */}
-            <div className="seccion-trayectoria">
-              <span className="sublabel">Trayectoria de movimiento</span>
-              <div className="seg seg-trayectoria" role="group" aria-label="Trayectoria de movimiento">
-                {trayectorias.map(t => (
+            {/* Trayecto de desplazamiento en el espacio (solo para seres móviles: pudú, pingüino, paloma, pez) */}
+            {ES_MOVIL(elegido.tipo) && (
+              <div className="seccion-trayecto">
+                <span className="sublabel">Trayecto en el escenario</span>
+                <div className="seg seg-trayecto" role="group" aria-label="Trayecto de movimiento">
                   <button
-                    key={t.id}
                     type="button"
-                    aria-pressed={(elegido.trayectoria || 'estatico') === t.id}
-                    onClick={() => cambiarElegida(i => ({ ...i, trayectoria: t.id }))}
-                    className="btn-trayectoria"
-                    title={t.label}
+                    aria-pressed={!elegido.destino}
+                    onClick={() => cambiarElegida(i => ({ ...i, destino: undefined }))}
+                    className="btn-trayecto"
+                    title="Mantener en su lugar fijo"
                   >
-                    <span className="material-symbols-outlined" aria-hidden="true">{t.icon}</span>
-                    <span>{t.label}</span>
+                    <span className="material-symbols-outlined" aria-hidden="true">place</span>
+                    <span>En su lugar</span>
                   </button>
-                ))}
+                  <button
+                    type="button"
+                    aria-pressed={!!elegido.destino}
+                    onClick={() => {
+                      if (!elegido.destino) {
+                        const offset = elegido.espejo ? -70 : 70;
+                        const destX = Math.max(25, Math.min(215, Math.round(elegido.x + offset)));
+                        cambiarElegida(i => ({ ...i, destino: { x: destX, y: elegido.y } }));
+                      }
+                    }}
+                    className="btn-trayecto"
+                    title="Crear recorrido de desplazamiento de punto A a punto B"
+                  >
+                    <span className="material-symbols-outlined" aria-hidden="true">route</span>
+                    <span>Caminar A ➔ B</span>
+                  </button>
+                </div>
+                {elegido.destino && (
+                  <div className="acciones-trayecto">
+                    <button
+                      type="button"
+                      className="btn chico"
+                      onClick={() => cambiarElegida(i => i.destino ? ({
+                        ...i,
+                        x: i.destino.x,
+                        y: i.destino.y,
+                        destino: { x: i.x, y: i.y },
+                        espejo: !i.espejo,
+                      }) : i)}
+                      title="Invertir dirección del trayecto"
+                    >
+                      <span className="material-symbols-outlined" aria-hidden="true">swap_horiz</span>
+                      Invertir
+                    </button>
+                    <button
+                      type="button"
+                      className="btn chico"
+                      onClick={() => cambiarElegida(i => ({ ...i, destino: undefined }))}
+                      title="Quitar trayecto y dejar en su lugar"
+                    >
+                      <span className="material-symbols-outlined" aria-hidden="true">close</span>
+                      Fijar punto
+                    </button>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
-            {/* Variantes internas de animación (si tiene) */}
+            {/* Animaciones y poses orgánicas (para todas las piezas que tengan estilos de movimiento) */}
             {(pieza(elegido.tipo).variantes?.length ?? 0) > 1 && (
-              <div className="movimientos" role="group" aria-label="Pose / Animación">
-                {pieza(elegido.tipo).variantes!.map((v, n) => (
-                  <button
-                    key={v.id}
-                    type="button"
-                    aria-pressed={(elegido.variante ?? 0) === n}
-                    onClick={() => cambiarElegida(i => ({ ...i, variante: n }))}
-                  >
-                    {v.nombre}
-                  </button>
-                ))}
+              <div className="seccion-animacion">
+                <span className="sublabel">Animación</span>
+                <div className="seg seg-animaciones" role="group" aria-label="Pose / Animación">
+                  {pieza(elegido.tipo).variantes!.map((v, n) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      aria-pressed={(elegido.variante ?? 0) === n}
+                      onClick={() => cambiarElegida(i => ({ ...i, variante: n }))}
+                    >
+                      {v.nombre}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 

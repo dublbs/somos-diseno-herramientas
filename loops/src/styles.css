@@ -351,50 +351,69 @@
   border: 1.5px solid var(--accent);
   border-radius: 16px;
   padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
-.seg-trayectoria {
+
+/* Control segmentado genérico sin óvalos */
+.seg {
+  border-radius: 12px !important;
+  background: var(--chip) !important;
+  padding: 4px;
+  gap: 4px;
+}
+.seg button {
+  border-radius: 8px !important;
+  min-height: 38px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.12s, color 0.12s;
+}
+
+/* Trayecto de animación estilo After Effects */
+.seccion-trayecto {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.seg-trayecto {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4px;
-  margin-bottom: 8px;
 }
-.btn-trayectoria {
+.btn-trayecto {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 38px;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 6px;
+  padding: 6px 8px;
 }
-.btn-trayectoria .material-symbols-outlined {
-  font-size: 17px;
+.btn-trayecto .material-symbols-outlined {
+  font-size: 18px;
+}
+.acciones-trayecto {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 4px;
 }
 
-.movimientos {
+/* Selector de animaciones de pieza */
+.seccion-animacion {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.seg-animaciones {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  background: var(--chip);
-  border-radius: var(--rb);
-  padding: 3px;
-  margin-bottom: 8px;
 }
-.movimientos button {
-  flex: 1;
+.seg-animaciones button {
+  flex: 1 1 calc(50% - 4px);
   min-height: 36px;
   padding: 0 8px;
-  border: 0;
-  border-radius: var(--rb);
-  background: transparent;
-  color: var(--ink);
-  font: 600 12.5px "DM Sans", sans-serif;
-  cursor: pointer;
-}
-.movimientos button[aria-pressed="true"] {
-  background: var(--accent);
-  color: var(--on-accent);
 }
 
 .herramientas {

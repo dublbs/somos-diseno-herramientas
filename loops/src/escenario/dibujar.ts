@@ -1,56 +1,44 @@
 import { muestrear, type Pista } from './animacion';
 import { FONDO, FONDO_DESIERTO, FONDO_MAR, pieza, PIEZAS, type Capa } from './piezas';
 
-export type TipoTrayectoria = 'estatico' | 'cruzar' | 'ida-vuelta' | 'vaiven';
-
 export interface Item {
   uid: number;
   tipo: string;
-  x: number; // centro de la caja en el escenario (0..240)
+  x: number; // Punto A (inicio) en el escenario (0..240)
   y: number;
   escala: number; // 1 = tamaño del marco de Figma (240)
   espejo: boolean;
   variante?: number; // forma de moverse (índice en `variantes` de la pieza)
-  trayectoria?: TipoTrayectoria;
+  destino?: { x: number; y: number }; // Punto B (llegada) personalizado estilo After Effects
 }
 
 export const ESCENARIO = 240;
 
 export function posicionItem(it: Item, ms = 0): { x: number; y: number; espejo: boolean } {
-  const tray = it.trayectoria || 'estatico';
-  if (tray === 'estatico') return { x: it.x, y: it.y, espejo: it.espejo };
+  if (!it.destino) {
+    return { x: it.x, y: it.y, espejo: it.espejo };
+  }
 
   const dur = 4000;
   const u = (ms % dur) / dur; // 0..1
+  // Movimiento suave ida y vuelta con aceleración y desaceleración natural
+  const p = Math.sin(u * Math.PI * 2 - Math.PI / 2) * 0.5 + 0.5;
+  const x = it.x + (it.destino.x - it.x) * p;
+  const y = it.y + (it.destino.y - it.y) * p;
 
-  if (tray === 'cruzar') {
-    const ancho = 300;
-    const inicio = -30;
-    const offset = u * ancho;
-    const x = it.espejo ? 270 - offset : inicio + offset;
-    return { x, y: it.y, espejo: it.espejo };
-  }
-
-  if (tray === 'ida-vuelta') {
-    const rango = 40;
-    if (u < 0.5) {
-      const p = u / 0.5;
-      const x = it.x + (it.espejo ? -rango : rango) * p;
-      return { x, y: it.y, espejo: it.espejo };
+  // Orientación natural: mira hacia donde avanza
+  const dx = it.destino.x - it.x;
+  let espejo = it.espejo;
+  if (Math.abs(dx) > 12) {
+    const avanzaHaciaDestino = Math.cos(u * Math.PI * 2 - Math.PI / 2) > 0;
+    if (dx > 0) {
+      espejo = avanzaHaciaDestino ? false : true;
     } else {
-      const p = (u - 0.5) / 0.5;
-      const x = it.x + (it.espejo ? -rango : rango) * (1 - p);
-      return { x, y: it.y, espejo: !it.espejo };
+      espejo = avanzaHaciaDestino ? true : false;
     }
   }
 
-  if (tray === 'vaiven') {
-    const rango = 20;
-    const dx = Math.sin(u * Math.PI * 2) * rango;
-    return { x: it.x + dx, y: it.y, espejo: it.espejo };
-  }
-
-  return { x: it.x, y: it.y, espejo: it.espejo };
+  return { x, y, espejo };
 }
 
 const cache = new Map<string, HTMLImageElement>();
@@ -259,6 +247,38 @@ export function dibujarSeleccion(ctx: CanvasRenderingContext2D, size: number, it
   const k = size / ESCENARIO, b = cajaItem(it, ms);
   ctx.save();
   ctx.setTransform(k, 0, 0, k, 0, 0);
+
+  // Guía visual de trayectoria estilo After Effects (si el usuario definió un trayecto A -> B)
+  if (it.destino) {
+    ctx.save();
+    ctx.strokeStyle = '#00A651';
+    ctx.lineWidth = 1.8;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(it.x, it.y);
+    ctx.lineTo(it.destino.x, it.destino.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Punto A (inicio)
+    ctx.fillStyle = '#00A651';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(it.x, it.y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Punto B (destino)
+    ctx.fillStyle = '#FFC20E';
+    ctx.beginPath();
+    ctx.arc(it.destino.x, it.destino.y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Caja de selección
   ctx.lineWidth = 1.5; ctx.strokeStyle = '#FFC20E'; ctx.setLineDash([5, 4]);
   ctx.strokeRect(b.x, b.y, b.w, b.h);
   ctx.setLineDash([]);
