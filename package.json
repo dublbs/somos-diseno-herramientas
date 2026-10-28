@@ -1,0 +1,19 @@
+{
+  "name": "experiencias-somos-diseno",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hub de experiencias interactivas y mini-juegos de Somos Diseño para Tablet y Desktop",
+  "scripts": {
+    "dev": "npx serve -l 8080 .",
+    "dev:hub": "npx serve -l 8080 .",
+    "dev:fotomaton": "npm --prefix fotomaton run dev",
+    "dev:fotomaton:tablet": "npm --prefix fotomaton run dev:tablet",
+    "dev:mosaicos": "npm --prefix taller-mosaicos run dev",
+    "build:fotomaton": "npm --prefix fotomaton run build",
+    "build:mosaicos": "npm --prefix taller-mosaicos run build",
+    "build": "npm run build:fotomaton && npm run build:mosaicos"
+  },
+  "devDependencies": {
+    "serve": "^14.2.4"
+  }
+}

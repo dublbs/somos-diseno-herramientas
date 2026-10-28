@@ -1,40 +1,57 @@
-# Herramientas Somos Diseño
+# Experiencias Interactivas · Somos Diseño
 
-Herramientas del equipo de Somos Diseño (INACAP Sede Santiago Centro) para producir piezas con los lenguajes Pixel y Geométrica, siempre con la paleta Línea azul.
+Mini-juegos, estaciones y herramientas interactivas pensadas para **Tablet y Desktop** durante la Semana del Diseño (INACAP Sede Santiago Centro).
 
-| Carpeta | Herramienta | Qué hace |
-| --- | --- | --- |
-| [`taller-de-pixeles/`](taller-de-pixeles/) | Taller de Píxeles | Convierte una foto en un boceto de módulo Pixel (24 × 24, Línea azul, máximo 4 colores, contorno exterior) o en pixel art libre de 32 × 32 y 64 × 64. Exporta SVG con grupos Fondo y Figura, y PNG. |
-| [`credencial/`](credencial/) | Credencial Somos Diseño | Generador de personajes Pixel y credencial de dos caras con sellos por mesa. React + Supabase, lista para Vercel. |
-| [`taller-mosaicos/`](taller-mosaicos/) | Taller de mosaicos | Crea mosaicos desde cero con las formas base de Geométrica sobre la celda y las operaciones del sistema (repetir, reflejar, escalonar, girar). Exporta PNG y SVG. |
+---
 
-## Ver en línea
+## 🎯 Arquitectura de Experiencias
 
-La carpeta `docs/` es el sitio: una portada que lleva a las tres herramientas, agrupadas en **Taller** (para quienes diseñan) y **Patio** (para quienes visitan), más cada herramienta compilada en un solo archivo HTML.
+A diferencia de la carpeta **`Evento`** (pensada como una PWA móvil para el celular del asistente con escaneo de sellos por cámara), **`Experiencias`** alberga los proyectos que corren en las estaciones fijas, tablets táctiles en mesas y computadores de trabajo:
 
-- **GitHub Pages:** Settings → Pages → Deploy from a branch → `main` / `/docs`.
-- **Vercel o Netlify:** sin comando de build y con `docs` como carpeta de salida.
+| Carpeta | Experiencia | Plataforma | Hardware / Requisitos |
+| --- | --- | --- | --- |
+| [`fotomaton/`](fotomaton/) | **Fotomatón CMYK** (Mesa 3) | Tablet / Desktop | Cámara web/tablet + Detección facial IA local + QR de descarga |
+| [`taller-mosaicos/`](taller-mosaicos/) | **Taller de Mosaicos** | Tablet / Desktop | Pantalla táctil o ratón, celda 12×12, exportación a Figma (SVG/PNG) |
+| [`taller-de-pixeles/`](taller-de-pixeles/) | **Taller de Píxeles** | Tablet / Desktop | Cuantizador de fotos a 24×24 con Línea azul y pixel art libre |
 
-Si se despliega desde la raíz, `index.html` redirige a `docs/`.
+---
 
-La credencial que queda en Pages corre en modo demo (todo se guarda en el dispositivo). La versión del evento, con sellos reales por QR, se publica aparte con Supabase y Vercel: ver [`credencial/README.md`](credencial/README.md).
+## 🖥️ Hub Principal (`index.html`)
 
-## Desarrollo
+El archivo [`index.html`](index.html) en esta carpeta es el **Hub central** que unifica el acceso a las tres experiencias.
+- Permite a los visitantes o anfitriones de cada mesa lanzar la experiencia correspondiente con un solo toque o clic.
+- Incluye **Modo Quiosco / Pantalla Completa** (botón `⛶ Pantalla Completa`) ideal para tablets y monitores en exhibición.
+- Incluye botón de retorno al Hub en cada experiencia interactiva.
 
-Cada proyecto se instala y corre por separado:
+---
 
+## 🚀 Cómo Ejecutar en Local
+
+### Opción 1: Servir la carpeta de Experiencias completa
+Puedes levantar un servidor estático rápido desde esta carpeta:
 ```bash
-cd credencial        # o taller-mosaicos
-npm install
-npm run dev
+npx serve .
+# O con Python:
+python3 -m http.server 8080
 ```
+Y abrir `http://localhost:8080` para acceder al Hub y a cualquiera de las 3 herramientas.
 
-El Taller de Píxeles es un único archivo HTML sin dependencias: se abre directo en el navegador.
+### Opción 2: Modo Desarrollo individual
 
-## Actualizar `docs/`
+1. **Fotomatón CMYK**:
+   ```bash
+   cd fotomaton
+   npm install
+   npm run dev          # http://localhost:5173
+   npm run dev:tablet   # HTTPS para probar en tablet por la red WiFi
+   ```
 
-```bash
-cd credencial && npm run build:demo && cp demo/index.html ../docs/credencial/index.html
-cd ../taller-mosaicos && npm run build && cp dist/index.html ../docs/taller-mosaicos/index.html
-cp ../taller-de-pixeles/index.html ../docs/taller-de-pixeles/index.html
-```
+2. **Taller de Mosaicos**:
+   ```bash
+   cd taller-mosaicos
+   npm install
+   npm run dev
+   ```
+
+3. **Taller de Píxeles**:
+   - Es un único archivo HTML autocontenido con cero dependencias. Se abre directo en el navegador abriendo `taller-de-pixeles/index.html`.
