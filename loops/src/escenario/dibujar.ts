@@ -93,13 +93,12 @@ function dibujarCapas(ctx: CanvasRenderingContext2D, capas: Capa[], durMs: numbe
   }
 }
 
-// Dibuja la pieza en su marco de 240 × 240 (recortada al marco, como en Figma).
+// Dibuja la pieza en su marco de 240 × 240 (sin recorte artificial para permitir movimiento natural).
 export function dibujarMarco(ctx: CanvasRenderingContext2D, tipo: string, ms: number, variante = 0) {
   const p = pieza(tipo), v = p.variantes?.[variante] ?? null, dur = v?.durMs ?? p.durMs;
   ctx.save();
-  ctx.beginPath(); ctx.rect(0, 0, 240, 240); ctx.clip();
   const u = (ms % dur) / dur;
-  aplicar(ctx, v ? v.grupo : p.grupo, u);
+  aplicar(ctx, v ? v.grupo : p.grupo, u, p.pivote);
   dibujarCapas(ctx, p.capas, dur, ms, v?.pistas);
   for (const parte of p.partes ?? []) {
     ctx.save();
@@ -135,15 +134,21 @@ function dibujarItem(ctx: CanvasRenderingContext2D, it: Item, ms: number, size: 
   };
   if (!borde) { trazar(ctx); return; }
 
-  const k = size / ESCENARIO, b = cajaItem(it, ms), m = BORDE + 3;
+  // Margen amplio para que ninguna rama, ala, cola ni espina sufra clipping al rotar o vibrar
+  const k = size / ESCENARIO, b = cajaItem(it, ms), m = Math.max(36, BORDE * 14) * Math.max(1, it.escala);
   const bx = b.x - m, by = b.y - m, w = Math.max(1, Math.ceil((b.w + 2 * m) * k)), h = Math.max(1, Math.ceil((b.h + 2 * m) * k));
   tmp.width = sil.width = w; tmp.height = sil.height = h;
   const t = tmp.getContext('2d')!;
+  t.clearRect(0, 0, w, h);
   t.imageSmoothingEnabled = true;
   t.imageSmoothingQuality = 'high';
   t.setTransform(k, 0, 0, k, -bx * k, -by * k);
   trazar(t);
+
   const sx = sil.getContext('2d')!;
+  sx.clearRect(0, 0, w, h);
+  sx.imageSmoothingEnabled = true;
+  sx.imageSmoothingQuality = 'high';
   sx.globalCompositeOperation = 'source-over';
   sx.drawImage(tmp, 0, 0);
   sx.globalCompositeOperation = 'source-in';
@@ -154,16 +159,22 @@ function dibujarItem(ctx: CanvasRenderingContext2D, it: Item, ms: number, size: 
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   const ox = bx * k, oy = by * k, r = BORDE * k;
+  
+  // Sombra suave inferior
   ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,0.32)'; ctx.shadowBlur = 2.5 * k; ctx.shadowOffsetX = 1 * k; ctx.shadowOffsetY = 1.8 * k;
+  ctx.shadowColor = 'rgba(0,0,0,0.28)'; ctx.shadowBlur = 3 * k; ctx.shadowOffsetX = 1 * k; ctx.shadowOffsetY = 2 * k;
   ctx.drawImage(sil, ox, oy);
   ctx.restore();
-  for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * Math.PI * 2;
+
+  // Borde de papel suave
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2;
     ctx.drawImage(sil, ox + Math.cos(a) * r, oy + Math.sin(a) * r);
   }
-  ctx.drawImage(tmp, ox, oy);
   ctx.restore();
+
+  // Dibujar la pieza original directamente en el lienzo destino para máxima nitidez vectorial
+  trazar(ctx);
 }
 
 export function dibujarEscenario(

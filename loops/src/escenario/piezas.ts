@@ -29,6 +29,7 @@ export interface Pieza {
   durMs: number;
   caja: [number, number, number, number]; // zona que se toca y se encuadra, en el marco de 240
   capas: Capa[];
+  pivote?: [number, number]; // centro de rotación/escala de todo el conjunto
   grupo?: Pista[]; // movimiento de todo el conjunto
   partes?: { tipo: string; x: number; y: number; escala: number; fase: number }[]; // piezas dentro de la pieza
   muestra?: number; // momento del ciclo (0..1) para la miniatura
@@ -95,7 +96,8 @@ const sol: Pieza = {
   }],
 };
 const araucaria: Pieza = {
-  id: 'araucaria', nombre: 'Araucaria', figma: '620:932 (movimiento nuevo)', durMs: 4000, caja: [82, 146, 76, 80],
+  id: 'araucaria', nombre: 'Araucaria', figma: '620:932 (movimiento nuevo)', durMs: 4000, caja: [72, 146, 96, 80],
+  pivote: [120, 222.8],
   capas: [{
     src: A('araucaria/araucaria'), x: 0, y: 0, pivote: [120, 222.8],
     pistas: [
@@ -183,9 +185,15 @@ const e6: Curva[] = ['linear', 'linear', 'easeInOut', 'linear', 'linear'];
 const franja = (n: number, caja: [number, number, number, number], t: number[], v: number[], e: Curva[]): Capa =>
   ({ src: A(`kisa/${n < 7 ? 'franja' : 'rombo'}${n < 7 ? n : n - 6}`), ...inset(...caja), pistas: fundido(t, v, e) });
 const kisa: Pieza = {
-  id: 'kisa', nombre: "K'isa", figma: '613:4553', durMs: 4000, caja: [68, 18, 104, 216], muestra: 0.5,
+  id: 'kisa', nombre: "K'isa", figma: '613:4553', durMs: 3000, caja: [65, 10, 110, 225], muestra: 0.5,
+  pivote: [120, 18],
+  grupo: [
+    { prop: 'rotate', t: T5, v: [0, 3.5, 0, -3.5, 0], e: 'easeInOut' },
+    { prop: 'scaleY', t: T5, v: [1, 1.03, 1, 1.03, 1], e: 'easeInOut' },
+    { prop: 'scaleX', t: T5, v: [1, 0.98, 1, 0.98, 1], e: 'easeInOut' },
+  ],
   capas: [
-    { src: A('kisa/faja'), x: 0, y: 0 },
+    { src: A('kisa/faja'), x: 0, y: 0, pivote: [120, 18] },
     franja(1, [9.75, 29.87, 86.79, 29.87], [0, 0.0692, 0.4615, 0.5308, 1], [0, 1, 1, 0, 0], ['linear', 'easeInOut', 'linear', 'linear']),
     franja(2, [16.33, 30, 80.29, 29.96], [0, 0.0577, 0.1269, 0.5192, 0.5885, 1], [0, 0, 1, 1, 0, 0], e6),
     franja(3, [22.83, 30.08, 73.83, 29.96], [0, 0.1154, 0.1846, 0.5769, 0.6462, 1], [0, 0, 1, 1, 0, 0], e6),
