@@ -1,57 +1,27 @@
 # Experiencias Interactivas · Somos Diseño
 
-Mini-juegos, estaciones y herramientas interactivas pensadas para **Tablet y Desktop** durante la Semana del Diseño (INACAP Sede Santiago Centro).
+Estaciones interactivas para **tablet (horizontal) y pantallas del stand** durante la Semana del Diseño (INACAP Sede Santiago Centro). El hub (`index.html`) lleva a cuatro experiencias; cada una es una app **React 18 + TypeScript 7 + Vite 8**.
 
----
+| Carpeta | Experiencia | Lenguaje | Qué hace |
+|---|---|---|---|
+| [`fotomaton/`](fotomaton/) | Fotomatón CMYK | los tres | Foto con la cámara → efecto (trama CMYK, CRT o mosaico) → marco → tarjeta y QR para el celular |
+| [`taller-mosaicos/`](taller-mosaicos/) | Taller de Mosaicos | Geométrica | Componer patrones en una grilla con formas, paletas y simetrías; exporta PNG |
+| [`loops/`](loops/) | Teatro de Papel | Orgánica | Escena de papel recortado con piezas animadas en loop; exporta video o PNG |
+| [`graffiti/`](graffiti/) | Graffiti y Tags | Pixel | Spray sobre un muro pixel con goteo, muros y stickers; exporta PNG |
 
-## 🎯 Arquitectura de Experiencias
+`taller-de-pixeles/` está **descartado**: no aparece en el hub ni en los scripts. Estación Audioreactiva y Jardín de Papel figuran como «Próximamente».
 
-A diferencia de la carpeta **`Evento`** (pensada como una PWA móvil para el celular del asistente con escaneo de sellos por cámara), **`Experiencias`** alberga los proyectos que corren en las estaciones fijas, tablets táctiles en mesas y computadores de trabajo:
-
-| Carpeta | Experiencia | Plataforma | Hardware / Requisitos |
-| --- | --- | --- | --- |
-| [`fotomaton/`](fotomaton/) | **Fotomatón CMYK** (Mesa 3) | Tablet / Desktop | Cámara web/tablet + Detección facial IA local + QR de descarga |
-| [`taller-mosaicos/`](taller-mosaicos/) | **Taller de Mosaicos** | Tablet / Desktop | Pantalla táctil o ratón, celda 12×12, exportación a Figma (SVG/PNG) |
-| [`taller-de-pixeles/`](taller-de-pixeles/) | **Taller de Píxeles** | Tablet / Desktop | Cuantizador de fotos a 24×24 con Línea azul y pixel art libre |
-
----
-
-## 🖥️ Hub Principal (`index.html`)
-
-El archivo [`index.html`](index.html) en esta carpeta es el **Hub central** que unifica el acceso a las tres experiencias.
-- Permite a los visitantes o anfitriones de cada mesa lanzar la experiencia correspondiente con un solo toque o clic.
-- Incluye **Modo Quiosco / Pantalla Completa** (botón `⛶ Pantalla Completa`) ideal para tablets y monitores en exhibición.
-- Incluye botón de retorno al Hub en cada experiencia interactiva.
-
----
-
-## 🚀 Cómo Ejecutar en Local
-
-### Opción 1: Servir la carpeta de Experiencias completa
-Puedes levantar un servidor estático rápido desde esta carpeta:
+## Correr
 ```bash
-npx serve .
-# O con Python:
-python3 -m http.server 8080
+npm run build      # compila las 4 apps (el hub enlaza a <app>/dist/)
+npm run dev:hub    # sirve la raíz en http://localhost:8080
 ```
-Y abrir `http://localhost:8080` para acceder al Hub y a cualquiera de las 3 herramientas.
+Para trabajar en una experiencia: `npm --prefix <carpeta> install` y luego `npm run dev:<fotomaton|mosaicos|loops|graffiti>` (o `…:tablet` para abrirla desde la tablet por la red).
 
-### Opción 2: Modo Desarrollo individual
+## Pantalla fija (sin scroll)
+Desde 600 × 560 px todas las experiencias ocupan exactamente el alto de la pantalla: barra superior, escenario que se ajusta por alto y panel con **pestañas** y acciones fijas al pie. En vertical el panel pasa abajo; en teléfono la página hace scroll. El sistema está en [`shared/somos-ui.css`](shared/somos-ui.css) (`.app-pantalla`, `.cuerpo-pantalla`, `.escenario-fit`, `.lienzo-fit`, `.panel-app`, `.pestanas`, `.panel-pagina`, `.panel-pie`). Fuentes e íconos son locales (`shared/somos-fonts.css`, `shared/somos-icons.css`), así que todo funciona sin internet.
 
-1. **Fotomatón CMYK**:
-   ```bash
-   cd fotomaton
-   npm install
-   npm run dev          # http://localhost:5173
-   npm run dev:tablet   # HTTPS para probar en tablet por la red WiFi
-   ```
-
-2. **Taller de Mosaicos**:
-   ```bash
-   cd taller-mosaicos
-   npm install
-   npm run dev
-   ```
-
-3. **Taller de Píxeles**:
-   - Es un único archivo HTML autocontenido con cero dependencias. Se abre directo en el navegador abriendo `taller-de-pixeles/index.html`.
+## Más
+- Estado, diagnóstico y plan: [`docs/ESTADO_DEL_HUB.md`](docs/ESTADO_DEL_HUB.md)
+- Reglas para agentes (Claude Code, Antigravity): [`AGENTS.md`](AGENTS.md)
+- Figma ↔ código: [`FIGMA_SYNC.md`](FIGMA_SYNC.md)

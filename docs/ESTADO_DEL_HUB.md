@@ -2,17 +2,29 @@
 
 > Actualizado: 2026-10-28 · Rama: `claude/ecstatic-lovelace-xjgq6d`
 
-### Estado de ejecución (Set A)
-| Tarea | Estado |
+## Estado actual (lo hizo Claude Code, sin pasar por Antigravity)
+
+**Las 4 experiencias están arriba y caben en pantalla sin scroll.** Verificado con Playwright en 1024×768, 1180×820, 1280×720, 1366×768, 1920×1080, 768×1024 y 820×1180, en cada pestaña de cada panel: 0 scroll de página, 0 controles fuera de vista o recortados y ningún panel con scroll interno.
+
+| Área | Qué quedó |
 |---|---|
-| A1 documento, `AGENTS.md`, carpetas de planes | Hecha |
-| A2 miniatura de Teatro de Papel con arte real | Hecha (verificada con capturas Playwright) |
-| A3 miniaturas Graffiti/Audioreactiva/Jardín, retirar Píxeles del hub y de los scripts raíz | Hecha. La carpeta `taller-de-pixeles/` **sigue en el repo**: falta tu OK para archivarla |
-| A4 `fullscreenchange`, reduced-motion, fuentes autoalojadas (`shared/somos-fonts.css`), texto del footer | Hecha (sin ninguna petición externa en el hub) |
-| A5 assets de Graffiti | Hecha: 7 muros (2 generados), 8 stickers, tag y cuentagotas descargados de Figma; manifiesto completo |
-| A6 QR del Fotomatón | Diagnosticado y confirmado; la corrección va como tarea T-002 (toca `fotomaton/src`, zona de Antigravity) |
-| A7 planes y tareas para Antigravity | Hecha (`docs/plans/001-*`, `002-*`, `docs/tasks/001-*`, `002-*`) |
-| A8 revisión final | Pendiente (cuando Antigravity termine) |
+| Sistema de layout (`shared/somos-ui.css`) | `.app-pantalla` (100dvh, barra + cuerpo), `.cuerpo-pantalla` (2 columnas en horizontal, 2 filas en vertical), `.escenario-fit` + `.lienzo-fit` (el lienzo se mide por alto con container queries y respeta la proporción `--ratio`), `.panel-app` con `.pestanas`, `.panel-pagina` y `.panel-pie` (acciones fijas). Bajo 600×560 (teléfono) la página hace scroll. |
+| Fuentes e íconos | Todo local: `shared/somos-fonts.css` (Bricolage, DM Sans, Silkscreen, IBM Plex Mono) y `shared/somos-icons.css` (subconjunto de Material Symbols, 6 KB). Ninguna app pide nada a Google. |
+| Fotomatón | Barra común; panel «Lenguaje y marco» / «Efecto y paleta» (juntos en horizontal amplio, en pestañas en vertical o alto chico); marcos en grilla; portada que cabe por alto. **QR arreglado** (`HashRouter` + enlace con la ruta real: `…/fotomaton/dist/#/f/<id>` abre la descarga, probado de punta a punta). Timers de la cuenta regresiva limpiados al salir. |
+| Taller de Mosaicos | Simplificado en 3 pestañas: **Dibujar** (herramientas + 18 formas sin nombres, Girar/Reflejar en la misma fila; Multiplicar reemplaza la grilla por las operaciones), **Color** (8 paletas + Invertir + Aplicar a todo), **Formato** (6 formatos como botones + grilla). Pie: Descargar, Sorpréndeme, Limpiar. Lienzo por alto con la proporción del formato. Sin `window.claude` ni código muerto; `fs.allow`. |
+| Teatro de Papel | Pestañas **Escena** (escenario + bandeja) y **Pieza** (se abre sola al tocar una figura). Línea de tiempo en una fila bajo el lienzo. Pie: video, PNG, vaciar. Modal accesible (Esc), nombre de archivo correcto, aviso si falla el PNG, sin «Día Orgánica · Mesa 4». Animación y render intactos. |
+| Graffiti y Tags (nuevo) | Muro 60×60, spray interpolado, **goteo** animado (máx. 40 chorros; con «reducir movimiento» se pinta de una vez), borrador, deshacer (40), vaciar con doble toque; 4 muros, 8 stickers + tag de Figma (sin fondos de marcos), 8 colores; tarjeta 1080×1350. Tarjeta activa en el hub. |
+| Hub | Miniatura de Teatro de Papel con el arte real; miniaturas canvas para Graffiti, Audioreactiva y Jardín; Píxeles retirado; `fullscreenchange`; reduced-motion sin bucle. Navegación hub → app → volver probada en las 4. |
+| Stack | React 18.3.1 + **TypeScript 7.0.2 en las 4 apps** + Vite 8.3.5. |
+
+**Sigue pendiente (decisión tuya o fuera del código):**
+1. Archivar `taller-de-pixeles/` (rama `archive/taller-de-pixeles` y borrar la carpeta): falta tu OK.
+2. Fotomatón con Supabase real: activar el `cron.schedule` de limpieza (24 h) en la migración y probar el QR con un celular en la red del evento.
+3. 15 marcos del Fotomatón (hoy 12) y envío a «Pantalla Flip».
+4. Probar todo en la tablet física (táctil real, rendimiento del goteo y de los videos de Teatro de Papel).
+5. Post-MVP: workspaces + `packages/shared`, sacar `dist/` de git, lint/CI, Framer Motion acotado.
+
+> Las secciones de abajo son el **diagnóstico original** (antes de estos cambios). Se conservan como contexto; varias cosas que describen ya están resueltas (ver tabla de arriba).
 
 ## 1. Resumen en 60 segundos
 
