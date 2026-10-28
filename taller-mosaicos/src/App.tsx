@@ -3,7 +3,6 @@ import {
   Formato,
   FORMATOS,
   FORMAS,
-  COLORES,
   Celda,
   Pincel,
   PaletaDef,
@@ -424,8 +423,8 @@ export const App: React.FC = () => {
         </div>
       </header>
 
-      <div className="layout layout-mosaicos">
-        <section className="escena" aria-label="Mosaico">
+      <main className="cuerpo-pantalla">
+        <section className="escenario-fit" aria-label="Mosaico">
           <Lienzo
             formato={formato}
             celdas={celdas}
@@ -469,7 +468,7 @@ export const App: React.FC = () => {
           onAplicarPaletaMosaico={aplicarPaletaMosaico}
           estadoMsg={estadoMsg}
         />
-      </div>
+      </main>
     </div>
   );
 };

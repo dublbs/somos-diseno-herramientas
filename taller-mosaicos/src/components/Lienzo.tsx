@@ -97,9 +97,8 @@ export const Lienzo: React.FC<LienzoProps> = ({
     }
 
     if (marcoRef.current) {
-      marcoRef.current.style.aspectRatio = `${W} / ${H}`;
-      marcoRef.current.style.maxHeight = 'calc(100dvh - 74px)';
-      marcoRef.current.style.width = `min(100%, calc((100dvh - 74px) * ${W / H}))`;
+      // El marco se ajusta al espacio disponible (ancho y alto) con la proporción del formato: ver .lienzo-fit
+      marcoRef.current.style.setProperty('--ratio', String(W / H));
     }
 
     const t = formato.celda;
@@ -246,7 +245,7 @@ export const Lienzo: React.FC<LienzoProps> = ({
   };
 
   return (
-    <div className="marco" id="marco" ref={marcoRef}>
+    <div className="marco lienzo-fit" id="marco" ref={marcoRef}>
       <canvas
         id="lienzo"
         ref={canvasRef}

@@ -44,17 +44,58 @@ h1{font:800 clamp(68px,13vw,152px)/.86 var(--fuente-tit);letter-spacing:-.045em;
 .nota{font-size:13px;color:var(--muted);text-align:center;margin:14px 0 0}
 .aviso{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:14px 20px;border-radius:999px;font-weight:600;font-size:15px;z-index:20;box-shadow:0 10px 30px rgba(0,0,0,.25)}
 
-/* --- Viewport-Fit para Tablets y Pantallas Táctiles (>= 768px de ancho y >= 500px de alto) --- */
-.barra-superior{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:8px 16px;max-width:1400px;width:100%;margin:0 auto;min-height:50px;flex-shrink:0}
+/* --- Pantalla de experiencia: todo cabe en el alto (tablet horizontal primero) ---
+   Estructura: <div class="app-pantalla"> <header class="barra-superior"/> <main class="cuerpo-pantalla">
+   <section class="escenario-fit"> <div class="lienzo-fit" style="--ratio:1">…</div> </section>
+   <aside class="panel-app"> .pestanas + .panel-pagina + .panel-pie </aside> </main> </div> */
+.barra-superior{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:8px 16px;max-width:1440px;width:100%;margin:0 auto;min-height:56px;flex-shrink:0}
 .barra-superior .lado-izq{display:flex;align-items:center;gap:12px;min-width:0}
-.barra-superior .volver{min-height:38px;padding:0 14px 0 10px;font-size:14px}
+.barra-superior .volver{min-height:44px;padding:0 16px 0 12px;font-size:14px}
+.barra-superior .volver .material-symbols-outlined{font-size:20px}
 .barra-info{display:flex;align-items:baseline;gap:10px;min-width:0}
-.barra-info h1{font:800 18px/1.1 var(--fuente-tit);letter-spacing:-.02em;margin:0;white-space:nowrap}
+.barra-info h1{font:800 20px/1.1 var(--fuente-tit);letter-spacing:-.02em;margin:0;white-space:nowrap}
 .barra-info .bajada-corta{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0}
-@media (max-width:850px){.barra-info .bajada-corta{display:none}}
+@media (max-width:860px){.barra-info .bajada-corta{display:none}}
 
-@media (min-width:768px) and (min-height:500px){
-  html:has(.app-pantalla),body:has(.app-pantalla){height:100dvh;max-height:100dvh;overflow:hidden}
-  .app-pantalla{height:100dvh;max-height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+.cuerpo-pantalla{display:grid;gap:16px;padding:4px 16px 16px;max-width:1440px;width:100%;margin:0 auto;grid-template-columns:minmax(0,1fr)}
+.escenario-fit{min-width:0;min-height:0;display:grid;place-items:center}
+.lienzo-fit{width:100%;aspect-ratio:var(--ratio,1)}
+.panel-app{min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px;background:var(--surface);border:var(--borde);border-radius:var(--r);box-shadow:var(--sombra-btn);padding:12px;transition:border-radius .4s}
+.pestanas{display:flex;gap:4px;background:var(--chip);border-radius:var(--rb);padding:4px;flex:none}
+.pestanas button{flex:1;min-width:0;min-height:44px;border:0;border-radius:var(--rb);background:transparent;color:var(--ink);font:600 14px "DM Sans",sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:background .15s,color .15s}
+.pestanas button .material-symbols-outlined{font-size:20px}
+.pestanas button[aria-selected="true"]{background:var(--accent);color:var(--on-accent)}
+.pestanas button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.panel-pagina{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:10px}
+.panel-pie{flex:none;display:grid;gap:8px}
+.panel-pie .btn{min-height:48px;padding:0 14px;font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%}
+.panel-pie .btn .material-symbols-outlined{font-size:20px}
+.pie-fila{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:8px}
+.panel-pie .estado{margin:0;font-size:13px;font-weight:600;text-align:center}
+
+/* Modo pantalla fija: desde 600×560 (tablets, notebooks, pantallas del stand) no hay scroll de página; en teléfono la página hace scroll. */
+@media (min-height:560px) and (min-width:600px){
+  html:has(.app-pantalla){padding:0;height:100%;overflow:hidden}
+  body:has(.app-pantalla){height:100%;overflow:hidden}
+  .app-pantalla{height:100dvh;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden;
+    padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+  .cuerpo-pantalla{min-height:0;height:100%;grid-template-rows:minmax(0,1fr)}
+  .escenario-fit{container-type:size;height:100%}
+  .lienzo-fit{width:min(100cqw,calc(100cqh * var(--ratio,1)));height:auto;max-height:100cqh}
+  .panel-pagina{overflow:hidden}
 }
-
+/* Horizontal: escenario a la izquierda, panel a la derecha */
+@media (min-height:560px) and (min-width:600px) and (orientation:landscape){
+  .cuerpo-pantalla{grid-template-columns:minmax(0,1fr) clamp(300px,31vw,400px)}
+}
+/* Vertical: escenario arriba, panel abajo con alto fijo */
+@media (min-height:560px) and (min-width:600px) and (orientation:portrait){
+  .cuerpo-pantalla{grid-template-rows:minmax(0,1fr) minmax(0,var(--alto-panel,44%))}
+}
+/* Pantallas bajas: todo un poco más compacto */
+@media (max-height:740px){
+  .barra-superior{min-height:50px;padding:6px 16px}
+  .cuerpo-pantalla{gap:12px;padding-bottom:12px}
+  .panel-app{padding:10px;gap:10px}
+  .panel-pie .btn{min-height:46px}
+}

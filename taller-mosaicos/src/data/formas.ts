@@ -37,8 +37,6 @@ export const FORMAS: FormaDef[] = [
 ];
 
 export const forma = (id: string): FormaDef => FORMAS.find((f) => f.id === id) || FORMAS[0];
-export const usaB = (id: string): boolean => forma(id).capas.some((c) => c[1] === "b");
-export const usaA = (id: string): boolean => forma(id).capas.some((c) => c[1] === "a");
 
 // Transformación de la celda: giro r (0–3, en pasos de 90°) y espejo e (horizontal), aplicado antes del giro.
 export interface Transf {
@@ -62,8 +60,6 @@ export const HEX: Record<string, string> = {
   Rosa: "#FF8FB1",
   Morado: "#7A2E8E",
 };
-export const COLORES = Object.keys(HEX);
-export const MAX_COLORES = 4; // regla 3: un fondo y hasta tres colores de figura
 
 // ---------- formatos (en celdas) ----------
 export interface Formato {

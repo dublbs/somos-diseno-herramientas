@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   Formato,
   FORMATOS,
@@ -70,6 +70,23 @@ const Miniatura: React.FC<{
   return <canvas ref={canvasRef} />;
 };
 
+type Pestana = 'dibujar' | 'color' | 'formato';
+const PESTANAS: { id: Pestana; label: string; icon: string }[] = [
+  { id: 'dibujar', label: 'Dibujar', icon: 'draw' },
+  { id: 'color', label: 'Color', icon: 'palette' },
+  { id: 'formato', label: 'Formato', icon: 'grid_on' },
+];
+
+const OPERACIONES = [
+  { op: 'repetir', label: 'Repetir', icon: 'repeat' },
+  { op: 'escalonar', label: 'Escalonar', icon: 'stairs' },
+  { op: 'derecha', label: 'Reflejar →', icon: 'flip' },
+  { op: 'abajo', label: 'Reflejar ↓', icon: 'swap_vert' },
+  { op: 'cuatro', label: 'Simetría 4', icon: 'grid_view' },
+  { op: 'girar', label: 'Girar 90°', icon: 'rotate_90_degrees_cw' },
+  { op: 'vaciar', label: 'Borrar área', icon: 'backspace' },
+];
+
 export const Panel: React.FC<PanelProps> = ({
   formato,
   onCambiarFormato,
@@ -87,15 +104,19 @@ export const Panel: React.FC<PanelProps> = ({
   onAplicarPaletaMosaico,
   estadoMsg,
 }) => {
-  const [confirmarVaciar, setConfirmarVaciar] = React.useState(false);
+  const [pestana, setPestana] = useState<Pestana>('dibujar');
+  const [confirmarVaciar, setConfirmarVaciar] = useState(false);
+  const temporizador = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(temporizador.current), []);
 
   const handleVaciar = () => {
+    window.clearTimeout(temporizador.current);
     if (confirmarVaciar) {
       setConfirmarVaciar(false);
       onVaciar();
     } else {
       setConfirmarVaciar(true);
-      setTimeout(() => setConfirmarVaciar(false), 3000);
+      temporizador.current = window.setTimeout(() => setConfirmarVaciar(false), 3000);
     }
   };
 
@@ -119,280 +140,194 @@ export const Panel: React.FC<PanelProps> = ({
   ];
 
   return (
-    <aside className="panel" aria-label="Herramientas">
-      {/* Formato */}
-      <div className="bloque">
-        <label className="etiqueta" htmlFor="formato">
-          Formato de diseño
-        </label>
-        <select
-          id="formato"
-          value={formato.id}
-          onChange={(e) => onCambiarFormato(e.target.value)}
-        >
-          {FORMATOS.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.nombre}
-            </option>
-          ))}
-        </select>
+    <aside className="panel-app panel-mosaicos" aria-label="Herramientas">
+      <div className="pestanas" role="tablist" aria-label="Secciones">
+        {PESTANAS.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            role="tab"
+            id={`tab-${p.id}`}
+            aria-selected={pestana === p.id}
+            aria-controls={`pag-${p.id}`}
+            onClick={() => setPestana(p.id)}
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">{p.icon}</span>
+            {p.label}
+          </button>
+        ))}
       </div>
 
-      {/* Herramientas */}
-      <div className="bloque">
-        <span className="etiqueta">Herramienta</span>
-        <div className="seg herramientas">
-          {herramientasConfig.map((h) => (
-            <button
-              key={h.id}
-              type="button"
-              data-herramienta={h.id}
-              aria-pressed={herramienta === h.id}
-              onClick={() => onCambiarHerramienta(h.id)}
-              className="btn-herramienta"
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">
-                {h.icon}
-              </span>
-              <span>{h.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Operaciones sobre la selección */}
-      {herramienta === 'seleccionar' && (
-        <div className="bloque operaciones" id="operaciones">
-          <span className="etiqueta">Operaciones de multiplicación</span>
-          <p className="seleccion" id="sel-info">
-            {sel
-              ? `Área: ${sel.w} × ${sel.h} celdas`
-              : 'Arrastra sobre el mosaico para seleccionar un área.'}
-          </p>
-          <div className="ops">
-            <button
-              type="button"
-              disabled={!sel}
-              onClick={() => onEjecutarOp('repetir')}
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">repeat</span>
-              Repetir
-            </button>
-            <button
-              type="button"
-              disabled={!sel}
-              onClick={() => onEjecutarOp('escalonar')}
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">stairs</span>
-              Escalonar
-            </button>
-            <button
-              type="button"
-              disabled={!sel}
-              onClick={() => onEjecutarOp('derecha')}
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">flip</span>
-              Reflejar →
-            </button>
-            <button
-              type="button"
-              disabled={!sel}
-              onClick={() => onEjecutarOp('abajo')}
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">swap_vert</span>
-              Reflejar ↓
-            </button>
-            <button
-              type="button"
-              disabled={!sel}
-              onClick={() => onEjecutarOp('cuatro')}
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">grid_view</span>
-              Simetría 4
-            </button>
-            <button
-              type="button"
-              disabled={!sel}
-              onClick={() => onEjecutarOp('girar')}
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">rotate_90_degrees_cw</span>
-              Girar 90°
-            </button>
-            <button
-              type="button"
-              disabled={!sel}
-              onClick={() => onEjecutarOp('vaciar')}
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">backspace</span>
-              Borrar área
-            </button>
+      {pestana === 'dibujar' && (
+        <div className="panel-pagina" role="tabpanel" id="pag-dibujar" aria-labelledby="tab-dibujar">
+          <div className="herramientas" role="group" aria-label="Herramienta">
+            {herramientasConfig.map((h) => (
+              <button
+                key={h.id}
+                type="button"
+                data-herramienta={h.id}
+                aria-pressed={herramienta === h.id}
+                onClick={() => onCambiarHerramienta(h.id)}
+                className="btn-herramienta"
+              >
+                <span className="material-symbols-outlined" aria-hidden="true">{h.icon}</span>
+                <span>{h.label}</span>
+              </button>
+            ))}
           </div>
+
+          {herramienta === 'seleccionar' ? (
+            <div className="operaciones" id="operaciones">
+              <p className="seleccion" id="sel-info">
+                {sel ? `Área: ${sel.w} × ${sel.h} celdas` : 'Arrastra sobre el mosaico para elegir un área.'}
+              </p>
+              <div className="ops">
+                {OPERACIONES.map((o) => (
+                  <button key={o.op} type="button" disabled={!sel} onClick={() => onEjecutarOp(o.op)}>
+                    <span className="material-symbols-outlined" aria-hidden="true">{o.icon}</span>
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="pincel-fila">
+                <span className="etiqueta">Forma</span>
+                <button
+                  type="button"
+                  className="btn-accion-pincel"
+                  onClick={() => onCambiarPincel({ ...pincel, ...girar(pincel) })}
+                  title="Girar forma 90° (tecla R)"
+                >
+                  <span className="material-symbols-outlined" aria-hidden="true">rotate_right</span>
+                  Girar
+                </button>
+                <button
+                  type="button"
+                  className="btn-accion-pincel"
+                  onClick={() => onCambiarPincel({ ...pincel, ...reflejarH(pincel) })}
+                  title="Reflejar horizontalmente"
+                >
+                  <span className="material-symbols-outlined" aria-hidden="true">flip</span>
+                  Reflejar
+                </button>
+              </div>
+              <div className="pool" id="pool" role="radiogroup" aria-label="Formas geométricas">
+                {FORMAS.map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    className="item"
+                    role="radio"
+                    aria-checked={pincel.id === f.id}
+                    aria-label={f.nombre}
+                    title={`${f.nombre} · ${f.nota}`}
+                    onClick={() => onCambiarPincel({ ...pincel, id: f.id })}
+                  >
+                    <Miniatura w={1} h={1} celdas={[{ x: 0, y: 0, f: f.id, r: pincel.r, e: pincel.e, c: pincel.c }]} tam={40} />
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 
-      {/* Colección de Formas */}
-      <div className="bloque">
-        <span className="etiqueta">Forma seleccionada</span>
-        <div className="pincel-previa">
-          <div className="pincel-muestra">
-            <Miniatura
-              w={1}
-              h={1}
-              celdas={[{ f: pincel.id, r: pincel.r, e: pincel.e, c: pincel.c }]}
-              tam={64}
-            />
-          </div>
-          <div className="pincel-acciones">
+      {pestana === 'color' && (
+        <div className="panel-pagina" role="tabpanel" id="pag-color" aria-labelledby="tab-color">
+          <div className="etiqueta-fila">
+            <span className="etiqueta">Paletas de color</span>
             <button
               type="button"
-              className="btn-accion-pincel"
-              onClick={() => onCambiarPincel({ ...pincel, ...girar(pincel) })}
-              title="Girar forma 90° (Tecla R)"
+              className="btn-enlace"
+              onClick={() => onCambiarPincel({ ...pincel, c: { f: pincel.c.a, a: pincel.c.f, b: pincel.c.b } })}
+              title="Invertir colores de fondo y figura"
             >
-              <span className="material-symbols-outlined" aria-hidden="true">rotate_right</span>
-              Girar
-            </button>
-            <button
-              type="button"
-              className="btn-accion-pincel"
-              onClick={() => onCambiarPincel({ ...pincel, ...reflejarH(pincel) })}
-              title="Reflejar horizontalmente"
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">flip</span>
-              Reflejar
+              <span className="material-symbols-outlined" aria-hidden="true">swap_horiz</span>
+              Invertir
             </button>
           </div>
+          <div className="paletas-grid" role="radiogroup" aria-label="Paletas de color">
+            {PALETAS.map((p) => {
+              const esActiva = pincel.c.f === p.f && pincel.c.a === p.a && pincel.c.b === p.b;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`paleta-btn ${esActiva ? 'activa' : ''}`}
+                  role="radio"
+                  aria-checked={esActiva}
+                  onClick={() => seleccionarPaleta(p)}
+                  title={`${p.nombre}: Fondo ${p.f}, Figura ${p.a}, Detalle ${p.b}`}
+                >
+                  <div className="paleta-muestras">
+                    <span className="paleta-muestra" style={{ backgroundColor: HEX[p.f] }} />
+                    <span className="paleta-muestra" style={{ backgroundColor: HEX[p.a] }} />
+                    <span className="paleta-muestra" style={{ backgroundColor: HEX[p.b] }} />
+                  </div>
+                  <span className="paleta-nombre">{p.nombre}</span>
+                </button>
+              );
+            })}
+          </div>
+          {paletaActiva && (
+            <button
+              type="button"
+              className="btn secundario btn-aplicar-paleta"
+              onClick={() => onAplicarPaletaMosaico(paletaActiva)}
+              title="Cambiar todo el diseño a esta paleta"
+            >
+              <span className="material-symbols-outlined" aria-hidden="true">palette</span>
+              Aplicar a todo el diseño
+            </button>
+          )}
         </div>
+      )}
 
-        <span className="etiqueta" style={{ marginTop: '8px' }}>Elegir forma</span>
-        <div className="pool" id="pool" role="radiogroup" aria-label="Formas geométricas">
-          {FORMAS.map((f) => {
-            const esActivo = pincel.id === f.id;
-            const cel = {
-              x: 0,
-              y: 0,
-              f: f.id,
-              r: pincel.r,
-              e: pincel.e,
-              c: pincel.c,
-            };
-            return (
+      {pestana === 'formato' && (
+        <div className="panel-pagina" role="tabpanel" id="pag-formato" aria-labelledby="tab-formato">
+          <span className="etiqueta">Formato de diseño</span>
+          <div className="formatos" role="radiogroup" aria-label="Formato de diseño">
+            {FORMATOS.map((f) => (
               <button
                 key={f.id}
                 type="button"
-                className="item"
                 role="radio"
-                aria-checked={esActivo}
-                aria-label={f.nombre}
-                title={`${f.nombre} · ${f.nota}`}
-                onClick={() => onCambiarPincel({ ...pincel, id: f.id })}
+                aria-checked={formato.id === f.id}
+                onClick={() => onCambiarFormato(f.id)}
+                className="formato-btn"
               >
-                <Miniatura w={1} h={1} celdas={[cel]} tam={44} />
+                <span className="formato-icono" style={{ aspectRatio: `${f.cols} / ${f.filas}` }} aria-hidden="true" />
                 <span>{f.nombre}</span>
               </button>
-            );
-          })}
+            ))}
+          </div>
+          <label className="check">
+            <input type="checkbox" checked={grilla} onChange={(e) => onToggleGrilla(e.target.checked)} />
+            <span className="material-symbols-outlined" aria-hidden="true">grid_on</span>
+            Mostrar grilla
+          </label>
         </div>
-      </div>
-
-      {/* Paletas de Color Predefinidas */}
-      <div className="bloque">
-        <div className="etiqueta-fila">
-          <span className="etiqueta">Paletas de color</span>
-          <button
-            type="button"
-            className="btn-enlace"
-            onClick={() =>
-              onCambiarPincel({
-                ...pincel,
-                c: { f: pincel.c.a, a: pincel.c.f, b: pincel.c.b },
-              })
-            }
-            title="Invertir colores de fondo y figura"
-          >
-            <span className="material-symbols-outlined" aria-hidden="true">swap_horiz</span>
-            Invertir
-          </button>
-        </div>
-
-        <div className="paletas-grid" role="radiogroup" aria-label="Paletas de color">
-          {PALETAS.map((p) => {
-            const esActiva =
-              pincel.c.f === p.f && pincel.c.a === p.a && pincel.c.b === p.b;
-            return (
-              <button
-                key={p.id}
-                type="button"
-                className={`paleta-btn ${esActiva ? 'activa' : ''}`}
-                role="radio"
-                aria-checked={esActiva}
-                onClick={() => seleccionarPaleta(p)}
-                title={`${p.nombre}: Fondo ${p.f}, Figura ${p.a}, Detalle ${p.b}`}
-              >
-                <div className="paleta-muestras">
-                  <span className="paleta-muestra" style={{ backgroundColor: HEX[p.f] }} />
-                  <span className="paleta-muestra" style={{ backgroundColor: HEX[p.a] }} />
-                  <span className="paleta-muestra" style={{ backgroundColor: HEX[p.b] }} />
-                </div>
-                <span className="paleta-nombre">{p.nombre}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {paletaActiva && (
-          <button
-            type="button"
-            className="btn secundario btn-aplicar-paleta"
-            onClick={() => onAplicarPaletaMosaico(paletaActiva)}
-            title="Cambiar todo el diseño a esta paleta"
-          >
-            <span className="material-symbols-outlined" aria-hidden="true">palette</span>
-            Aplicar paleta a todo el diseño
-          </button>
-        )}
-      </div>
-
-      {/* Exportar */}
-      <div className="bloque exportar-bloque">
-        <button
-          type="button"
-          className="btn primario btn-descargar"
-          onClick={onExportarPNG}
-          id="btn-descargar-png"
-        >
-          <span className="material-symbols-outlined" aria-hidden="true">download</span>
-          Descargar imagen (PNG)
-        </button>
-      </div>
-
-      {/* Acciones del lienzo */}
-      <div className="bloque acciones">
-        <button type="button" className="btn secundario" onClick={onGenerar} id="btn-generar">
-          <span className="material-symbols-outlined" aria-hidden="true">shuffle</span>
-          Sorpréndeme
-        </button>
-        <button type="button" className="btn secundario" onClick={handleVaciar} id="btn-vaciar">
-          <span className="material-symbols-outlined" aria-hidden="true">restart_alt</span>
-          {confirmarVaciar ? '¿Seguro? Toca de nuevo' : 'Limpiar'}
-        </button>
-      </div>
-
-      {estadoMsg && (
-        <p className="estado" role="status">
-          {estadoMsg}
-        </p>
       )}
 
-      <label className="check">
-        <input
-          type="checkbox"
-          checked={grilla}
-          onChange={(e) => onToggleGrilla(e.target.checked)}
-        />
-        <span className="material-symbols-outlined" aria-hidden="true">grid_on</span>
-        Mostrar grilla
-      </label>
+      <div className="panel-pie">
+        {estadoMsg && <p className="estado" role="status">{estadoMsg}</p>}
+        <button type="button" className="btn primario" onClick={onExportarPNG} id="btn-descargar-png">
+          <span className="material-symbols-outlined" aria-hidden="true">download</span>
+          Descargar imagen
+        </button>
+        <div className="pie-fila">
+          <button type="button" className="btn secundario" onClick={onGenerar} id="btn-generar">
+            <span className="material-symbols-outlined" aria-hidden="true">shuffle</span>
+            Sorpréndeme
+          </button>
+          <button type="button" className="btn secundario" onClick={handleVaciar} id="btn-vaciar">
+            <span className="material-symbols-outlined" aria-hidden="true">restart_alt</span>
+            {confirmarVaciar ? '¿Seguro?' : 'Limpiar'}
+          </button>
+        </div>
+      </div>
     </aside>
   );
 };
