@@ -98,7 +98,8 @@ export const Lienzo: React.FC<LienzoProps> = ({
 
     if (marcoRef.current) {
       marcoRef.current.style.aspectRatio = `${W} / ${H}`;
-      marcoRef.current.style.width = `min(100%, calc(76vh * ${W / H}))`;
+      marcoRef.current.style.maxHeight = 'calc(100dvh - 74px)';
+      marcoRef.current.style.width = `min(100%, calc((100dvh - 74px) * ${W / H}))`;
     }
 
     const t = formato.celda;

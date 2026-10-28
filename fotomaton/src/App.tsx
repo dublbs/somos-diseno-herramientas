@@ -97,7 +97,7 @@ export function App() {
   );
 
   return (
-    <div>
+    <div className="app-pantalla">
       <input ref={archivo} type="file" accept="image/*" capture="user" style={{ display: 'none' }} onChange={alArchivo} />
       <header className="top">
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>

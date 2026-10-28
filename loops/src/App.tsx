@@ -20,21 +20,19 @@ export const App: React.FC = () => {
   };
 
   return (
-    <>
-      <header className="top">
-        <a className="volver" href="../../" id="volver-hub">
-          <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
-          Experiencias
-        </a>
+    <div className="app-pantalla">
+      <header className="barra-superior">
+        <div className="lado-izq">
+          <a className="volver" href="../../" id="volver-hub">
+            <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+            Experiencias
+          </a>
+          <div className="barra-info">
+            <h1>Teatro de Papel</h1>
+            <p className="bajada-corta">Anima figuras y paisajes en un loop de papel</p>
+          </div>
+        </div>
       </header>
-
-      <div className="intro-teatro">
-        <h1>Teatro de Papel</h1>
-        <p className="bajada">
-          Elige un paisaje, añade personajes y elementos de la naturaleza, y anímalos en un teatro de papel en loop.
-          Ajusta sus movimientos, tamaño y llévate tu video o tarjeta.
-        </p>
-      </div>
 
       <EscenarioOrganico
         onExportar={exportarPng}
@@ -49,6 +47,6 @@ export const App: React.FC = () => {
           nombreModo={NOMBRE}
         />
       )}
-    </>
+    </div>
   );
 };
