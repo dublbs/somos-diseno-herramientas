@@ -12,10 +12,13 @@
     "dev:mosaicos:tablet": "npm --prefix taller-mosaicos run dev:tablet",
     "dev:loops": "npm --prefix loops run dev",
     "dev:loops:tablet": "npm --prefix loops run dev:tablet",
+    "dev:graffiti": "npm --prefix graffiti run dev",
+    "dev:graffiti:tablet": "npm --prefix graffiti run dev:tablet",
     "build:fotomaton": "npm --prefix fotomaton run build",
     "build:mosaicos": "npm --prefix taller-mosaicos run build",
     "build:loops": "npm --prefix loops run build",
-    "build": "npm run build:fotomaton && npm run build:mosaicos && npm run build:loops",
+    "build:graffiti": "npm --prefix graffiti run build",
+    "build": "npm run build:fotomaton && npm run build:mosaicos && npm run build:loops && npm run build:graffiti",
     "build:all": "npm run build"
   },
   "devDependencies": {

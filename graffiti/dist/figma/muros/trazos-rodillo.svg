@@ -1,0 +1,81 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="240" height="240" fill="#1E1E1E"/>
+<g id="Pixel &#194;&#183; Sistema">
+<rect width="2640" height="7060" transform="translate(-2292 -3600)" fill="#171717"/>
+<g id="Pixel / P12 &#194;&#183; Trazos de rodillo" clip-path="url(#clip0_294_54606)">
+<g id="Celda 1">
+<g id="Fondo">
+<rect id="Celda" width="120" height="120" fill="#F4EEE3"/>
+</g>
+<g id="Figura">
+<g id="color amarillo">
+<path d="M30 120H0V0H30V40H20V80H30V120Z" fill="#FFC20E"/>
+<path d="M100 120H80V0H100V20H110V100H100V120Z" fill="#FFC20E"/>
+</g>
+<path id="color verde" d="M70 120H40V0H70V10H60V50H70V120Z" fill="#00A651"/>
+<g id="color hueso">
+<path d="M40 120H30V80H20V40H30V0H40V120Z" fill="#F4EEE3"/>
+<path d="M80 120H70V50H60V10H70V0H80V120Z" fill="#F4EEE3"/>
+<path d="M120 120H100V100H110V20H100V0H120V120Z" fill="#F4EEE3"/>
+</g>
+</g>
+</g>
+<g id="Celda 2">
+<g id="Fondo_2">
+<rect id="Celda_2" x="120" width="120" height="120" fill="#F4EEE3"/>
+</g>
+<g id="Figura_2">
+<g id="color amarillo_2">
+<path d="M150 120H120V0H150V40H140V80H150V120Z" fill="#FFC20E"/>
+<path d="M220 120H200V0H220V20H230V100H220V120Z" fill="#FFC20E"/>
+</g>
+<path id="color verde_2" d="M190 120H160V0H190V10H180V50H190V120Z" fill="#00A651"/>
+<g id="color hueso_2">
+<path d="M160 120H150V80H140V40H150V0H160V120Z" fill="#F4EEE3"/>
+<path d="M200 120H190V50H180V10H190V0H200V120Z" fill="#F4EEE3"/>
+<path d="M240 120H220V100H230V20H220V0H240V120Z" fill="#F4EEE3"/>
+</g>
+</g>
+</g>
+<g id="Celda 3">
+<g id="Fondo_3">
+<rect id="Celda_3" y="120" width="120" height="120" fill="#F4EEE3"/>
+</g>
+<g id="Figura_3">
+<g id="color amarillo_3">
+<path d="M30 240H0V120H30V160H20V200H30V240Z" fill="#FFC20E"/>
+<path d="M100 240H80V120H100V140H110V220H100V240Z" fill="#FFC20E"/>
+</g>
+<path id="color verde_3" d="M70 240H40V120H70V130H60V170H70V240Z" fill="#00A651"/>
+<g id="color hueso_3">
+<path d="M40 240H30V200H20V160H30V120H40V240Z" fill="#F4EEE3"/>
+<path d="M80 240H70V170H60V130H70V120H80V240Z" fill="#F4EEE3"/>
+<path d="M120 240H100V220H110V140H100V120H120V240Z" fill="#F4EEE3"/>
+</g>
+</g>
+</g>
+<g id="Celda 4">
+<g id="Fondo_4">
+<rect id="Celda_4" x="120" y="120" width="120" height="120" fill="#F4EEE3"/>
+</g>
+<g id="Figura_4">
+<g id="color amarillo_4">
+<path d="M150 240H120V120H150V160H140V200H150V240Z" fill="#FFC20E"/>
+<path d="M220 240H200V120H220V140H230V220H220V240Z" fill="#FFC20E"/>
+</g>
+<path id="color verde_4" d="M190 240H160V120H190V130H180V170H190V240Z" fill="#00A651"/>
+<g id="color hueso_4">
+<path d="M160 240H150V200H140V160H150V120H160V240Z" fill="#F4EEE3"/>
+<path d="M200 240H190V170H180V130H190V120H200V240Z" fill="#F4EEE3"/>
+<path d="M240 240H220V220H230V140H220V120H240V240Z" fill="#F4EEE3"/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_294_54606">
+<rect width="240" height="240" fill="white"/>
+</clipPath>
+</defs>
+</svg>

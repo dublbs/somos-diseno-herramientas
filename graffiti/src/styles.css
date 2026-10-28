@@ -1,0 +1,74 @@
+@import '../../shared/somos-ui.css';
+@import '../../shared/somos-fonts.css';
+@import '../../shared/somos-icons.css';
+
+.material-symbols-outlined { font-size: 20px; vertical-align: middle; }
+
+/* Muro */
+.marco-muro { border: var(--borde); box-shadow: var(--sombra); background: #D9CDB7; }
+.muro { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; image-rendering: pixelated; }
+
+.panel-app .label { margin: 2px 0 0; }
+.herramienta button, .boquillas button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; }
+
+/* Colores: muestras grandes, fáciles de tocar */
+.colores { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.color {
+  aspect-ratio: 1;
+  min-height: 48px;
+  max-height: 72px;
+  width: 100%;
+  border: 3px solid var(--ink);
+  background: var(--c);
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.color[aria-checked="true"] { outline: 4px solid var(--accent); outline-offset: 3px; }
+.punto { display: inline-block; background: currentColor; flex: none; }
+
+/* Muros y stickers en grilla que reparte el alto disponible, sin scroll */
+.grilla-imagenes { flex: 1 1 auto; min-height: 0; display: grid; gap: 8px; grid-auto-rows: minmax(0, 1fr); max-height: 420px; }
+.grilla-imagenes button {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  overflow: hidden;
+}
+.grilla-imagenes button[aria-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent); }
+.grilla-imagenes img { flex: 1 1 auto; min-height: 0; max-width: 100%; aspect-ratio: 1; object-fit: contain; image-rendering: pixelated; }
+.muros { grid-template-columns: 1fr 1fr; }
+.muros img { object-fit: cover; width: 100%; }
+.stickers { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* Modal */
+.modal-fondo { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); display: grid; place-items: center; padding: 16px; z-index: 30; }
+.modal { background: var(--surface); border: var(--borde); box-shadow: var(--sombra); padding: 18px; display: grid; gap: 14px; justify-items: center; max-height: calc(100dvh - 32px); }
+.modal h2 { margin: 0; font: 700 22px var(--fuente-tit); }
+.modal-preview { display: block; height: min(60dvh, 560px); width: auto; max-width: 100%; border: var(--borde); }
+.modal-acciones { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.modal-acciones .btn { display: inline-flex; align-items: center; gap: 8px; }
+
+/* Vertical: panel abajo y ancho */
+@media (min-height: 560px) and (min-width: 600px) and (orientation: portrait) {
+  .app-pantalla { --alto-panel: 43%; }
+  .colores { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+  .color { aspect-ratio: auto; height: 52px; }
+  .muros { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .stickers { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .panel-pie { grid-template-columns: 1.3fr 1fr; align-items: stretch; }
+}
+/* Teléfono / sin pantalla fija */
+@media (max-height: 559px), (max-width: 599px) {
+  .grilla-imagenes { grid-auto-rows: 96px; max-height: none; }
+}
