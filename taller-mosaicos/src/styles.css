@@ -49,7 +49,7 @@ button:focus-visible, select:focus-visible, .importar:focus-within { outline: 3p
 .item span { font-size: 11.5px; line-height: 1.2; color: var(--suave); text-align: center; overflow-wrap: anywhere; }
 .item[aria-checked="true"] { border-color: var(--amarillo); box-shadow: 0 0 0 2px var(--amarillo); }
 .item[aria-checked="true"] span { color: var(--texto); }
-.quitar { position: absolute; top: -6px; right: -6px; width: 24px; height: 24px; padding: 0; border: 2px solid var(--tinta); background: var(--papel); color: var(--tinta); font-weight: 700; line-height: 1; }
+.quitar { position: absolute; top: -6px; right: -6px; width: 24px; height: 24px; padding: 0; border: 2px solid var(--tinta); background: var(--papel); color: var(--tinta); font-weight: 700; line-height: 1; cursor: pointer; }
 .importar { position: relative; display: flex; flex-direction: column; gap: 4px; border: 1px dashed var(--suave); border-radius: 4px; padding: 12px; cursor: pointer; }
 .importar.sobre { border-color: var(--amarillo); background: rgba(255, 194, 14, .08); }
 .importar input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
@@ -58,7 +58,7 @@ button:focus-visible, select:focus-visible, .importar:focus-within { outline: 3p
 .colores-patron { display: flex; flex-direction: column; gap: 10px; }
 .fila-color { display: flex; flex-direction: column; gap: 5px; }
 .chips { display: grid; grid-template-columns: repeat(10, minmax(0, 30px)); gap: 5px; }
-.chip { width: 100%; aspect-ratio: 1; padding: 0; background: var(--c); border: 2px solid var(--tinta); box-shadow: 0 0 0 1px var(--linea); }
+.chip { width: 100%; aspect-ratio: 1; padding: 0; background: var(--c); border: 2px solid var(--tinta); box-shadow: 0 0 0 1px var(--linea); cursor: pointer; }
 .chip[aria-checked="true"] { box-shadow: 0 0 0 3px var(--texto); }
 .check { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
 .check input { width: 17px; height: 17px; accent-color: var(--amarillo); margin: 0; flex: none; }

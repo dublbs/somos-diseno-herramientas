@@ -3,96 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Taller de Mosaicos</title>
+    <title>Taller de Mosaicos · Somos Diseño</title>
     <meta name="claude:viewport-fit-sides" content="cover" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" />
   </head>
   <body>
-    <div class="app">
-      <a class="volver" href="../../" id="volver-hub"><span aria-hidden="true">←</span> Experiencias</a>
-      <header>
-        <p class="eyebrow">Somos Diseño · Visual Geométrica · Herramienta del equipo</p>
-        <h1>Taller de mosaicos</h1>
-        <p class="bajada">Todo sale de la celda. Pon formas base en la grilla, arma tu figura y multiplícala con las operaciones del sistema: repetir, reflejar, escalonar y girar.</p>
-      </header>
-
-      <div class="layout">
-        <section class="escena" aria-label="Mosaico">
-          <div class="marco" id="marco"><canvas id="lienzo" tabindex="0" role="img"></canvas></div>
-          <div class="info-fila">
-            <span class="mono" id="info"></span>
-            <span class="pill ok" id="regla"></span>
-          </div>
-          <p class="aviso" id="aviso-colores" role="status" hidden></p>
-          <p class="nota">Teclado: flechas para moverte, Enter para aplicar la herramienta, R para girar la forma y Supr para borrar.</p>
-        </section>
-
-        <aside class="panel" aria-label="Herramientas">
-          <div class="bloque">
-            <label class="etiqueta" for="formato">Formato</label>
-            <select id="formato"></select>
-          </div>
-
-          <div class="bloque">
-            <span class="etiqueta">Herramienta</span>
-            <div class="seg herramientas">
-              <button type="button" data-herramienta="poner">Poner</button>
-              <button type="button" data-herramienta="girar">Girar</button>
-              <button type="button" data-herramienta="reflejar">Reflejar</button>
-              <button type="button" data-herramienta="gotero">Gotero</button>
-              <button type="button" data-herramienta="borrar">Borrar</button>
-              <button type="button" data-herramienta="seleccionar">Seleccionar</button>
-            </div>
-          </div>
-
-          <div class="bloque operaciones" id="operaciones" hidden>
-            <span class="etiqueta">Operaciones</span>
-            <p class="seleccion" id="sel-info"></p>
-            <div class="seg ops">
-              <button type="button" data-op="repetir">Repetir</button>
-              <button type="button" data-op="escalonar">Escalonar</button>
-              <button type="button" data-op="derecha">Reflejar →</button>
-              <button type="button" data-op="abajo">Reflejar ↓</button>
-              <button type="button" data-op="cuatro">Reflejar en 4</button>
-              <button type="button" data-op="girar">Girar 90°</button>
-            </div>
-            <div class="seg">
-              <button type="button" class="destacado" data-op="guardarFigura">Guardar como figura</button>
-              <button type="button" data-op="vaciar">Vaciar selección</button>
-            </div>
-          </div>
-
-          <div class="bloque">
-            <span class="etiqueta">Pool</span>
-            <div class="pestanas" role="tablist" aria-label="Pool">
-              <button type="button" role="tab" data-pestana="base">Formas base</button>
-              <button type="button" role="tab" data-pestana="mias">Mis figuras</button>
-            </div>
-            <div class="pool" id="pool" role="radiogroup" aria-label="Formas"></div>
-          </div>
-
-          <div class="bloque">
-            <span class="etiqueta">Pincel</span>
-            <div class="pincel" id="pincel"></div>
-          </div>
-
-          <div class="bloque acciones">
-            <button type="button" class="primario" id="png">Descargar PNG</button>
-            <button type="button" class="secundario" id="svg">Descargar SVG</button>
-            <button type="button" class="secundario" id="copiar">Copiar SVG para Figma</button>
-          </div>
-          <textarea id="svg-texto" class="svg-texto" readonly hidden aria-label="Código SVG"></textarea>
-          <div class="bloque acciones">
-            <button type="button" class="secundario" id="generar">Generar al azar</button>
-            <button type="button" class="secundario" id="vaciar">Vaciar lienzo</button>
-          </div>
-          <p class="estado" id="estado" role="status"></p>
-          <label class="check"><input type="checkbox" id="grilla" /> Mostrar grilla</label>
-        </aside>
-      </div>
-    </div>
-    <script type="module" src="/src/main.js"></script>
+    <div id="app"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
