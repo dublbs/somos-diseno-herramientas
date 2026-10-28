@@ -13,6 +13,7 @@ Hub de experiencias interactivas de Somos Diseño para tablet (horizontal) y pan
 | `taller-mosaicos/` | Taller de Mosaicos | Geométrica |
 | `loops/` | Teatro de Papel | Orgánica |
 | `graffiti/` | Graffiti y Tags | Pixel |
+| `credencial/` | Credencial (celular, mobile-first) | los tres (marcos) |
 
 Taller de Píxeles (descartado) vive solo en la rama `archive/taller-de-pixeles`.
 
@@ -21,7 +22,7 @@ React 18.3.1 · **TypeScript 7.0.2** · Vite 8.3.5 · `@vitejs/plugin-react` 6.1
 
 ## Comandos
 ```bash
-npm run build                   # compila las 4 apps (fotomaton, mosaicos, loops, graffiti)
+npm run build                   # compila las 5 apps (fotomaton, mosaicos, loops, graffiti, credencial)
 npm run dev:hub                 # sirve la raíz en :8080 (requiere build previo: el hub enlaza a <app>/dist/)
 npm --prefix <app> run dev      # desarrollo de una app
 npm --prefix <app> run build    # tsc --noEmit && vite build
@@ -46,13 +47,14 @@ Toda experiencia usa el sistema de `shared/somos-ui.css` (desde 600 × 560 px no
 - El lienzo se mide por alto (`.lienzo-fit` con container queries); no uses `vh` fijos ni `max-height` calculados a mano.
 - Si los controles no caben, se reparten en **pestañas**; nunca scroll interno en el panel.
 - En vertical el panel va abajo (alto con `--alto-panel` en `.app-pantalla`).
+- **Excepción: `credencial/`** es para el celular de cada persona. Su layout propio (`.movil`, 100dvh) cabe sin scroll en 390×844, 412×915 y 360×740, sin pestañas con scroll.
 - Verificación: ninguna resolución de tablet (1024×768, 1180×820, 1280×720, 1366×768, 768×1024, 820×1180) puede tener scroll de página, controles fuera de vista ni panel con scroll.
 
 ## Propiedad de archivos
 | Zona | Dueño |
 |---|---|
-| `index.html`, `shared/`, `docs/`, `AGENTS.md`, assets de Figma | Claude Code |
-| `fotomaton/`, `taller-mosaicos/`, `graffiti/` | Claude Code; Antigravity solo mediante tareas escritas en `docs/tasks/` |
+| `index.html`, `shared/` (incluye `shared/marcos.ts`, que usan Fotomatón y Credencial), `docs/`, `AGENTS.md`, assets de Figma | Claude Code |
+| `fotomaton/`, `taller-mosaicos/`, `graffiti/`, `credencial/` | Claude Code; Antigravity solo mediante tareas escritas en `docs/tasks/` |
 | `loops/` | La persona del equipo que lo trabaja; los agentes lo editan **solo cuando se pide** |
 
 ## Reglas de trabajo

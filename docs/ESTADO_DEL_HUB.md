@@ -16,9 +16,11 @@
 | Graffiti y Tags (nuevo) | Muro 60×60, spray interpolado, **goteo** animado (máx. 40 chorros; con «reducir movimiento» se pinta de una vez), borrador, deshacer (40), vaciar con doble toque; 4 muros, 8 stickers + tag de Figma (sin fondos de marcos), 8 colores; tarjeta 1080×1350. Tarjeta activa en el hub. |
 | Hub | Miniatura de Teatro de Papel con el arte real; miniaturas canvas para Graffiti, Audioreactiva y Jardín; Píxeles retirado; `fullscreenchange`; reduced-motion sin bucle. Navegación hub → app → volver probada en las 4. |
 | Stack | React 18.3.1 + **TypeScript 7.0.2 en las 4 apps** + Vite 8.3.5. |
+| Credencial (nuevo, celular) | `credencial/`: personaje Pixel creado en el celular, dentro de un **marco** del sistema (`shared/marcos.ts`, compartido con el Fotomatón), y 4 sellos genéricos que se ganan escaneando QR. Mobile-first, sin scroll en teléfonos. Modo demo o Supabase. Ver [`plans/003-credencial.md`](plans/003-credencial.md). |
 | Taller de Píxeles | Archivado: la carpeta se borró de `main` y el código vive en la rama `archive/taller-de-pixeles`. |
 
 **Sigue pendiente (decisión tuya o fuera del código):**
+0. Publicar en **Vercel** (lo conectas tú: framework «Other», sin build, output `.`) y correr `credencial/supabase/schema.sql` para la credencial real.
 1. Fotomatón con Supabase real: activar el `cron.schedule` de limpieza (24 h) en la migración y probar el QR con un celular en la red del evento.
 2. 15 marcos del Fotomatón (hoy 12) y envío a «Pantalla Flip».
 3. Probar todo en la tablet física (táctil real, rendimiento del goteo y de los videos de Teatro de Papel).
@@ -112,7 +114,7 @@ Texto de la tarjeta hoy: *"Pinta tu firma o ilustración urbana con trazo grueso
 - Criterio de listo: se entra desde el hub, se pinta, se deshace, se exporta PNG, se vuelve al hub; probado en la tablet.
 
 ### 3.6 Maquetas posteriores
-Estación Audioreactiva (Geométrica, Web Audio) y Jardín de Papel (Orgánica): se mantienen como tarjetas "Próximamente" bien diseñadas; no se construyen en este MVP. La carpeta `credencial/` del primer commit se eliminó sin rastro: decidir si se retoma.
+Estación Audioreactiva (Geométrica, Web Audio) y Jardín de Papel (Orgánica): se mantienen como tarjetas "Próximamente" bien diseñadas; no se construyen en este MVP. La credencial se retomó como app de celular (plan 003).
 
 ## 4. Qué está proyectado
 
@@ -296,7 +298,7 @@ Contexto a entregarle: `AGENTS.md`, `docs/plans/00X`, `docs/tasks/00X` y el mani
 1. Alcance exacto de Graffiti (herramientas, stencils, exportación).
 2. Despliegue: un dominio con todo vs. Fotomatón aparte (condiciona el QR).
 3. ~~¿TypeScript 5.9 o 7?~~ **Decidido: 7.0.2 en todas las apps** (pendiente: `taller-mosaicos` y, cuando su responsable lo decida, `loops`).
-4. ¿Se retoma `credencial/`? ¿Qué Pixel entra después de Graffiti?
+4. ~~¿Se retoma `credencial/`?~~ **Sí, en el celular (plan 003).** ¿Qué Pixel entra después de Graffiti?
 5. Quién administra Supabase y sus claves.
 
 ## 9b. Sugerencias opcionales (NO forman parte del plan)

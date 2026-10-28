@@ -1,6 +1,17 @@
-# Plan 003 · Credencial virtual (solo plan, sin implementar)
+# Plan 003 · Credencial virtual
 
-> Estado: **decisiones tomadas, listo para construir**. Nada de esto está implementado todavía.
+> Estado: **Fase 1 construida** en `credencial/` (2026-10-28), en modo demo y lista para Supabase. Falta publicar en Vercel y correr `supabase/schema.sql`.
+
+## Qué quedó construido (Fase 1)
+- App `credencial/` (React 18 + TypeScript 7 + Vite 8), **mobile-first**: todo cabe sin scroll en 390 × 844, 412 × 915 y 360 × 740. Es la excepción a la regla de tablet de `AGENTS.md`.
+- **Crear** (`#/crear`): el generador Pixel del código anterior portado a TS, en 8 pestañas (Cabeza, Ojos, Boca, Mejillas, Pelo, Ropa, Accesorio, Marco). El personaje se ve arriba, adentro del marco elegido.
+- **La credencial se basa en los marcos**: `fotomaton/src/data/marcos.ts` pasó a `shared/marcos.ts` (el Fotomatón lo reexporta). El frente toma el fondo, la figura y la zona de foto del marco. Los colores del texto y de los sellos salen del marco, con contraste. El reverso es el sticker «HELLO my name is».
+- **4 sellos genéricos** (`#/sello/1..4?t=TOKEN`) que se timbran en el frente y en la «ruta» del reverso. **Escanear** usa `BarcodeDetector` y, sin él (iPhone), la cámara del teléfono, porque el QR es un enlace.
+- **Datos**: Supabase (`supabase/schema.sql`: `credenciales`, `sellos_def`, `sellos`, `sellar()`, vista `galeria`) o modo demo en `localStorage` con botón «Simular».
+- Se descargan PNG de cada cara. Es una PWA mínima (manifest e ícono). La tarjeta «Credencial» del hub enlaza a `credencial/dist/`.
+- Los QR imprimibles de los sellos se generan con `npm --prefix credencial run qr:sellos`.
+
+**No se hizo (queda en pausa):** home móvil con apps, sello *Creador* desde las experiencias, foto del Fotomatón en la credencial y galería para la Pantalla Flip.
 
 ## Contexto
 La credencial es la pieza que va **en el celular** de cada persona y que une todo el recorrido. Hoy no hay nada para ver en móvil: el hub y las 4 experiencias están pensados para la tablet del stand y **no están publicados en ninguna URL**.
@@ -83,7 +94,8 @@ Vincular con el correo de inscripción, premio físico, Hub 1 y Hub 2.
 - Se quita el paso «pasar la credencial al celular con un QR»: ya nace en el celular. Se guarda en el dispositivo y en Supabase, y se puede recuperar con el código `SD-XXXXX`.
 - **Vercel (Fase 0)**: importar el repo `dublbs/somos-diseno-herramientas` en Vercel con framework «Other», sin build command y con output directory `.` (los `dist/` ya están versionados). Agregar `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` solo si se recompila allá. Esto lo tienes que hacer tú: Claude Code no tiene acceso a tu cuenta de Vercel.
 
-## Verificación (cuando se implemente)
-- Fit test en teléfonos (390 × 844, 412 × 915, 360 × 740): la credencial y la home sin scroll y con botones de 48 px o más.
-- Flujo completo en modo demo y con Supabase: crear → QR → abrir en el celular → escanear un sello → ver 1/4 → completar 4/4.
+## Verificación
+- [x] Fit test en teléfonos (390 × 844, 412 × 915, 360 × 740): «Crear», en cada pestaña, y la credencial sin scroll.
+- [x] Flujo en modo demo: crear → credencial → abrir `#/sello/N` → ver el sello → girar → descargar PNG.
+- [ ] Flujo con Supabase en un celular real (requiere Vercel + `schema.sql`).
 - Escáner probado con una figura impresa bajo la luz de la sede (fase 2).

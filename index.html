@@ -143,7 +143,22 @@ footer{margin-top:auto;padding-top:16px;border-top:1.5px solid var(--line);font-
         </div>
       </li>
 
-      <!-- 5. ESTACIÓN AUDIOREACTIVA -->
+      <!-- 5. CREDENCIAL (celular) -->
+      <li class="tarjeta" data-lenguajes="pixel geometrica organica" id="exp-credencial">
+        <div class="miniatura">
+          <canvas id="cv-credencial" aria-hidden="true"></canvas>
+          <span class="etiqueta">En tu celular · 3 Lenguajes</span>
+        </div>
+        <div class="cuerpo">
+          <h2>Credencial</h2>
+          <p>Crea tu personaje pixel en tu celular, ponlo en uno de los marcos de la campaña y junta los 4 sellos de la sede escaneando sus QR.</p>
+        </div>
+        <div class="tarjeta-acciones">
+          <a class="btn primario btn-entrar" href="credencial/dist/" id="link-credencial" aria-label="Entrar a la Credencial">Entrar <span aria-hidden="true">→</span></a>
+        </div>
+      </li>
+
+      <!-- 6. ESTACIÓN AUDIOREACTIVA -->
       <li class="tarjeta proxima" data-lenguajes="geometrica" id="exp-audioreactiva">
         <div class="miniatura">
           <canvas id="cv-audioreactiva" aria-hidden="true"></canvas>
@@ -159,7 +174,7 @@ footer{margin-top:auto;padding-top:16px;border-top:1.5px solid var(--line);font-
         </div>
       </li>
 
-      <!-- 6. JARDÍN DE PAPEL -->
+      <!-- 7. JARDÍN DE PAPEL -->
       <li class="tarjeta proxima" data-lenguajes="organica" id="exp-jardin">
         <div class="miniatura">
           <canvas id="cv-jardin" aria-hidden="true"></canvas>
@@ -533,6 +548,70 @@ footer{margin-top:auto;padding-top:16px;border-top:1.5px solid var(--line);font-
             ctx.fillRect(c.x * s + Math.cos(a) * r, c.y * s + Math.sin(a) * r, s * 0.6, s * 0.6);
           }
         }
+      }
+    });
+  }
+
+  // 5. Credencial: la tarjeta con el personaje en su marco y los 4 sellos que se van timbrando.
+  const cvCred = document.getElementById("cv-credencial");
+  if (cvCred) {
+    const ctx = cvCred.getContext("2d");
+    // Personaje de 12 × 12 (0 vacío, 1 contorno, 2 piel, 3 pelo, 4 mejilla)
+    const CARA = [
+      "....3333....", "..33333333..", ".3333333333.", ".3111111113.", ".1222222221.", "122122221221",
+      "122222222221", "142222222241", "122211112221", ".1222222221.", "..11111111..", "............"
+    ];
+    const TINTA = { 1: HEX.Negro, 2: "#F2C9A0", 3: HEX.Morado, 4: HEX.Rosa };
+    const CICLO = 6400;
+    miniaturas.push({
+      cv: cvCred, ctx,
+      draw: t => {
+        const { width: W, height: H } = cvCred, s = W / VW;
+        const ms = quieto ? 5000 : t % CICLO;
+        const R = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x * s), Math.round(y * s), Math.ceil(w * s), Math.ceil(h * s)); };
+        R(0, 0, VW, VH, HEX.Hueso);
+        // tarjeta vertical (como la de la app): marco arriba, ficha y sellos abajo
+        const cx = 214, cy = 12, cw = 140, ch = 226;
+        R(cx - 3, cy - 3, cw + 6, ch + 6, HEX.Negro);
+        R(cx, cy, cw, ch, HEX.Celeste);
+        R(cx, cy, cw, cw, HEX.Lapislázuli);
+        // figura del marco: un rombo amarillo y la zona de foto
+        ctx.fillStyle = HEX.Amarillo;
+        ctx.beginPath();
+        ctx.moveTo((cx + cw / 2) * s, (cy + 8) * s); ctx.lineTo((cx + cw - 8) * s, (cy + cw / 2) * s);
+        ctx.lineTo((cx + cw / 2) * s, (cy + cw - 8) * s); ctx.lineTo((cx + 8) * s, (cy + cw / 2) * s);
+        ctx.fill();
+        R(cx + 30, cy + 30, cw - 60, cw - 60, HEX.Hueso);
+        const lado = 6, px = cx + cw / 2 - 6 * lado, py = cy + cw - 30 - 12 * lado + (quieto ? 0 : (Math.floor(ms / 400) % 2));
+        CARA.forEach((fila, y) => [...fila].forEach((c, x) => { if (TINTA[c]) R(px + x * lado, py + y * lado, lado, lado, TINTA[c]); }));
+        // nombre y código como barras de pixeles
+        R(cx + 10, cy + cw + 12, 78, 10, HEX.Negro);
+        R(cx + 10, cy + cw + 28, 48, 6, HEX.Lapislázuli);
+        // sellos: se timbran uno tras otro
+        const sw = 28, gap = (cw - 20 - 4 * sw) / 3, sy = cy + ch - 40;
+        for (let i = 0; i < 4; i++) {
+          const x = cx + 10 + i * (sw + gap);
+          const listo = ms > 900 + i * 1000;
+          if (listo) {
+            const k = Math.min(1, (ms - 900 - i * 1000) / 180), e = 1 + (1 - k) * 0.35;
+            const w = sw * e, d = (w - sw) / 2;
+            R(x - d, sy - d, w, w, HEX.Amarillo);
+            R(x - d + 9 * e, sy - d + 9 * e, 10 * e, 10 * e, HEX.Negro);
+          } else {
+            for (let a = 0; a < sw; a += 4) { R(x + a, sy, 2, 2, HEX.Negro); R(x + a, sy + sw - 2, 2, 2, HEX.Negro); R(x, sy + a, 2, 2, HEX.Negro); R(x + sw - 2, sy + a, 2, 2, HEX.Negro); }
+          }
+        }
+        // QR del sello a la izquierda: 21 × 21 módulos con los tres cuadros de esquina
+        const qx = 52, qy = 92, q = 3;
+        R(qx - 8, qy - 8, 21 * q + 16, 21 * q + 16, "#FFFFFF");
+        const esquina = (x, y) => { R(x, y, 7 * q, 7 * q, HEX.Negro); R(x + q, y + q, 5 * q, 5 * q, "#FFFFFF"); R(x + 2 * q, y + 2 * q, 3 * q, 3 * q, HEX.Negro); };
+        for (let y = 0; y < 21; y++) for (let x = 0; x < 21; x++) {
+          if ((x < 8 && y < 8) || (x > 12 && y < 8) || (x < 8 && y > 12)) continue;
+          if (((x * 7 + y * 13 + x * y) % 5) < 2) R(qx + x * q, qy + y * q, q, q, HEX.Negro);
+        }
+        esquina(qx, qy); esquina(qx + 14 * q, qy); esquina(qx, qy + 14 * q);
+        // flecha del QR a la tarjeta
+        for (let i = 0; i < 5; i++) R(qx + 21 * q + 22 + i * 8, qy + 30, 4, 4, HEX.Negro);
       }
     });
   }
