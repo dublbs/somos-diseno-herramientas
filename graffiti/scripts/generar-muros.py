@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Genera los muros de fondo de Graffiti y Tags como SVG pixel (generado: true, no vienen de Figma).
 
-Cuadrícula de 60 × 75 celdas (4:5, la misma proporción que la tarjeta de 1080 × 1350).
+Cuadrícula de 60 × 60 celdas (cuadrada: 1080 × 1080 en la tarjeta, 18 px por celda; debajo va la franja negra común de 270 px).
 Uso: python3 graffiti/scripts/generar-muros.py
 """
 import random
 from pathlib import Path
 
-W, H = 60, 75
+W, H = 60, 60
 SALIDA = Path(__file__).resolve().parent.parent / "public" / "figma" / "muros"
 
 
@@ -43,9 +43,9 @@ def hormigon():
         celdas.append((r.randint(0, W - 1), r.randint(0, H - 1), r.choice([1, 1, 2]), 1, r.choice(["#A9A9A4", "#C4C4BE", "#B4B4AE", "#8F8F8A"])))
     for x in (0, 30):  # juntas de paneles
         celdas.append((x, 0, 1, H, "#8F8F8A"))
-    for y in (0, 25, 50):
+    for y in (0, 20, 40):
         celdas.append((0, y, W, 1, "#8F8F8A"))
-    for y in (6, 31, 56):  # pernos de los paneles
+    for y in (6, 26, 46):  # pernos de los paneles
         for x in (3, 27, 33, 57):
             celdas.append((x, y, 2, 2, "#7C7C77"))
     return svg("#B9B9B3", celdas)

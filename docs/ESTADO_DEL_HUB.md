@@ -62,7 +62,7 @@ Tarjetas: Fotomatón (`:89`), Mosaicos (`:104`), Píxeles (`:119`, "Próximament
 
 ### 3.2 Taller de Mosaicos — `taller-mosaicos/` (~1.800 líneas) · buen nivel
 - **Qué hace:** componer patrones en grilla 12×12; 6 formatos, 18 formas, 8 paletas; herramientas Poner/Girar/Reflejar/Borrar/**Multiplicar**; "Sorpréndeme"; exporta PNG; guarda en `localStorage`.
-- **Ruido a limpiar (no bloqueante):** `lib/exportar.ts:39-42` usa `window.claude.use('downloads')` (API de artefactos, no de navegador; cae al `<a download>`); código muerto (`construirSVG`, `COLORES`, `MAX_COLORES`, `usaA/usaB`, `celdasDelPincel`); README describe funciones que ya no existen; `vite.config.ts` sin `server.fs.allow` como sus hermanas (puede fallar `dev` al importar `../shared`).
+- **Ruido a limpiar (no bloqueante):** `lib/exportar.ts:39-42` usa `window.claude.use('downloads')` (API de artefactos, no de navegador; cae al `<a download>`); código muerto (`construirSVG`, `COLORES`, `MAX_COLORES`, `usaA/usaB`); README describe funciones que ya no existen; `vite.config.ts` sin `server.fs.allow` como sus hermanas (puede fallar `dev` al importar `../shared`).
 
 ### 3.3 Teatro de Papel (Estación de Loops) — `loops/` · **estado en `main` tras tu merge; fuera de alcance de edición**
 Revisado en `origin/main` (`009fd19`). Lo que cambió respecto al primer relevamiento:
@@ -79,10 +79,10 @@ Revisado en `origin/main` (`009fd19`). Lo que cambió respecto al primer relevam
 
 ### 3.5 Graffiti y Tags — `graffiti/` · **a construir en el MVP** (Pixel)
 Texto de la tarjeta hoy: *"Pinta tu firma o ilustración urbana con trazo grueso y goteo de pintura en estética pixel digital."* Alcance mínimo propuesto (a confirmar contigo):
-- Lienzo vertical tipo muro, con fondo elegible (ladrillo, hormigón, persiana) como assets.
+- Lienzo cuadrado de 60×60 celdas tipo muro, con fondo elegible (ladrillo y hormigón generados; persiana y damero desde Figma) como assets.
 - Spray de trazo grueso sobre grilla pixel; 4–6 colores (Línea azul + neón); tamaño de boquilla; **goteo** que chorrea con gravedad (animado en canvas); borrador; deshacer.
 - Stencils/tags y stickers pixel opcionales (assets).
-- Exportar tarjeta PNG 1080×1350 con el pie común y guardar/compartir.
+- Exportar tarjeta PNG 1080×1350: arte cuadrado de 1080 (18 px por celda) + franja negra de 270 px igual a la del Fotomatón.
 - Mismo stack (React + TS + Vite, canvas + pointer events, `shared/`), sin librerías nuevas. Scaffold copiando `loops/` o `taller-mosaicos/`.
 - Assets: los trae o genera Claude (sección 8); Antigravity no inventa arte.
 - Criterio de listo: se entra desde el hub, se pinta, se deshace, se exporta PNG, se vuelve al hub; probado en la tablet.
@@ -242,7 +242,7 @@ Contexto a entregarle: `AGENTS.md`, `docs/plans/00X`, `docs/tasks/00X` y el mani
 |---|---|---|---|
 | B1 | Limpiar el `setInterval` de la cuenta regresiva al desmontar | `fotomaton/src/components/Camara.tsx:19-25` | `npm --prefix fotomaton run build`; "Inicio" durante la cuenta no dispara `onFoto` |
 | B2 | Quitar `window.claude.use('downloads')` y dejar solo `<a download>` | `taller-mosaicos/src/lib/exportar.ts:39-42` | build de mosaicos; exportar PNG descarga |
-| B3 | Borrar código muerto: `construirSVG`, `COLORES`, `MAX_COLORES`, `usaA/usaB`, `celdasDelPincel` y el import sin uso | `taller-mosaicos/src/**` | `tsc --noEmit` sin errores |
+| B3 | Borrar código muerto: `construirSVG`, `COLORES`, `MAX_COLORES`, `usaA/usaB` y el import sin uso | `taller-mosaicos/src/**` | `tsc --noEmit` sin errores |
 | B4 | Agregar `server.fs.allow: ['..']` | `taller-mosaicos/vite.config.ts` | `npm --prefix taller-mosaicos run dev` carga estilos de `shared/` |
 | B5 | Reescribir READMEs reales (raíz con Graffiti y `build:all`; mosaicos sin funciones inexistentes) | `README.md`, `taller-mosaicos/README.md` | Cada afirmación se contrasta con el código |
 | B6 | Corregir `FIGMA_SYNC.md` a la estructura real (sin `figma-tokens.ts` inexistente) | `FIGMA_SYNC.md` | Rutas citadas existen |
@@ -252,7 +252,7 @@ Contexto a entregarle: `AGENTS.md`, `docs/plans/00X`, `docs/tasks/00X` y el mani
 | # | Tarea | Resultado | Verificación |
 |---|---|---|---|
 | B10 | Scaffold `graffiti/` copiando configs de `taller-mosaicos/` (`package.json`, `tsconfig`, `vite.config.ts` con `base:'./'` y `fs.allow`), `index.html` con `data-visual="Pixel"`, importando `shared/somos-ui.css`; scripts `dev:graffiti`/`build:graffiti` en la raíz | App vacía que compila | `npm --prefix graffiti run build` |
-| B11 | Lienzo vertical con fondo de muro (assets del manifiesto), grilla pixel y pointer events táctiles | Se ve el muro y la cuadrícula | Prueba manual en viewport tablet |
+| B11 | Lienzo cuadrado 60×60 con fondo de muro (assets del manifiesto), grilla pixel y pointer events táctiles | Se ve el muro y la cuadrícula | Prueba manual en viewport tablet |
 | B12 | Spray: trazo grueso por celdas, paleta de 4–6 colores, tamaño de boquilla | Se pinta con el dedo/mouse | Prueba manual |
 | B13 | **Goteo:** en trazos densos nacen gotas que bajan con gravedad y se detienen; animado con `rAF`, limitado a N gotas | Chorreos visibles sin caer de fps | Prueba manual en tablet; sin saltos |
 | B14 | Borrador y deshacer (pila ≥ 30) | Funcionan y no corrompen el lienzo | Prueba manual |

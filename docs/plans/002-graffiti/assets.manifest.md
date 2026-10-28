@@ -8,8 +8,8 @@ Archivo maestro: `Yo9o3ZG2lyaEGcyxoxs89R` · página `Visual · Pixel` (`294:546
 
 | Archivo | Tamaño | Uso | Origen |
 |---|---|---|---|
-| `graffiti/public/figma/muros/ladrillo.svg` | 480×600 (cuadrícula 60×75, 4:5) | Fondo de muro elegible | `graffiti/scripts/generar-muros.py` |
-| `graffiti/public/figma/muros/hormigon.svg` | 480×600 (cuadrícula 60×75, 4:5) | Fondo de muro elegible | `graffiti/scripts/generar-muros.py` |
+| `graffiti/public/figma/muros/ladrillo.svg` | 480×480 (cuadrícula 60×60, cuadrada) | Fondo de muro elegible | `graffiti/scripts/generar-muros.py` |
+| `graffiti/public/figma/muros/hormigon.svg` | 480×480 (cuadrícula 60×60, cuadrada) | Fondo de muro elegible | `graffiti/scripts/generar-muros.py` |
 
 Paleta de los muros: neutros cálidos/grises (`#B5A68A`…`#E8DFCC`, `#B9B9B3`…`#7C7C77`); no usan la paleta Línea azul para que los colores del spray resalten.
 
