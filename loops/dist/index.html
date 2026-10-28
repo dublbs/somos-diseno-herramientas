@@ -11,8 +11,13 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
-    <script type="module" crossorigin src="./assets/index-J1TYGthV.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-Lr83VBBA.css">
+    <script>
+      if (window.location.pathname.includes('/loops') && !window.location.pathname.includes('/dist')) {
+        window.location.replace(window.location.pathname.replace(/\/loops\/?$/, '/loops/dist/'));
+      }
+    </script>
+    <script type="module" crossorigin src="./assets/index-BEro70cl.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-B34oTJGp.css">
   </head>
   <body>
     <div id="app"></div>
