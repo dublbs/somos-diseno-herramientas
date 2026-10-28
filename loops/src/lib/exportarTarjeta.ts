@@ -1,6 +1,6 @@
 import { HEX } from '../data/paletas';
 
-export const PIE_PNG = 'Fotograma de tu loop · Creado en la estación interactiva';
+export const PIE_PNG = 'Teatro de Papel · Creado en la estación interactiva';
 
 export async function cargarFuentesTarjeta() {
   // Espera las fuentes para que la tarjeta no salga con la tipografía de respaldo.

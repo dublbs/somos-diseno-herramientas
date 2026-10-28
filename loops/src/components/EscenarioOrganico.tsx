@@ -70,6 +70,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
   const [puedeDeshacer, setPuedeDeshacer] = useState(false);
   const [miniaturas, setMiniaturas] = useState<Record<string, string>>({});
   const [tiempoVisual, setTiempoVisual] = useState(0);
+  const [pestana, setPestana] = useState<'escena' | 'pieza'>('escena');
 
   const esc = escenario(escId);
   const items = mapa[escId] ?? [];
@@ -296,11 +297,11 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
         canvas: tarjeta, fps: f, durMs, alProgreso: setGrabando,
         dibujarCuadro: ms => {
           dibujarEscenario(ectx, RESOLUCION_CANVAS, lista, ms, fondo, conBorde);
-          dibujarTarjetaMotion(tctx, escena, titulo, 'Día Orgánica · Mesa 4', pie);
+          dibujarTarjetaMotion(tctx, escena, titulo, 'Lenguaje Orgánica', pie);
         },
       });
       dibujarEscenario(ectx, RESOLUCION_CANVAS, lista, 0, fondo, conBorde);
-      const png = (await exportarTarjetaMotion(escena, titulo, 'Día Orgánica · Mesa 4')) ?? blob;
+      const png = (await exportarTarjetaMotion(escena, titulo, 'Lenguaje Orgánica')) ?? blob;
       onVideo(png, { blob, ext, seg });
     } catch (e) {
       setErrorVideo(e instanceof Error ? e.message : 'No se pudo grabar el loop.');
@@ -310,6 +311,9 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
   };
 
   const elegido = items.find(i => i.uid === sel) ?? null;
+
+  // Al tocar una pieza se abre su pestaña de ajustes; al soltarla se vuelve a la escena.
+  useEffect(() => { setPestana(sel != null ? 'pieza' : 'escena'); }, [sel]);
   const ocupado = grabando !== null;
   const ayuda = !listo ? 'Cargando piezas…'
     : items.length === 0 ? 'Toca una pieza de la bandeja o prueba «Sorpréndeme»'
@@ -318,9 +322,10 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
 
 
   return (
-    <main className="layout layout-teatro">
-      <div className="zona-escenario">
-        <div className="lienzo-wrap">
+    <main className="cuerpo-pantalla">
+      <section className="zona-escenario" aria-label="Escenario">
+        <div className="escenario-fit">
+        <div className="lienzo-wrap lienzo-fit">
           <canvas
             ref={lienzo}
             width={RESOLUCION_CANVAS}
@@ -332,6 +337,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
             onPointerCancel={alSoltar}
             aria-label={`Escenario ${esc.nombre}: toca una pieza para moverla`}
           />
+        </div>
         </div>
 
         {/* Línea de tiempo interactiva */}
@@ -396,13 +402,25 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
           </div>
         </div>
 
-        <p className="nota">{ayuda}</p>
-      </div>
+        <p className="nota" role="status">{ayuda}</p>
+      </section>
 
-      <aside className="panel panel-teatro">
-        {/* 1. Escenario */}
+      <aside className="panel-app panel-teatro" aria-label="Controles">
+        <div className="pestanas" role="tablist" aria-label="Secciones">
+          <button type="button" role="tab" id="tab-escena" aria-selected={pestana === 'escena'} aria-controls="pag-escena" onClick={() => setPestana('escena')}>
+            <span className="material-symbols-outlined" aria-hidden="true">landscape</span>
+            Escena
+          </button>
+          <button type="button" role="tab" id="tab-pieza" aria-selected={pestana === 'pieza'} aria-controls="pag-pieza" onClick={() => setPestana('pieza')}>
+            <span className="material-symbols-outlined" aria-hidden="true">pets</span>
+            {elegido ? pieza(elegido.tipo).nombre : 'Pieza'}
+          </button>
+        </div>
+
+        {pestana === 'escena' && (
+        <div className="panel-pagina" role="tabpanel" id="pag-escena" aria-labelledby="tab-escena">
         <div className="bloque">
-          <p className="label">1 · Escenario</p>
+          <p className="label">Escenario</p>
           <div className="seg seg-escenarios" role="group" aria-label="Escenario">
             {ESCENARIOS.map(e => (
               <button
@@ -421,10 +439,10 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
           </div>
         </div>
 
-        {/* 2. Bandeja de Piezas */}
-        <div className="bloque">
+        {/* Bandeja de piezas */}
+        <div className="bloque bloque-bandeja">
           <div className="etiqueta-fila">
-            <p className="label">2 · Personajes y Piezas</p>
+            <p className="label">Personajes y piezas</p>
             <button
               type="button"
               className="btn-sorprende-link"
@@ -453,10 +471,14 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
           </div>
         </div>
 
-        {/* 3. Ajustes de la pieza seleccionada */}
+        </div>
+        )}
+
+        {pestana === 'pieza' && (
+        <div className="panel-pagina" role="tabpanel" id="pag-pieza" aria-labelledby="tab-pieza">
+        {!elegido && <p className="ayuda vacio-pieza">Toca una figura del escenario para moverla, cambiar su tamaño o su animación.</p>}
         {elegido && (
           <div className="bloque bloque-ajustes">
-            <p className="label">3 · Ajusta {pieza(elegido.tipo).nombre}</p>
 
             {/* Trayecto de desplazamiento en el espacio (solo para seres móviles: pudú, pingüino, paloma, pez) */}
             {ES_MOVIL(elegido.tipo) && (
@@ -589,8 +611,11 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
           </div>
         )}
 
-        {/* 4. Cierre y Exportación */}
-        <div className="cierre">
+        </div>
+        )}
+
+        {/* Acciones fijas al pie */}
+        <div className="panel-pie cierre">
           {puedeGrabar() && (
             <button
               type="button"
@@ -611,7 +636,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
               onClick={exportar}
             >
               <span className="material-symbols-outlined" aria-hidden="true">download</span>
-              Tarjeta en PNG
+              Tarjeta PNG
             </button>
             <button
               type="button"

@@ -6,15 +6,17 @@ import './styles.css';
 
 const NOMBRE = 'Teatro de Papel';
 
-// Por ahora es solo Orgánica; Geométrica y Pixel vuelven con el mismo sistema de escenarios.
 export const App: React.FC = () => {
   const [blobTarjeta, setBlobTarjeta] = useState<Blob | null>(null);
   const [videoLoop, setVideoLoop] = useState<VideoLoop | null>(null);
+  const [aviso, setAviso] = useState('');
+  useEffect(() => { if (!aviso) return; const t = setTimeout(() => setAviso(''), 3500); return () => clearTimeout(t); }, [aviso]);
 
   useEffect(() => { document.documentElement.dataset.visual = 'Orgánica'; }, []);
 
   const exportarPng = async (canvas: HTMLCanvasElement) => {
-    const blob = await exportarTarjetaMotion(canvas, NOMBRE, 'Día Orgánica · Mesa 4');
+    const blob = await exportarTarjetaMotion(canvas, NOMBRE, 'Lenguaje Orgánica');
+    if (!blob) { setAviso('No se pudo crear la tarjeta. Inténtalo de nuevo.'); return; }
     setVideoLoop(null);
     setBlobTarjeta(blob);
   };
@@ -47,6 +49,7 @@ export const App: React.FC = () => {
           nombreModo={NOMBRE}
         />
       )}
+      {aviso && <div className="aviso" role="status">{aviso}</div>}
     </div>
   );
 };
