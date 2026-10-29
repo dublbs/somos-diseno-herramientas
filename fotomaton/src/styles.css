@@ -34,26 +34,28 @@ video.oculto{position:absolute;width:1px;height:1px;opacity:0;pointer-events:non
 .descarga img{width:100%;height:auto;border-radius:var(--r);box-shadow:var(--sombra);border:var(--borde)}
 .link-btn{text-decoration:none}
 
-/* --- Pantalla fija (ver shared/somos-ui.css) --- */
+/* --- Herramienta con barras fijas (kit, propuesta 005) --- */
 .btn-inicio{min-height:44px;padding:0 18px;font-size:15px}
-.zona-escenario{min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;gap:10px}
-.zona-escenario .escenario-fit{flex:1 1 auto;width:100%}
-.zona-escenario .acciones{margin-top:0;flex:none}
-.zona-escenario .nota{margin:0;flex:none}
-
-/* Panel: dos secciones; en horizontal amplio se ven juntas, si no, como pestañas */
-.panel-foto .panel-pagina{gap:8px}
-.panel-foto .panel-pagina:not([data-activa="true"]){display:none}
-.panel-foto .label{margin:4px 0 6px}
-.marcos{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;overflow:visible;padding:4px 2px 0}
-.marcos .thumb{width:auto;min-width:0}
-.marcos .thumb img{width:100%;height:auto;aspect-ratio:1}
-.marcos .thumb span{font-size:11.5px}
-.tintas button{min-height:44px}
-@media (min-height:560px) and (min-width:600px) and (orientation:landscape) and (min-height:760px){
-  .panel-foto .pestanas{display:none}
-  .panel-foto .panel-pagina,.panel-foto .panel-pagina:not([data-activa="true"]){display:flex;flex:0 0 auto}
-}
+.k-lienzo .escenario-fit{width:100%;height:100%;display:grid;place-items:center}
+.tintas{grid-template-columns:1fr 1fr;gap:8px}
+.tintas .k-btn{min-height:50px;display:grid;justify-items:center;align-content:center;gap:3px;padding:4px 6px;font-size:11.5px;line-height:1.1;text-transform:none;letter-spacing:0;text-align:center}
+.tintas .k-btn .tinta{margin:0}
+[data-visual="Pixel"] .tintas .k-btn{font-size:9.5px}
+.tintas .k-btn[aria-checked="true"]{background:var(--accent);color:var(--on-accent)}
+.carrete{align-items:center;gap:12px}
+.marcos{gap:8px}
+.marcos .miniatura.k-color{width:52px;height:52px;padding:0;background:var(--bg);overflow:hidden}
+.marcos .miniatura img{width:100%;height:100%;display:block}
+.disparo{align-items:center;gap:12px}
+.obturador{width:72px;height:72px}
+.placas{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.placas[data-n="2"]{grid-template-columns:repeat(2,minmax(0,1fr))}
+.placas[data-n="1"]{grid-template-columns:minmax(0,1fr);max-width:50%}
+.placa{margin:0;display:grid;gap:4px;justify-items:center}
+.placa canvas{width:100%;aspect-ratio:1;display:block;border:2px solid var(--c);background:#fff}
+.placa figcaption{font:700 12px var(--fuente-etq);color:var(--ink)}
+@media (max-width:1100px) and (min-aspect-ratio:1/1){.k-bajada{display:none}.marcos .miniatura.k-color{width:44px;height:44px}.obturador{width:60px;height:60px}}
+@media (orientation:portrait) and (min-width:600px){.k-lateral{min-height:300px}}
 
 /* Portada: texto a la izquierda, demo a la derecha; todo cabe por alto */
 .portada .hero-texto{min-width:0;min-height:0;display:flex;align-items:center}

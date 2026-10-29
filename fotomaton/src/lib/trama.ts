@@ -79,7 +79,7 @@ export function dibujarEncuadre(ctx: CanvasRenderingContext2D, src: Fuente, w: n
   ctx.drawImage(src, dx, dy, sw * s, sh * s);
 }
 
-export function trama(src: Fuente, w: number, h: number, celda: number, tinta: Tinta, cara: Cara | null) {
+export function trama(src: Fuente, w: number, h: number, celda: number, tinta: Tinta, cara: Cara | null, solo?: string) {
   w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h)); celda = Math.max(3, celda);
   const paso = Math.max(1, celda / 2), mw = Math.ceil(w / paso), mh = Math.ceil(h / paso);
   const m = lienzoTmp('muestra', mw, mh), mx = m.getContext('2d', { willReadFrequently: true })!;
@@ -98,6 +98,7 @@ export function trama(src: Fuente, w: number, h: number, celda: number, tinta: T
   // Opaca: de lo más claro a lo más oscuro, así los puntos oscuros siempre quedan arriba.
   if (opaca) canales.sort((p, q) => lum(q[2]) - lum(p[2]));
   for (const [ch, ang, color] of canales) {
+    if (solo && ch !== solo) continue;
     const a = ang * Math.PI / 180, co = Math.cos(a), si = Math.sin(a);
     o.fillStyle = color; o.beginPath();
     for (let i = -n; i <= n; i++) for (let j = -n; j <= n; j++) {
@@ -217,6 +218,17 @@ export function celdaRelativa(src: Fuente, bw: number, bh: number, celda: number
     escala = (cara.ref * escalaEncuadre(bw, bh, sw, sh, cara)) / 100;
   } else escala = Math.sqrt(bw * bh) / 196;
   return Math.max(0.8, celda * escala);
+}
+
+// Placas de impresión: cada tinta de la trama por separado (C, M, Y, K; o las dos del dúo; o la única), como las
+// planchas que se entintan una a una en la imprenta. Se ven en la barra derecha.
+export const placasDe = (t: Tinta): { canal: string; nombre: string; color: string }[] =>
+  t.modo === 'cmyk' ? [{ canal: 'c', nombre: 'C', color: t.c! }, { canal: 'm', nombre: 'M', color: t.m! }, { canal: 'y', nombre: 'Y', color: t.y! }, { canal: 'k', nombre: 'K', color: t.k! }]
+    : t.modo === 'duo' ? [{ canal: 'a', nombre: 'Sombras', color: t.a! }, { canal: 'b', nombre: 'Medios', color: t.b! }]
+    : [{ canal: 'l', nombre: 'Tinta', color: t.a! }];
+export function dibujarPlaca(ctx: CanvasRenderingContext2D, lado: number, src: Fuente, celda: number, tinta: Tinta, cara: Cara | null, canal: string) {
+  const t = trama(src, lado, lado, celdaRelativa(src, 240, 240, celda, cara) * (lado / 240), tinta, cara, canal);
+  ctx.drawImage(t, 0, 0);
 }
 
 // Compone marco: fondo → figura → foto en trama dentro de su zona → lo que en Figma va sobre la foto.

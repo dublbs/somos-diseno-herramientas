@@ -1,16 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useCamara } from '../hooks/useCamara';
 import type { Cara } from '../lib/cara';
 import { Lienzo } from './Lienzo';
+import { BarraSuperior, BotonAccion, PantallaHerramienta } from '../../../shared/ui/Kit';
 
 interface Props {
   marco: string; celda: number; tinta: string;
   alFoto: (foto: HTMLCanvasElement, cara: Cara | null) => void;
   alSubir: () => void;
   cambiando: boolean; textoCambio: string;
+  volver: string; acciones: ReactNode; lateral: ReactNode; carrete: ReactNode;
 }
 
-export function Camara({ marco, celda, tinta, alFoto, alSubir, cambiando, textoCambio }: Props) {
+export function Camara({ marco, celda, tinta, alFoto, alSubir, cambiando, textoCambio, volver, acciones, lateral, carrete }: Props) {
   const { video, lienzo, setLado, error, personas, capturar } = useCamara({ marco, celda, tinta });
   const [cuenta, setCuenta] = useState(0), [flash, setFlash] = useState(false);
   // Timers de la cuenta regresiva: se limpian si la persona sale (Inicio) antes de que termine.
@@ -28,8 +30,21 @@ export function Camara({ marco, celda, tinta, alFoto, alSubir, cambiando, textoC
     }, 750);
   };
 
+  const estado = error ? 'Sin cámara: puedes subir una foto' : personas > 1 ? `Grupo de ${personas} personas ✓` : personas === 1 ? 'Cara centrada ✓' : 'Mira a la cámara, solo o en grupo';
   return (
-    <section className="zona-escenario" aria-label="Cámara">
+    <PantallaHerramienta
+      anchoLateral={300}
+      superior={<BarraSuperior titulo="Fotomatón" bajada={`${estado} · Tu foto se procesa en este dispositivo`} volver={volver}>{acciones}</BarraSuperior>}
+      lateral={lateral}
+      inferior={<>
+        {carrete}
+        <div className="k-grupo disparo">
+          <BotonAccion icono="ios_share" etiqueta="Subir una foto" onClick={alSubir} />
+          <button type="button" className="obturador" onClick={disparar} disabled={!!error || !!cuenta || cambiando} aria-label="Sacar foto"></button>
+          <BotonAccion icono="flip" etiqueta="Cambiar cámara" onClick={() => setLado(l => (l === 'user' ? 'environment' : 'user'))} />
+        </div>
+      </>}
+    >
       <video ref={video} className="oculto" playsInline muted autoPlay></video>
       <div className="escenario-fit">
       <Lienzo cref={lienzo} className="lienzo-fit">
@@ -45,15 +60,6 @@ export function Camara({ marco, celda, tinta, alFoto, alSubir, cambiando, textoC
         ) : null}
       </Lienzo>
       </div>
-      <div className="acciones">
-        <button className="redondo" onClick={alSubir} aria-label="Subir una foto">↑</button>
-        <button className="obturador" onClick={disparar} disabled={!!error || !!cuenta || cambiando} aria-label="Sacar foto"></button>
-        <button className="redondo" onClick={() => setLado(l => (l === 'user' ? 'environment' : 'user'))} aria-label="Cambiar cámara">⟲</button>
-      </div>
-      <p className="nota">
-        {error ? null : <span className="estado">{personas > 1 ? `Grupo de ${personas} personas ✓` : personas === 1 ? 'Cara centrada ✓' : 'Mira a la cámara, solo o en grupo'}</span>}
-        Tu foto se procesa en este dispositivo y no se guarda en ningún servidor.
-      </p>
-    </section>
+    </PantallaHerramienta>
   );
 }

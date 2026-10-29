@@ -6,6 +6,8 @@ import mkcert from 'vite-plugin-mkcert';
 export default defineConfig(({ command, mode }) => ({
   base: './',
   plugins: [react(), ...(command === 'serve' && process.argv.includes('--host') ? [mkcert()] : [])],
+  // El kit compartido (../shared/ui) importa React: se resuelve con el de esta app.
+  resolve: { dedupe: ['react', 'react-dom'] },
   build: { chunkSizeWarningLimit: 2000 },
   // La UI compartida vive en ../shared
   server: { fs: { allow: ['..'] } },

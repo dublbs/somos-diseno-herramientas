@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { MARCOS, porId, type Visual } from './data/marcos';
 import { TINTAS } from './data/tintas';
-import { Ajustes } from './components/Ajustes';
+import { Carrete, Lateral } from './components/Barras';
+import { BotonAccion } from '../../shared/ui/Kit';
+import '../../shared/ui/somos-kit.css';
 import { Camara } from './components/Camara';
 import { Editor, type FotoEditable } from './components/Editor';
 import { PasoQR } from './components/PasoQR';
 import { Portada } from './components/Portada';
-import { Selector } from './components/Selector';
 import { useRetardo } from './hooks/useRetardo';
 import { cargarCara, detectarCara } from './lib/cara';
 import { exportarTarjeta, nombreArchivo } from './lib/tarjeta';
@@ -27,7 +28,6 @@ export function App() {
   const archivo = useRef<HTMLInputElement>(null);
   const [marcoMostrado, cambiando] = useRetardo(marcoId, RETARDO_MARCO);
   const [revelando, setRevelando] = useState(false), inicioRevelado = useRef(0);
-  const [pestana, setPestana] = useState<'marco' | 'efecto'>('marco');
   const revelar = () => { inicioRevelado.current = performance.now(); setRevelando(true); };
 
   useEffect(() => { document.documentElement.dataset.visual = visual; }, [visual]);
@@ -90,25 +90,32 @@ export function App() {
   };
 
   const destino = porId(marcoId), textoCambio = destino.visual + ' · ' + destino.name;
-  // En horizontal amplio se ven las dos secciones; en vertical o pantallas bajas, como pestañas (ver styles.css).
-  const panel = (
-    <aside className="panel-app panel-foto" aria-label="Ajustes de la foto">
-      <div className="pestanas" role="tablist" aria-label="Secciones">
-        <button type="button" role="tab" id="tab-marco" aria-selected={pestana === 'marco'} aria-controls="pag-marco" onClick={() => setPestana('marco')}>Lenguaje y marco</button>
-        <button type="button" role="tab" id="tab-efecto" aria-selected={pestana === 'efecto'} aria-controls="pag-efecto" onClick={() => setPestana('efecto')}>Efecto y paleta</button>
-      </div>
-      <div className="panel-pagina" role="tabpanel" id="pag-marco" aria-labelledby="tab-marco" data-activa={pestana === 'marco'}>
-        <Selector visual={visual} elegirVisual={elegirVisual} marcoId={marcoId} setMarcoId={setMarcoId} miniaturas={miniaturas} />
-      </div>
-      <div className="panel-pagina" role="tabpanel" id="pag-efecto" aria-labelledby="tab-efecto" data-activa={pestana === 'efecto'}>
-        <Ajustes visual={visual} celda={celda} setCelda={setCelda} tinta={tinta} setTinta={setTinta} />
-      </div>
-    </aside>
+  const lateral = <Lateral visual={visual} celda={celda} setCelda={setCelda} tinta={tinta} setTinta={setTinta} foto={paso === 'editar' && !revelando ? foto : null} />;
+  const carrete = <Carrete visual={visual} elegirVisual={elegirVisual} marcoId={marcoId} setMarcoId={setMarcoId} miniaturas={miniaturas} />;
+  const inicio = <BotonAccion icono="restart_alt" texto="Inicio" onClick={terminar} />;
+  const input = <input ref={archivo} type="file" accept="image/*" capture="user" style={{ display: 'none' }} onChange={alArchivo} />;
+  const avisoEl = aviso ? <div className="aviso" role="status">{aviso}</div> : null;
+
+  // Cámara y edición son la herramienta (barras fijas del kit); portada y QR son pantallas de paso.
+  if (paso === 'camara' || paso === 'editar') return (
+    <>
+      {input}
+      {paso === 'camara' ? (
+        <Camara marco={marcoMostrado} celda={celda} tinta={tinta} cambiando={cambiando} textoCambio={textoCambio} alSubir={subir}
+          volver={HUB_URL} acciones={inicio} lateral={lateral} carrete={carrete}
+          alFoto={(f, c) => { revelar(); setFoto({ c: f, cara: c }); setPaso('editar'); }} />
+      ) : (
+        <Editor foto={foto} marco={marcoMostrado} celda={celda} tinta={tinta} revelando={revelando} cambiando={cambiando}
+          textoCambio={textoCambio} ocupado={ocupado} alGuardar={guardar} alLlevatela={llevatela} alOtra={() => setPaso('camara')}
+          volver={HUB_URL} acciones={inicio} lateral={lateral} carrete={carrete} />
+      )}
+      {avisoEl}
+    </>
   );
 
   return (
     <div className="app-pantalla">
-      <input ref={archivo} type="file" accept="image/*" capture="user" style={{ display: 'none' }} onChange={alArchivo} />
+      {input}
       <header className="barra-superior">
         <div className="lado-izq">
           <a className="volver" href={HUB_URL} aria-label="Volver a las experiencias">
@@ -123,26 +130,12 @@ export function App() {
         {paso !== 'inicio' ? <button className="btn btn-inicio" onClick={terminar}>Inicio</button> : null}
       </header>
       {paso === 'inicio' && <Portada alCamara={() => setPaso('camara')} alSubir={subir} />}
-      {paso === 'camara' && (
-        <main className="cuerpo-pantalla">
-          <Camara marco={marcoMostrado} celda={celda} tinta={tinta} cambiando={cambiando} textoCambio={textoCambio} alSubir={subir}
-            alFoto={(f, c) => { revelar(); setFoto({ c: f, cara: c }); setPaso('editar'); }} />
-          {panel}
-        </main>
-      )}
-      {paso === 'editar' && (
-        <main className="cuerpo-pantalla">
-          <Editor foto={foto} marco={marcoMostrado} celda={celda} tinta={tinta} revelando={revelando} cambiando={cambiando}
-            textoCambio={textoCambio} ocupado={ocupado} alGuardar={guardar} alLlevatela={llevatela} alOtra={() => setPaso('camara')} />
-          {panel}
-        </main>
-      )}
       {paso === 'qr' && tarjeta && (
         <main className="cuerpo-pantalla cuerpo-qr">
           <PasoQR blob={tarjeta} marco={marcoMostrado} tinta={tinta} alTerminar={terminar} alVolver={() => setPaso('editar')} />
         </main>
       )}
-      {aviso ? <div className="aviso" role="status">{aviso}</div> : null}
+      {avisoEl}
     </div>
   );
 }
