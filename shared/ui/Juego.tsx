@@ -11,12 +11,12 @@ const esStaff = () => new URLSearchParams(location.search).has('staff');
 export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string; children: React.ReactNode }> = ({ app, titulo, visual, children }) => {
   const [config, setConfig] = useState<ConfigMesa>(leerConfig);
   const [codigo, setCodigo] = useState(() => jugador()?.codigo ?? null);
-  const [ganado, setGanado] = useState<string | null>(null);
+  const [ganado, setGanado] = useState<{ codigo: string; directo: boolean } | null>(null);
   const [staff, setStaff] = useState(esStaff);
 
   useEffect(() => { if (!document.documentElement.dataset.visual) document.documentElement.dataset.visual = visual; }, [visual]);
   useEffect(() => {
-    const alGanar = (e: Event) => setGanado((e as CustomEvent<{ codigo: string }>).detail.codigo);
+    const alGanar = (e: Event) => setGanado((e as CustomEvent<{ codigo: string; directo: boolean }>).detail);
     window.addEventListener(EVENTO_TIMBRE, alGanar);
     return () => window.removeEventListener(EVENTO_TIMBRE, alGanar);
   }, []);
@@ -30,8 +30,12 @@ export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string
         <div className="k-panel k-quiosco-caja">
           <p className="k-quiosco-cuenta" aria-hidden="true"><Icono nombre="approval" /></p>
           <h2 id="timbre-t">¡Ganaste el timbre Creación!</h2>
-          <p>Tu creación va al HUB. En tu credencial ({ganado}) toca <b>Timbrar</b>, elige la estación <b>2</b> y escribe el código:</p>
-          <p className="k-juego-token">{config.token2}</p>
+          {ganado.directo ? (
+            <p>Tu creación va al HUB y el timbre ya está en tu credencial ({ganado.codigo}).</p>
+          ) : (<>
+            <p>Tu creación va al HUB. En tu credencial ({ganado.codigo}) toca <b>Timbrar</b>, elige la estación <b>2</b> y escribe el código:</p>
+            <p className="k-juego-token">{config.token2}</p>
+          </>)}
           <button type="button" className="k-btn k-primario" onClick={() => setGanado(null)}><Icono nombre="check" />Listo</button>
         </div>
       </div>

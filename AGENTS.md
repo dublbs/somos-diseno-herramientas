@@ -51,6 +51,10 @@ Las experiencias son **herramientas de diseño con barras fijas** (propuesta `do
 - **Excepción: `credencial/`** es para el celular de cada persona. Su layout propio (`.movil`, 100dvh) cabe sin scroll en 390×844, 412×915 y 360×740.
 - **Verificación:** ninguna resolución de tablet (1024×768, 1180×820, 1280×720, 1366×768, 768×1024, 820×1180) puede tener scroll de página, controles fuera de vista ni panel con scroll. Hay que probar con cada herramienta activa.
 
+## Datos compartidos
+- `shared/datos.ts`: lo que las experiencias mandan al HUB (`publicar`) y lo que el HUB escucha (`escuchar`, `recientes`). Local (localStorage + BroadcastChannel) o Supabase por REST si existen `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` (en `.env.local`, nunca en el repo). Guía: `docs/supabase.md`.
+- `shared/juego.ts` y `shared/ui/Juego.tsx`: estaciones de timbres, modo juego en las mesas y PIN del staff (hash local o `VITE_STAFF_PIN_SHA256`).
+
 ## Propiedad de archivos
 | Zona | Dueño |
 |---|---|

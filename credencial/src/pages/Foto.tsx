@@ -7,6 +7,14 @@ import type { Ir, PonerTema } from '../App';
 
 // Fotomatón sin efectos: cambiar la selfie que va dentro del marco de tu credencial.
 // La cámara se abre con el selector nativo del teléfono (funciona también dentro de claude.ai).
+// Miniatura de la cara para el avatar del HUB: recorte cuadrado del centro alto de la selfie, 96 px.
+function cara(im: HTMLImageElement): string {
+  const w = im.naturalWidth, h = im.naturalHeight, lado = Math.min(w, h) * 0.7;
+  const c = document.createElement('canvas'); c.width = c.height = 96;
+  c.getContext('2d')!.drawImage(im, (w - lado) / 2, Math.max(0, h * 0.42 - lado / 2), lado, lado, 0, 0, 96, 96);
+  return c.toDataURL('image/jpeg', 0.8);
+}
+
 export const Foto: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTema }) => {
   const codigo = miCredencial();
   const [datos, setDatos] = useState<DatosCarta | null>(null);
@@ -46,7 +54,7 @@ export const Foto: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTema
   };
   const listo = () => {
     if (nueva) guardarFoto(codigo, nueva);
-    guardarAvatarHub(codigo, imagen ? avatar : 'personaje');
+    guardarAvatarHub(codigo, imagen ? avatar : 'personaje', datos ?? undefined, imagen && avatar === 'foto' ? cara(imagen) : undefined);
     ir(`#/c/${codigo}`, { aviso: nueva ? 'Foto lista en tu credencial.' : undefined });
   };
 

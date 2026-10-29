@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { otorgarCreacion } from '../../shared/juego';
+import { jugador, otorgarCreacion } from '../../shared/juego';
+import { miniatura, publicar } from '../../shared/datos';
 import {
   Formato,
   FORMATOS,
@@ -419,7 +420,10 @@ export const App: React.FC = () => {
       `mosaico-${formato.id}-${canvas.width}x${canvas.height}.png`,
       blob
     );
-    if (res !== 'cancelado') otorgarCreacion('mosaicos');
+    if (res !== 'cancelado') {
+      publicar('mosaico', { png: miniatura(canvas, 200) }, jugador()?.codigo ?? null).catch(() => { /* sin red */ });
+      otorgarCreacion('mosaicos');
+    }
     setEstadoMsg(
       res === 'cancelado'
         ? 'Descarga cancelada.'

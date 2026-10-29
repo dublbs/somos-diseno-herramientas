@@ -72,10 +72,12 @@ Kit de interfaz por lenguaje en `shared/ui/` (muestra: `docs/kit/muestra.html`).
 
 **Modo juego (bloque D):**
 - Timbres por lo que los otorga (`shared/juego.ts`): 1 Inscripción (al crear la credencial), 2 Creación (exportar o enviar algo en una mesa), 3 Portales (QR de los afiches AR), 4 Hallazgo 3D (apagado). La credencial se completa con los activos.
-- Mesas: con el modo juego encendido, la tablet pide el código de la credencial (SD-XXXXX). Al exportar, la persona gana el timbre 2: la tablet muestra el código de la estación 2 para timbrar desde el celular y lo anota para el HUB (`sd:timbres-mesa`).
+- Mesas: con el modo juego encendido, la tablet pide el código de la credencial (SD-XXXXX). Al exportar, la persona gana el timbre 2: la tablet muestra el código de la estación 2 para timbrar desde el celular y lo publica para el HUB (`shared/datos.ts`).
 - Staff: `?staff` en la URL de cualquier mesa abre la configuración con PIN (modo juego, código de la estación 2, PIN nuevo, reiniciar mesa). El PIN se guarda como hash en el equipo o llega por `VITE_STAFF_PIN_SHA256` al compilar; nunca en el repo. Sin ninguno, el PIN de demo es 0000 y la pantalla lo avisa.
 - Canje: con la credencial completa aparece «Canjear»; el staff escribe su PIN en el celular de la persona y queda «¡Canjeado!».
 - Avatar del HUB: en la foto de la credencial, casilla de consentimiento (apagada por defecto) para aparecer con la foto; si no, va el personaje. El cuerpo se decide con la hoja de cuerpos (`?cuerpos` en hub-estacion).
 - Sin Supabase, la tablet y el celular no comparten datos: por eso el timbre 2 se entrega con el código de la estación. Con Supabase (bloque E) la mesa lo otorga directo.
+
+**Datos y HUB en vivo (bloque E):** `shared/datos.ts` con implementación local y Supabase (REST, sin librerías). Publican: la credencial (persona, timbres y, con consentimiento, la miniatura de la cara), el Vagón (al salir a la vía), Mosaicos, Grabado y Audioreactiva (al exportar) y las mesas (timbre 2). El HUB (`hub-estacion/src/estacion/vivo.ts`) pone a las personas en la estación, el vagón en el andén, los mosaicos en los paneles MetroArte y los grabados en los banderines. `?prueba=0` apaga la población de prueba. Guía para crear el proyecto: `docs/supabase.md`; SQL: `shared/supabase/eventos.sql`.
 
 **Pendiente con bloqueo:** la calibración de la regla de «los ojos» del Fotomatón (plan 004) necesita los 6 retratos de prueba (tono de piel, luz, lentes) con permiso de las personas. No se pueden inventar: cuando el equipo los suba a una carpeta local (no al repo), se mide con face-api y se ajustan los valores por defecto de cada efecto.

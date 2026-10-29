@@ -2,6 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import { normalizar } from '../../../shared/pixelfont';
 import { SELLOS, normalizarRetrato, type DatosCarta, type Retrato } from '../pixel/render';
 import { ESTACIONES } from '../../../shared/juego';
+import { publicar } from '../../../shared/datos';
+import { marcoListo } from '../../../shared/marcos';
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const clave = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -22,7 +24,18 @@ const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const codigoNuevo = () => 'SD-' + Array.from({ length: 5 }, () => ALFABETO[Math.floor(Math.random() * ALFABETO.length)]).join('');
 
 // ---------- API ----------
+// Lo que el HUB necesita de cada persona (nombre, lenguaje y cabeza) y sus timbres viajan por shared/datos.ts.
+const avisarHub = (codigo: string, nombre: string, receta: Retrato, marco: string, foto?: string) =>
+  publicar('credencial', { nombre, lenguaje: marcoListo(marco).visual, personaje: receta.retrato === 'personaje' ? receta.id : 'pixel', foto }, codigo).catch(() => { /* sin red */ });
+
 export async function crear({ nombre, receta, marco }: { nombre: string; receta: Retrato; marco: string }): Promise<string> {
+  const codigo = await crearCredencial({ nombre, receta, marco });
+  avisarHub(codigo, limpiarNombre(nombre), receta, marco);
+  publicar('timbre', { sello: 1 }, codigo).catch(() => { /* sin red */ });
+  return codigo;
+}
+
+async function crearCredencial({ nombre, receta, marco }: { nombre: string; receta: Retrato; marco: string }): Promise<string> {
   const limpio = limpiarNombre(nombre);
   if (!limpio) throw new Error('Escribe un nombre.');
   if (sb) {
@@ -56,6 +69,7 @@ export async function sellar(codigo: string, sello: number, token: string) {
   if (!ESTACIONES[sello - 1].activa) throw new Error(`La estación ${sello} (${ESTACIONES[sello - 1].nombre}) todavía no está abierta.`);
   if (sb) {
     const { error } = await sb.rpc('sellar', { p_codigo: codigo, p_sello: sello, p_token: token });
+    if (!error) publicar('timbre', { sello }, codigo).catch(() => { /* sin red */ });
     if (error) {
       if (error.message.includes('token_invalido')) throw new Error('Este QR de sello no es válido. Pide uno nuevo al equipo.');
       if (error.message.includes('credencial_no_existe')) throw new Error('No encontramos tu credencial.');
@@ -67,7 +81,7 @@ export async function sellar(codigo: string, sello: number, token: string) {
   const db = leer();
   const c = db[codigo];
   if (!c) throw new Error('No encontramos tu credencial.');
-  if (!c.sellos.includes(sello)) c.sellos = [...c.sellos, sello].sort();
+  if (!c.sellos.includes(sello)) { c.sellos = [...c.sellos, sello].sort(); publicar('timbre', { sello }, codigo).catch(() => { /* sin red */ }); }
   escribir(db);
 }
 
@@ -88,7 +102,11 @@ export async function canjear(codigo: string) {
 // hasta que exista la capa de datos compartida (shared/datos.ts).
 export type AvatarHub = 'personaje' | 'foto';
 export function avatarHub(codigo: string): AvatarHub { try { return localStorage.getItem('sd:avatar:' + codigo) === 'foto' ? 'foto' : 'personaje'; } catch { return 'personaje'; } }
-export function guardarAvatarHub(codigo: string, a: AvatarHub) { try { localStorage.setItem('sd:avatar:' + codigo, a); } catch { /* nada */ } }
+export function guardarAvatarHub(codigo: string, a: AvatarHub, datos?: DatosCarta, foto?: string) {
+  try { localStorage.setItem('sd:avatar:' + codigo, a); } catch { /* nada */ }
+  // Con consentimiento, viaja al HUB solo una miniatura de la cara (no la foto completa); si no, el personaje.
+  if (datos) avisarHub(codigo, datos.nombre, datos.receta, datos.marco, a === 'foto' ? foto : undefined);
+}
 
 // La credencial propia de este celular.
 export function miCredencial(): string | null { try { return localStorage.getItem('sd:mia'); } catch { return null; } }

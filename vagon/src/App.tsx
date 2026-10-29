@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { publicar } from '../../shared/datos';
+import { jugador } from '../../shared/juego';
 import { otorgarCreacion } from '../../shared/juego';
 import {
   COLS, FILAS, HEX, MODELOS, STICKERS, anchoTag, baseDe, cargar, dibujarAnden, dibujarCarro, dibujarTren, disenoVacio,
@@ -127,10 +129,10 @@ export const App: React.FC = () => {
   const deshacer = () => { if (!atras.length) return; setAdelante(l => [diseno, ...l]); setDiseno(atras[atras.length - 1]); setAtras(l => l.slice(0, -1)); };
   const rehacer = () => { if (!adelante.length) return; setAtras(l => [...l, diseno]); setDiseno(adelante[0]); setAdelante(l => l.slice(1)); };
 
-  // Sale a la vía: además, el carro queda guardado para que pase por la Estación (HUB) en este mismo equipo.
+  // Sale a la vía: además, el carro viaja al HUB por la capa de datos (shared/datos.ts) y pasa por la Estación.
   const salir = () => {
     if (!base) return;
-    try { localStorage.setItem('sd:vagon', JSON.stringify({ png: pngDelCarro(base, diseno, imgs), modelo, carros, ts: Date.now() })); } catch { /* sin almacenamiento */ }
+    publicar('vagon', { png: pngDelCarro(base, diseno, imgs), modelo, carros }, jugador()?.codigo ?? null).catch(() => setAviso('No pudimos mandar tu vagón a la Estación.'));
     setAviso('Tu vagón va camino a la Estación');
     otorgarCreacion('vagon');
     if (!QUIETO) setSaliendo(performance.now());

@@ -2,6 +2,8 @@ import { GLIFOS, AVANCE, normalizar } from '../../../shared/pixelfont';
 import type { Lenguaje, Persona } from './fuente';
 import { imagen, raster } from './imagenes';
 import { c3EnTiempo, dibujarC3 } from '../../../shared/c3-tunel.js';
+import { enVivo, listaImagen } from './vivo';
+import { ACTIVAS } from '../../../shared/juego';
 
 // Estación Somos Diseño: corte de una estación en tres niveles.
 //   Plaza Orgánica (arriba) · Mezanine Geométrico (medio) · Andén Pixel (abajo).
@@ -111,7 +113,7 @@ export class Estacion {
     a.destacado = this.reloj + 8000;
     const meta = nivelDe(timbres);
     if (meta > a.nivel) a.objetivo = a.nivel === 0 ? this.d.escA : this.d.escB;
-    if (timbres >= 4) this.confeti(a);
+    if (timbres >= ACTIVAS.length) this.confeti(a);
   }
 
   // Estado del tren: x del frente (0 = fuera por la derecha) y si tiene puertas abiertas.
@@ -240,6 +242,8 @@ export class Estacion {
     for (const x of [x0, x1]) { ctx.fillRect(x - 3 * e, y0 - 4 * e, 6 * e, alto + 4 * u); ctx.fillRect(x - 7 * e, y0 - 8 * e, 14 * e, 6 * e); }
     ctx.strokeStyle = C.Negro; ctx.lineWidth = 2 * e;
     ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo((x0 + x1) / 2, y0 + comba * 2, x1, y0); ctx.stroke();
+    // Los grabados de la gente (los más nuevos) completan el cordel; el resto, de prueba.
+    const reales = enVivo.grabados.filter(listaImagen);
     const n = GRABADOS.length, w = Math.min(46 * e, (x1 - x0) / (n + 0.6)), h = w * 1.25;
     for (let i = 0; i < n; i++) {
       const f = (i + 0.8) / (n + 0.6), x = x0 + (x1 - x0) * f, y = y0 + comba * 4 * f * (1 - f) * 0.98;
@@ -249,8 +253,9 @@ export class Estacion {
       ctx.beginPath(); ctx.moveTo(-w / 2, 0); ctx.lineTo(w / 2, 0); ctx.lineTo(0, h); ctx.closePath();
       ctx.fillStyle = gr.papel; ctx.fill(); ctx.strokeStyle = C.Negro; ctx.lineWidth = 1.5 * e; ctx.stroke();
       ctx.clip();
-      const im = imagen(gr.taco);
-      if (im) { const lado = w * 0.62; ctx.globalCompositeOperation = 'multiply'; ctx.drawImage(entintar(im, gr.tinta, lado), -lado / 2, h * 0.08); }
+      const real = reales[i];
+      if (real) { const k = Math.max(w / real.naturalWidth, h / real.naturalHeight); ctx.drawImage(real, -real.naturalWidth * k / 2, 0, real.naturalWidth * k, real.naturalHeight * k); }
+      else { const im = imagen(gr.taco); if (im) { const lado = w * 0.62; ctx.globalCompositeOperation = 'multiply'; ctx.drawImage(entintar(im, gr.tinta, lado), -lado / 2, h * 0.08); } }
       ctx.restore();
     }
   }
@@ -320,13 +325,17 @@ export class Estacion {
     const { e } = this.d;
     const CICLO = 7000, BARRIDO = 900, t = this.quieto ? 0 : this.reloj + desfase * 3500;
     const k = Math.floor(t / CICLO), dentro = t % CICLO;
-    const cual = (i: number) => MOSAICOS[((i % MOSAICOS.length) + MOSAICOS.length) % MOSAICOS.length];
+    // Los mosaicos de la gente (los más nuevos) y, si aún no hay suficientes, los de prueba.
+    const reales = enVivo.mosaicos.filter(m => listaImagen(m.im));
+    const lista: { autor: string; semilla?: number; im?: HTMLImageElement }[] = reales.length >= 2 ? reales : [...reales, ...MOSAICOS];
+    const cual = (i: number) => lista[((i % lista.length) + lista.length) % lista.length];
+    const pintar = (m: { semilla?: number; im?: HTMLImageElement }) => (m.im ?? mosaico(m.semilla!, lado));
     const actual = cual(k * 2 + desfase), anterior = cual((k - 1) * 2 + desfase);
     const pie = 18 * e;
     ctx.fillStyle = C.Negro; ctx.fillRect(x - 5 * e, y - 5 * e, lado + 10 * e, lado + pie + 10 * e);
     const corte = dentro < BARRIDO ? lado * (1 - Math.pow(1 - dentro / BARRIDO, 3)) : lado;
-    ctx.drawImage(mosaico(anterior.semilla, lado), x, y);
-    ctx.save(); ctx.beginPath(); ctx.rect(x, y, lado, corte); ctx.clip(); ctx.drawImage(mosaico(actual.semilla, lado), x, y); ctx.restore();
+    ctx.drawImage(pintar(anterior), x, y, lado, lado);
+    ctx.save(); ctx.beginPath(); ctx.rect(x, y, lado, corte); ctx.clip(); ctx.drawImage(pintar(actual), x, y, lado, lado); ctx.restore();
     if (corte < lado) { ctx.fillStyle = C.Amarillo; ctx.fillRect(x, y + corte - 2 * e, lado, 3 * e); }
     const quien = corte < lado * 0.5 ? anterior : actual;
     ctx.fillStyle = C.Hueso; ctx.font = `700 ${10 * e}px "DM Sans", sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
@@ -582,14 +591,19 @@ export class Estacion {
       const im = imagen(SRC.personaje[a.p.cabeza.id]);
       if (im) ctx.drawImage(raster(im, cabeza * 1.15, cabeza * 1.15), -cabeza * 0.575, cy - cabeza * 0.575);
     } else {
-      ctx.fillStyle = a.p.cabeza.color; ctx.fillRect(-cabeza / 2, cy - cabeza / 2, cabeza, cabeza);
-      ctx.fillStyle = C.Hueso; ctx.font = `800 ${cabeza * 0.5}px "Bricolage Grotesque", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(a.p.nombre[0], 0, cy + cabeza * 0.04);
+      // la miniatura real de la cara (solo con consentimiento) o, mientras carga o en la prueba, la inicial en color
+      const real = a.p.cabeza.codigo ? enVivo.fotos.get(a.p.cabeza.codigo) : undefined;
+      if (listaImagen(real)) ctx.drawImage(real, -cabeza / 2, cy - cabeza / 2, cabeza, cabeza);
+      else {
+        ctx.fillStyle = a.p.cabeza.color; ctx.fillRect(-cabeza / 2, cy - cabeza / 2, cabeza, cabeza);
+        ctx.fillStyle = C.Hueso; ctx.font = `800 ${cabeza * 0.5}px "Bricolage Grotesque", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(a.p.nombre[0], 0, cy + cabeza * 0.04);
+      }
     }
     ctx.restore();
     ctx.strokeStyle = C.Negro; ctx.lineWidth = 2 * s; ctx.beginPath(); ctx.arc(0, cy, cabeza / 2, 0, Math.PI * 2); ctx.stroke();
-    // aureola con los 4 timbres
-    if (a.p.timbres >= 4) {
+    // aureola con la credencial completa
+    if (a.p.timbres >= ACTIVAS.length) {
       ctx.strokeStyle = C.Amarillo; ctx.lineWidth = 3 * s;
       ctx.beginPath(); ctx.ellipse(0, cy - cabeza * 0.62, cabeza * 0.42, cabeza * 0.12, 0, 0, Math.PI * 2); ctx.stroke();
     }
@@ -625,22 +639,13 @@ export class Estacion {
   get resumen() {
     const personas = this.avatares.length;
     const timbres = this.avatares.reduce((s, a) => s + a.p.timbres, 0);
-    const completas = this.avatares.filter(a => a.p.timbres >= 4).length;
+    const completas = this.avatares.filter(a => a.p.timbres >= ACTIVAS.length).length;
     return { personas, timbres, completas };
   }
 }
 
-// El vagón que diseñó la gente en la experiencia Vagón (lo deja en localStorage al «Salir a la vía»).
-// Por ahora se comparte por el mismo equipo; con Supabase llegará desde todas las tablets.
-let vagonGuardado: { ts: number; im: HTMLImageElement } | null = null;
-function vagonDeLaGente(): HTMLImageElement | null {
-  try {
-    const v = JSON.parse(localStorage.getItem('sd:vagon') || 'null') as { png: string; ts: number } | null;
-    if (!v?.png) return null;
-    if (!vagonGuardado || vagonGuardado.ts !== v.ts) { const im = new Image(); im.src = v.png; vagonGuardado = { ts: v.ts, im }; }
-    return vagonGuardado.im.complete && vagonGuardado.im.naturalWidth ? vagonGuardado.im : null;
-  } catch { return null; }
-}
+// El vagón que diseñó la gente en la experiencia Vagón: el último que salió a la vía (llega por shared/datos.ts).
+const vagonDeLaGente = (): HTMLImageElement | null => (listaImagen(enVivo.vagon) ? enVivo.vagon : null);
 
 // Silueta de un taco entintada en un color (para los banderines de grabado).
 const tintas = new Map<string, HTMLCanvasElement>();

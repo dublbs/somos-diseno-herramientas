@@ -1,12 +1,13 @@
-// Quiénes están en la estación. Hoy: 40 personas de prueba y eventos simulados.
-// Después: la vista `galeria` de Supabase (credencial/supabase/schema.sql) con tiempo real.
+// Quiénes están en la estación: las personas reales llegan por shared/datos.ts (ver estacion/vivo.ts).
+// Para ver la escena llena sin evento, hay 40 personas de prueba y eventos simulados (?prueba=0 los apaga).
 
 export type Lenguaje = 'Pixel' | 'Geométrica' | 'Orgánica';
 export interface Persona {
   codigo: string;
   nombre: string;
   lenguaje: Lenguaje; // el del marco de su credencial: define el cuerpo
-  cabeza: { tipo: 'personaje'; id: 'pixel' | 'geometrica' | 'organica' } | { tipo: 'foto'; color: string };
+  // foto: con `codigo`, la miniatura real (llega por shared/datos.ts con consentimiento); sin él, un círculo de color de prueba.
+  cabeza: { tipo: 'personaje'; id: 'pixel' | 'geometrica' | 'organica' } | { tipo: 'foto'; color: string; codigo?: string };
   timbres: number; // 0..4
 }
 export type Evento =

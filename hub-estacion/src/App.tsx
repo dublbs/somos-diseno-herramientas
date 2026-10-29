@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Estacion, disponer, TODAS_LAS_IMAGENES } from './estacion/escena';
 import { poblacionDePrueba, simularEventos, azar, type Evento, type Persona } from './estacion/fuente';
 import { precargar } from './estacion/imagenes';
+import { conectar } from './estacion/vivo';
+import { remoto } from '../../shared/datos';
+import { ACTIVAS } from '../../shared/juego';
 import './styles.css';
 
 // HUB «Estación Somos Diseño»: vive en la pantalla flip y en los Mac del evento.
@@ -9,6 +12,8 @@ import './styles.css';
 const params = new URLSearchParams(window.location.search);
 const HORA_FIJA = params.has('hora') ? Number(params.get('hora')) : null;
 const RAPIDO = Math.max(1, Number(params.get('rapido')) || 1);
+// ?prueba=0: solo las personas reales (sin la población ni los eventos de prueba).
+const PRUEBA = params.get('prueba') !== '0';
 const QUIETO = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
 interface Aviso { id: number; texto: string }
@@ -34,7 +39,7 @@ export const App: React.FC = () => {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const d = disponer(r.width, r.height);
       if (estacion.current) estacion.current.redimensionar(d);
-      else estacion.current = new Estacion(d, poblacionDePrueba(40), azar(3), QUIETO);
+      else estacion.current = new Estacion(d, PRUEBA ? poblacionDePrueba(40) : [], azar(3), QUIETO);
     };
     medir();
     const ro = new ResizeObserver(medir); ro.observe(c);
@@ -58,15 +63,18 @@ export const App: React.FC = () => {
       else {
         const p = e.avatares.find(a => a.p.codigo === ev.codigo)?.p;
         e.timbre(ev.codigo, ev.timbres);
-        texto = ev.timbres >= 4 ? `¡${p?.nombre} completó su credencial!` : `${p?.nombre} consiguió su ${ORDINAL[ev.timbres]} timbre`;
+        texto = ev.timbres >= ACTIVAS.length ? `¡${p?.nombre} completó su credencial!` : `${p?.nombre} consiguió su ${ORDINAL[ev.timbres]} timbre`;
       }
       setAvisos(l => [{ id: n++, texto }, ...l].slice(0, 6));
       setResumen(e.resumen);
     };
-    const detener = simularEventos(() => estacion.current!.avatares.map(a => a.p as Persona), alEvento, 5000 / RAPIDO);
+    const detener = PRUEBA ? simularEventos(() => estacion.current!.avatares.map(a => a.p as Persona), alEvento, 5000 / RAPIDO) : () => {};
+    // Lo real: credenciales, timbres, vagones, mosaicos y grabados que llegan por shared/datos.ts.
+    let desconectar = () => {};
+    conectar(alEvento, codigo => estacion.current!.avatares.some(a => a.p.codigo === codigo)).then(f => { desconectar = f; });
     setResumen(estacion.current!.resumen);
     const reloj = setInterval(() => setHora(new Date()), 15000);
-    return () => { cancelAnimationFrame(raf); ro.disconnect(); detener(); clearInterval(reloj); };
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); detener(); desconectar(); clearInterval(reloj); };
   }, [listo]);
 
   const pantallaCompleta = () => {
@@ -92,7 +100,7 @@ export const App: React.FC = () => {
       </header>
       <canvas ref={lienzo} className="escena" role="img" aria-label={`Estación con ${resumen.personas} personas: andén Pixel, mezanine Geométrico y plaza Orgánica`} />
       {!listo && <p className="cargando">Abriendo la estación…</p>}
-      <span className="demo">Demo · personas de prueba</span>
+      <span className="demo">{remoto ? 'En vivo' : 'Este equipo'}{PRUEBA ? ' · con personas de prueba' : ''}</span>
     </div>
   );
 };

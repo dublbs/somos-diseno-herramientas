@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { otorgarCreacion } from '../../shared/juego';
+import { jugador, otorgarCreacion } from '../../shared/juego';
+import { publicar } from '../../shared/datos';
 import { Oido, SILENCIO, type Fuente, type Rasgos } from './audio/oido';
 import { CANALES, ESCENAS, estadoInicial, mezclar, type Canal } from './escenas/escenas';
 import { BarraSuperior, BotonAccion, Deslizador, Interruptor, PantallaHerramienta, Seccion, Segmentado } from '../../shared/ui/Kit';
@@ -80,6 +81,7 @@ export const App: React.FC = () => {
     try {
       const { blob, ext } = await grabarEnVivo(lienzo.current!, SEG_LOOP, 25, setGrabando);
       descargar(blob, `audioreactiva-${escenaId}.${ext}`);
+      publicar('audio', { escena: escenaId }, jugador()?.codigo ?? null).catch(() => { /* sin red */ });
       otorgarCreacion('audioreactiva');
     } catch (e) { setAviso((e as Error).message); }
     setGrabando(0);
