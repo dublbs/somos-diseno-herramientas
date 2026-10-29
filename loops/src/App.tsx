@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { EscenarioOrganico } from './components/EscenarioOrganico';
 import { ModalExportar, type VideoLoop } from './components/ModalExportar';
 import { exportarTarjetaMotion } from './lib/exportarTarjeta';
+import '../../shared/ui/somos-kit.css';
 import './styles.css';
 
 const NOMBRE = 'Teatro de Papel';
@@ -22,20 +23,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="app-pantalla">
-      <header className="barra-superior">
-        <div className="lado-izq">
-          <a className="volver" href="../../" id="volver-hub">
-            <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
-            Experiencias
-          </a>
-          <div className="barra-info">
-            <h1>Teatro de Papel</h1>
-            <p className="bajada-corta">Anima figuras y paisajes en un loop de papel</p>
-          </div>
-        </div>
-      </header>
-
+    <>
       <EscenarioOrganico
         onExportar={exportarPng}
         onVideo={(png, v) => { setVideoLoop(v); setBlobTarjeta(png); }}
@@ -50,6 +38,6 @@ export const App: React.FC = () => {
         />
       )}
       {aviso && <div className="aviso" role="status">{aviso}</div>}
-    </div>
+    </>
   );
 };

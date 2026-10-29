@@ -54,6 +54,8 @@ html:has(.k-app),body:has(.k-app){height:100%;overflow:hidden}
 .k-barra-sup{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:8px 16px;min-height:60px}
 .k-barra-sup .k-izq{display:flex;align-items:center;gap:12px;min-width:0}
 .k-barra-sup .k-der{display:flex;align-items:center;gap:8px;flex:none}
+/* Pantallas angostas: las acciones secundarias de la barra superior quedan solo con su ícono (conservan su nombre accesible). */
+@media (max-width:900px){.k-barra-sup .k-bajada{display:none}.k-barra-sup .k-der .k-btn:not(.k-primario):not(.k-icono){font-size:0;gap:0;padding-inline:12px}.k-barra-sup .k-der .k-btn .material-symbols-outlined{font-size:22px}}
 .k-titulo{margin:0;font:800 20px/1.1 var(--fuente-tit);letter-spacing:-.01em;white-space:nowrap}
 .k-bajada{margin:0;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .k-seccion{display:grid;gap:8px;min-width:0;align-content:start}

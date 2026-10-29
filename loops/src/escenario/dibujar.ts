@@ -10,7 +10,12 @@ export interface Item {
   espejo: boolean;
   variante?: number; // forma de moverse (índice en `variantes` de la pieza)
   destino?: { x: number; y: number }; // Punto B (llegada) personalizado estilo After Effects
+  llegada?: number; // keyframe B en la línea de tiempo: fracción del loop en que llega a B (0,1); vuelve a A al final
 }
+
+export const DURACION_TRAYECTO = 4000;
+export const LLEGADA = 0.5;
+const suave = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2); // easeInOut
 
 export const ESCENARIO = 240;
 
@@ -19,24 +24,17 @@ export function posicionItem(it: Item, ms = 0): { x: number; y: number; espejo: 
     return { x: it.x, y: it.y, espejo: it.espejo };
   }
 
-  const dur = 4000;
-  const u = (ms % dur) / dur; // 0..1
-  // Movimiento suave ida y vuelta con aceleración y desaceleración natural
-  const p = Math.sin(u * Math.PI * 2 - Math.PI / 2) * 0.5 + 0.5;
+  // Keyframes: A en 0, B en `llegada`, A otra vez al cerrar el loop; cada tramo con entrada y salida suaves.
+  const u = (ms % DURACION_TRAYECTO) / DURACION_TRAYECTO, b = it.llegada ?? LLEGADA;
+  const ida = u < b;
+  const p = ida ? suave(u / b) : 1 - suave((u - b) / (1 - b));
   const x = it.x + (it.destino.x - it.x) * p;
   const y = it.y + (it.destino.y - it.y) * p;
 
   // Orientación natural: mira hacia donde avanza
   const dx = it.destino.x - it.x;
   let espejo = it.espejo;
-  if (Math.abs(dx) > 12) {
-    const avanzaHaciaDestino = Math.cos(u * Math.PI * 2 - Math.PI / 2) > 0;
-    if (dx > 0) {
-      espejo = avanzaHaciaDestino ? false : true;
-    } else {
-      espejo = avanzaHaciaDestino ? true : false;
-    }
-  }
+  if (Math.abs(dx) > 12) espejo = dx > 0 ? !ida : ida;
 
   return { x, y, espejo };
 }
