@@ -247,20 +247,23 @@ export function cajaItem(it: Item, ms = 0) {
   return { x: pos.x - w / 2, y: pos.y - h / 2, w, h };
 }
 
-export function dibujarSeleccion(ctx: CanvasRenderingContext2D, size: number, it: Item, ms = 0) {
-  const k = size / ESCENARIO, b = cajaItem(quieto(it), ms);
+// editando: en pausa la pieza se muestra en A con un fantasma en B; en play, solo la guía del trayecto.
+export function dibujarSeleccion(ctx: CanvasRenderingContext2D, size: number, it: Item, ms = 0, editando = true) {
+  const k = size / ESCENARIO, b = cajaItem(editando ? quieto(it) : it, ms);
   ctx.save();
   ctx.setTransform(k, 0, 0, k, 0, 0);
 
   // Trayecto A → B: A (amarillo) es donde está la pieza; B (verde) se arrastra para elegir hacia dónde camina.
   if (it.destino) {
     const d = it.destino;
-    ctx.save();
-    ctx.globalAlpha = 0.35;
-    ctx.translate(d.x, d.y);
-    ctx.scale(it.escala * (d.x < it.x ? -1 : 1), it.escala);
-    dibujarPieza(ctx, it.tipo, ms, it.variante ?? 0);
-    ctx.restore();
+    if (editando) {
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.translate(d.x, d.y);
+      ctx.scale(it.escala * (d.x < it.x ? -1 : 1), it.escala);
+      dibujarPieza(ctx, it.tipo, ms, it.variante ?? 0);
+      ctx.restore();
+    }
     ctx.save();
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 1.8;

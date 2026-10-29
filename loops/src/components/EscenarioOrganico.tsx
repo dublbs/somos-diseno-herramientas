@@ -63,7 +63,8 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
   const [mapa, setMapa] = useState<Mapa>({});
   const [sel, setSel] = useState<number | null>(null);
   const [fps, setFps] = useState(12);
-  const [pausado, setPausado] = useState(false);
+  // Parte pausado: así se arma la escena con calma; al darle play se ve el loop completo.
+  const [pausado, setPausado] = useState(true);
   const [borde, setBorde] = useState(true);
   const [listo, setListo] = useState(false);
   const [grabando, setGrabando] = useState<number | null>(null);
@@ -145,9 +146,10 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
         ultimoSegundoUI = ahora;
       }
 
-      dibujarEscenario(ctx, c.width, v.items, ms, v.fondo, v.borde, v.sel);
+      // En pausa, la pieza elegida se edita quieta en su punto A; en play, camina como en el video.
+      dibujarEscenario(ctx, c.width, v.items, ms, v.fondo, v.borde, v.pausado ? v.sel : null);
       const it = v.items.find(i => i.uid === v.sel);
-      if (it) dibujarSeleccion(ctx, c.width, it, ms);
+      if (it) dibujarSeleccion(ctx, c.width, it, ms, v.pausado);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
@@ -159,7 +161,8 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
   };
 
   const alBajar = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    const p = aEscenario(e), { items: lista, sel: actual } = vivo.current;
+    const p = aEscenario(e), { items: lista, sel: actual, pausado: enPausa } = vivo.current;
+    const comoSeVe = (it: Item) => (enPausa ? quieto(it) : it);
     const msActual = relojRef.current;
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* sin captura */ }
     antesDelGesto.current = vivo.current.mapa;
@@ -172,17 +175,17 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
         gesto.current = { tipo: 'destino', uid: elegido.uid, movido: false };
         return;
       }
-      const b = cajaItem(quieto(elegido), msActual);
+      const b = cajaItem(comoSeVe(elegido), msActual);
       if (Math.hypot(p.x - (b.x + b.w), p.y - (b.y + b.h)) <= ASA * 2.2) {
-        const pos = posicionItem(quieto(elegido), msActual);
+        const pos = posicionItem(comoSeVe(elegido), msActual);
         gesto.current = { tipo: 'escalar', uid: elegido.uid, d0: Math.hypot(p.x - pos.x, p.y - pos.y) || 1, e0: elegido.escala, movido: false };
         return;
       }
     }
     // 2. La pieza bajo el dedo
     for (let i = lista.length - 1; i >= 0; i--) {
-      // Al tocarla, la pieza queda quieta en su punto A (ahí empieza el trayecto).
-      const it = quieto(lista[i]);
+      // En pausa, la pieza se toca en su punto A (ahí empieza el trayecto).
+      const it = comoSeVe(lista[i]);
       const b = cajaItem(it, msActual);
       if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) {
         setSel(lista[i].uid);
@@ -527,7 +530,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
                   </button>
                 </div>
                 {elegido.destino && (
-                  <p className="ayuda-trayecto">Arrastra el punto verde <b>B</b> hacia donde quieres que camine.</p>
+                  <p className="ayuda-trayecto">{pausado ? <>Arrastra el punto verde <b>B</b> hacia donde quieres que camine. Dale play para ver el loop.</> : <>Pausa el loop para editar el trayecto.</>}</p>
                 )}
                 {elegido.destino && (
                   <div className="acciones-trayecto">
