@@ -8,9 +8,10 @@ export interface Rasgos {
   agudos: number; // 0..1 (≈ 2–8 kHz)
   tono: number; // 0..1, qué tan agudo es el sonido en promedio (centroide espectral)
   golpe: boolean; // un aplauso, un bombo, una palmada: subida brusca de energía
+  pulso: number; // 1 justo en el golpe y cae a 0 en ~0,35 s: el «impacto» que las escenas muestran
   bandas: number[]; // 12 bandas de graves a agudos (0..1)
 }
-export const SILENCIO: Rasgos = { volumen: 0, graves: 0, medios: 0, agudos: 0, tono: 0.3, golpe: false, bandas: Array(12).fill(0) };
+export const SILENCIO: Rasgos = { volumen: 0, graves: 0, medios: 0, agudos: 0, tono: 0.3, golpe: false, pulso: 0, bandas: Array(12).fill(0) };
 export type Fuente = 'microfono' | 'demo';
 
 export class Oido {
@@ -23,6 +24,10 @@ export class Oido {
   private suave: Rasgos = { ...SILENCIO, bandas: [...SILENCIO.bandas] };
   private lento = 0; // energía de graves promedio (para detectar golpes)
   private ultimoGolpe = 0;
+  private ultimaLectura = 0;
+  // Autoajuste: el pico reciente de cada rasgo. Cada valor se lee contra su pico, así un micrófono lejano
+  // o una sala ruidosa igual recorren todo el rango (con un piso para que el silencio siga siendo silencio).
+  private picos = { volumen: 0.2, graves: 0.2, medios: 0.2, agudos: 0.2, bandas: Array(12).fill(0.2) as number[] };
   fuente: Fuente | null = null;
   sensibilidad = 1;
 
@@ -104,7 +109,7 @@ export class Oido {
   apagar() { this.detener?.(); this.detener = null; this.fuente = null; }
 
   leer(ahora = performance.now()): Rasgos {
-    if (!this.analizador || !this.fuente) return { ...this.suave, golpe: false };
+    if (!this.analizador || !this.fuente) return { ...this.suave, golpe: false, pulso: 0 };
     const an = this.analizador, sr = this.ctx!.sampleRate, hz = sr / an.fftSize;
     an.getByteFrequencyData(this.frec);
     an.getByteTimeDomainData(this.onda);
@@ -120,19 +125,32 @@ export class Oido {
     const tono = den > 0 ? Math.min(1, Math.max(0, (num / den - Math.log2(80)) / (Math.log2(6000) - Math.log2(80)))) : this.suave.tono;
     // 12 bandas en escala logarítmica entre 40 Hz y 8 kHz
     const bandas = Array.from({ length: 12 }, (_, i) => banda(40 * Math.pow(200, i / 12), 40 * Math.pow(200, (i + 1) / 12)));
-    const crudo = { volumen: rms, graves: banda(20, 250), medios: banda(250, 2000), agudos: banda(2000, 8000), tono };
+    const medido = { volumen: rms, graves: banda(20, 250), medios: banda(250, 2000), agudos: banda(2000, 8000) };
+    const dtSeg = Math.min(0.1, (ahora - (this.ultimaLectura || ahora)) / 1000); this.ultimaLectura = ahora;
+    const caida = Math.pow(0.5, dtSeg / 4); // el pico baja a la mitad en 4 s
+    const PISO = 0.12;
+    const normalizar = (v: number, pico: number) => Math.min(1, v / Math.max(PISO, pico) * 0.92);
+    const p = this.picos;
+    (['volumen', 'graves', 'medios', 'agudos'] as const).forEach(k => { p[k] = Math.max(medido[k], p[k] * caida); });
+    p.bandas = p.bandas.map((v, i) => Math.max(bandas[i], v * caida));
+    const crudo = {
+      volumen: normalizar(medido.volumen, p.volumen), graves: normalizar(medido.graves, p.graves),
+      medios: normalizar(medido.medios, p.medios), agudos: normalizar(medido.agudos, p.agudos), tono,
+    };
+    const bandasN = bandas.map((v, i) => normalizar(v, Math.max(p.bandas[i], p.volumen * 0.5)));
     // Golpe: los graves (o el volumen) suben de golpe sobre su promedio lento
     const energia = Math.max(crudo.graves, crudo.volumen);
-    const golpe = energia - this.lento > 0.18 && energia > 0.25 && ahora - this.ultimoGolpe > 220;
+    const golpe = energia - this.lento > 0.22 && energia > 0.4 && ahora - this.ultimoGolpe > 200;
     if (golpe) this.ultimoGolpe = ahora;
+    const pulso = Math.max(0, 1 - (ahora - this.ultimoGolpe) / 350);
     this.lento += (energia - this.lento) * 0.08;
     // Suavizado: sube rápido, baja lento (como un vúmetro)
     const s = this.suave;
-    const seguir = (a: number, b: number) => (b > a ? a + (b - a) * 0.6 : a + (b - a) * 0.12);
+    const seguir = (a: number, b: number) => (b > a ? a + (b - a) * 0.65 : a + (b - a) * 0.2);
     s.volumen = seguir(s.volumen, crudo.volumen); s.graves = seguir(s.graves, crudo.graves);
     s.medios = seguir(s.medios, crudo.medios); s.agudos = seguir(s.agudos, crudo.agudos);
     s.tono += (crudo.tono - s.tono) * 0.1;
-    s.bandas = s.bandas.map((v, i) => seguir(v, bandas[i]));
-    return { ...s, bandas: [...s.bandas], golpe };
+    s.bandas = s.bandas.map((v, i) => seguir(v, bandasN[i]));
+    return { ...s, bandas: [...s.bandas], golpe, pulso: this.ultimoGolpe ? pulso : 0 };
   }
 }
