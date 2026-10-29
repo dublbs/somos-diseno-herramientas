@@ -1,7 +1,7 @@
 @import '../../shared/somos-fonts.css';
 
 /* HUB a pantalla completa: cabecera con cifras y avisos, y la escena en canvas debajo. */
-:root { --hueso: #F4EEE3; --negro: #000000; --amarillo: #FFC20E; color-scheme: light; }
+:root { --hueso: #F4EEE3; --negro: #000000; --amarillo: #FFC20E; --morado: #7A2E8E; --azul: #0062B8; --verde: #00A651; color-scheme: light; }
 * { box-sizing: border-box; }
 html, body, #app { height: 100%; margin: 0; background: var(--negro); overflow: hidden; }
 .estacion { height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr); position: relative; font-family: "DM Sans", system-ui, sans-serif; color: var(--hueso); }
@@ -26,3 +26,18 @@ html, body, #app { height: 100%; margin: 0; background: var(--negro); overflow: 
   .avisos { order: 9; flex-basis: 100%; text-align: left; }
 }
 @media (prefers-reduced-motion: reduce) { .avisos li { animation: none; } }
+
+/* ?cuerpos · hoja de propuestas de cuerpos */
+.hoja-cuerpos { height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 12px; padding: 14px 20px 18px; background: var(--hueso); color: var(--negro); font-family: "DM Sans", system-ui, sans-serif; box-sizing: border-box; overflow: hidden; }
+.hoja-cuerpos header { display: flex; gap: 16px; align-items: center; }
+.hoja-cuerpos .volver { color: var(--negro); opacity: 1; }
+.hoja-cuerpos h1 { margin: 0; font: 800 clamp(20px, 2.4vw, 34px)/1 "Bricolage Grotesque", sans-serif; }
+.hoja-cuerpos header p { margin: 4px 0 0; font-size: 14px; opacity: .75; }
+.grilla-cuerpos { min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.grilla-cuerpos figure { margin: 0; min-height: 0; min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 14px; background: #fff; border: 2px solid var(--negro); padding: 8px 14px 8px 8px; }
+.grilla-cuerpos canvas { height: 100%; width: auto; aspect-ratio: 200 / 260; min-height: 0; max-width: 100%; display: block; }
+.grilla-cuerpos figcaption { display: grid; gap: 4px; font-size: clamp(12px, 1vw, 16px); line-height: 1.35; }
+.grilla-cuerpos figcaption span { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+.grilla-cuerpos figcaption b { font: 800 clamp(15px, 1.4vw, 24px) "Bricolage Grotesque", sans-serif; }
+.cuerpo-pixel figcaption span { color: var(--morado); } .cuerpo-geometrica figcaption span { color: var(--azul); } .cuerpo-organica figcaption span { color: var(--verde); }
+@media (max-aspect-ratio: 1/1) { .grilla-cuerpos figure { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; justify-items: center; } .grilla-cuerpos canvas { height: 100%; } }

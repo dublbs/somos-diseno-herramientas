@@ -33,3 +33,6 @@ Assets reutilizados (copiados a `public/figma/`):
 - los personajes de la credencial;
 - araucaria, sol, helecho, flor y quisco de Teatro de Papel;
 - stickers y tag de Graffiti.
+
+## Hoja de cuerpos (`?cuerpos`)
+Propuesta de cuerpos para los personajes: 3 opciones por lenguaje, caminando, todas con la misma cabeza (la foto o el personaje de la credencial). Está en `src/estacion/cuerpos.ts` y `src/HojaCuerpos.tsx`. La escena sigue usando los cuerpos actuales hasta que el equipo elija.
