@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  COLS, FILAS, HEX, MODELOS, PALETA, STICKERS, anchoTag, baseDe, cargar, dibujarAnden, dibujarCarro, dibujarTren, disenoVacio,
+  COLS, FILAS, HEX, MODELOS, STICKERS, anchoTag, baseDe, cargar, dibujarAnden, dibujarCarro, dibujarTren, disenoVacio,
   escribir, pintar, pngDelCarro, rellenar, srcSticker, type Diseno, type IdModelo, type IdSticker, type NombreColor,
 } from './lib/vagon';
 import { descargar, tarjeta } from './lib/archivos';
+import { BarraHerramientas, BarraSuperior, BotonAccion, Confirmar, Paleta, PantallaHerramienta, Seccion, Segmentado } from '../../shared/ui/Kit';
+import '../../shared/ui/somos-kit.css';
 import './styles.css';
 
 // Vagón · experiencia Pixel. Piloto de las barras fijas (propuesta 005): lienzo grande, barra inferior con las
@@ -37,7 +39,6 @@ export const App: React.FC = () => {
   const [tag, setTag] = useState('');
   const [saliendo, setSaliendo] = useState<number | null>(null);
   const [aviso, setAviso] = useState('');
-  const [confirmar, setConfirmar] = useState(false);
   const lienzo = useRef<HTMLCanvasElement>(null);
   const caja = useRef({ x: 0, y: 0, cel: 1 });
   const arrastre = useRef(false);
@@ -105,7 +106,6 @@ export const App: React.FC = () => {
     if (!base || saliendo != null) return;
     const { col, fila, fx, fy } = celda(ev);
     if (!dentro(col, fila)) return;
-    setConfirmar(false);
     if (herr === 'lapiz' || herr === 'borrar') {
       ev.currentTarget.setPointerCapture(ev.pointerId); arrastre.current = true;
       cambiar(pintar(diseno, col, fila, herr === 'lapiz' ? HEX[color] : null, grosor));
@@ -167,62 +167,45 @@ export const App: React.FC = () => {
   }
 
   const activa = HERRAMIENTAS.find(h => h.id === herr)!;
+  const nombreModelo = MODELOS.find(m => m.id === modelo)!.nombre;
   return (
-    <div className="app-vagon">
-      <header className="barra-superior">
-        <div className="lado-izq">
-          <a className="volver" href="../../" id="volver-hub"><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Experiencias</a>
-          <div className="barra-info"><h1>Vagón</h1><p className="bajada-corta">{activa.ayuda}</p></div>
-        </div>
-        <div className="acciones-sup">
-          <button type="button" className="btn solo-icono" onClick={deshacer} disabled={!atras.length} aria-label="Deshacer"><span className="material-symbols-outlined" aria-hidden="true">undo</span></button>
-          <button type="button" className="btn solo-icono" onClick={rehacer} disabled={!adelante.length} aria-label="Rehacer"><span className="material-symbols-outlined" aria-hidden="true">redo</span></button>
-          <button type="button" className="btn" onClick={salir} disabled={!base || saliendo != null}><span className="material-symbols-outlined" aria-hidden="true">train</span>Salir a la vía</button>
-          <button type="button" className="btn primario" onClick={exportar} disabled={!base}><span className="material-symbols-outlined" aria-hidden="true">download</span>Descargar</button>
-        </div>
-      </header>
-
-      <main className="cuerpo-vagon">
-        <section className="escenario-vagon" aria-label="Carro">
-          <canvas ref={lienzo} className={'lienzo-vagon herr-' + herr} onPointerDown={alTocar} onPointerMove={alMover} onPointerUp={alSoltar} onPointerCancel={alSoltar}
-            role="img" aria-label={`Lateral del carro ${MODELOS.find(m => m.id === modelo)!.nombre}. ${activa.ayuda}`} />
-        </section>
-
-        <aside className="barra-derecha" aria-label="Biblioteca y opciones">
-          <div className="seccion">
-            <p className="label">Modelo</p>
+    <>
+      <PantallaHerramienta
+        anchoLateral={290}
+        superior={
+          <BarraSuperior titulo="Vagón" bajada={activa.ayuda}>
+            <BotonAccion icono="undo" etiqueta="Deshacer" onClick={deshacer} disabled={!atras.length} />
+            <BotonAccion icono="redo" etiqueta="Rehacer" onClick={rehacer} disabled={!adelante.length} />
+            <BotonAccion icono="train" texto="Salir a la vía" onClick={salir} disabled={!base || saliendo != null} />
+            <BotonAccion icono="download" texto="Descargar" primario onClick={exportar} disabled={!base} />
+          </BarraSuperior>
+        }
+        lateral={<>
+          <Seccion titulo="Modelo">
             <div className="modelos" role="radiogroup" aria-label="Modelo de tren">
               {MODELOS.map(m => (
-                <button key={m.id} type="button" role="radio" aria-checked={modelo === m.id} className="modelo-btn" onClick={() => setModelo(m.id)}>
+                <button key={m.id} type="button" role="radio" aria-checked={modelo === m.id} className="k-btn modelo-btn" onClick={() => setModelo(m.id)}>
                   <img src={m.lateral} alt="" /><span><b>{m.nombre}</b><small>{m.detalle}</small></span>
                 </button>
               ))}
             </div>
-          </div>
-          <div className="seccion">
-            <p className="label">Carros del tren</p>
-            <div className="seg" role="group" aria-label="Carros">
-              {[1, 2, 3].map(n => <button key={n} type="button" aria-pressed={carros === n} onClick={() => setCarros(n)}>{n}</button>)}
-            </div>
-          </div>
-          <div className="seccion opciones">
-            <p className="label">{activa.nombre}</p>
+          </Seccion>
+          <Seccion titulo="Carros del tren">
+            <Segmentado etiqueta="Carros" valor={carros} onCambiar={setCarros} opciones={[1, 2, 3].map(n => ({ valor: n, texto: String(n) }))} />
+          </Seccion>
+          <Seccion titulo={activa.nombre} crece>
             {(herr === 'lapiz' || herr === 'borrar') && (
-              <div className="seg" role="group" aria-label="Grosor">
-                {[1, 2, 3].map(n => <button key={n} type="button" aria-pressed={grosor === n} onClick={() => setGrosor(n)}><i className="punto" style={{ '--n': n } as React.CSSProperties} />{n} px</button>)}
-              </div>
+              <Segmentado etiqueta="Grosor" valor={grosor} onCambiar={setGrosor} opciones={[1, 2, 3].map(n => ({ valor: n, texto: <><i className="punto" style={{ '--n': n } as React.CSSProperties} />{n} px</> }))} />
             )}
             {herr === 'sticker' && (<>
               <div className="stickers" role="radiogroup" aria-label="Sticker">
                 {STICKERS.map(id => (
-                  <button key={id} type="button" role="radio" aria-checked={sticker === id} className="sticker-btn" onClick={() => setSticker(id)} aria-label={id.replace('-', ' ')}>
+                  <button key={id} type="button" role="radio" aria-checked={sticker === id} className="k-color sticker-btn" onClick={() => setSticker(id)} aria-label={id.replace('-', ' ')}>
                     <img src={srcSticker(id)} alt="" />
                   </button>
                 ))}
               </div>
-              <div className="seg" role="group" aria-label="Tamaño del sticker">
-                {(Object.keys(TAM_STICKER) as (keyof typeof TAM_STICKER)[]).map(t => <button key={t} type="button" aria-pressed={tamSticker === t} onClick={() => setTamSticker(t)}>{t}</button>)}
-              </div>
+              <Segmentado etiqueta="Tamaño del sticker" valor={tamSticker} onCambiar={setTamSticker} opciones={(Object.keys(TAM_STICKER) as (keyof typeof TAM_STICKER)[]).map(t => ({ valor: t, texto: t }))} />
             </>)}
             {herr === 'tag' && (
               <label className="campo-tag">
@@ -230,29 +213,19 @@ export const App: React.FC = () => {
                 <input id="tag" value={tag} maxLength={9} placeholder="TU TAG" autoComplete="off" onChange={e => setTag(e.target.value.toUpperCase())} />
               </label>
             )}
-            <p className="ayuda">{activa.ayuda}</p>
-          </div>
-          <button type="button" className="btn btn-limpiar" onClick={() => { if (confirmar) { cambiar(disenoVacio()); setConfirmar(false); } else { setConfirmar(true); setTimeout(() => setConfirmar(false), 2500); } }}>
-            <span className="material-symbols-outlined" aria-hidden="true">restart_alt</span>{confirmar ? '¿Seguro?' : 'Empezar de nuevo'}
-          </button>
-        </aside>
-
-        <nav className="barra-inferior" aria-label="Herramientas">
-          <div className="herramientas" role="radiogroup" aria-label="Herramienta">
-            {HERRAMIENTAS.map(h => (
-              <button key={h.id} type="button" role="radio" aria-checked={herr === h.id} className="herr-btn" onClick={() => setHerr(h.id)}>
-                <span className="material-symbols-outlined" aria-hidden="true">{h.icono}</span>{h.nombre}
-              </button>
-            ))}
-          </div>
-          <div className="paleta" role="radiogroup" aria-label="Color">
-            {PALETA.map(c => (
-              <button key={c} type="button" role="radio" aria-checked={color === c} aria-label={c} title={c} className="color-btn" style={{ '--c': HEX[c] } as React.CSSProperties} onClick={() => setColor(c)} />
-            ))}
-          </div>
-        </nav>
-      </main>
+            <p className="k-ayuda">{activa.ayuda}</p>
+          </Seccion>
+          <Confirmar icono="restart_alt" texto="Empezar de nuevo" onConfirmar={() => cambiar(disenoVacio())} />
+        </>}
+        inferior={<>
+          <BarraHerramientas herramientas={HERRAMIENTAS} activa={herr} onElegir={setHerr} />
+          <Paleta colores={HEX} elegido={color} onElegir={c => setColor(c as NombreColor)} />
+        </>}
+      >
+        <canvas ref={lienzo} className={'lienzo-vagon herr-' + herr} onPointerDown={alTocar} onPointerMove={alMover} onPointerUp={alSoltar} onPointerCancel={alSoltar}
+          role="img" aria-label={`Lateral del carro ${nombreModelo}. ${activa.ayuda}`} />
+      </PantallaHerramienta>
       {aviso && <div className="aviso" role="status">{aviso}</div>}
-    </div>
+    </>
   );
 };

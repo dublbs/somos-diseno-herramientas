@@ -14,6 +14,10 @@ Hub de experiencias interactivas de Somos Diseño para tablet (horizontal) y pan
 | `loops/` | Teatro de Papel | Orgánica |
 | `graffiti/` | Graffiti y Tags | Pixel |
 | `credencial/` | Credencial (celular, mobile-first) | los tres (marcos) |
+| `vagon/` | Vagón (diseña tu carro de metro) | Pixel |
+| `audioreactiva/` | Estación Audioreactiva | Geométrica |
+| `grabado/` · `telar/` | Taller de Grabado (elegido) · Telar (en proceso) | Orgánica |
+| `hub-estacion/` | HUB «Estación» (pantalla flip y Mac) | los tres |
 
 Taller de Píxeles (descartado) vive solo en la rama `archive/taller-de-pixeles`.
 
@@ -30,25 +34,21 @@ npm --prefix <app> run build    # tsc --noEmit && vite build
 `dist/` está versionado porque el hub enlaza a él: reconstruye la app que toques antes de hacer commit.
 
 ## Regla de pantalla: todo cabe sin scroll
-Toda experiencia usa el sistema de `shared/somos-ui.css` (desde 600 × 560 px no hay scroll de página; en teléfono sí):
-```html
-<div class="app-pantalla">
-  <header class="barra-superior">… <a class="volver" href="../../">…</a> <div class="barra-info"><h1/></div></header>
-  <main class="cuerpo-pantalla">
-    <section class="escenario-fit"><div class="lienzo-fit" style="--ratio:1">canvas</div></section>
-    <aside class="panel-app">
-      <div class="pestanas" role="tablist">…</div>
-      <div class="panel-pagina" role="tabpanel">…</div>
-      <div class="panel-pie">acciones principales</div>
-    </aside>
-  </main>
-</div>
-```
-- El lienzo se mide por alto (`.lienzo-fit` con container queries); no uses `vh` fijos ni `max-height` calculados a mano.
-- Si los controles no caben, se reparten en **pestañas**; nunca scroll interno en el panel.
-- En vertical el panel va abajo (alto con `--alto-panel` en `.app-pantalla`).
-- **Excepción: `credencial/`** es para el celular de cada persona. Su layout propio (`.movil`, 100dvh) cabe sin scroll en 390×844, 412×915 y 360×740, sin pestañas con scroll.
-- Verificación: ninguna resolución de tablet (1024×768, 1180×820, 1280×720, 1366×768, 768×1024, 820×1180) puede tener scroll de página, controles fuera de vista ni panel con scroll.
+Las experiencias son **herramientas de diseño con barras fijas** (propuesta `docs/plans/005-herramientas-de-diseno.md`) y usan el **kit** de `shared/ui/`:
+- `shared/ui/somos-kit.css` (componentes `k-`, con forma propia por lenguaje según `data-visual`) y `shared/ui/Kit.tsx`:
+  - estructura: `PantallaHerramienta`, `BarraSuperior`, `Seccion`;
+  - herramientas: `BarraHerramientas`, `Paleta`;
+  - controles: `Segmentado`, `Deslizador`, `Interruptor`, `BotonAccion`, `Confirmar`;
+  - estado: `useHistorial` (deshacer y rehacer).
+- Muestra del kit: `docs/kit/muestra.html` (se genera con `python3 scripts/kit-muestra.py`).
+- Para importar el kit, la app agrega `resolve.dedupe: ['react', 'react-dom']` en `vite.config.ts` y `paths` de `react` en `tsconfig.json` (ver `vagon/`).
+- **Pantalla:** barra superior, lienzo, barra derecha y barra inferior, todas fijas.
+  - Nada se colapsa ni se esconde en pestañas, y no hay scroll de página ni de panel.
+  - En vertical, la barra derecha pasa sobre la inferior.
+  - Las barras que lleva cada experiencia están en la tabla de la propuesta 005.
+- Las apps que aún no migran siguen con `shared/somos-ui.css` (`.app-pantalla`, panel con pestañas), con la misma regla de no scroll.
+- **Excepción: `credencial/`** es para el celular de cada persona. Su layout propio (`.movil`, 100dvh) cabe sin scroll en 390×844, 412×915 y 360×740.
+- **Verificación:** ninguna resolución de tablet (1024×768, 1180×820, 1280×720, 1366×768, 768×1024, 820×1180) puede tener scroll de página, controles fuera de vista ni panel con scroll. Hay que probar con cada herramienta activa.
 
 ## Propiedad de archivos
 | Zona | Dueño |
