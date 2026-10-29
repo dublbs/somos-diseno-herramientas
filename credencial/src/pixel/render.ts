@@ -1,6 +1,6 @@
 import { marcoListo, type Visual } from '../../../shared/marcos';
 import { HEX, contraste, type NombreColor } from './palette';
-import { GLIFOS, AVANCE, normalizar } from './font';
+import { GLIFOS, AVANCE, normalizar } from '../../../shared/pixelfont';
 import { TIMBRES, type IdPersonaje, type Tema } from '../temas';
 import { raster } from '../lib/imagenes';
 

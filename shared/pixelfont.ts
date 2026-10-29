@@ -1,4 +1,5 @@
 // Alfabeto pixel 5×7 (mayúsculas, números y signos básicos). Avance de 6 px por carácter.
+// Vive en shared/ porque lo usan la credencial y el HUB.
 const G: Record<string, string> = {
   A: "01110 10001 10001 11111 10001 10001 10001",
   B: "11110 10001 10001 11110 10001 10001 11110",

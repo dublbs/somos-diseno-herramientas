@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { normalizar } from '../pixel/font';
+import { normalizar } from '../../../shared/pixelfont';
 import { SELLOS, normalizarRetrato, type DatosCarta, type Retrato } from '../pixel/render';
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
