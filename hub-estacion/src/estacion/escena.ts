@@ -441,36 +441,55 @@ export class Estacion {
     this.cartel(ctx, 'Andén · Pixel', W * 0.015, anden.y + 14 * u, C.Morado);
   }
 
-  // Escaleras mecánicas (peldaños que suben, pasamanos y costado metálico) con una escalera fija al lado.
+  // Escaleras mecánicas vistas de perfil, como en un corte de la estación: descanso abajo y arriba, peldaños
+  // escalonados (huella y contrahuella) que suben, la estructura metálica debajo, baranda de vidrio y pasamanos
+  // negro que se curva en los extremos.
   private escaleras(ctx: CanvasRenderingContext2D) {
-    const { u, e, escA, escB, tramoA, tramoB, anden, mezz, plaza } = this.d;
+    const { e, escA, escB, tramoA, tramoB, anden, mezz, plaza } = this.d;
     const tramo = (x0: number, y0: number, x1: number, y1: number) => {
-      const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy), nx = dy / L * Math.sign(dx), ny = -Math.abs(dx) / L; // normal hacia arriba
-      const ancho = 22 * e;
-      ctx.save(); ctx.lineCap = 'butt';
-      // escalera fija, detrás
-      const fx = -nx * 30 * e, fy = -ny * 30 * e, pasos = Math.round(L / (14 * e));
-      ctx.strokeStyle = C.Negro; ctx.lineWidth = 2 * e; ctx.fillStyle = '#CFC6B5';
-      ctx.beginPath(); ctx.moveTo(x0 + fx, y0 + fy);
-      for (let i = 0; i < pasos; i++) { const a = (i + 1) / pasos; ctx.lineTo(x0 + fx + dx * (i / pasos), y0 + fy + dy * a); ctx.lineTo(x0 + fx + dx * a, y0 + fy + dy * a); }
-      ctx.lineTo(x1 + fx, y1 + fy + 12 * e); ctx.lineTo(x0 + fx, y0 + fy + 12 * e); ctx.closePath(); ctx.fill(); ctx.stroke();
-      // costado metálico
-      ctx.fillStyle = '#B8B2A6'; ctx.strokeStyle = C.Negro; ctx.lineWidth = 2.5 * e;
-      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.lineTo(x1, y1 + 26 * e); ctx.lineTo(x0, y0 + 14 * e); ctx.closePath(); ctx.fill(); ctx.stroke();
-      // peldaños: banda con rayas que corren hacia arriba
-      ctx.strokeStyle = '#E7E1D6'; ctx.lineWidth = ancho;
-      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
-      ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.setLineDash([2 * e, 7 * e]); ctx.lineDashOffset = this.quieto ? 0 : -this.reloj * 0.012 * e;
-      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]);
-      // pasamanos
-      ctx.strokeStyle = C.Negro; ctx.lineWidth = 5 * e; ctx.lineCap = 'round';
-      const px = nx * 26 * e, py = ny * 26 * e;
-      ctx.beginPath(); ctx.moveTo(x0 + px - dx / L * 18 * e, y0 + py + 6 * e); ctx.lineTo(x1 + px + dx / L * 14 * e, y1 + py); ctx.stroke();
-      ctx.lineWidth = 2 * e;
-      for (const k of [0, 0.5, 1]) { ctx.beginPath(); ctx.moveTo(x0 + dx * k, y0 + dy * k); ctx.lineTo(x0 + dx * k + px, y0 + dy * k + py); ctx.stroke(); }
+      const dir = Math.sign(x1 - x0), dx = x1 - x0, dy = y1 - y0;
+      const descanso = 46 * e, fondo = 34 * e, alto = 36 * e;
+      const n = Math.max(6, Math.round(Math.abs(dy) / (11 * e))), w = dx / n, h = dy / n;
+      const xa = x0 - dir * descanso, xb = x1 + dir * descanso;
+      ctx.save(); ctx.lineJoin = 'round';
+      // estructura (armadura) bajo los peldaños
+      ctx.fillStyle = '#9C968B'; ctx.strokeStyle = C.Negro; ctx.lineWidth = 2.5 * e;
+      ctx.beginPath(); ctx.moveTo(xa, y0); ctx.lineTo(x0, y0); ctx.lineTo(x1, y1); ctx.lineTo(xb, y1);
+      ctx.lineTo(xb, y1 + fondo); ctx.lineTo(x1 + dir * fondo * 0.4, y1 + fondo); ctx.lineTo(x0 + dir * fondo * 0.4, y0 + fondo); ctx.lineTo(xa, y0 + fondo); ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#B8B2A6'; ctx.beginPath(); // franja clara del costado
+      ctx.moveTo(x0 + dir * fondo * 0.15, y0 + fondo * 0.45); ctx.lineTo(x1 + dir * fondo * 0.15, y1 + fondo * 0.45); ctx.lineTo(x1 + dir * fondo * 0.3, y1 + fondo * 0.7); ctx.lineTo(x0 + dir * fondo * 0.3, y0 + fondo * 0.7); ctx.closePath(); ctx.fill();
+      // baranda de vidrio
+      ctx.fillStyle = 'rgba(127,200,248,.35)'; ctx.strokeStyle = C.Negro; ctx.lineWidth = 1.5 * e;
+      ctx.beginPath(); ctx.moveTo(xa + dir * 8 * e, y0); ctx.lineTo(x0, y0); ctx.lineTo(x1, y1); ctx.lineTo(xb - dir * 8 * e, y1);
+      ctx.lineTo(xb - dir * 8 * e, y1 - alto); ctx.lineTo(x1, y1 - alto); ctx.lineTo(x0, y0 - alto); ctx.lineTo(xa + dir * 8 * e, y0 - alto); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // peldaños: huella y contrahuella, corren hacia arriba
+      const fase = this.quieto ? 0 : ((this.reloj / 900) % 1);
+      ctx.save();
+      ctx.beginPath(); ctx.moveTo(xa, y0 + 2); ctx.lineTo(x0, y0 + 2); ctx.lineTo(x1, y1 + 2); ctx.lineTo(xb, y1 + 2); ctx.lineTo(xb, y1 - Math.abs(h) * 1.4); ctx.lineTo(x1, y1 - Math.abs(h) * 1.4); ctx.lineTo(x0, y0 - Math.abs(h) * 1.4); ctx.lineTo(xa, y0 - Math.abs(h) * 1.4); ctx.closePath(); ctx.clip();
+      ctx.fillStyle = '#E7E1D6'; ctx.strokeStyle = C.Negro; ctx.lineWidth = 1.6 * e;
+      ctx.beginPath(); ctx.moveTo(xa, y0);
+      ctx.lineTo(x0 - w * (1 - fase), y0);
+      for (let k = -1; k <= n; k++) {
+        const px = x0 + w * (k + fase), py = y0 + h * (k + fase);
+        ctx.lineTo(px, py + h); ctx.lineTo(px + w, py + h);
+      }
+      ctx.lineTo(xb, y1); ctx.lineTo(xb, y1 + 6 * e); ctx.lineTo(x1, y1 + 6 * e); ctx.lineTo(x0, y0 + 6 * e); ctx.lineTo(xa, y0 + 6 * e); ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.restore();
+      // peines (placas) de entrada y salida
+      ctx.fillStyle = C.Amarillo; ctx.fillRect(Math.min(xa, x0), y0 - 2 * e, Math.abs(descanso), 3 * e); ctx.fillRect(Math.min(x1, xb), y1 - 2 * e, Math.abs(descanso), 3 * e);
+      // pasamanos: corre sobre la baranda y se curva en los extremos
+      const r = 9 * e;
+      ctx.strokeStyle = C.Negro; ctx.lineWidth = 6 * e; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(xa + dir * (8 * e + r), y0 - alto + 2 * r);
+      ctx.arc(xa + dir * (8 * e + r), y0 - alto + r, r, dir > 0 ? Math.PI / 2 : Math.PI / 2, dir > 0 ? Math.PI * 1.5 : -Math.PI / 2, dir < 0);
+      ctx.lineTo(x0, y0 - alto); ctx.lineTo(x1, y1 - alto); ctx.lineTo(xb - dir * (8 * e + r), y1 - alto);
+      ctx.arc(xb - dir * (8 * e + r), y1 - alto + r, r, -Math.PI / 2, Math.PI / 2, dir < 0);
+      ctx.stroke();
       ctx.restore();
     };
-    void u;
     tramo(escA, anden.suelo + anden.fondo / 2, escA + tramoA, mezz.suelo + mezz.fondo / 2);
     tramo(escB, mezz.suelo + mezz.fondo / 2, escB - tramoB, plaza.suelo + plaza.fondo / 2);
   }

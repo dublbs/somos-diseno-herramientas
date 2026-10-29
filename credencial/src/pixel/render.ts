@@ -102,6 +102,7 @@ export function pintarMarco(ctx: CanvasRenderingContext2D, marcoId: string, s: n
   // Algunas figuras se salen del cuadro de 240 (rayos, estallidos): se recortan al marco.
   ctx.beginPath(); ctx.rect(0, 0, 240, 240); ctx.clip();
   m._p.forEach(([p, f]) => { ctx.fillStyle = f; ctx.fill(p); });
+  ctx.save();
   ctx.clip(m._clip.path);
   ctx.fillStyle = HEX.Hueso;
   ctx.fill(m._clip.path);
@@ -114,6 +115,9 @@ export function pintarMarco(ctx: CanvasRenderingContext2D, marcoId: string, s: n
       pintarImagen(ctx, retrato, s, [bx + margen, by + margen - paso * 2, bw - 2 * margen, bh - margen * 1.4], 'contain', true);
     }
   }
+  ctx.restore();
+  // lo que en Figma va sobre la foto (contornos pixel, enredaderas, franjas)
+  m._encima.forEach(([p, f]) => { ctx.fillStyle = f; ctx.fill(p); });
   ctx.restore();
 }
 
