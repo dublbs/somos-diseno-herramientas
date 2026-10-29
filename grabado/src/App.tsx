@@ -1,12 +1,15 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FIGURAS, HEX, cargarFiguras, descargar, tarjeta, type IdFigura, type NombreColor } from './lib/comun';
 import { PAPEL, TAMANOS, dibujarGrabado, type Estampa, type Tamano } from './lib/grabado';
+import { BarraSuperior, BotonAccion, Confirmar, Interruptor, Paleta, PantallaHerramienta, Seccion, Segmentado, useHistorial } from '../../shared/ui/Kit';
+import '../../shared/ui/somos-kit.css';
 import './styles.css';
 
-type Pestana = 'tacos' | 'tinta';
 const QUIETO = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 const TINTAS: NombreColor[] = ['Negro', 'Azul', 'Lapislázuli', 'Verde', 'Rosa', 'Morado', 'Amarillo', 'Celeste'];
 const PAPELES: NombreColor[] = ['Hueso', 'Celeste', 'Amarillo', 'Rosa'];
+// Corrimiento fijo de cada tinta (en unidades del papel de 1000) cuando el registro está corrido.
+const corrimiento = (c: NombreColor): [number, number] => { const a = TINTAS.indexOf(c) * 2.4; return [Math.cos(a) * 9, Math.sin(a) * 9]; };
 
 export const App: React.FC = () => {
   const [empezado, setEmpezado] = useState(false);
@@ -16,9 +19,9 @@ export const App: React.FC = () => {
   const [tamano, setTamano] = useState<Tamano>('mediano');
   const [giroBase, setGiroBase] = useState(0);
   const [colorPapel, setColorPapel] = useState<NombreColor>('Hueso');
-  const [estampas, setEstampas] = useState<Estampa[]>([]);
-  const [pestana, setPestana] = useState<Pestana>('tacos');
-  const [confirmar, setConfirmar] = useState(false);
+  const historial = useHistorial<Estampa[]>([]);
+  const estampas = historial.estado;
+  const [registro, setRegistro] = useState(false);
   const lienzo = useRef<HTMLCanvasElement>(null);
   const aparece = useRef<{ indice: number; inicio: number } | null>(null);
   const vivo = useRef({ estampas, colorPapel, tacos });
@@ -48,12 +51,13 @@ export const App: React.FC = () => {
   // Estampar: el taco gira un poco solo, como cuando se presiona a mano.
   const estampar = (ev: React.PointerEvent<HTMLCanvasElement>) => {
     const r = ev.currentTarget.getBoundingClientRect();
-    const x = ((ev.clientX - r.left) / r.width) * PAPEL, y = ((ev.clientY - r.top) / r.height) * PAPEL;
+    let x = ((ev.clientX - r.left) / r.width) * PAPEL, y = ((ev.clientY - r.top) / r.height) * PAPEL;
     const semilla = Math.floor(Math.random() * 1e9);
+    // Registro corrido (como la risografía): cada tinta es una «placa» y queda corrida siempre hacia el mismo lado.
+    if (registro) { const [dx, dy] = corrimiento(tinta); x += dx; y += dy; }
     const nueva: Estampa = { taco, tinta, x, y, tam: TAMANOS[tamano], giro: giroBase + ((semilla % 13) - 6) * (Math.PI / 180), semilla };
     if (!QUIETO) aparece.current = { indice: estampas.length, inicio: performance.now() };
-    setEstampas(l => [...l, nueva]);
-    setConfirmar(false);
+    historial.cambiar(l => [...l, nueva]);
   };
 
   const exportar = async () => {
@@ -84,80 +88,58 @@ export const App: React.FC = () => {
     );
   }
 
+  const nombreTaco = FIGURAS.find(f => f.id === taco)!.nombre;
   return (
-    <div className="app-pantalla">
-      <header className="barra-superior">
-        <div className="lado-izq">
-          <a className="volver" href="../../" id="volver-hub"><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Experiencias</a>
-          <div className="barra-info">
-            <h1>Taller de Grabado</h1>
-            <p className="bajada-corta">{estampas.length ? `${estampas.length} estampa${estampas.length === 1 ? '' : 's'} · toca el papel para estampar` : 'Toca el papel para estampar'}</p>
-          </div>
-        </div>
-      </header>
-      <main className="cuerpo-pantalla">
-        <section className="escenario-fit" aria-label="Papel">
-          <div className="lienzo-fit marco-papel" style={{ '--ratio': 1 } as React.CSSProperties}>
-            <canvas ref={lienzo} className="papel" onPointerDown={estampar} role="img" aria-label={`Papel con ${estampas.length} estampas. Toca para estampar ${FIGURAS.find(f => f.id === taco)!.nombre} en ${tinta}`} />
-          </div>
-        </section>
-        <aside className="panel-app" aria-label="Controles">
-          <div className="pestanas" role="tablist" aria-label="Secciones">
-            {(['tacos', 'tinta'] as Pestana[]).map(p => (
-              <button key={p} type="button" role="tab" id={`tab-${p}`} aria-selected={pestana === p} aria-controls={`pag-${p}`} onClick={() => setPestana(p)}>
-                <span className="material-symbols-outlined" aria-hidden="true">{p === 'tacos' ? 'approval' : 'format_color_fill'}</span>
-                {p === 'tacos' ? 'Tacos' : 'Tinta y papel'}
+    <PantallaHerramienta
+      anchoLateral={300}
+      superior={
+        <BarraSuperior titulo="Taller de Grabado" bajada={estampas.length ? `${estampas.length} estampa${estampas.length === 1 ? '' : 's'} · toca el papel para estampar` : 'Toca el papel para estampar'}>
+          <BotonAccion icono="undo" etiqueta="Deshacer la última estampa" onClick={historial.deshacer} disabled={!historial.puedeDeshacer} />
+          <BotonAccion icono="redo" etiqueta="Rehacer" onClick={historial.rehacer} disabled={!historial.puedeRehacer} />
+          <BotonAccion icono="download" texto="Descargar" primario onClick={exportar} disabled={!estampas.length} />
+        </BarraSuperior>
+      }
+      lateral={<>
+        <Seccion titulo="Tinta">
+          <Paleta etiqueta="Tinta" colores={Object.fromEntries(TINTAS.map(c => [c, HEX[c]]))} elegido={tinta} onElegir={c => setTinta(c as NombreColor)} />
+        </Seccion>
+        <Seccion titulo="Papel">
+          <Paleta etiqueta="Papel" colores={Object.fromEntries(PAPELES.map(c => [c, HEX[c]]))} elegido={colorPapel} onElegir={c => setColorPapel(c as NombreColor)} />
+        </Seccion>
+        <Seccion titulo={`Mezclas con ${tinta}`} crece>
+          <div className="mezclas" style={{ '--papel': HEX[colorPapel] } as React.CSSProperties}>
+            {TINTAS.filter(c => c !== tinta).map(c => (
+              <button key={c} type="button" className="mezcla" onClick={() => setTinta(c)} aria-label={`${tinta} sobre ${c}: elegir ${c}`} title={`${tinta} sobre ${c}`}>
+                <span className="gota" style={{ background: HEX[c] }} /><span className="gota encima" style={{ background: HEX[tinta] }} />
               </button>
             ))}
           </div>
-          {pestana === 'tacos' && (
-            <div className="panel-pagina" role="tabpanel" id="pag-tacos" aria-labelledby="tab-tacos">
-              <div className="figuras" role="radiogroup" aria-label="Taco">
-                {FIGURAS.map(f => (
-                  <button key={f.id} type="button" role="radio" aria-checked={taco === f.id} className="figura-btn" onClick={() => setTaco(f.id)} title={f.nombre}>
-                    <span className="silueta" style={{ '--tinta': HEX[tinta], WebkitMaskImage: `url("${f.src}")`, maskImage: `url("${f.src}")` } as React.CSSProperties} />
-                    <span>{f.nombre}</span>
-                  </button>
-                ))}
-              </div>
-              <div className="fila-tamano">
-                <div className="seg" role="group" aria-label="Tamaño">
-                  {(Object.keys(TAMANOS) as Tamano[]).map(t => (
-                    <button key={t} type="button" aria-pressed={tamano === t} onClick={() => setTamano(t)}>{t[0].toUpperCase() + t.slice(1)}</button>
-                  ))}
-                </div>
-                <button type="button" className="btn girar" onClick={() => setGiroBase(g => g + Math.PI / 2)} aria-label="Girar el taco 90 grados">
-                  <span className="material-symbols-outlined" aria-hidden="true">rotate_90_degrees_cw</span>
-                </button>
-              </div>
-            </div>
-          )}
-          {pestana === 'tinta' && (
-            <div className="panel-pagina" role="tabpanel" id="pag-tinta" aria-labelledby="tab-tinta">
-              <span className="label">Tinta</span>
-              <div className="chips" role="radiogroup" aria-label="Tinta">
-                {TINTAS.map(c => <button key={c} type="button" role="radio" aria-checked={tinta === c} aria-label={c} title={c} className="chip" style={{ '--c': HEX[c] } as React.CSSProperties} onClick={() => setTinta(c)} />)}
-              </div>
-              <span className="label">Papel</span>
-              <div className="chips" role="radiogroup" aria-label="Papel">
-                {PAPELES.map(c => <button key={c} type="button" role="radio" aria-checked={colorPapel === c} aria-label={c} title={c} className="chip cuadrado" style={{ '--c': HEX[c] } as React.CSSProperties} onClick={() => setColorPapel(c)} />)}
-              </div>
-              <p className="que-hace">Las tintas se mezclan donde se cruzan: prueba Amarillo sobre Celeste o Rosa sobre Azul.</p>
-            </div>
-          )}
-          <div className="panel-pie tres">
-            <button type="button" className="btn solo-icono" onClick={() => setEstampas(l => l.slice(0, -1))} disabled={!estampas.length} aria-label="Deshacer la última estampa">
-              <span className="material-symbols-outlined" aria-hidden="true">undo</span>
+          <p className="k-ayuda">Las tintas se multiplican donde se cruzan, como en el grabado y la risografía. Toca una mezcla para usar esa tinta.</p>
+          <Interruptor id="registro" texto="Registro corrido" activo={registro} onCambiar={setRegistro} />
+        </Seccion>
+        <Confirmar texto="Limpiar el papel" disabled={!estampas.length} onConfirmar={() => historial.cambiar([])} />
+      </>}
+      inferior={<>
+        <div className="k-grupo tacos" role="radiogroup" aria-label="Taco">
+          {FIGURAS.map(f => (
+            <button key={f.id} type="button" role="radio" aria-checked={taco === f.id} className="k-herr" onClick={() => setTaco(f.id)} title={f.nombre}>
+              <span className="silueta" aria-hidden="true" style={{ '--tinta': HEX[tinta], WebkitMaskImage: `url("${f.src}")`, maskImage: `url("${f.src}")` } as React.CSSProperties} />
+              {f.nombre}
             </button>
-            <button type="button" className="btn" disabled={!estampas.length} onClick={() => { if (confirmar) { setEstampas([]); setConfirmar(false); } else { setConfirmar(true); setTimeout(() => setConfirmar(false), 2500); } }}>
-              <span className="material-symbols-outlined" aria-hidden="true">delete</span>{confirmar ? '¿Seguro?' : 'Limpiar'}
-            </button>
-            <button type="button" className="btn primario" onClick={exportar} disabled={!estampas.length}>
-              <span className="material-symbols-outlined" aria-hidden="true">download</span>Descargar
-            </button>
-          </div>
-        </aside>
-      </main>
-    </div>
+          ))}
+        </div>
+        <div className="k-grupo">
+          <Segmentado etiqueta="Tamaño del taco" valor={tamano} onCambiar={setTamano}
+            opciones={(Object.keys(TAMANOS) as Tamano[]).map(t => ({ valor: t, texto: t[0].toUpperCase() + t.slice(1) }))} />
+          <BotonAccion icono="rotate_90_degrees_cw" etiqueta="Girar el taco 90 grados" onClick={() => setGiroBase(g => g + Math.PI / 2)} />
+        </div>
+      </>}
+    >
+      <div className="escenario-fit">
+        <div className="lienzo-fit marco-papel" style={{ '--ratio': 1 } as React.CSSProperties}>
+          <canvas ref={lienzo} className="papel" onPointerDown={estampar} role="img" aria-label={`Papel con ${estampas.length} estampas. Toca para estampar ${nombreTaco} en ${tinta}`} />
+        </div>
+      </div>
+    </PantallaHerramienta>
   );
 };
