@@ -28,6 +28,7 @@ interface PanelProps {
   onVaciar: () => void;
   onExportarPNG: () => void;
   onAplicarPaletaMosaico: (paleta: PaletaDef) => void;
+  onInvertirMosaico: () => void;
   estadoMsg: string;
 }
 
@@ -102,6 +103,7 @@ export const Panel: React.FC<PanelProps> = ({
   onVaciar,
   onExportarPNG,
   onAplicarPaletaMosaico,
+  onInvertirMosaico,
   estadoMsg,
 }) => {
   const [pestana, setPestana] = useState<Pestana>('dibujar');
@@ -120,16 +122,8 @@ export const Panel: React.FC<PanelProps> = ({
     }
   };
 
-  const seleccionarPaleta = (p: PaletaDef) => {
-    onCambiarPincel({
-      ...pincel,
-      c: { f: p.f, a: p.a, b: p.b },
-    });
-  };
-
-  const paletaActiva = PALETAS.find(
-    (p) => p.f === pincel.c.f && p.a === pincel.c.a && p.b === pincel.c.b
-  );
+  // La paleta y el invertir se aplican al diseño completo en el momento (y al pincel).
+  const seleccionarPaleta = (p: PaletaDef) => onAplicarPaletaMosaico(p);
 
   const herramientasConfig = [
     { id: 'poner', label: 'Poner', icon: 'draw' },
@@ -241,8 +235,8 @@ export const Panel: React.FC<PanelProps> = ({
             <button
               type="button"
               className="btn-enlace"
-              onClick={() => onCambiarPincel({ ...pincel, c: { f: pincel.c.a, a: pincel.c.f, b: pincel.c.b } })}
-              title="Invertir colores de fondo y figura"
+              onClick={onInvertirMosaico}
+              title="Invertir fondo y figura en todo el diseño"
             >
               <span className="material-symbols-outlined" aria-hidden="true">swap_horiz</span>
               Invertir
@@ -271,17 +265,6 @@ export const Panel: React.FC<PanelProps> = ({
               );
             })}
           </div>
-          {paletaActiva && (
-            <button
-              type="button"
-              className="btn secundario btn-aplicar-paleta"
-              onClick={() => onAplicarPaletaMosaico(paletaActiva)}
-              title="Cambiar todo el diseño a esta paleta"
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">palette</span>
-              Aplicar a todo el diseño
-            </button>
-          )}
         </div>
       )}
 

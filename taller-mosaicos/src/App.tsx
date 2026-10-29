@@ -378,6 +378,15 @@ export const App: React.FC = () => {
     setEstadoMsg(`Paleta «${paleta.nombre}» aplicada a todo el diseño.`);
   };
 
+  // Intercambia fondo y figura en cada celda (respeta las paletas mezcladas) y en el pincel.
+  const invertirMosaico = () => {
+    const nuevas: Record<string, Celda> = {};
+    for (const [clave, cel] of Object.entries(celdas)) nuevas[clave] = { ...cel, c: { ...cel.c, f: cel.c.a, a: cel.c.f } };
+    setCeldas(nuevas);
+    setPincel((p) => ({ ...p, c: { ...p.c, f: p.c.a, a: p.c.f } }));
+    setEstadoMsg('Colores invertidos en todo el diseño.');
+  };
+
   const exportarPNG = async () => {
     const canvas = document.createElement('canvas');
     canvas.width = formato.cols * formato.celda;
@@ -466,6 +475,7 @@ export const App: React.FC = () => {
           }}
           onExportarPNG={exportarPNG}
           onAplicarPaletaMosaico={aplicarPaletaMosaico}
+          onInvertirMosaico={invertirMosaico}
           estadoMsg={estadoMsg}
         />
       </main>
