@@ -505,6 +505,16 @@ export class Estacion {
   // Easter egg: el vagón pintado por la gente en la experiencia Vagón (de prueba: stickers y tags de Graffiti).
   private vagonPintado(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, n: number) {
     const { u } = this.d;
+    // Si alguien diseñó un vagón en este equipo (experiencia Vagón), pasa ese; si no, uno de prueba.
+    const propio = vagonDeLaGente();
+    if (propio) {
+      ctx.save(); ctx.imageSmoothingEnabled = false;
+      const cw = h * 2; for (let k = 0; k * cw < w; k++) ctx.drawImage(propio, x + k * cw, y, cw, h);
+      ctx.restore();
+      ctx.fillStyle = C.Negro; ctx.fillRect(x + w - 150 * u, y + h - 40 * u, 150 * u, 22 * u);
+      this.textoPixel(ctx, 'TU VAGON', x + w - 142 * u, y + h - 35 * u, Math.max(1, Math.round(2 * u)), C.Amarillo);
+      return;
+    }
     const tag = imagen(SRC.tag);
     if (tag) { const th = h * 0.38, tw = th / (tag.naturalHeight / tag.naturalWidth || 0.5); ctx.drawImage(raster(tag, tw, th), x + w * 0.04, y + h * 0.42); }
     for (let k = 0; k < 4; k++) {
@@ -599,6 +609,18 @@ export class Estacion {
     const completas = this.avatares.filter(a => a.p.timbres >= 4).length;
     return { personas, timbres, completas };
   }
+}
+
+// El vagón que diseñó la gente en la experiencia Vagón (lo deja en localStorage al «Salir a la vía»).
+// Por ahora se comparte por el mismo equipo; con Supabase llegará desde todas las tablets.
+let vagonGuardado: { ts: number; im: HTMLImageElement } | null = null;
+function vagonDeLaGente(): HTMLImageElement | null {
+  try {
+    const v = JSON.parse(localStorage.getItem('sd:vagon') || 'null') as { png: string; ts: number } | null;
+    if (!v?.png) return null;
+    if (!vagonGuardado || vagonGuardado.ts !== v.ts) { const im = new Image(); im.src = v.png; vagonGuardado = { ts: v.ts, im }; }
+    return vagonGuardado.im.complete && vagonGuardado.im.naturalWidth ? vagonGuardado.im : null;
+  } catch { return null; }
 }
 
 // Silueta de un taco entintada en un color (para los banderines de grabado).

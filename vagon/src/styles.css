@@ -1,0 +1,75 @@
+@import '../../shared/somos-ui.css';
+@import '../../shared/somos-fonts.css';
+@import '../../shared/somos-icons.css';
+
+/* Vagón: piloto de las barras fijas (propuesta 005). Lienzo grande, barra derecha (biblioteca y opciones de la
+   herramienta activa) y barra inferior (herramientas y paleta). Nada se colapsa y nada hace scroll. */
+.material-symbols-outlined { font-size: 20px; vertical-align: middle; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+.app-vagon { height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr); background: var(--bg); color: var(--ink); overflow: hidden; }
+.app-vagon .barra-superior { max-width: none; }
+.acciones-sup { display: flex; gap: 8px; align-items: center; flex: none; }
+.acciones-sup .btn { min-height: 48px; padding: 0 16px; font-size: 15px; }
+.btn.solo-icono { width: 48px; padding: 0; }
+.btn.primario { background: var(--accent); color: var(--on-accent); border-color: var(--ink); }
+.btn:disabled { opacity: .4; cursor: default; }
+
+.cuerpo-vagon { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 290px; grid-template-rows: minmax(0, 1fr) auto; gap: 12px; padding: 4px 16px 16px; }
+.escenario-vagon { grid-column: 1; grid-row: 1; min-height: 0; min-width: 0; display: grid; border: var(--borde); box-shadow: var(--sombra); background: var(--surface); }
+.lienzo-vagon { width: 100%; height: 100%; min-height: 0; display: block; touch-action: none; image-rendering: pixelated; cursor: crosshair; }
+.lienzo-vagon.herr-sticker, .lienzo-vagon.herr-tag, .lienzo-vagon.herr-balde { cursor: copy; }
+
+.barra-derecha { grid-column: 2; grid-row: 1 / span 2; min-height: 0; display: flex; flex-direction: column; gap: 14px; padding: 12px; background: var(--surface); border: var(--borde); box-shadow: var(--sombra-btn); }
+.seccion { display: grid; gap: 8px; min-width: 0; }
+.seccion .label { margin: 0; }
+.opciones { flex: 1 1 auto; align-content: start; }
+.modelos { display: grid; gap: 8px; }
+.modelo-btn { display: grid; grid-template-columns: 52px 1fr; gap: 10px; align-items: center; min-height: 60px; padding: 4px 8px 4px 4px; border: var(--borde); background: var(--bg); color: var(--ink); text-align: left; cursor: pointer; font: 600 14px "DM Sans", sans-serif; }
+.modelo-btn img { width: 52px; height: 52px; image-rendering: pixelated; display: block; }
+.modelo-btn b { display: block; font-size: 15px; }
+.modelo-btn small { color: var(--muted); font-size: 12px; }
+.modelo-btn[aria-checked="true"] { outline: 3px solid var(--accent); outline-offset: -3px; }
+.seg button .punto { display: inline-block; width: calc(var(--n) * 4px + 2px); height: calc(var(--n) * 4px + 2px); background: currentColor; margin-right: 6px; vertical-align: middle; }
+.stickers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.sticker-btn { aspect-ratio: 1; min-height: 48px; padding: 4px; border: var(--borde); background: var(--bg); cursor: pointer; }
+.sticker-btn img { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+.sticker-btn[aria-checked="true"] { outline: 3px solid var(--accent); outline-offset: -3px; }
+.campo-tag input { width: 100%; min-height: 52px; padding: 0 14px; border: var(--borde); background: var(--bg); color: var(--ink); font: 400 22px "Silkscreen", monospace; letter-spacing: .06em; text-transform: uppercase; }
+.ayuda { margin: 0; font-size: 13px; color: var(--muted); }
+.btn-limpiar { min-height: 48px; font-size: 15px; flex: none; }
+
+.barra-inferior { grid-column: 1; grid-row: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 10px 12px; background: var(--surface); border: var(--borde); box-shadow: var(--sombra-btn); }
+.herramientas { display: flex; gap: 6px; flex-wrap: wrap; }
+.herr-btn { min-width: 76px; min-height: 56px; display: grid; justify-items: center; align-content: center; gap: 2px; padding: 4px 10px; border: var(--borde); background: var(--bg); color: var(--ink); font: 700 13px "DM Sans", sans-serif; cursor: pointer; }
+.herr-btn .material-symbols-outlined { font-size: 24px; }
+.herr-btn[aria-checked="true"] { background: var(--accent); color: var(--on-accent); }
+.paleta { display: flex; gap: 6px; flex-wrap: wrap; }
+.color-btn { width: 44px; height: 44px; padding: 0; border: var(--borde); background: var(--c); cursor: pointer; }
+.color-btn[aria-checked="true"] { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+/* En vertical: el lienzo arriba, la barra derecha pasa a ir sobre la inferior y reparte sus secciones en columnas. */
+@media (max-aspect-ratio: 1/1) {
+  .cuerpo-vagon { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto auto; }
+  .barra-derecha { grid-column: 1; grid-row: 2; display: grid; grid-template-columns: 1.2fr .8fr 1.4fr; align-items: start; }
+  .btn-limpiar { grid-column: 2; grid-row: 2; align-self: end; }
+  .opciones { grid-column: 3; grid-row: 1 / span 2; }
+  .barra-inferior { grid-row: 3; }
+}
+@media (max-width: 1100px) and (min-aspect-ratio: 1/1) {
+  .acciones-sup .btn:not(.solo-icono):not(.primario) { padding: 0 12px; }
+  .barra-info .bajada-corta { display: none; }
+  .color-btn { width: 40px; height: 40px; }
+  .herr-btn { min-width: 64px; padding: 4px 6px; }
+}
+
+.portada { min-height: 100dvh; display: grid; grid-template-rows: auto 1fr; padding: clamp(16px, 3vw, 40px); background: var(--bg); color: var(--ink); }
+.portada .volver { justify-self: start; }
+.portada-cuerpo { align-self: center; justify-self: center; width: min(100%, 640px); display: grid; gap: clamp(14px, 2.4vh, 26px); }
+.portada .etq { margin: 0; font: 400 14px "Silkscreen", monospace; color: var(--accent); text-transform: uppercase; }
+.portada h1 { margin: 0; font: 800 clamp(40px, 7vw, 84px)/.95 var(--fuente-tit); letter-spacing: -.02em; }
+.pasos { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.pasos li { display: grid; grid-template-columns: 40px 1fr; align-items: center; gap: 12px; font-size: clamp(16px, 1.6vw, 20px); }
+.pasos b { display: grid; place-items: center; width: 40px; height: 40px; background: var(--accent); color: var(--on-accent); font: 800 20px var(--fuente-tit); }
+.portada-acciones { display: flex; flex-wrap: wrap; gap: 10px; }
+.portada-acciones .btn { min-height: 56px; }

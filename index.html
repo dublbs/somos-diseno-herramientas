@@ -144,6 +144,22 @@ footer .enlace-hub{color:var(--ink);font-weight:700;text-decoration:none;border-
         </div>
       </li>
 
+      <!-- 4b. VAGÓN -->
+      <li class="tarjeta" data-lenguajes="pixel" id="exp-vagon">
+        <div class="miniatura">
+          <canvas id="cv-vagon" aria-hidden="true"></canvas>
+          <span class="etiqueta">Pixel</span>
+          <span class="badge-estado">Nuevo</span>
+        </div>
+        <div class="cuerpo">
+          <h2>Vagón</h2>
+          <p>Diseña tu carro de metro pixel a pixel: elige el modelo, pinta, rellena, pega stickers y pon tu tag. Después sale a la vía y pasa por la Estación.</p>
+        </div>
+        <div class="tarjeta-acciones">
+          <a class="btn primario btn-entrar" href="vagon/dist/" id="link-vagon" aria-label="Entrar al Vagón">Entrar <span aria-hidden="true">→</span></a>
+        </div>
+      </li>
+
       <!-- 5. CREDENCIAL (celular) -->
       <li class="tarjeta" data-lenguajes="pixel geometrica organica" id="exp-credencial">
         <div class="miniatura">
@@ -175,14 +191,15 @@ footer .enlace-hub{color:var(--ink);font-weight:700;text-decoration:none;border-
       </li>
 
       <!-- 7. TELAR -->
-      <li class="tarjeta" data-lenguajes="organica" id="exp-telar">
+      <li class="tarjeta proxima" data-lenguajes="organica" id="exp-telar">
         <div class="miniatura">
           <canvas id="cv-telar" aria-hidden="true"></canvas>
-          <span class="etiqueta">Orgánica · A comparar</span>
+          <span class="etiqueta">Orgánica</span>
+          <span class="badge-estado">En proceso</span>
         </div>
         <div class="cuerpo">
           <h2>Telar</h2>
-          <p>Elige figuras y colores de hilo, y mira cómo se teje tu faja pasada por pasada. Tu faja se cuelga en la plaza del HUB.</p>
+          <p>Elige figuras y colores de hilo, y mira cómo se teje tu faja pasada por pasada. En proceso: por ahora el Taller de Grabado es el elegido para Orgánica.</p>
         </div>
         <div class="tarjeta-acciones">
           <a class="btn primario btn-entrar" href="telar/dist/" id="link-telar" aria-label="Entrar al Telar">Entrar <span aria-hidden="true">→</span></a>
@@ -193,11 +210,12 @@ footer .enlace-hub{color:var(--ink);font-weight:700;text-decoration:none;border-
       <li class="tarjeta" data-lenguajes="organica" id="exp-grabado">
         <div class="miniatura">
           <canvas id="cv-grabado" aria-hidden="true"></canvas>
-          <span class="etiqueta">Orgánica · A comparar</span>
+          <span class="etiqueta">Orgánica</span>
+          <span class="badge-estado">Elegido</span>
         </div>
         <div class="cuerpo">
           <h2>Taller de Grabado</h2>
-          <p>Estampa figuras orgánicas con tinta sobre papel, como con un taco de madera. Las tintas se mezclan donde se cruzan.</p>
+          <p>Estampa figuras orgánicas con tinta sobre papel, como con un taco de madera. Las tintas se mezclan donde se cruzan. Tus grabados se vuelven banderines en la plaza de la Estación.</p>
         </div>
         <div class="tarjeta-acciones">
           <a class="btn primario btn-entrar" href="grabado/dist/" id="link-grabado" aria-label="Entrar al Taller de Grabado">Entrar <span aria-hidden="true">→</span></a>
@@ -642,6 +660,29 @@ footer .enlace-hub{color:var(--ink);font-weight:700;text-decoration:none;border-
         const { width: W, height: H } = cvAudio;
         if (!window.somosC3) { ctx.fillStyle = HEX.Hueso; ctx.fillRect(0, 0, W, H); return; }
         window.somosC3.dibujarC3(ctx, W, H, window.somosC3.c3EnTiempo(quieto ? 2000 : t));
+      }
+    });
+  }
+
+  // 4b. Vagón: el lateral del metro de Figma (Línea 1) que pasa por la vía, con algunos pixeles pintados encima.
+  const cvVagon = document.getElementById("cv-vagon");
+  if (cvVagon) {
+    const ctx = cvVagon.getContext("2d");
+    const modulo = new Image(); modulo.src = "vagon/dist/figma/metro/linea1-lateral.svg";
+    const pintados = [[6, 6, HEX.Amarillo], [7, 6, HEX.Amarillo], [8, 7, HEX.Amarillo], [9, 7, HEX.Amarillo], [10, 6, HEX.Rosa], [11, 6, HEX.Rosa], [12, 7, HEX.Rosa], [30, 5, HEX.Verde], [31, 5, HEX.Verde], [31, 6, HEX.Verde], [32, 6, HEX.Verde]];
+    miniaturas.push({
+      cv: cvVagon, ctx,
+      draw: t => {
+        const { width: W, height: H } = cvVagon, via = H * 0.84, alto = H * 0.62, cel = alto / 24;
+        ctx.fillStyle = HEX.Hueso; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = HEX.Morado; ctx.fillRect(0, H * 0.08, W, H * 0.06);
+        ctx.fillStyle = HEX.Amarillo; ctx.fillRect(0, via - 4, W, 3);
+        ctx.fillStyle = "#2A2A2A"; ctx.fillRect(0, via, W, H - via);
+        if (!modulo.complete || !modulo.naturalWidth) return;
+        const largo = alto * 6, x = W - ((quieto ? 0.4 : (t / 9000) % 1) * (W + largo));
+        ctx.imageSmoothingEnabled = false;
+        for (let k = 0; k < 6; k++) ctx.drawImage(modulo, x + k * alto, via - alto - 2, alto, alto);
+        for (const [c, f, color] of pintados) { ctx.fillStyle = color; ctx.fillRect(x + alto * 2 + c * cel, via - alto - 2 + f * cel, cel, cel); }
       }
     });
   }

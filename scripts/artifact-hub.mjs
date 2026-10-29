@@ -5,7 +5,7 @@ import { cpSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statS
 import { join } from 'node:path';
 
 const SALIDA = 'artifact-hub';
-const APPS = ['fotomaton', 'taller-mosaicos', 'loops', 'graffiti', 'credencial', 'hub-estacion', 'audioreactiva', 'telar', 'grabado'];
+const APPS = ['fotomaton', 'taller-mosaicos', 'loops', 'graffiti', 'credencial', 'hub-estacion', 'audioreactiva', 'telar', 'grabado', 'vagon'];
 
 // Dentro de claude.ai un <a download> no descarga: se pasa por la capacidad «downloads» del visor.
 const DESCARGAS = `<script>(()=>{const c=HTMLAnchorElement.prototype.click;HTMLAnchorElement.prototype.click=function(){const v=window.claude;if(!this.hasAttribute('download')||!v||!v.use)return c.call(this);const n=this.getAttribute('download')||'archivo',b=fetch(this.href).then(r=>r.blob());v.use('downloads').then(d=>d?b.then(x=>d.save({filename:n,data:x})):c.call(this)).catch(()=>{});};})();</script>`;
