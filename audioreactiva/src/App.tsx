@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Oido, SILENCIO, type Fuente, type Rasgos } from './audio/oido';
-import { ESCENAS, estadoInicial } from './escenas/escenas';
+import { CANALES, ESCENAS, estadoInicial, mezclar, type Canal } from './escenas/escenas';
+import { BarraSuperior, BotonAccion, Deslizador, Interruptor, PantallaHerramienta, Seccion, Segmentado } from '../../shared/ui/Kit';
+import '../../shared/ui/somos-kit.css';
 import { descargar, grabarEnVivo, puedeGrabar } from './lib/archivos';
 import './styles.css';
 
-type Pestana = 'escena' | 'sonido';
 const QUIETO = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 const SEG_LOOP = 6;
 
@@ -15,14 +16,15 @@ export const App: React.FC = () => {
   const [fuente, setFuente] = useState<Fuente | null>(null);
   const [aviso, setAviso] = useState('');
   const [escenaId, setEscenaId] = useState(ESCENAS[0].id);
-  const [pestana, setPestana] = useState<Pestana>('escena');
+  const [mudos, setMudos] = useState<Set<Canal>>(new Set());
   const [sensibilidad, setSensibilidad] = useState(1);
   const [demoAudible, setDemoAudible] = useState(true);
   const [medidor, setMedidor] = useState<Rasgos>(SILENCIO);
   const [grabando, setGrabando] = useState(0); // 0..1
   const escena = ESCENAS.find(e => e.id === escenaId)!;
-  const vivo = useRef({ escena, estado: estadoInicial() });
+  const vivo = useRef({ escena, estado: estadoInicial(), mudos });
   vivo.current.escena = escena;
+  vivo.current.mudos = mudos;
 
   // Recuerda la última escena para la pantalla del mezanine del HUB (por ahora en este equipo).
   useEffect(() => { try { localStorage.setItem('sd:audioreactiva', JSON.stringify({ escena: escenaId, ts: Date.now() })); } catch { /* sin almacenamiento */ } }, [escenaId]);
@@ -45,7 +47,7 @@ export const App: React.FC = () => {
       acumulado += ahora - antes; antes = ahora;
       if (acumulado < 40) return;
       const dt = Math.min(0.2, acumulado / 1000); acumulado = 0;
-      const r = oido.current.leer(ahora);
+      const r = mezclar(oido.current.leer(ahora), vivo.current.mudos);
       vivo.current.escena.dibujar(ctx, c.width, QUIETO ? 0 : dt, r, vivo.current.estado);
       if (++medir % 3 === 0) setMedidor(r);
     };
@@ -88,7 +90,7 @@ export const App: React.FC = () => {
           <p className="etq">Geométrica · Motion</p>
           <h1>Estación Audioreactiva</h1>
           <ol className="pasos">
-            <li><b>1</b> Elige una escena: túnel, acordeón, caleidoscopio o tejido.</li>
+            <li><b>1</b> Elige una escena: túnel, acordeón, caleidoscopio, tejido o escalera.</li>
             <li><b>2</b> Haz sonar: habla, aplaude, canta o pon música cerca de la tablet.</li>
             <li><b>3</b> Mira cómo se deforma la red y graba tu loop.</li>
           </ol>
@@ -106,86 +108,71 @@ export const App: React.FC = () => {
     );
   }
 
-  const barras: [string, number][] = [['Volumen', medidor.volumen], ['Graves', medidor.graves], ['Medios', medidor.medios], ['Agudos', medidor.agudos]];
+  const nivel = (c: Canal) => (c === 'golpe' ? medidor.pulso : c === 'tono' ? medidor.tono : medidor[c]);
+  const alternar = (c: Canal) => setMudos(m => { const n = new Set(m); if (n.has(c)) n.delete(c); else n.add(c); return n; });
   return (
-    <div className="app-pantalla">
-      <header className="barra-superior">
-        <div className="lado-izq">
-          <a className="volver" href="../../" id="volver-hub">
-            <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
-            Experiencias
-          </a>
-          <div className="barra-info">
-            <h1>Estación Audioreactiva</h1>
-            <p className="bajada-corta">{escena.nombre} · {escena.base} · {fuente === 'microfono' ? 'micrófono' : 'música de demo'}</p>
-          </div>
-        </div>
-      </header>
-
-      <main className="cuerpo-pantalla">
-        <section className="escenario-fit" aria-label="Escena">
-          <div className="lienzo-fit marco-escena" style={{ '--ratio': 1 } as React.CSSProperties}>
-            <canvas ref={lienzo} className="escena" role="img" aria-label={`Escena ${escena.nombre} reaccionando al sonido`} />
-          </div>
-        </section>
-
-        <aside className="panel-app" aria-label="Controles">
-          <div className="pestanas" role="tablist" aria-label="Secciones">
-            {(['escena', 'sonido'] as Pestana[]).map(p => (
-              <button key={p} type="button" role="tab" id={`tab-${p}`} aria-selected={pestana === p} aria-controls={`pag-${p}`} onClick={() => setPestana(p)}>
-                <span className="material-symbols-outlined" aria-hidden="true">{p === 'escena' ? 'grid_view' : 'graphic_eq'}</span>
-                {p === 'escena' ? 'Escena' : 'Sonido'}
+    <PantallaHerramienta
+      anchoLateral={320}
+      superior={
+        <BarraSuperior titulo="Estación Audioreactiva" bajada={`${escena.nombre} · ${escena.base} · ${fuente === 'microfono' ? 'micrófono' : 'música de demo'}`}>
+          <BotonAccion icono="image" texto="PNG" etiqueta="Descargar un cuadro en PNG" onClick={png} disabled={!!grabando} />
+          <BotonAccion icono="movie" primario onClick={grabar} disabled={!!grabando || !puedeGrabar()}
+            texto={grabando ? `Grabando… ${Math.round(grabando * 100)} %` : `Grabar ${SEG_LOOP} s`} />
+        </BarraSuperior>
+      }
+      lateral={<>
+        <Seccion titulo="Escena">
+          <div className="escenas" role="radiogroup" aria-label="Escena">
+            {ESCENAS.map(e => (
+              <button key={e.id} type="button" role="radio" aria-checked={escenaId === e.id} className="k-btn escena-btn" style={{ '--f': e.fondo } as React.CSSProperties} onClick={() => elegirEscena(e.id)}>
+                <span className="escena-nombre">{e.nombre}</span>
+                <span className="escena-base">{e.base}</span>
               </button>
             ))}
           </div>
-
-          {pestana === 'escena' && (
-            <div className="panel-pagina" role="tabpanel" id="pag-escena" aria-labelledby="tab-escena">
-              <div className="escenas" role="radiogroup" aria-label="Escena">
-                {ESCENAS.map(e => (
-                  <button key={e.id} type="button" role="radio" aria-checked={escenaId === e.id} className="escena-btn" style={{ '--f': e.fondo } as React.CSSProperties} onClick={() => elegirEscena(e.id)}>
-                    <span className="escena-nombre">{e.nombre}</span>
-                    <span className="escena-base">{e.base}</span>
+        </Seccion>
+        <Seccion titulo="Consola · qué mueve cada sonido" crece>
+          <div className="consola">
+            {CANALES.map(c => {
+              const hace = escena.mapa[c.id], mudo = mudos.has(c.id);
+              return (
+                <div key={c.id} className={'canal' + (hace ? '' : ' sin-uso') + (mudo ? ' mudo' : '')}>
+                  <button type="button" className="k-btn canal-btn" aria-pressed={!mudo} disabled={!hace} onClick={() => alternar(c.id)}
+                    aria-label={`${c.nombre}${hace ? `: ${hace}` : ': no se usa en esta escena'}. ${mudo ? 'Silenciado' : 'Activo'}`}>
+                    <span className="material-symbols-outlined" aria-hidden="true">{mudo ? 'grid_off' : 'graphic_eq'}</span>{c.nombre}
                   </button>
-                ))}
-              </div>
-              <p className="que-hace">{escena.sonido}</p>
-            </div>
-          )}
-
-          {pestana === 'sonido' && (
-            <div className="panel-pagina" role="tabpanel" id="pag-sonido" aria-labelledby="tab-sonido">
-              <span className="label">Escuchar</span>
-              <div className="seg" role="group" aria-label="Fuente de sonido">
-                <button type="button" aria-pressed={fuente === 'microfono'} onClick={() => usar('microfono')}>Micrófono</button>
-                <button type="button" aria-pressed={fuente === 'demo'} onClick={() => usar('demo')}>Música de demo</button>
-              </div>
-              {fuente === 'demo' && (
-                <label className="fila-check"><input type="checkbox" checked={demoAudible} onChange={e => setDemoAudible(e.target.checked)} /> Que la demo suene por el parlante</label>
-              )}
-              <label className="label" htmlFor="sensibilidad">Sensibilidad</label>
-              <input id="sensibilidad" type="range" min={0.4} max={2.5} step={0.1} value={sensibilidad} onChange={e => setSensibilidad(Number(e.target.value))} />
-              <div className="medidores" aria-label="Lo que escucha la estación">
-                {barras.map(([n, v]) => (
-                  <div key={n} className="medidor"><span>{n}</span><i style={{ '--v': v } as React.CSSProperties} /></div>
-                ))}
-                <div className={'golpe' + (medidor.golpe ? ' si' : '')}>Golpe</div>
-              </div>
-              {aviso && <p className="aviso" role="alert">{aviso}</p>}
-            </div>
-          )}
-
-          <div className="panel-pie">
-            <button type="button" className="btn primario" onClick={grabar} disabled={!!grabando || !puedeGrabar()}>
-              <span className="material-symbols-outlined" aria-hidden="true">movie</span>
-              {grabando ? `Grabando… ${Math.round(grabando * 100)}%` : `Grabar ${SEG_LOOP} s`}
-            </button>
-            <button type="button" className="btn" onClick={png} disabled={!!grabando}>
-              <span className="material-symbols-outlined" aria-hidden="true">image</span>PNG
-            </button>
+                  <span className="canal-hace">{hace ?? '—'}</span>
+                  <i className="canal-nivel" style={{ '--v': mudo ? 0 : nivel(c.id) } as React.CSSProperties} aria-hidden="true" />
+                </div>
+              );
+            })}
           </div>
-        </aside>
-      </main>
-    </div>
+          <p className="k-ayuda">Silencia un canal para ver qué mueve en la escena.</p>
+          {aviso && <p className="aviso" role="alert">{aviso}</p>}
+        </Seccion>
+      </>}
+      inferior={<>
+        <div className="espectro" aria-label="Lo que escucha la estación: 12 bandas de graves a agudos">
+          {medidor.bandas.map((v, i) => <i key={i} style={{ '--v': v } as React.CSSProperties} />)}
+        </div>
+        <div className="k-grupo medidores">
+          {(['volumen', 'graves', 'medios', 'agudos'] as Canal[]).map(c => (
+            <div key={c} className="medidor"><span>{CANALES.find(k => k.id === c)!.nombre}</span><i style={{ '--v': medidor[c as 'volumen'] } as React.CSSProperties} /></div>
+          ))}
+        </div>
+        <div className={'golpe' + (medidor.golpe ? ' si' : '')} aria-hidden="true">Golpe</div>
+        <div className="k-grupo escuchar">
+          <Segmentado etiqueta="Fuente de sonido" valor={fuente ?? 'demo'} onCambiar={f => usar(f)} opciones={[{ valor: 'microfono' as Fuente, texto: 'Micrófono' }, { valor: 'demo' as Fuente, texto: 'Música demo' }]} />
+          {fuente === 'demo' && <Interruptor id="demo-audible" texto="Suena" activo={demoAudible} onCambiar={setDemoAudible} />}
+        </div>
+        <div className="sensibilidad"><Deslizador id="sensibilidad" etiqueta="Sensibilidad" min={0.4} max={2.5} paso={0.1} valor={sensibilidad} onCambiar={setSensibilidad} /></div>
+      </>}
+    >
+      <div className="escenario-fit">
+        <div className="lienzo-fit marco-escena" style={{ '--ratio': 1 } as React.CSSProperties}>
+          <canvas ref={lienzo} className="escena" role="img" aria-label={`Escena ${escena.nombre} reaccionando al sonido`} />
+        </div>
+      </div>
+    </PantallaHerramienta>
   );
 };
