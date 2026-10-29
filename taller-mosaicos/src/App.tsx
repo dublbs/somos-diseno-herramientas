@@ -16,6 +16,7 @@ import { guardarArchivo } from './lib/exportar';
 import { Lienzo, pintarCelda } from './components/Lienzo';
 import { PanelLateral, PincelActual } from './components/Panel';
 import { BarraHerramientas, BarraSuperior, BotonAccion, PantallaHerramienta, useHistorial } from '../../shared/ui/Kit';
+import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
 import '../../shared/ui/somos-kit.css';
 import './styles.css';
 
@@ -69,6 +70,7 @@ export const App: React.FC = () => {
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
   const [grilla, setGrilla] = useState<boolean>(true);
   const [estadoMsg, setEstadoMsg] = useState<string>('');
+  const [visto, marcarVisto] = useTutorialVisto('mosaicos');
   useEffect(() => { if (!estadoMsg) return; const t = setTimeout(() => setEstadoMsg(''), 2600); return () => clearTimeout(t); }, [estadoMsg]);
 
   useEffect(() => {
@@ -440,6 +442,16 @@ export const App: React.FC = () => {
     seleccionar: 'Arrastra para elegir un área y multiplícala: repetir, escalonar, simetría.',
   };
 
+  if (!visto) return (
+    <Tutorial etiqueta="Geométrica · sistemas y patrones" titulo="Taller de Mosaicos"
+      pasos={[
+        { icono: 'grid_view', texto: 'Elige un módulo de la biblioteca.' },
+        { icono: 'draw', texto: 'Toca la grilla: pon, gira y refleja.' },
+        { icono: 'repeat', texto: 'Multiplica un área, cambia la paleta y descarga tu patrón.' },
+      ]}
+      acciones={[{ texto: 'Empezar a diseñar', icono: 'grid_on', alTocar: marcarVisto }]} />
+  );
+
   return (
     <>
       <PantallaHerramienta
@@ -492,6 +504,7 @@ export const App: React.FC = () => {
         </div>
       </PantallaHerramienta>
       {estadoMsg && <div className="aviso" role="status">{estadoMsg}</div>}
+      <Quiosco app="mosaicos" limpiar={['geo:estado']} />
     </>
   );
 };

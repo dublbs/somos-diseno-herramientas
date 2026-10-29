@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Oido, SILENCIO, type Fuente, type Rasgos } from './audio/oido';
 import { CANALES, ESCENAS, estadoInicial, mezclar, type Canal } from './escenas/escenas';
 import { BarraSuperior, BotonAccion, Deslizador, Interruptor, PantallaHerramienta, Seccion, Segmentado } from '../../shared/ui/Kit';
+import { Quiosco, Tutorial } from '../../shared/ui/Tutorial';
 import '../../shared/ui/somos-kit.css';
 import { descargar, grabarEnVivo, puedeGrabar } from './lib/archivos';
 import './styles.css';
@@ -82,35 +83,23 @@ export const App: React.FC = () => {
     setGrabando(0);
   };
 
-  if (!empezado) {
-    return (
-      <div className="portada">
-        <a className="volver" href="../../"><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Experiencias</a>
-        <div className="portada-cuerpo">
-          <p className="etq">Geométrica · Motion</p>
-          <h1>Estación Audioreactiva</h1>
-          <ol className="pasos">
-            <li><b>1</b> Elige una escena: túnel, acordeón, caleidoscopio, tejido o escalera.</li>
-            <li><b>2</b> Haz sonar: habla, aplaude, canta o pon música cerca de la tablet.</li>
-            <li><b>3</b> Mira cómo se deforma la red y graba tu loop.</li>
-          </ol>
-          <div className="portada-acciones">
-            <button type="button" className="btn primario" onClick={() => usar('microfono')}>
-              <span className="material-symbols-outlined" aria-hidden="true">mic</span>Empezar con micrófono
-            </button>
-            <button type="button" className="btn" onClick={() => usar('demo')}>
-              <span className="material-symbols-outlined" aria-hidden="true">music_note</span>Probar con música
-            </button>
-          </div>
-          {aviso && <p className="aviso" role="alert">{aviso}</p>}
-        </div>
-      </div>
-    );
-  }
+  if (!empezado) return (
+    <Tutorial etiqueta="Geométrica · Motion" titulo="Estación Audioreactiva"
+      pasos={[
+        { icono: 'grid_view', texto: 'Elige una escena: túnel, acordeón, caleidoscopio, tejido o escalera.' },
+        { icono: 'mic', texto: 'Haz sonar: habla, aplaude, canta o pon música cerca de la tablet.' },
+        { icono: 'movie', texto: 'Mira cómo se deforma la red, silencia canales en la consola y graba tu loop.' },
+      ]}
+      acciones={[
+        { texto: 'Empezar con micrófono', icono: 'mic', alTocar: () => usar('microfono') },
+        { texto: 'Probar con música', icono: 'music_note', alTocar: () => usar('demo') },
+      ]}
+      aviso={aviso && <p className="aviso" role="alert">{aviso}</p>} />
+  );
 
   const nivel = (c: Canal) => (c === 'golpe' ? medidor.pulso : c === 'tono' ? medidor.tono : medidor[c]);
   const alternar = (c: Canal) => setMudos(m => { const n = new Set(m); if (n.has(c)) n.delete(c); else n.add(c); return n; });
-  return (
+  return (<>
     <PantallaHerramienta
       anchoLateral={320}
       superior={
@@ -174,5 +163,6 @@ export const App: React.FC = () => {
         </div>
       </div>
     </PantallaHerramienta>
-  );
+    <Quiosco app="audioreactiva" alReiniciar={() => location.reload()} />
+  </>);
 };

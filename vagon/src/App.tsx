@@ -5,6 +5,7 @@ import {
 } from './lib/vagon';
 import { descargar, tarjeta } from './lib/archivos';
 import { BarraHerramientas, BarraSuperior, BotonAccion, Confirmar, Paleta, PantallaHerramienta, Seccion, Segmentado } from '../../shared/ui/Kit';
+import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
 import '../../shared/ui/somos-kit.css';
 import './styles.css';
 
@@ -23,7 +24,7 @@ const SALIDA_MS = 4800;
 const TAM_STICKER = { Chico: 8, Grande: 13 } as const;
 
 export const App: React.FC = () => {
-  const [empezado, setEmpezado] = useState(false);
+  const [empezado, setEmpezado] = useTutorialVisto('vagon');
   const [modelo, setModelo] = useState<IdModelo>('l1');
   const [carros, setCarros] = useState(3);
   const [bases, setBases] = useState<Partial<Record<IdModelo, string[]>>>({});
@@ -144,27 +145,15 @@ export const App: React.FC = () => {
     descargar(blob, `vagon-${modelo}-${carros}-carros.png`);
   };
 
-  if (!empezado) {
-    return (
-      <div className="portada">
-        <a className="volver" href="../../"><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Experiencias</a>
-        <div className="portada-cuerpo">
-          <p className="etq">Pixel · pixel art e identidad del transporte</p>
-          <h1>Vagón</h1>
-          <ol className="pasos">
-            <li><b>1</b> Elige el modelo de tren y cuántos carros lleva.</li>
-            <li><b>2</b> Diseña tu carro: pinta pixel a pixel, rellena con el balde, pega stickers y pon tu tag.</li>
-            <li><b>3</b> Hazlo salir a la vía: tu vagón pasará por la Estación.</li>
-          </ol>
-          <div className="portada-acciones">
-            <button type="button" className="btn primario" onClick={() => setEmpezado(true)}>
-              <span className="material-symbols-outlined" aria-hidden="true">train</span>Diseñar mi vagón
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (!empezado) return (
+    <Tutorial etiqueta="Pixel · pixel art e identidad del transporte" titulo="Vagón"
+      pasos={[
+        { icono: 'train', texto: 'Elige el modelo de tren y cuántos carros lleva.' },
+        { icono: 'brush', texto: 'Diseña tu carro: pinta pixel a pixel, rellena, pega stickers y pon tu tag.' },
+        { icono: 'route', texto: 'Hazlo salir a la vía: tu vagón pasará por la Estación.' },
+      ]}
+      acciones={[{ texto: 'Diseñar mi vagón', icono: 'train', alTocar: setEmpezado }]} />
+  );
 
   const activa = HERRAMIENTAS.find(h => h.id === herr)!;
   const nombreModelo = MODELOS.find(m => m.id === modelo)!.nombre;
@@ -226,6 +215,7 @@ export const App: React.FC = () => {
           role="img" aria-label={`Lateral del carro ${nombreModelo}. ${activa.ayuda}`} />
       </PantallaHerramienta>
       {aviso && <div className="aviso" role="status">{aviso}</div>}
+      <Quiosco app="vagon" />
     </>
   );
 };

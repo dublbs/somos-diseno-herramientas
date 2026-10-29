@@ -3,6 +3,7 @@ import { MARCOS, porId, type Visual } from './data/marcos';
 import { TINTAS } from './data/tintas';
 import { Carrete, Lateral } from './components/Barras';
 import { BotonAccion } from '../../shared/ui/Kit';
+import { Quiosco } from '../../shared/ui/Tutorial';
 import '../../shared/ui/somos-kit.css';
 import { Camara } from './components/Camara';
 import { Editor, type FotoEditable } from './components/Editor';
@@ -94,7 +95,7 @@ export function App() {
   const carrete = <Carrete visual={visual} elegirVisual={elegirVisual} marcoId={marcoId} setMarcoId={setMarcoId} miniaturas={miniaturas} />;
   const inicio = <BotonAccion icono="restart_alt" texto="Inicio" onClick={terminar} />;
   const input = <input ref={archivo} type="file" accept="image/*" capture="user" style={{ display: 'none' }} onChange={alArchivo} />;
-  const avisoEl = aviso ? <div className="aviso" role="status">{aviso}</div> : null;
+  const avisoEl = <>{aviso ? <div className="aviso" role="status">{aviso}</div> : null}<Quiosco app="fotomaton" activo={paso !== 'inicio'} alReiniciar={terminar} /></>;
 
   // Cámara y edición son la herramienta (barras fijas del kit); portada y QR son pantallas de paso.
   if (paso === 'camara' || paso === 'editar') return (

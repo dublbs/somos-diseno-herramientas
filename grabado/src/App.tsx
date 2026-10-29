@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FIGURAS, HEX, cargarFiguras, descargar, tarjeta, type IdFigura, type NombreColor } from './lib/comun';
 import { PAPEL, TAMANOS, dibujarGrabado, type Estampa, type Tamano } from './lib/grabado';
 import { BarraSuperior, BotonAccion, Confirmar, Interruptor, Paleta, PantallaHerramienta, Seccion, Segmentado, useHistorial } from '../../shared/ui/Kit';
+import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
 import '../../shared/ui/somos-kit.css';
 import './styles.css';
 
@@ -12,7 +13,7 @@ const PAPELES: NombreColor[] = ['Hueso', 'Celeste', 'Amarillo', 'Rosa'];
 const corrimiento = (c: NombreColor): [number, number] => { const a = TINTAS.indexOf(c) * 2.4; return [Math.cos(a) * 9, Math.sin(a) * 9]; };
 
 export const App: React.FC = () => {
-  const [empezado, setEmpezado] = useState(false);
+  const [empezado, setEmpezado] = useTutorialVisto('grabado');
   const [tacos, setTacos] = useState<Record<IdFigura, HTMLImageElement> | null>(null);
   const [taco, setTaco] = useState<IdFigura>('helecho');
   const [tinta, setTinta] = useState<NombreColor>('Verde');
@@ -66,30 +67,18 @@ export const App: React.FC = () => {
     descargar(blob, `grabado-${estampas.length}-estampas.png`);
   };
 
-  if (!empezado) {
-    return (
-      <div className="portada">
-        <a className="volver" href="../../"><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Experiencias</a>
-        <div className="portada-cuerpo">
-          <p className="etq">Orgánica · hecho a mano</p>
-          <h1>Taller de Grabado</h1>
-          <ol className="pasos">
-            <li><b>1</b> Elige un taco: cada uno es una figura de la familia Orgánica.</li>
-            <li><b>2</b> Elige la tinta y toca el papel para estampar. Cada impresión sale distinta.</li>
-            <li><b>3</b> Superpón tintas: donde se cruzan, se mezclan. Llévate tu grabado.</li>
-          </ol>
-          <div className="portada-acciones">
-            <button type="button" className="btn primario" onClick={() => setEmpezado(true)}>
-              <span className="material-symbols-outlined" aria-hidden="true">approval</span>Empezar a estampar
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (!empezado) return (
+    <Tutorial etiqueta="Orgánica · hecho a mano" titulo="Taller de Grabado"
+      pasos={[
+        { icono: 'approval', texto: 'Elige un taco: cada uno es una figura de la familia Orgánica.' },
+        { icono: 'format_color_fill', texto: 'Elige la tinta y toca el papel para estampar. Cada impresión sale distinta.' },
+        { icono: 'layers', texto: 'Superpón tintas: donde se cruzan, se mezclan. Llévate tu grabado.' },
+      ]}
+      acciones={[{ texto: 'Empezar a estampar', icono: 'approval', alTocar: setEmpezado }]} />
+  );
 
   const nombreTaco = FIGURAS.find(f => f.id === taco)!.nombre;
-  return (
+  return (<>
     <PantallaHerramienta
       anchoLateral={300}
       superior={
@@ -141,5 +130,6 @@ export const App: React.FC = () => {
         </div>
       </div>
     </PantallaHerramienta>
-  );
+    <Quiosco app="grabado" />
+  </>);
 };

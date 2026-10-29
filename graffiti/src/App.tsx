@@ -8,6 +8,7 @@ import { crearTarjeta, descargar } from './lib/exportar';
 import { Lienzo } from './components/Lienzo';
 import { ModalExportar } from './components/ModalExportar';
 import { BarraHerramientas, BarraSuperior, BotonAccion, Confirmar, Deslizador, Interruptor, Paleta, PantallaHerramienta, Seccion, Segmentado, type DefHerramienta } from '../../shared/ui/Kit';
+import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
 import '../../shared/ui/somos-kit.css';
 import './styles.css';
 
@@ -43,6 +44,7 @@ export const App: React.FC = () => {
   const [pasos, setPasos] = useState({ atras: 0, adelante: 0 });
   const [tarjeta, setTarjeta] = useState<Blob | null>(null);
   const [aviso, setAviso] = useState('');
+  const [visto, marcarVisto] = useTutorialVisto('graffiti');
 
   const dibujo = useRef<Dibujo>(nuevoDibujo());
   const atras = useRef<Dibujo[]>([]), adelante = useRef<Dibujo[]>([]);
@@ -204,6 +206,16 @@ export const App: React.FC = () => {
   );
   const nombreMuro = MUROS.find(m => m.id === muro)!.nombre;
 
+  if (!visto) return (
+    <Tutorial etiqueta="Pixel · ilustración y lettering" titulo="Graffiti y Tags"
+      pasos={[
+        { icono: 'wallpaper', texto: 'Elige muro y color.' },
+        { icono: 'blur_on', texto: 'Pinta con el spray: si lo dejas quieto, la pintura chorrea.' },
+        { icono: 'content_cut', texto: 'Usa stencils de 2 capas, firma con el plumón y descarga tu muro.' },
+      ]}
+      acciones={[{ texto: 'Empezar a pintar', icono: 'format_paint', alTocar: marcarVisto }]} />
+  );
+
   return (
     <>
       <PantallaHerramienta
@@ -287,6 +299,7 @@ export const App: React.FC = () => {
         />
       )}
       {aviso && <div className="aviso" role="status">{aviso}</div>}
+      <Quiosco app="graffiti" />
     </>
   );
 };
