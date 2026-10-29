@@ -188,3 +188,22 @@ Después: tutoriales, deshacer en Mosaicos, Graffiti (stencils, rodillo, goteo),
   - ¿Qué reto tiene cada experiencia en modo juego?
   - ¿Quién tiene el PIN para devolver la tablet al estado base y validar el canje?
 - **Personaje:** ¿foto + cuerpo por lenguaje, o solo personajes predeterminados?
+
+## Revisión de la Credencial (2026-10-29, ronda 4)
+Probada en 390×844, 412×915 y 360×740: sin scroll y con los controles a la vista.
+
+**Lo que funciona**
+- Crear la credencial con marco, foto o personaje y nombre.
+- Volver al hub.
+- La ceremonia del timbre: el timbre se golpea sobre el patrón del tema, con «Estación n» y el progreso.
+- Al cerrar la ceremonia, **el timbre cae sobre su ranura de la tarjeta**; con 4 timbres, llueven timbres.
+- El giro de la tarjeta al álbum.
+- El sello por QR (`#/sello/n`).
+- Descargar.
+
+**Lo que falta, según lo decidido en la ronda 3:**
+1. **Los timbres siguen siendo los 4 stickers del tema** (Metro, Vinilo, Spray, Ecualizador por estación), no los 4 hitos nuevos: inscripción, crear algo que llegue al HUB, 3 portales AR y figuras 3D (en revisión). Hay que renombrarlos y cambiar qué los otorga.
+2. **Modo juego:** desbloquear la mesa con el código de la credencial, y que el staff pueda reiniciar la tablet.
+3. **Canje** al completar los timbres.
+4. **Avatar desde la foto** (el personaje tipo Mii).
+5. **Conexión real con el HUB** (Supabase): hoy la Estación usa personas de prueba.
