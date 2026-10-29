@@ -42,7 +42,7 @@ export const App: React.FC = () => {
     let raf = 0, antes = performance.now();
     const cuadro = (ahora: number) => {
       raf = requestAnimationFrame(cuadro);
-      const e = estacion.current!, dt = Math.min(100, ahora - antes) * RAPIDO;
+      const e = estacion.current!, dt = Math.max(0, Math.min(100, ahora - antes)) * RAPIDO;
       antes = ahora;
       e.paso(QUIETO ? 0 : dt);
       const h = HORA_FIJA ?? new Date().getHours() + new Date().getMinutes() / 60;
@@ -78,7 +78,7 @@ export const App: React.FC = () => {
     <div className="estacion">
       <header className="cabecera">
         <a className="volver" href="../../" aria-label="Volver a las experiencias">←</a>
-        <h1>Estación Somos Diseño</h1>
+        <h1>Estación</h1>
         <dl className="cifras">
           <div><dt>Personas</dt><dd>{resumen.personas}</dd></div>
           <div><dt>Timbres</dt><dd>{resumen.timbres}</dd></div>
