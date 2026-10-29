@@ -9,6 +9,8 @@ interface LienzoProps {
   grilla: boolean;
   sel: { x: number; y: number; w: number; h: number } | null;
   onAplicar: (x: number, y: number) => void;
+  // Empieza un trazo: deshacer devuelve el trazo completo, no celda por celda.
+  onTrazo: () => void;
   onBorrar: (x: number, y: number) => void;
   onGirarPincel: () => void;
   onSetSel: (sel: { x: number; y: number; w: number; h: number } | null) => void;
@@ -58,6 +60,7 @@ export const Lienzo: React.FC<LienzoProps> = ({
   grilla,
   sel,
   onAplicar,
+  onTrazo,
   onBorrar,
   onGirarPincel,
   onSetSel,
@@ -189,6 +192,7 @@ export const Lienzo: React.FC<LienzoProps> = ({
 
     arrastreRef.current = c;
     ultimaRef.current = `${c.x},${c.y}`;
+    onTrazo();
     onAplicar(c.x, c.y);
   };
 
@@ -234,9 +238,11 @@ export const Lienzo: React.FC<LienzoProps> = ({
       });
     } else if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
+      onTrazo();
       onAplicar(h.x, h.y);
     } else if (e.key === 'Delete' || e.key === 'Backspace') {
       e.preventDefault();
+      onTrazo();
       onBorrar(h.x, h.y);
     } else if (e.key.toLowerCase() === 'r') {
       e.preventDefault();
