@@ -46,7 +46,7 @@ Las experiencias son **herramientas de diseño con barras fijas** (propuesta `do
   - Nada se colapsa ni se esconde en pestañas, y no hay scroll de página ni de panel.
   - En vertical, la barra derecha pasa sobre la inferior.
   - Las barras que lleva cada experiencia están en la tabla de la propuesta 005.
-- Las apps que aún no migran siguen con `shared/somos-ui.css` (`.app-pantalla`, panel con pestañas), con la misma regla de no scroll.
+- Ya usan el kit: Vagón, Graffiti, Mosaicos, Teatro, Grabado, Fotomatón (cámara y edición) y Audioreactiva. Telar (en pausa) y las portadas siguen con `shared/somos-ui.css`, con la misma regla de no scroll.
 - **Excepción: `credencial/`** es para el celular de cada persona. Su layout propio (`.movil`, 100dvh) cabe sin scroll en 390×844, 412×915 y 360×740.
 - **Verificación:** ninguna resolución de tablet (1024×768, 1180×820, 1280×720, 1366×768, 768×1024, 820×1180) puede tener scroll de página, controles fuera de vista ni panel con scroll. Hay que probar con cada herramienta activa.
 

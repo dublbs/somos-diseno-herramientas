@@ -55,7 +55,17 @@ La interfaz se acerca a la de esas herramientas, y eso la hace más fácil de us
   - Área: infografía y diagramación.
   - En el HUB, se suma al mapa de la red del mezanine.
 
-## Próximos pasos
-1. Revisar esta propuesta junto con el diseño de la UI general.
-2. El Vagón es el piloto: se construye con barras fijas (inferior + derecha).
-3. Cuando se apruebe, actualizar `AGENTS.md` (hoy pide panel con pestañas) y migrar una experiencia a la vez.
+## Estado (ronda 5)
+Kit de interfaz por lenguaje en `shared/ui/` (muestra: `docs/kit/muestra.html`). Todas las herramientas pasaron a barras fijas:
+
+| Experiencia | Barras | Funciones nuevas |
+|---|---|---|
+| Vagón | inferior: herramientas y paleta · derecha: modelo, carros, opciones | (piloto) |
+| Graffiti y Tags | inferior: Spray, Rodillo, Plumón, Stencil, Sticker, Borrar y paleta · derecha: muro y opciones | stencil de 2 capas (Alien, «Diseño», Lata, Metro), rodillo con vetas P12, plumón, goteo tras 1,2 s quieto, rehacer |
+| Taller de Mosaicos | inferior: Poner, Girar, Reflejar, Borrar, Multiplicar y el pincel · derecha: módulos, paleta, formato | deshacer y rehacer (un trazo = un paso) |
+| Teatro de Papel | derecha: escenario, biblioteca, propiedades · inferior: línea de tiempo | keyframe B arrastrable por pieza, piezas que se arrastran al escenario, rehacer |
+| Grabado | inferior: tacos, tamaño, giro · derecha: tinta, papel, mezclas | muestra de mezclas, registro corrido (riso), rehacer |
+| Fotomatón | inferior: lenguaje, carrete de marcos, disparo · derecha: efecto, paleta, placas | placas de impresión C, M, Y, K |
+| Audioreactiva | derecha: escenas y consola · inferior: espectro, medidores, fuente, sensibilidad | canales que se silencian, escena Escalera (C7) |
+
+**Pendiente con bloqueo:** la calibración de la regla de «los ojos» del Fotomatón (plan 004) necesita los 6 retratos de prueba (tono de piel, luz, lentes) con permiso de las personas. No se pueden inventar: cuando el equipo los suba a una carpeta local (no al repo), se mide con face-api y se ajustan los valores por defecto de cada efecto.
