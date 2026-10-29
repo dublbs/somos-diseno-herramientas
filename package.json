@@ -16,12 +16,14 @@
     "dev:graffiti:tablet": "npm --prefix graffiti run dev:tablet",
     "dev:credencial": "npm --prefix credencial run dev",
     "dev:credencial:movil": "npm --prefix credencial run dev:movil",
+    "dev:hub-estacion": "npm --prefix hub-estacion run dev",
     "build:fotomaton": "npm --prefix fotomaton run build",
     "build:mosaicos": "npm --prefix taller-mosaicos run build",
     "build:loops": "npm --prefix loops run build",
     "build:graffiti": "npm --prefix graffiti run build",
     "build:credencial": "npm --prefix credencial run build",
-    "build": "npm run build:fotomaton && npm run build:mosaicos && npm run build:loops && npm run build:graffiti && npm run build:credencial",
+    "build:hub-estacion": "npm --prefix hub-estacion run build",
+    "build": "npm run build:fotomaton && npm run build:mosaicos && npm run build:loops && npm run build:graffiti && npm run build:credencial && npm run build:hub-estacion",
     "build:all": "npm run build"
   },
   "devDependencies": {

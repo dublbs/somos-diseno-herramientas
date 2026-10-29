@@ -1,0 +1,28 @@
+@import '../../shared/somos-fonts.css';
+
+/* HUB a pantalla completa: cabecera con cifras y avisos, y la escena en canvas debajo. */
+:root { --hueso: #F4EEE3; --negro: #000000; --amarillo: #FFC20E; color-scheme: light; }
+* { box-sizing: border-box; }
+html, body, #app { height: 100%; margin: 0; background: var(--negro); overflow: hidden; }
+.estacion { height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr); position: relative; font-family: "DM Sans", system-ui, sans-serif; color: var(--hueso); }
+.cabecera { display: flex; align-items: center; gap: clamp(10px, 1.6vw, 28px); padding: clamp(8px, 1vh, 14px) clamp(12px, 1.6vw, 28px); background: var(--negro); min-width: 0; }
+.cabecera h1 { margin: 0; font: 800 clamp(18px, 2.2vw, 36px)/1 "Bricolage Grotesque", sans-serif; letter-spacing: -.02em; white-space: nowrap; }
+.volver { color: var(--hueso); text-decoration: none; font-size: clamp(18px, 1.6vw, 26px); opacity: .7; }
+.volver:hover, .volver:focus-visible { opacity: 1; }
+.cifras { display: flex; gap: clamp(10px, 1.4vw, 24px); margin: 0; }
+.cifras div { display: grid; }
+.cifras dt { font-size: clamp(9px, .7vw, 12px); text-transform: uppercase; letter-spacing: .08em; opacity: .7; }
+.cifras dd { margin: 0; font: 800 clamp(16px, 1.6vw, 28px)/1.1 "Bricolage Grotesque", sans-serif; color: var(--amarillo); font-variant-numeric: tabular-nums; }
+.avisos { flex: 1 1 auto; min-width: 0; margin: 0; padding: 0; list-style: none; text-align: right; }
+.avisos li { font-weight: 700; font-size: clamp(12px, 1.1vw, 20px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: entra .5s ease-out; }
+.hora { font: 700 clamp(14px, 1.2vw, 22px) "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
+.completa { border: 1.5px solid var(--hueso); background: none; color: var(--hueso); border-radius: 8px; width: 36px; height: 36px; cursor: pointer; font-size: 18px; }
+.escena { display: block; width: 100%; height: 100%; }
+.cargando { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; font: 800 28px "Bricolage Grotesque", sans-serif; }
+.demo { position: absolute; right: 10px; bottom: 8px; font-size: 11px; font-weight: 700; padding: 3px 8px; background: rgba(0,0,0,.6); border-radius: 99px; }
+@keyframes entra { from { transform: translateY(-6px); opacity: 0; } }
+@media (max-aspect-ratio: 1/1) {
+  .cabecera { flex-wrap: wrap; row-gap: 6px; }
+  .avisos { order: 9; flex-basis: 100%; text-align: left; }
+}
+@media (prefers-reduced-motion: reduce) { .avisos li { animation: none; } }
