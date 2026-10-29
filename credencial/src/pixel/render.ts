@@ -166,7 +166,14 @@ function tintaSobre(fondo: string) {
 }
 
 // Cara A: la credencial con la forma, los colores y la figura del marco elegido, y los 4 timbres.
-export function pintarFrente(ctx: CanvasRenderingContext2D, d: DatosCarta, rec: Recursos, tema: Tema, s: number, paso = 0) {
+// Ranura del timbre n (1..4) en el frente, en unidades lógicas (la usa también la animación de timbrar).
+export function ranuraTimbre(n: number) {
+  const lado = 46, gap = (CARTA.ancho - 28 - SELLOS * lado) / (SELLOS - 1);
+  return { x: 14 + (n - 1) * (lado + gap), y: CARTA.alto - lado - 14, lado };
+}
+
+// ocultar: timbre que todavía no se dibuja porque está cayendo sobre la credencial (animación).
+export function pintarFrente(ctx: CanvasRenderingContext2D, d: DatosCarta, rec: Recursos, tema: Tema, s: number, paso = 0, ocultar = 0) {
   const m = marcoListo(d.marco);
   const fondo = m.bg.toUpperCase();
   const texto = tintaSobre(fondo);
@@ -185,10 +192,9 @@ export function pintarFrente(ctx: CanvasRenderingContext2D, d: DatosCarta, rec: 
   escribir(ctx, tema.visual, `${m.visual} · ${m.name}`, W - 14, y0 + 30, 7, texto, s, 'der');
 
   // Timbres
-  const lado = 46, gap = (W - 28 - SELLOS * lado) / (SELLOS - 1), ys = CARTA.alto - lado - 14;
   for (let i = 0; i < SELLOS; i++) {
-    const x = 14 + i * (lado + gap), n = i + 1, im = rec.timbres[i];
-    if (d.sellos.includes(n) && im) pintarTimbre(ctx, im, s, [x - 2, ys - 2, lado + 4, lado + 4], d.codigo + n);
+    const n = i + 1, im = rec.timbres[i], { x, y: ys, lado } = ranuraTimbre(n);
+    if (d.sellos.includes(n) && n !== ocultar && im) pintarTimbre(ctx, im, s, [x - 2, ys - 2, lado + 4, lado + 4], d.codigo + n);
     else hueco(ctx, s, [x, ys, lado, lado], texto, n, tema.visual);
   }
   ctx.restore();
@@ -221,9 +227,9 @@ export function pintarAlbum(ctx: CanvasRenderingContext2D, d: DatosCarta, rec: R
   bordeCarta(ctx, tema.visual, s);
 }
 
-export function pintarCara(ctx: CanvasRenderingContext2D, cara: Cara, d: DatosCarta, rec: Recursos, tema: Tema, s: number, paso = 0) {
+export function pintarCara(ctx: CanvasRenderingContext2D, cara: Cara, d: DatosCarta, rec: Recursos, tema: Tema, s: number, paso = 0, ocultar = 0) {
   if (cara === 'album') pintarAlbum(ctx, d, rec, tema, s);
-  else pintarFrente(ctx, d, rec, tema, s, paso);
+  else pintarFrente(ctx, d, rec, tema, s, paso, ocultar);
 }
 
 export function cartaEnLienzo(d: DatosCarta, rec: Recursos, tema: Tema, cara: Cara = 'frente', s = 4) {

@@ -44,6 +44,7 @@ function aplicarTema(t: Tema) {
     '--tema-banda': t.banda, '--tema-tinta': t.tinta,
     // URL absoluta: dentro de una variable CSS, una ruta relativa se resolvería contra la hoja de estilos.
     '--tema-patron': `url("${new URL(t.patron, document.baseURI).href}")`,
+    '--tema-tam': `${t.tamPatron ?? 96}px`, '--tema-velo': `${Math.round((t.velo ?? 0.62) * 100)}%`,
     '--accent': t.acento, '--on-accent': t.sobreAcento,
     '--bg': '#F4EEE3', '--surface': '#F4EEE3', '--ink': '#000000', '--muted': '#4A453E', '--line': 'rgba(0,0,0,.18)', '--chip': '#E5DCCB',
   };
@@ -74,8 +75,11 @@ export const App: React.FC = () => {
   return (
     <div className="movil">
       <header className="barra-movil">
+        <a className="volver-hub" href="../../" aria-label="Volver a las experiencias">
+          <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+        </a>
         <span className="marca">Credencial</span>
-        <span className="marca-sub">Somos Diseño · {tema.visual}</span>
+        <span className="marca-sub"><span className="solo-ancho">Somos Diseño · </span>{tema.visual}</span>
         {!remoto && <span className="pill">Demo</span>}
       </header>
       {ruta.vista === 'crear' && <Crear ir={ir} ponerTema={ponerTema} />}

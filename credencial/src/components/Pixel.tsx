@@ -60,10 +60,10 @@ function useLienzo(ancho: number, alto: number, pintar: (ctx: CanvasRenderingCon
 }
 
 // Credencial (frente o álbum de timbres).
-export const Carta: React.FC<{ datos: DatosCarta; recursos: Recursos; tema: Tema; cara?: Cara; className?: string }> = ({ datos, recursos, tema, cara = 'frente', className }) => {
+export const Carta: React.FC<{ datos: DatosCarta; recursos: Recursos; tema: Tema; cara?: Cara; ocultarTimbre?: number; className?: string }> = ({ datos, recursos, tema, cara = 'frente', ocultarTimbre = 0, className }) => {
   const paso = usePaso();
   const animado = cara === 'frente' && datos.receta.retrato === 'personaje' ? paso : 0;
-  const ref = useLienzo(CARTA.ancho, CARTA.alto, (ctx, s) => pintarCara(ctx, cara, datos, recursos, tema, s, animado), [datos, recursos.retrato, ...recursos.timbres, tema, cara, animado]);
+  const ref = useLienzo(CARTA.ancho, CARTA.alto, (ctx, s) => pintarCara(ctx, cara, datos, recursos, tema, s, animado, ocultarTimbre), [datos, recursos.retrato, ...recursos.timbres, tema, cara, animado, ocultarTimbre]);
   return (
     <canvas ref={ref} className={className} role="img"
       aria-label={cara === 'album' ? `Álbum de timbres: ${datos.sellos.length} de 4` : `Credencial de ${datos.nombre}, ${datos.sellos.length} de 4 timbres`} />

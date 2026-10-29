@@ -17,19 +17,23 @@ html:has(.movil), body:has(.movil) { padding: 0; height: 100%; overflow: hidden;
 }
 .material-symbols-outlined { font-size: 20px; vertical-align: middle; }
 .barra-movil { display: flex; align-items: baseline; gap: 8px; padding: 10px 14px 8px; background: var(--tema-banda); color: var(--tema-tinta); }
+.barra-movil { align-items: center; }
+.volver-hub { display: grid; place-items: center; width: 40px; height: 40px; margin: -4px 0 -4px -6px; color: inherit; border-radius: var(--rb); }
+.volver-hub:focus-visible { outline: 2px solid currentColor; }
 .barra-movil .marca { font: 800 19px var(--fuente-tit); letter-spacing: -.01em; }
 [data-visual="Pixel"] .barra-movil .marca { font-weight: 700; font-size: 17px; letter-spacing: 0; }
 [data-visual="Geométrica"] .barra-movil .marca { text-transform: uppercase; }
 .barra-movil .marca-sub { font-size: 13px; opacity: .85; }
+@media (max-width: 400px) { .solo-ancho { display: none; } }
 .pill { margin-left: auto; font: 700 11px "DM Sans", sans-serif; text-transform: uppercase; letter-spacing: .06em; padding: 4px 8px; border: 2px solid currentColor; border-radius: var(--rb); }
 .etq { font-family: var(--fuente-etq); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 
 /* Fondo de cada pantalla: el patrón de Figma del tema, velado con el color de la banda */
 .pantalla {
   min-height: 0; display: grid; gap: 10px; padding: 10px 14px 14px;
-  background: linear-gradient(color-mix(in srgb, var(--tema-banda) 62%, transparent), color-mix(in srgb, var(--tema-banda) 62%, transparent)), var(--tema-patron) center / 96px repeat, var(--tema-banda);
+  background: linear-gradient(color-mix(in srgb, var(--tema-banda) var(--tema-velo, 62%), transparent), color-mix(in srgb, var(--tema-banda) var(--tema-velo, 62%), transparent)), var(--tema-patron) center / var(--tema-tam, 96px) repeat, var(--tema-banda);
 }
-[data-visual="Pixel"] .pantalla { background-size: auto, 72px, auto; image-rendering: pixelated; }
+[data-visual="Pixel"] .pantalla { image-rendering: pixelated; }
 .pantalla.centrada { align-content: center; justify-items: center; text-align: center; }
 .pantalla.centrada > * { background: var(--surface); padding: 6px 12px; border-radius: var(--rb); }
 .pantalla.centrada h2 { font: 800 22px/1.2 var(--fuente-tit); margin: 0; }
@@ -88,7 +92,18 @@ label.btn { cursor: pointer; }
 /* --- Credencial --- */
 .credencial { grid-template-rows: minmax(0, 1fr) auto auto; }
 .giro { min-height: 0; display: grid; place-items: center; container-type: size; border: 0; background: none; padding: 0; cursor: pointer; }
-.carta { display: block; width: min(100cqw, calc(100cqh * 240 / 384)); aspect-ratio: 240 / 384; }
+.giro { perspective: 900px; }
+.carta-caja { position: relative; display: block; width: min(100cqw, calc(100cqh * 240 / 384)); aspect-ratio: 240 / 384; }
+.carta-caja.volteando { animation: voltear .46s ease-in-out; }
+.carta { display: block; width: 100%; height: 100%; }
+/* El timbre cae y se estampa en su ranura del frente */
+.timbre-cae { position: absolute; aspect-ratio: 1; transform: translate(-50%, -50%); pointer-events: none; }
+.timbre-cae img { position: relative; display: block; width: 100%; height: 100%; animation: estampar .7s cubic-bezier(.2, .9, .3, 1.2) both; }
+.timbre-cae .tinta { position: absolute; inset: -10%; border-radius: var(--rt); border: 4px solid var(--accent); animation: tinta .6s ease-out .45s both; }
+[data-visual="Pixel"] .timbre-cae img { animation-timing-function: steps(7, end); }
+[data-visual="Orgánica"] .timbre-cae .tinta { border-radius: 50%; }
+@keyframes voltear { 50% { transform: rotateY(90deg) scale(.96); } }
+@keyframes estampar { from { transform: translateY(-120%) scale(3.4) rotate(-24deg); opacity: 0 } 55% { transform: scale(.88) rotate(-2deg); opacity: 1 } 75% { transform: scale(1.06) rotate(-5deg) } to { transform: scale(1) rotate(-4deg); opacity: 1 } }
 [data-visual="Pixel"] .carta { filter: drop-shadow(6px 6px 0 #000); image-rendering: pixelated; }
 [data-visual="Geométrica"] .carta { filter: drop-shadow(0 0 0 #000); }
 [data-visual="Orgánica"] .carta { filter: drop-shadow(0 18px 22px rgba(0, 0, 0, .35)); }
@@ -118,7 +133,7 @@ label.btn { cursor: pointer; }
 .timbrado {
   position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; overflow: hidden;
   padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
-  background: linear-gradient(rgba(0, 0, 0, .38), rgba(0, 0, 0, .38)), var(--tema-patron) center / 96px repeat, var(--tema-banda);
+  background: linear-gradient(rgba(0, 0, 0, .38), rgba(0, 0, 0, .38)), var(--tema-patron) center / var(--tema-tam, 96px) repeat, var(--tema-banda);
   animation: aparecer .25s ease-out both;
 }
 .timbrado-tarjeta { position: relative; z-index: 1; width: min(100%, 340px); display: grid; gap: 12px; justify-items: center; text-align: center; background: var(--surface); color: var(--ink); padding: 20px 18px; border: var(--borde); border-radius: var(--r); }
