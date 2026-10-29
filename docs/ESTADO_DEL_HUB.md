@@ -19,6 +19,8 @@
 | Credencial (nuevo, celular) | `credencial/`: personaje Pixel creado en el celular, dentro de un **marco** del sistema (`shared/marcos.ts`, compartido con el Fotomatón), y 4 sellos genéricos que se ganan escaneando QR o escribiendo su código. MVP: 6 marcos (M02 y M05 por lenguaje) que tematizan toda la UI, foto (Fotomatón sin efectos) o uno de 3 personajes, y 4 timbres de Figma por lenguaje con su álbum y su momento de timbrado. Mobile-first, sin scroll en teléfonos. Modo demo o Supabase. Ver [`plans/003-credencial.md`](plans/003-credencial.md). |
 | Taller de Píxeles | Archivado: la carpeta se borró de `main` y el código vive en la rama `archive/taller-de-pixeles`. |
 
+**Feedback del 2026-10-29:** arreglos hechos y propuestas (tutoriales, elenco de Teatro, marcos y efectos del Fotomatón, stencils, Audioreactiva, HUB y timbres) en [`plans/004-feedback-prototipos.md`](plans/004-feedback-prototipos.md).
+
 **Sigue pendiente (decisión tuya o fuera del código):**
 0. Publicar en **Vercel** (lo conectas tú; `vercel.json` ya evita el build) y correr `credencial/supabase/schema.sql` para la credencial real.
 1. Fotomatón con Supabase real: activar el `cron.schedule` de limpieza (24 h) en la migración y probar el QR con un celular en la red del evento.
