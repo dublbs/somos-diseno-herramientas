@@ -41,3 +41,22 @@ Cómo están hechos: formas planas de la paleta Línea azul con borde de papel r
 | `suelo` | quieto, musgo |
 
 Pendiente del equipo: aprobar las formas o reemplazarlas por arte de Figma, y elegir chagual o cochayuyo, carpintero o chucao, luna o lluvia (por ahora están ambos para comparar). La Paloma salió del elenco, pero sigue en la biblioteca de piezas.
+
+## Refinamiento (2026-10-29, ronda 4)
+Redibujados con referencias, por pedido del equipo:
+- **Aves:** las alas nacen del hombro, sobre la mitad delantera del lomo; antes nacían de la cadera. El ala lejana es un poco más chica. Pivotes en `HOMBROS` (script y `piezas.ts`).
+- **Cóndor:** carúncula del macho, collar blanco, cuello desnudo, pico ganchudo, primarias como dedos y secundarias blancas.
+- **Gaviota:** alas largas en punta con borde de fuga blanco.
+- **Picaflor:** pico apenas curvo, vientre claro.
+- **Carpintero:** cabeza roja con copete hacia atrás y pico gris.
+- **Huemul:** dejó de parecer alce. Ahora es un ciervo robusto de patas cortas, con orejas largas de interior claro, la mancha en Y sobre el hocico, la garganta clara y astas que se bifurcan una vez.
+- **Guanaco:** sigue narigón; tiene el cuello curvo, la cara gris, la cola que cae y pezuñas en vez de bolitas.
+- **Concha de loco:** forma de oreja (abalón), con el ápice enrollado, costillas radiales, líneas de crecimiento y el labio claro.
+- **Copihue:** campanas de 6 tépalos (se ven 3 puntas) con motas claras y cáliz verde, más las hojas coriáceas en punta en un tallo que se enrosca.
+- **Alerce:** tronco columnar de corteza rojiza con vetas, sin ramas abajo y follaje en matas arriba.
+
+Referencias:
+- [Huemul (Ultimate Ungulate)](https://ultimateungulate.com/Artiodactyla/Hippocamelus_bisulcus.html) y [South Andean deer (Wikipedia)](https://en.wikipedia.org/wiki/South_Andean_deer).
+- [Andean condor (Wikipedia)](https://en.wikipedia.org/wiki/Andean_condor).
+- [Concholepas concholepas (Wikipedia)](https://en.wikipedia.org/wiki/Concholepas_concholepas).
+- [Lapageria (Wikipedia)](https://en.wikipedia.org/wiki/Lapageria).

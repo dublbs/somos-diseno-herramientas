@@ -22,7 +22,7 @@ type Gesto =
 type Mapa = Record<string, Item[]>;
 
 const ESCALA_INICIAL: Record<string, number> = {
-  pudu: 0.75, paloma: 0.6, sol: 1, araucaria: 1, pina: 0.65, helecho: 0.75, quisco: 0.8, flor: 0.65,
+  pudu: 0.75, paloma: 0.6, sol: 1, araucaria: 1.1, pina: 0.65, helecho: 0.6, quisco: 0.7, flor: 0.65,
   pez: 0.7, pinguino: 0.6, cantaro: 0.5, canasto: 0.5, kisa: 0.7,
   condor: 0.6, gaviota: 0.55, picaflor: 0.45, carpintero: 0.5, chucao: 0.6, huemul: 0.7, guanaco: 0.7,
   chagual: 0.75, cochayuyo: 0.7, doca: 0.6, concha: 0.45, chanar: 0.8, alerce: 0.95, copihue: 0.6, maqui: 0.65, telar: 0.7, luna: 0.9, lluvia: 0.9,

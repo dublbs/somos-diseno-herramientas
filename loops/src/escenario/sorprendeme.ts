@@ -5,7 +5,7 @@ import { pieza } from './piezas';
 // «Sorpréndeme»: arma una escena sola con las piezas del escenario, repartidas por zonas
 // (cielo arriba, agua al medio, suelo abajo). La persona la retoca después.
 const ESCALA: Record<string, number> = {
-  pudu: 0.7, paloma: 0.5, sol: 0.8, araucaria: 0.9, pina: 0.6, helecho: 0.8, quisco: 0.8, flor: 0.6,
+  pudu: 0.7, paloma: 0.5, sol: 0.8, araucaria: 1, pina: 0.6, helecho: 0.6, quisco: 0.7, flor: 0.6,
   pez: 0.6, pinguino: 0.55, cantaro: 0.5, canasto: 0.5, kisa: 0.65,
   condor: 0.55, gaviota: 0.5, picaflor: 0.45, carpintero: 0.5, chucao: 0.55, huemul: 0.65, guanaco: 0.65,
   chagual: 0.7, cochayuyo: 0.65, doca: 0.55, concha: 0.45, chanar: 0.75, alerce: 0.9, copihue: 0.55, maqui: 0.6, telar: 0.65, luna: 0.8, lluvia: 0.8,

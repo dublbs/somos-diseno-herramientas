@@ -308,26 +308,27 @@ const florV = conVariantes(flor, 'Se mece', [
 // ---- BOCETOS del elenco por escenario (plan 004): generados con scripts/generar-bocetos.py, no vienen de Figma ----
 // Todos viven en el marco de 240; las capas animadas son archivos separados de public/figma/organica-bocetos/.
 const B = (ruta: string) => `${import.meta.env.BASE_URL}figma/organica-bocetos/${ruta}.svg`;
-const HOMBRO: [number, number] = [118, 121];
+// Hombro de cada ave: sobre la mitad delantera del lomo. Es el mismo punto que usa scripts/generar-bocetos.py (HOMBROS).
+const HOMBROS: Record<string, [number, number]> = { condor: [128, 116], gaviota: [126, 117], picaflor: [128, 116], carpintero: [126, 119] };
 // Ave: ala de abajo, cuerpo, ala de arriba. Las alas giran en el hombro y se acortan al bajar (como la paloma).
 const aveBoceto = (id: string, nombre: string, durMs: number, caja: Pieza['caja'], amplitud: number, sube = 3): Pieza => ({
   id, nombre, figma: 'boceto (no es de Figma)', durMs, caja,
   grupo: [{ prop: 'y', t: U13, v: U13.map(u => -Math.sin(u * Math.PI * 2) * sube) }],
   capas: [
-    { src: B(`${id}/ala-inferior`), x: 0, y: 0, pivote: HOMBRO, pistas: [{ prop: 'rotate', t: U13, v: ALA.map(n => -n * amplitud) }, { prop: 'scaleY', t: U13, v: ALA_Y }] },
+    { src: B(`${id}/ala-inferior`), x: 0, y: 0, pivote: HOMBROS[id], pistas: [{ prop: 'rotate', t: U13, v: ALA.map(n => -n * amplitud) }, { prop: 'scaleY', t: U13, v: ALA_Y }] },
     { src: B(`${id}/cuerpo`), x: 0, y: 0 },
-    { src: B(`${id}/ala-superior`), x: 0, y: 0, pivote: HOMBRO, pistas: [{ prop: 'rotate', t: U13, v: ALA.map(n => n * amplitud) }, { prop: 'scaleY', t: U13, v: ALA_Y }] },
+    { src: B(`${id}/ala-superior`), x: 0, y: 0, pivote: HOMBROS[id], pistas: [{ prop: 'rotate', t: U13, v: ALA.map(n => n * amplitud) }, { prop: 'scaleY', t: U13, v: ALA_Y }] },
   ],
 });
-const condor = conVariantes(aveBoceto('condor', 'Cóndor', 2000, [40, 40, 160, 150], 3, 4), 'Aletea', [
+const condor = conVariantes(aveBoceto('condor', 'Cóndor', 2000, [44, 20, 146, 177], 3, 4), 'Aletea', [
   { id: 'planea', nombre: 'Planea', durMs: 4000, grupo: [{ prop: 'y', t: T5, v: [0, -6, 0, 6, 0], e: 'easeInOut' }, { prop: 'rotate', t: T5, v: [0, 3, 0, -3, 0], e: 'easeInOut' }],
     pistas: [girar([0, -3, 0, 3, 0]), undefined, girar([0, 3, 0, -3, 0])] },
 ]);
-const gaviota = conVariantes(aveBoceto('gaviota', 'Gaviota', 1000, [34, 66, 152, 110], 3.4), 'Aletea', [
+const gaviota = conVariantes(aveBoceto('gaviota', 'Gaviota', 1000, [62, 46, 122, 131], 3.4), 'Aletea', [
   { id: 'planea', nombre: 'Planea', durMs: 3000, grupo: [{ prop: 'y', t: T5, v: [0, -4, 0, 4, 0], e: 'easeInOut' }], pistas: [girar([0, -4, 0, 4, 0]), undefined, girar([0, 4, 0, -4, 0])] },
 ]);
-const picaflor = aveBoceto('picaflor', 'Picaflor de Arica', 400, [84, 58, 108, 106], 4, 2);
-const carpintero = aveBoceto('carpintero', 'Carpintero negro', 800, [58, 86, 126, 66], 3);
+const picaflor = aveBoceto('picaflor', 'Picaflor de Arica', 400, [90, 64, 103, 100], 4, 2);
+const carpintero = aveBoceto('carpintero', 'Carpintero negro', 800, [58, 47, 127, 133], 3);
 const chucao: Pieza = {
   id: 'chucao', nombre: 'Chucao', figma: 'boceto (no es de Figma)', durMs: 800, caja: [80, 124, 90, 86],
   grupo: [{ prop: 'y', t: T5, v: [0, -10, 0, -10, 0], e: 'easeOut' }],
@@ -348,8 +349,8 @@ const cuadrupedo = (id: string, nombre: string, caja: Pieza['caja'], caderas: nu
     { src: B(`${id}/cuerpo`), x: 0, y: 0 },
   ],
 });
-const huemul = cuadrupedo('huemul', 'Huemul', [60, 46, 136, 164], [86, 100, 138, 152], 138);
-const guanaco = cuadrupedo('guanaco', 'Guanaco', [56, 32, 128, 182], [78, 92, 128, 142], 140);
+const huemul = cuadrupedo('huemul', 'Huemul', [68, 46, 132, 162], [92, 104, 136, 148], 160);
+const guanaco = cuadrupedo('guanaco', 'Guanaco', [63, 33, 129, 179], [84, 96, 128, 140], 146);
 // Plantas y objetos: una capa que se mece desde su base.
 const quietaEn = (id: string, nombre: string, caja: Pieza['caja'], durMs: number, pivote: [number, number], pistas: Pista[]): Pieza => ({
   id, nombre, figma: 'boceto (no es de Figma)', durMs, caja, capas: [{ src: B(`${id}/${id}`), x: 0, y: 0, pivote, pistas }],

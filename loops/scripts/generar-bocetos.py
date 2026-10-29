@@ -81,54 +81,135 @@ def guardar(pieza, capas):
         open(os.path.join(SALIDA, pieza, nombre + '.svg'), 'w').write(capa.svg(f'g_{pieza}_{nombre}'.replace('-', '_')))
 
 # ---------- aves (cuerpo + ala de arriba + ala de abajo; las alas giran en el hombro) ----------
-def ave(pieza, cuerpo_color, ala_pts, ala_color, banda=None, cabeza=None, pico=None, cola=None, extra=(), hombro_y=121, semilla=1):
-    cuerpo, sup, inf = Capa(), Capa(), Capa()
-    if cola: cuerpo.add(cola, cuerpo_color if len(cola) > 2 else cuerpo_color, semilla)
-    for pts, color in extra: cuerpo.add(pts, color, semilla + 3)
-    sup.add(ala_pts, ala_color, semilla + 5)
-    if banda: sup.add(banda[0], banda[1], semilla + 6)
-    inf.add(espejo_y(ala_pts, hombro_y), mezcla(ala_color, NEGRO, 0.25) if ala_color != NEGRO else NEGRO, semilla + 8)
-    if banda: inf.add(espejo_y(banda[0], hombro_y), banda[1], semilla + 9)
-    for pts, color in (cabeza or []): cuerpo.add(pts, color, semilla + 11)
-    if pico: cuerpo.add(pico, pico_color(pieza), semilla + 13, 0.3)
-    guardar(pieza, {'ala-inferior': inf, 'cuerpo': cuerpo, 'ala-superior': sup})
+# El hombro va sobre la mitad delantera del lomo (no en la cadera) y el ala sube desde ahí, apenas inclinada hacia atrás.
+# El mismo punto es el pivote de las alas en src/escenario/piezas.ts (HOMBROS).
+HOMBROS = {'condor': (128, 116), 'gaviota': (126, 117), 'picaflor': (128, 116), 'carpintero': (126, 119)}
 
-def pico_color(pieza):
-    return {'gaviota': AMARILLO, 'condor': HUESO, 'carpintero': HUESO}.get(pieza, NEGRO)
+def ala(hombro, largo, ancho, inclinacion, dedos=0, largo_dedo=0.0, afinar=0.55, punta=0.0):
+    """Ala levantada vista de lado. Sube desde el hombro inclinada `inclinacion` grados hacia atrás;
+    el borde de ataque queda adelante. Con `dedos` termina en primarias separadas (cóndor, carpintero)."""
+    a = math.radians(inclinacion)
+    ux, uy = -math.sin(a), -math.cos(a)        # a lo largo del ala (arriba y un poco atrás)
+    vx, vy = math.cos(a), -math.sin(a)         # hacia el borde de ataque (adelante)
+    hx, hy = hombro
+    n = 14
+    ataque, fuga = [], []
+    for i in range(n + 1):
+        t = i / n
+        cx, cy = hx + ux * largo * t, hy + uy * largo * t
+        cuerda = ancho * (1 - afinar * t) * (1 - punta * t ** 3)
+        ataque.append((cx + vx * cuerda * 0.32 * (1 + 0.35 * math.sin(math.pi * t)), cy + vy * cuerda * 0.32 * (1 + 0.35 * math.sin(math.pi * t))))
+        fuga.append((cx - vx * cuerda * 0.68, cy - vy * cuerda * 0.68))
+    pts = ataque[:]
+    if dedos:
+        # primarias: puntas que salen del extremo, abiertas en abanico hacia atrás
+        ex, ey = hx + ux * largo, hy + uy * largo
+        cuerda = ancho * (1 - afinar)
+        for k in range(dedos):
+            f = k / max(1, dedos - 1)
+            bx = ex + vx * cuerda * (0.3 - 0.95 * f); by = ey + vy * cuerda * (0.3 - 0.95 * f)
+            ang = a + math.radians(-8 + 34 * f)
+            dx, dy = -math.sin(ang), -math.cos(ang)
+            L = ancho * largo_dedo * (1 - 0.25 * abs(f - 0.35))
+            w = cuerda / dedos * 0.42
+            pts += [(bx + vx * w, by + vy * w), (bx + dx * L, by + dy * L), (bx - vx * w, by - vy * w)]
+    pts += fuga[::-1]
+    return pts
 
-# Cóndor: negro, collar de plumas blancas, cabeza rosada; ala enorme con dedos y banda blanca.
-ala_condor = [(108, 116), (100, 96), (88, 76), (70, 56), (52, 40), (58, 54), (44, 46), (54, 62), (40, 58), (54, 74), (42, 74), (62, 88), (84, 104), (120, 123)]
-ave('condor', NEGRO, ala_condor, NEGRO, banda=([(100, 110), (90, 94), (80, 82), (86, 92), (98, 108)], HUESO),
-    cola=[(84, 118), (52, 112), (50, 124), (54, 134), (84, 130)],
-    extra=[(elipse(120, 124, 44, 17, -4), NEGRO)],
-    cabeza=[(elipse(158, 118, 13, 12), HUESO), (elipse(172, 112, 10, 8, -10), ROSA), (elipse(175, 109, 1.8, 1.8), NEGRO)],
-    pico=[(180, 108), (192, 111), (188, 116), (181, 115)], semilla=11)
+def franja_fuga(hombro, largo, ancho, inclinacion, desde, hasta, grosor, afinar=0.55):
+    """Banda clara a lo largo del borde de fuga (las secundarias blancas del cóndor, el borde de la gaviota)."""
+    a = math.radians(inclinacion)
+    ux, uy = -math.sin(a), -math.cos(a); vx, vy = math.cos(a), -math.sin(a)
+    hx, hy = hombro
+    afuera, adentro = [], []
+    for i in range(11):
+        t = desde + (hasta - desde) * i / 10
+        cx, cy = hx + ux * largo * t, hy + uy * largo * t
+        cuerda = ancho * (1 - afinar * t)
+        afuera.append((cx - vx * cuerda * 0.68, cy - vy * cuerda * 0.68))
+        adentro.append((cx - vx * cuerda * (0.68 - grosor), cy - vy * cuerda * (0.68 - grosor)))
+    return afuera + adentro[::-1]
 
-# Gaviota dominicana: cuerpo blanco grisáceo (hueso con un poco de celeste, para que se vea sobre papel claro),
-# manto y alas negras con borde hueso, pico amarillo.
+def ave(pieza, cuerpo, sup, oscuro=None, semilla=1):
+    """cuerpo: lista de (puntos, color) de atrás hacia adelante; sup: lista de (puntos, color) del ala de arriba.
+    El ala de abajo es la de arriba reflejada en el hombro y un poco más oscura (queda detrás del cuerpo)."""
+    hy = HOMBROS[pieza][1]
+    c_cuerpo, c_sup, c_inf = Capa(), Capa(), Capa()
+    for k, (pts, col) in enumerate(cuerpo): c_cuerpo.add(pts, col, semilla + k)
+    hx = HOMBROS[pieza][0]
+    for k, (pts, col) in enumerate(sup):
+        c_sup.add(pts, col, semilla + 20 + k)
+        # el ala lejana: reflejada en el hombro y un poco más chica, para que se lea detrás del cuerpo
+        lejana = [(hx + (x - hx) * 0.84, hy + (y - hy) * 0.84) for x, y in espejo_y(pts, hy)]
+        c_inf.add(lejana, oscuro.get(col, col) if oscuro else col, semilla + 40 + k)
+    guardar(pieza, {'ala-inferior': c_inf, 'cuerpo': c_cuerpo, 'ala-superior': c_sup})
+
+def pico_garfio(x, y, largo, alto, color):
+    """Pico ganchudo de rapaz (cóndor): sale recto y la punta cae."""
+    return ([(x, y - alto * 0.5), (x + largo * 0.7, y - alto * 0.45), (x + largo, y - alto * 0.1), (x + largo * 0.96, y + alto * 0.55),
+             (x + largo * 0.82, y + alto * 0.2), (x + largo * 0.6, y + alto * 0.45), (x, y + alto * 0.5)], color)
+
+# Cóndor (macho): negro, collar blanco esponjoso, cabeza desnuda con cresta (carúncula), primarias como dedos
+# y las secundarias blancas en el borde de fuga del ala.
+PIEL = mezcla(ROSA, MORADO, 0.35); CRESTA = mezcla(ROSA, MORADO, 0.62)
+h = HOMBROS['condor']
+ave('condor', [
+    ([(82, 118), (52, 110), (46, 118), (50, 128), (82, 132)], NEGRO),                               # cola en abanico corto
+    (elipse(116, 124, 42, 15, -3), NEGRO),                                                           # cuerpo
+    (elipse(152, 118, 11, 12), HUESO),                                                              # collar
+    (trazo([(154, 116), (162, 110)], 9), PIEL),                                                      # cuello desnudo
+    (elipse(168, 108, 10, 8, -8), PIEL),                                                            # cabeza
+    (elipse(166, 101, 8, 4.5, -10), CRESTA), (elipse(160, 103, 4, 3.5), CRESTA),                     # carúncula (cresta carnosa)
+    pico_garfio(175, 110, 12, 7, HUESO),
+    (elipse(170, 106, 1.8, 1.8), NEGRO),
+], [
+    (ala(h, 70, 40, 18, dedos=5, largo_dedo=0.72, afinar=0.5), NEGRO),
+    (franja_fuga(h, 70, 40, 18, 0.1, 0.7, 0.32, afinar=0.5), HUESO),
+], oscuro={NEGRO: NEGRO, HUESO: mezcla(HUESO, NEGRO, 0.35)}, semilla=11)
+
+# Gaviota dominicana: cuerpo blanco grisáceo, manto y alas negras largas y en punta con borde de fuga blanco, pico amarillo.
 GRIS_GAV = mezcla(HUESO, CELESTE, 0.3)
-ala_gav = [(110, 118), (98, 100), (84, 88), (62, 76), (36, 70), (52, 80), (40, 84), (70, 96), (94, 110), (122, 124)]
-ave('gaviota', GRIS_GAV, ala_gav, NEGRO, banda=([(104, 116), (92, 104), (74, 94), (60, 90), (78, 98), (96, 112)], HUESO),
-    cola=[(90, 118), (66, 114), (66, 128), (90, 130)],
-    extra=[(elipse(120, 124, 36, 14, -3), GRIS_GAV)],
-    cabeza=[(elipse(156, 114, 12, 11), GRIS_GAV), (elipse(160, 111, 1.7, 1.7), NEGRO)],
-    pico=[(166, 112), (182, 115), (180, 118), (167, 118)], semilla=21)
+h = HOMBROS['gaviota']
+ave('gaviota', [
+    ([(90, 118), (66, 114), (64, 128), (90, 130)], GRIS_GAV),
+    (elipse(118, 124, 36, 13, -3), GRIS_GAV),
+    (elipse(152, 114, 12, 11), GRIS_GAV),
+    ([(162, 111), (180, 113), (182, 117), (177, 119), (163, 118)], AMARILLO),
+    (elipse(156, 111, 1.7, 1.7), NEGRO),
+], [
+    (ala(h, 78, 30, 28, afinar=0.62, punta=0.85), NEGRO),
+    (franja_fuga(h, 78, 30, 28, 0.06, 0.62, 0.3, afinar=0.62), HUESO),
+], oscuro={NEGRO: NEGRO, HUESO: mezcla(HUESO, NEGRO, 0.3)}, semilla=21)
 
-# Picaflor de Arica: chiquito y verde, garganta magenta (morado), pico largo; alas celestes que vibran.
-ala_pf = [(118, 118), (112, 96), (100, 72), (94, 60), (104, 74), (116, 98), (126, 120)]
-ave('picaflor', VERDE, ala_pf, CELESTE,
-    cola=[(104, 136), (86, 156), (92, 160), (100, 152), (102, 162), (110, 142)],
-    extra=[(elipse(120, 130, 22, 12, -28), VERDE), (elipse(134, 120, 9, 7, -28), MORADO)],
-    cabeza=[(elipse(142, 110, 10, 9), VERDE), (elipse(146, 108, 1.6, 1.6), NEGRO)],
-    pico=[(150, 107), (190, 98), (190, 100), (151, 111)], hombro_y=121, semilla=31)
+# Picaflor de Arica: chiquito, lomo verde, pecho claro y garganta magenta; pico largo y apenas curvo;
+# alas angostas que nacen del hombro y vibran.
+h = HOMBROS['picaflor']
+ave('picaflor', [
+    ([(108, 136), (92, 156), (98, 160), (104, 152), (106, 162), (114, 142)], VERDE_OSC),            # cola
+    (elipse(122, 128, 21, 11, -32), VERDE),                                                         # cuerpo inclinado (suspendido)
+    (elipse(126, 134, 12, 7, -32), HUESO),                                                          # vientre claro
+    (elipse(138, 116, 8, 7, -32), MORADO),                                                          # garganta
+    (elipse(142, 108, 10, 9), VERDE),                                                               # cabeza
+    (trazo([(150, 106), (166, 103), (180, 103), (190, 106)], [3.2, 2.4, 1.8, 1.2]), NEGRO),         # pico apenas curvo
+    (elipse(145, 106, 1.6, 1.6), NEGRO),
+], [
+    (ala(h, 50, 14, 6, afinar=0.4, punta=0.6), mezcla(CELESTE, HUESO, 0.2)),
+], oscuro={mezcla(CELESTE, HUESO, 0.2): mezcla(CELESTE, AZUL, 0.35)}, semilla=31)
 
-# Carpintero negro: negro con cresta rosada (en vez de roja), parche blanco en el ala y pico claro.
-ala_carp = [(108, 118), (98, 98), (82, 82), (64, 72), (72, 84), (60, 84), (80, 98), (98, 112), (122, 124)]
-ave('carpintero', NEGRO, ala_carp, NEGRO, banda=([(98, 110), (88, 98), (80, 92), (86, 100), (96, 110)], HUESO),
-    cola=[(90, 124), (62, 132), (62, 140), (92, 134)],
-    extra=[(elipse(120, 126, 34, 15, -6), NEGRO)],
-    cabeza=[(elipse(150, 112, 12, 12), NEGRO), (trazo([(142, 102), (150, 96), (160, 98)], [10, 12, 6]), ROSA), (elipse(154, 110, 2, 2), HUESO)],
-    pico=[(160, 112), (178, 115), (160, 118)], semilla=41)
+# Carpintero negro (macho): negro, cabeza roja con copete hacia atrás, parche blanco en el ala, pico claro y recto.
+CABEZA_ROJA = mezcla(ROSA, MORADO, 0.25)
+h = HOMBROS['carpintero']
+ave('carpintero', [
+    ([(90, 126), (60, 134), (60, 142), (92, 136)], NEGRO),
+    (elipse(120, 128, 32, 14, -6), NEGRO),
+    (elipse(150, 114, 12, 12), CABEZA_ROJA),
+    ([(142, 108), (128, 98), (138, 97), (132, 88), (147, 95), (157, 104)], CABEZA_ROJA),           # copete hacia atrás
+    ([(160, 112), (182, 114), (160, 119)], mezcla(NEGRO, HUESO, 0.45)),
+    (elipse(154, 111, 2.4, 2.4), HUESO), (elipse(154, 111, 1.2, 1.2), NEGRO),
+], [
+    (ala(h, 58, 34, 14, dedos=4, largo_dedo=0.4, afinar=0.45), NEGRO),
+    (franja_fuga(h, 58, 34, 14, 0.15, 0.55, 0.3, afinar=0.45), HUESO),
+], oscuro={NEGRO: NEGRO, HUESO: mezcla(HUESO, NEGRO, 0.35)}, semilla=41)
 
 # Chucao: ave de suelo del bosque; espalda negra, pecho amarillo (en vez de rufo) y cola levantada. Salta.
 cola_ch, cuerpo_ch = Capa(), Capa()
@@ -140,41 +221,62 @@ cuerpo_ch.add([(154, 154), (164, 157), (154, 159)], NEGRO, 59, 0.3)
 guardar('chucao', {'cola': cola_ch, 'cuerpo': cuerpo_ch})
 
 # ---------- mamíferos (4 patas que giran en la cadera, como el pudú) ----------
-def cuadrupedo(pieza, color, panza, patas_x, cadera_y, suelo_y, cuerpo_pts, cuello, cabeza, extras=(), pata_ancho=8, semilla=60):
+# Las caderas (x de cada pata e y) son los pivotes de src/escenario/piezas.ts.
+def pezuna(x, y):
+    return [(x - 4, y - 6), (x + 4, y - 6), (x + 5.5, y), (x - 5.5, y)]
+
+def cuadrupedo(pieza, color, color_lejano, patas_x, cadera_y, suelo_y, partes, pata_ancho=8, semilla=60, bajar=0):
     capas = {}
     for i, x in enumerate(patas_x):
         c = Capa()
-        c.add(trazo([(x, cadera_y), (x + 1, (cadera_y + suelo_y) / 2), (x, suelo_y - 6)], [pata_ancho + 2, pata_ancho, pata_ancho - 1]), color if i % 2 == 0 else mezcla(color, NEGRO, 0.18), semilla + i)
-        c.add(elipse(x, suelo_y - 3, pata_ancho * 0.6, 3.5), NEGRO, semilla + 10 + i)
+        lejana = i in (1, 3)  # la 2 y la 4 quedan del otro lado del cuerpo
+        c.add(trazo([(x, cadera_y), (x + 1.5, (cadera_y + suelo_y) / 2), (x, suelo_y - 5)], [pata_ancho + 3, pata_ancho, pata_ancho - 1.5]),
+              color_lejano if lejana else color, semilla + i)
+        c.add(pezuna(x, suelo_y), NEGRO, semilla + 10 + i, 0.3)
         capas[f'pata{i + 1}'] = c
     cuerpo = Capa()
-    cuerpo.add(cuerpo_pts, color, semilla + 20)
-    if panza: cuerpo.add(panza, HUESO, semilla + 21)
-    cuerpo.add(cuello, color, semilla + 22)
-    for pts, col in cabeza: cuerpo.add(pts, col, semilla + 23)
-    for pts, col in extras: cuerpo.add(pts, col, semilla + 30)
-    orden = ['pata1', 'pata2', 'cuerpo', 'pata3', 'pata4']
-    capas_ord = {k: capas[k] for k in ('pata1', 'pata2')}
-    capas_ord['pata3'] = capas['pata3']; capas_ord['pata4'] = capas['pata4']; capas_ord['cuerpo'] = cuerpo
-    guardar(pieza, capas_ord)
+    for k, (pts, col) in enumerate(partes): cuerpo.add(mover(pts, 0, bajar), col, semilla + 20 + k)
+    guardar(pieza, {'pata1': capas['pata1'], 'pata2': capas['pata2'], 'pata3': capas['pata3'], 'pata4': capas['pata4'], 'cuerpo': cuerpo})
 
-# Huemul: ciervo del sur; morado, panza hueso, astas hueso en Y, hocico negro.
-cuadrupedo('huemul', MORADO, elipse(118, 140, 36, 8), [86, 100, 138, 152], 138, 206,
-           elipse(118, 126, 48, 22),
-           [(150, 118), (160, 96), (170, 86), (178, 92), (172, 110), (164, 128)],
-           [(elipse(176, 88, 14, 10, 20), MORADO), (elipse(188, 94, 5, 4), NEGRO), (elipse(176, 84, 2, 2), NEGRO),
-            ([(168, 78), (162, 66), (168, 72)], MORADO)],
-           extras=[(trazo([(172, 80), (168, 60), (160, 50)], 3.4), HUESO), (trazo([(169, 66), (178, 54)], 3), HUESO),
-                   (trazo([(178, 80), (182, 62), (176, 52)], 3.4), HUESO), (trazo([(181, 66), (190, 58)], 3), HUESO),
-                   ([(70, 118), (62, 112), (66, 124)], HUESO)], semilla=61)
+# Huemul (macho): ciervo del sur, robusto y de patas cortas. Orejas largas «de burro» con el interior claro,
+# mancha oscura en Y sobre el hocico, garganta clara y astas que se bifurcan una sola vez (la punta de atrás más larga).
+ASTA = mezcla(AMARILLO, HUESO, 0.35)
+MORADO_LEJ = mezcla(MORADO, NEGRO, 0.25)
+astas = []
+for dx in (0, 7):
+    astas += [(trazo([(168 + dx, 88), (169 + dx, 74), (168 + dx, 64)], [3.6, 3.2, 3]), ASTA),
+              (trazo([(168 + dx, 66), (162 + dx, 52), (160 + dx, 40)], [3, 2.6, 2]), ASTA),
+              (trazo([(168.5 + dx, 70), (176 + dx, 60), (179 + dx, 53)], [2.8, 2.4, 1.8]), ASTA)]
+cuadrupedo('huemul', MORADO, MORADO_LEJ, [92, 104, 136, 148], 160, 206, [
+    ([(80, 126), (72, 120), (70, 130), (76, 138)], MORADO),                                        # cola corta
+    ([(76, 132), (72, 126), (74, 136)], HUESO),
+    (elipse(120, 138, 44, 21, -3), MORADO),                                                        # cuerpo robusto
+    (elipse(122, 154, 30, 5), mezcla(MORADO, HUESO, 0.45)),                                        # vientre
+    ([(146, 126), (156, 104), (164, 94), (176, 100), (170, 116), (162, 134)], MORADO),            # cuello grueso
+    (elipse(168, 116, 6, 4, -40), HUESO),                                                          # garganta clara
+    *astas[3:],                                                                                    # el asta de atrás queda detrás de la oreja
+    (elipse(160, 84, 13, 5, -55), MORADO_LEJ),                                                     # oreja de atrás
+    ([(160, 96), (170, 88), (180, 92), (194, 103), (196, 109), (190, 113), (176, 110), (164, 106)], MORADO),  # cabeza, hocico afinado
+    (elipse(194, 108, 3.2, 2.6), NEGRO),                                                           # nariz
+    (trazo([(191, 106), (182, 99), (175, 93)], 2.2), NEGRO), (trazo([(182, 99), (182, 91)], 2), NEGRO),  # la Y
+    (elipse(176, 97, 2.1, 2.1), NEGRO),
+    *astas[:3],
+    (elipse(166, 82, 14, 5.5, -70), MORADO), (elipse(166, 82, 9, 2.6, -70), HUESO),             # oreja larga
+], pata_ancho=9, semilla=61, bajar=10)
 
-# Guanaco: amarillo con panza hueso, cuello largo, cara negra.
-cuadrupedo('guanaco', AMARILLO, elipse(110, 138, 36, 9), [78, 92, 128, 142], 140, 210,
-           elipse(110, 128, 44, 20),
-           [(136, 120), (144, 90), (150, 64), (162, 60), (160, 92), (152, 126)],
-           [(elipse(164, 58, 14, 9, 15), AMARILLO), (elipse(172, 62, 7, 6, 15), NEGRO), (elipse(164, 54, 2, 2), NEGRO),
-            ([(156, 48), (154, 38), (160, 46)], AMARILLO), ([(162, 48), (164, 38), (166, 48)], AMARILLO)],
-           extras=[([(68, 120), (60, 116), (62, 128)], AMARILLO)], pata_ancho=7, semilla=71)
+# Guanaco: narigón, cuello largo y curvo, vientre blanco, cara gris; orejas en punta y cola que cae.
+AMARILLO_LEJ = mezcla(AMARILLO, MORADO, 0.2)
+cuadrupedo('guanaco', AMARILLO, AMARILLO_LEJ, [84, 96, 128, 140], 146, 210, [
+    (trazo([(74, 124), (68, 130), (67, 140)], [7, 5.5, 3.5]), AMARILLO_LEJ),                       # cola que cae
+    (elipse(110, 132, 42, 18, -2), AMARILLO),                                                      # cuerpo
+    (elipse(114, 144, 30, 5.5), HUESO),                                                            # vientre blanco
+    ([(132, 124), (138, 100), (144, 78), (150, 62), (164, 62), (160, 82), (154, 106), (150, 128)], AMARILLO),  # cuello
+    (elipse(156, 45, 9, 3.4, -78), AMARILLO_LEJ), (elipse(162, 44, 9, 3.4, -96), AMARILLO),       # orejas
+    ([(150, 60), (158, 50), (170, 51), (180, 56), (187, 62), (185, 70), (172, 71), (160, 68)], AMARILLO),  # cabeza
+    ([(168, 54), (180, 56), (187, 62), (185, 70), (172, 71), (166, 64)], mezcla(NEGRO, HUESO, 0.5)),  # cara gris
+    (elipse(184, 65, 5.5, 5), NEGRO),                                                              # la nariz grande
+    (elipse(165, 56, 1.9, 1.9), NEGRO),
+], pata_ancho=6.5, semilla=71)
 
 # ---------- plantas y objetos (una capa que se mece) ----------
 def una(pieza, capa, nombre=None):
@@ -213,13 +315,20 @@ for (cx, cy, rr) in [(104, 170, 20), (148, 178, 16)]:
     c.add(elipse(cx, cy, rr * 0.28, rr * 0.28), AMARILLO, 160)
 una('doca', c)
 
-# Concha de loco: caracol de vuelta gruesa, rosado con estrías hueso y la boca clara.
+# Concha de loco: forma de oreja (como un abalón), con el ápice enrollado atrás, costillas que salen del ápice,
+# líneas de crecimiento concéntricas y el labio claro de la abertura ancha por debajo.
+CAFE = mezcla(MORADO, AMARILLO, 0.45); CAFE_OSC = mezcla(CAFE, NEGRO, 0.3)
 c = Capa()
-c.add(elipse(118, 182, 44, 32, -12), ROSA, 170)
-for k in range(5):
-    pts = [(118 + math.cos(a) * (40 - k * 8), 182 + math.sin(a) * (29 - k * 6)) for a in (math.radians(d) for d in range(200, 340, 10))]
-    c.add(trazo(pts, 2.4), HUESO, 171 + k)
-c.add(elipse(140, 192, 16, 11, -20), mezcla(ROSA, HUESO, 0.6), 180)
+borde = [(78, 170), (92, 154), (112, 146), (134, 146), (156, 154), (170, 168), (174, 186), (166, 202), (146, 211), (118, 213), (94, 208), (80, 196), (73, 182)]
+c.add(borde, CAFE, 170)
+c.add([(84, 200), (100, 208), (126, 212), (150, 210), (166, 202), (160, 212), (130, 218), (98, 215), (82, 206)], mezcla(HUESO, ROSA, 0.25), 171)  # labio
+apice = (84, 168)
+for k in (0.42, 0.7):
+    arco = [(apice[0] + (x - apice[0]) * k, apice[1] + (y - apice[1]) * k) for x, y in borde[1:-1]]
+    c.add(trazo(arco, 2.2), CAFE_OSC, 172 + int(k * 10))
+for k, (x, y) in enumerate(borde[2:-1]):
+    c.add(trazo([(apice[0] + (x - apice[0]) * 0.12, apice[1] + (y - apice[1]) * 0.12), (x - (x - apice[0]) * 0.05, y - (y - apice[1]) * 0.05)], [1.4, 3.2]), HUESO, 180 + k)
+c.add(elipse(84, 168, 9, 7, -20), CAFE_OSC, 195).add(elipse(86, 167, 4.5, 3.5, -20), CAFE, 196)  # ápice enrollado
 una('concha', c)
 
 # Chañar: arbolito del desierto, tronco torcido, copa verde y frutos amarillos.
@@ -232,24 +341,57 @@ for k, (x, y) in enumerate([(96, 128), (112, 112), (132, 104), (150, 124), (122,
     c.add(elipse(x, y, 4, 4), AMARILLO, 200 + k)
 una('chanar', c)
 
-# Alerce: árbol muy alto del sur, tronco rojizo (morado) y copa verde por capas.
+# Alerce: árbol muy alto y columnar del sur. Tronco recto de corteza rojiza y fibrosa (vetas verticales),
+# sin ramas abajo; arriba ramas cortas con follaje denso en matas y una copa achatada.
 c = Capa()
-c.add(trazo([(120, 218), (120, 120), (120, 40)], [14, 11, 6]), MORADO, 210)
-for k in range(7):
-    y = 52 + k * 22; w = 18 + k * 9
-    c.add([(120 - w, y + 18), (120 - w * 0.4, y), (120, y - 10), (120 + w * 0.4, y), (120 + w, y + 18), (120, y + 12)], VERDE if k % 2 else VERDE_OSC, 211 + k)
+CORTEZA = mezcla(MORADO, ROSA, 0.25)
+c.add(trazo([(120, 220), (120, 150), (121, 90), (120, 44)], [17, 14, 11, 7]), CORTEZA, 210)
+for k, x in enumerate([-4, 0, 4]):
+    c.add(trazo([(120 + x, 216), (120 + x * 0.9, 160), (120 + x * 0.7, 110)], 1.3), mezcla(CORTEZA, NEGRO, 0.3), 212 + k, 0.3)
+r = random.Random(215)
+for k, (y, lado, largo) in enumerate([(58, 1, 18), (72, -1, 24), (86, 1, 28), (100, -1, 30), (114, 1, 30), (128, -1, 26), (142, 1, 20)]):
+    xf = 120 + lado * largo
+    c.add(trazo([(120, y + 6), (xf, y)], 3.4), CORTEZA, 220 + k)
+    for j in range(3):
+        cx = 120 + lado * (largo * (0.35 + 0.33 * j)); cy = y - 2 + r.uniform(-3, 3)
+        c.add(elipse(cx, cy, r.uniform(11, 15), r.uniform(7, 9), r.uniform(-15, 15)), VERDE_OSC if (k + j) % 2 else VERDE, 230 + k * 3 + j)
+for k, (x, y, rx, ry) in enumerate([(112, 44, 16, 9), (130, 42, 14, 8), (120, 34, 12, 7)]):
+    c.add(elipse(x, y, rx, ry), VERDE if k % 2 else VERDE_OSC, 260 + k)
 una('alerce', c)
 
-# Copihue: enredadera con hojas y tres campanas rosadas colgando.
+# Copihue: enredadera que se enrosca, hojas coriáceas en punta con nervio central y campanas colgantes
+# de seis tépalos gruesos (se ven tres puntas), rojo rosado con motas claras y un cáliz verde arriba.
+COPI = mezcla(ROSA, MORADO, 0.12); COPI_OSC = mezcla(ROSA, MORADO, 0.5)
+def hoja(x, y, largo, ancho, ang):
+    a = math.radians(ang); ux, uy = math.cos(a), math.sin(a); vx, vy = -uy, ux
+    pts = []
+    for i in range(9):
+        t = i / 8; w = math.sin(math.pi * t) ** 0.8 * ancho
+        pts.append((x + ux * largo * t + vx * w, y + uy * largo * t + vy * w))
+    for i in range(8, -1, -1):
+        t = i / 8; w = math.sin(math.pi * t) ** 0.8 * ancho
+        pts.append((x + ux * largo * t - vx * w, y + uy * largo * t - vy * w))
+    return pts
 c = Capa()
-c.add(trazo([(60, 40), (90, 60), (110, 52), (140, 70), (176, 62)], 4), VERDE_OSC, 230)
-for k, (x, y, a) in enumerate([(82, 58, 30), (118, 56, -20), (150, 70, 40), (100, 54, -40), (166, 64, -30)]):
-    c.add(elipse(x, y, 13, 6, a), VERDE, 231 + k)
-for k, (x, y0, L) in enumerate([(92, 60, 60), (126, 60, 84), (158, 66, 54)]):
-    c.add(trazo([(x, y0), (x + 2, y0 + L * 0.5), (x, y0 + L)], 2), VERDE_OSC, 240 + k)
-    y = y0 + L
-    c.add([(x - 4, y), (x - 15, y + 34), (x - 9, y + 38), (x, y + 34), (x + 9, y + 38), (x + 15, y + 34), (x + 4, y)], ROSA, 245 + k)
-    c.add(elipse(x - 4, y + 18, 1.6, 1.6), HUESO, 250 + k).add(elipse(x + 3, y + 24, 1.6, 1.6), HUESO, 255 + k)
+tallo = [(44 + t * 156, 46 + math.sin(t * 9) * 6 + t * 10) for t in (i / 30 for i in range(31))]
+c.add(trazo(tallo, 3.2), VERDE_OSC, 230)
+for k, (t, ang) in enumerate([(0.08, -40), (0.22, 35), (0.38, -35), (0.55, 40), (0.72, -30), (0.9, 30)]):
+    x, y = tallo[int(t * 30)]
+    c.add(hoja(x, y, 26, 7, ang), VERDE if k % 2 else VERDE_OSC, 231 + k)
+    a = math.radians(ang)
+    c.add(trazo([(x, y), (x + math.cos(a) * 20, y + math.sin(a) * 20)], 1), mezcla(VERDE, HUESO, 0.3), 237 + k, 0.2)
+def campana(x, y, alto, semilla):
+    c.add(trazo([(x - 1, y - 16), (x + 2, y - 8), (x, y)], 2), VERDE_OSC, semilla)                       # pedicelo
+    c.add([(x - 5, y), (x - 11, y + alto * 0.35), (x - 16, y + alto * 0.8), (x - 13, y + alto), (x - 6, y + alto * 0.86),
+           (x, y + alto * 1.05), (x + 6, y + alto * 0.86), (x + 13, y + alto), (x + 16, y + alto * 0.8), (x + 11, y + alto * 0.35), (x + 5, y)], COPI, semilla + 1)
+    for dx in (-6, 6):
+        c.add(trazo([(x + dx * 0.4, y + 3), (x + dx, y + alto * 0.85)], 1.4), COPI_OSC, semilla + 2 + dx, 0.2)  # junta de tépalos
+    for k, (dx, f) in enumerate([(-8, 0.45), (-3, 0.62), (5, 0.4), (9, 0.7), (1, 0.8), (-10, 0.75)]):
+        c.add(elipse(x + dx, y + alto * f, 1.3, 1.3), HUESO, semilla + 10 + k, 0.1)                  # motas
+    c.add([(x - 6, y + 2), (x - 3, y - 6), (x, y + 2), (x + 3, y - 6), (x + 6, y + 2)], VERDE, semilla + 20)  # cáliz
+for k, (t, alto) in enumerate([(0.3, 44), (0.5, 52), (0.8, 40)]):
+    x, y = tallo[int(t * 30)]
+    campana(x + 2, y + 22, alto, 245 + k * 30)
 una('copihue', c)
 
 # Maqui: arbusto de ramas negras, hojas verdes y racimos de bayas moradas.
