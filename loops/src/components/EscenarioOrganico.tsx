@@ -6,7 +6,7 @@ import { cargarFuentesTarjeta, dibujarTarjetaMotion, exportarTarjetaMotion } fro
 import { duracionLoop, grabarLoop, puedeGrabar } from '../lib/grabarLoop';
 import type { VideoLoop } from './ModalExportar';
 import {
-  ASA, ESCENARIO, cajaItem, cargarTodo, dibujarEscenario, dibujarPieza, dibujarSeleccion,
+  ASA, ESCENARIO, cajaItem, quieto, cargarTodo, dibujarEscenario, dibujarPieza, dibujarSeleccion,
   posicionItem, type Item,
 } from '../escenario/dibujar';
 
@@ -17,7 +17,8 @@ interface Props {
 
 type Gesto =
   | { tipo: 'mover'; uid: number; dx: number; dy: number; movido: boolean }
-  | { tipo: 'escalar'; uid: number; d0: number; e0: number; movido: boolean };
+  | { tipo: 'escalar'; uid: number; d0: number; e0: number; movido: boolean }
+  | { tipo: 'destino'; uid: number; movido: boolean };
 type Mapa = Record<string, Item[]>;
 
 const ESCALA_INICIAL: Record<string, number> = {
@@ -144,7 +145,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
         ultimoSegundoUI = ahora;
       }
 
-      dibujarEscenario(ctx, c.width, v.items, ms, v.fondo, v.borde);
+      dibujarEscenario(ctx, c.width, v.items, ms, v.fondo, v.borde, v.sel);
       const it = v.items.find(i => i.uid === v.sel);
       if (it) dibujarSeleccion(ctx, c.width, it, ms);
     };
@@ -166,19 +167,26 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
     // 1. Tirador de escala de la pieza elegida
     const elegido = lista.find(i => i.uid === actual);
     if (elegido) {
-      const b = cajaItem(elegido, msActual);
+      // 0. El punto B del trayecto (se arrastra para elegir hacia dónde camina)
+      if (elegido.destino && Math.hypot(p.x - elegido.destino.x, p.y - elegido.destino.y) <= ASA * 2.2) {
+        gesto.current = { tipo: 'destino', uid: elegido.uid, movido: false };
+        return;
+      }
+      const b = cajaItem(quieto(elegido), msActual);
       if (Math.hypot(p.x - (b.x + b.w), p.y - (b.y + b.h)) <= ASA * 2.2) {
-        const pos = posicionItem(elegido, msActual);
+        const pos = posicionItem(quieto(elegido), msActual);
         gesto.current = { tipo: 'escalar', uid: elegido.uid, d0: Math.hypot(p.x - pos.x, p.y - pos.y) || 1, e0: elegido.escala, movido: false };
         return;
       }
     }
     // 2. La pieza bajo el dedo
     for (let i = lista.length - 1; i >= 0; i--) {
-      const b = cajaItem(lista[i], msActual);
+      // Al tocarla, la pieza queda quieta en su punto A (ahí empieza el trayecto).
+      const it = quieto(lista[i]);
+      const b = cajaItem(it, msActual);
       if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) {
         setSel(lista[i].uid);
-        const pos = posicionItem(lista[i], msActual);
+        const pos = posicionItem(it, msActual);
         gesto.current = { tipo: 'mover', uid: lista[i].uid, dx: pos.x - p.x, dy: pos.y - p.y, movido: false };
         return;
       }
@@ -193,8 +201,14 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
     const p = aEscenario(e);
     actualizar(l => l.map(it => {
       if (it.uid !== g.uid) return it;
+      if (g.tipo === 'destino') {
+        return { ...it, destino: { x: Math.min(ESCENARIO, Math.max(0, p.x)), y: Math.min(ESCENARIO, Math.max(0, p.y)) } };
+      }
       if (g.tipo === 'mover') {
-        return { ...it, x: Math.min(ESCENARIO, Math.max(0, p.x + g.dx)), y: Math.min(ESCENARIO, Math.max(0, p.y + g.dy)) };
+        const x = Math.min(ESCENARIO, Math.max(0, p.x + g.dx)), y = Math.min(ESCENARIO, Math.max(0, p.y + g.dy));
+        // Mover la pieza lleva el trayecto completo (A y B juntos).
+        const destino = it.destino && { x: Math.min(ESCENARIO, Math.max(0, it.destino.x + x - it.x)), y: Math.min(ESCENARIO, Math.max(0, it.destino.y + y - it.y)) };
+        return { ...it, x, y, destino };
       }
       return { ...it, escala: limitar(it.tipo, g.e0 * (Math.hypot(p.x - it.x, p.y - it.y) / g.d0)) };
     }));
@@ -512,6 +526,9 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
                     <span>Caminar A ➔ B</span>
                   </button>
                 </div>
+                {elegido.destino && (
+                  <p className="ayuda-trayecto">Arrastra el punto verde <b>B</b> hacia donde quieres que camine.</p>
+                )}
                 {elegido.destino && (
                   <div className="acciones-trayecto">
                     <button

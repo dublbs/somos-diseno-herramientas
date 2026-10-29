@@ -152,6 +152,7 @@
 .seg-trayecto { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
 .btn-trayecto { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 8px; }
 .acciones-trayecto { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ayuda-trayecto { margin: 0; font-size: 12px; line-height: 1.3; color: var(--muted); }
 .seg-animaciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 4px; }
 .seg-animaciones button { min-height: 44px; padding: 0 6px; }
 .herramientas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }

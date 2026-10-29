@@ -220,7 +220,7 @@ function dibujarItem(ctx: CanvasRenderingContext2D, it: Item, ms: number, size: 
 
 export function dibujarEscenario(
   ctx: CanvasRenderingContext2D, size: number, items: Item[], ms: number,
-  fondo: { dur: number; capas: Capa[] } = FONDO, borde = true
+  fondo: { dur: number; capas: Capa[] } = FONDO, borde = true, enEdicion: number | null = null
 ) {
   ctx.save();
   ctx.imageSmoothingEnabled = true;
@@ -230,10 +230,14 @@ export function dibujarEscenario(
   dibujarCapas(ctx, fondo.capas, fondo.dur, ms);
   ctx.save();
   ctx.beginPath(); ctx.rect(0, 0, ESCENARIO, ESCENARIO); ctx.clip();
-  for (const it of items) dibujarItem(ctx, it, ms, size, borde);
+  // La pieza que se está editando se queda quieta en su punto A para elegir el trayecto con calma.
+  for (const it of items) dibujarItem(ctx, it.uid === enEdicion ? quieto(it) : it, ms, size, borde);
   ctx.restore();
   ctx.restore();
 }
+
+// La misma pieza sin trayecto: se dibuja en su punto A.
+export const quieto = (it: Item): Item => (it.destino ? { ...it, destino: undefined } : it);
 
 // Caja del item en coordenadas del escenario (para tocar, seleccionar y escalar).
 export function cajaItem(it: Item, ms = 0) {
@@ -244,37 +248,33 @@ export function cajaItem(it: Item, ms = 0) {
 }
 
 export function dibujarSeleccion(ctx: CanvasRenderingContext2D, size: number, it: Item, ms = 0) {
-  const k = size / ESCENARIO, b = cajaItem(it, ms);
+  const k = size / ESCENARIO, b = cajaItem(quieto(it), ms);
   ctx.save();
   ctx.setTransform(k, 0, 0, k, 0, 0);
 
-  // Guía visual de trayectoria estilo After Effects (si el usuario definió un trayecto A -> B)
+  // Trayecto A → B: A (amarillo) es donde está la pieza; B (verde) se arrastra para elegir hacia dónde camina.
   if (it.destino) {
+    const d = it.destino;
     ctx.save();
-    ctx.strokeStyle = '#00A651';
+    ctx.globalAlpha = 0.35;
+    ctx.translate(d.x, d.y);
+    ctx.scale(it.escala * (d.x < it.x ? -1 : 1), it.escala);
+    dibujarPieza(ctx, it.tipo, ms, it.variante ?? 0);
+    ctx.restore();
+    ctx.save();
+    ctx.strokeStyle = '#000';
     ctx.lineWidth = 1.8;
     ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(it.x, it.y);
-    ctx.lineTo(it.destino.x, it.destino.y);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(it.x, it.y); ctx.lineTo(d.x, d.y); ctx.stroke();
     ctx.setLineDash([]);
-
-    // Punto A (inicio)
-    ctx.fillStyle = '#00A651';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.arc(it.x, it.y, 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    // Punto B (destino)
-    ctx.fillStyle = '#FFC20E';
-    ctx.beginPath();
-    ctx.arc(it.destino.x, it.destino.y, 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
+    const punto = (x: number, y: number, color: string, letra: string, r: number) => {
+      ctx.fillStyle = color; ctx.strokeStyle = '#000'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#000'; ctx.font = `700 ${r * 1.2}px "DM Sans", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(letra, x, y + 0.5);
+    };
+    punto(it.x, it.y, '#FFC20E', 'A', 5);
+    punto(d.x, d.y, '#00A651', 'B', ASA);
     ctx.restore();
   }
 
