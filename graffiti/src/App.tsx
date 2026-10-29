@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { otorgarCreacion } from '../../shared/juego';
 import { BOQUILLAS, ENTRE_CHORROS_MS, MAX_HISTORIAL, MUROS, PALETA, PASO_CHORRO_MS, QUIETO_MS, SPRAY_CONTINUO_MS, STICKERS, COLS, FILAS } from './data/config';
 import { PLANTILLAS } from './data/stencils';
 import { cargar } from './lib/imagenes';
@@ -185,7 +186,7 @@ export const App: React.FC = () => {
 
   const vaciar = () => { guardarHistorial(); chorros.current = []; dibujo.current = nuevoDibujo(); redibujar(); };
   const exportar = async () => {
-    try { setTarjeta(await crearTarjeta(muro, dibujo.current)); }
+    try { setTarjeta(await crearTarjeta(muro, dibujo.current)); otorgarCreacion('graffiti'); }
     catch { setAviso('No se pudo crear la tarjeta. Inténtalo de nuevo.'); }
   };
 

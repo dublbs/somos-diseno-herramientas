@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { otorgarCreacion } from '../../shared/juego';
 import { FIGURAS, HEX, cargarFiguras, descargar, tarjeta, type IdFigura, type NombreColor } from './lib/comun';
 import { PAPEL, TAMANOS, dibujarGrabado, type Estampa, type Tamano } from './lib/grabado';
 import { BarraSuperior, BotonAccion, Confirmar, Interruptor, Paleta, PantallaHerramienta, Seccion, Segmentado, useHistorial } from '../../shared/ui/Kit';
@@ -65,6 +66,7 @@ export const App: React.FC = () => {
     if (!tacos) return;
     const blob = await tarjeta((x, lado) => dibujarGrabado(x, lado, colorPapel, estampas, tacos), ['Mi grabado', 'de taller']);
     descargar(blob, `grabado-${estampas.length}-estampas.png`);
+    otorgarCreacion('grabado');
   };
 
   if (!empezado) return (

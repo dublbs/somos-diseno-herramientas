@@ -4,19 +4,21 @@ import { Credencial } from './pages/Credencial';
 import { Sello } from './pages/Sello';
 import { Escanear } from './pages/Escanear';
 import { Foto } from './pages/Foto';
+import { Canje } from './pages/Canje';
 import { miCredencial, remoto } from './lib/store';
 import { temaDe, type Tema } from './temas';
 import type { Cara } from './pixel/render';
 import './styles.css';
 
 // Rutas con hash (funcionan en cualquier carpeta o dominio, como el QR del Fotomatón):
-//   #/crear · #/c/SD-XXXXX · #/sello/1..4?t=CODIGO · #/escanear · #/foto
+//   #/crear · #/c/SD-XXXXX · #/sello/1..4?t=CODIGO · #/escanear · #/foto · #/canje
 export type Ruta =
   | { vista: 'crear' }
   | { vista: 'carta'; codigo: string; aviso?: string; cara?: Cara; timbre?: number }
   | { vista: 'sello'; sello: number; token: string }
   | { vista: 'escanear' }
-  | { vista: 'foto' };
+  | { vista: 'foto' }
+  | { vista: 'canje' };
 
 export function leerRuta(hash: string): Ruta {
   const [camino, consulta = ''] = hash.replace(/^#/, '').split('?');
@@ -26,6 +28,7 @@ export function leerRuta(hash: string): Ruta {
   if ((m = p.match(/^\/sello\/(\d+)$/))) return { vista: 'sello', sello: Number(m[1]), token: new URLSearchParams(consulta).get('t') || '' };
   if (p === '/escanear') return { vista: 'escanear' };
   if (p === '/foto') return { vista: 'foto' };
+  if (p === '/canje') return { vista: 'canje' };
   if (p === '/crear') return { vista: 'crear' };
   const mia = miCredencial();
   return mia ? { vista: 'carta', codigo: mia } : { vista: 'crear' };
@@ -87,6 +90,7 @@ export const App: React.FC = () => {
       {ruta.vista === 'sello' && <Sello sello={ruta.sello} token={ruta.token} ir={ir} />}
       {ruta.vista === 'escanear' && <Escanear ir={ir} />}
       {ruta.vista === 'foto' && <Foto ir={ir} ponerTema={ponerTema} />}
+      {ruta.vista === 'canje' && <Canje ir={ir} ponerTema={ponerTema} />}
     </div>
   );
 };

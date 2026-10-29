@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { sellar, miCredencial } from '../lib/store';
 import { SELLOS } from '../pixel/render';
+import { ESTACIONES } from '../../../shared/juego';
 import type { Ir } from '../App';
 
 // Lector de QR con la API nativa BarcodeDetector (Chrome/Android). Si el navegador no la tiene,
@@ -12,7 +13,7 @@ declare global { interface Window { BarcodeDetector?: new (opciones: { formats: 
 export const Escanear: React.FC<{ ir: Ir }> = ({ ir }) => {
   const video = useRef<HTMLVideoElement>(null);
   const [estado, setEstado] = useState<'iniciando' | 'buscando' | 'sin-soporte' | 'sin-camara'>('iniciando');
-  const [sello, setSello] = useState(1);
+  const [sello, setSello] = useState(2);
   const [codigo, setCodigo] = useState('');
   const [aviso, setAviso] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -79,9 +80,10 @@ export const Escanear: React.FC<{ ir: Ir }> = ({ ir }) => {
       <form className="codigo-sello" onSubmit={sellarConCodigo}>
         <div className="seg-movil cuatro" role="radiogroup" aria-label="Número de estación">
           {Array.from({ length: SELLOS }, (_, i) => i + 1).map(n => (
-            <button key={n} type="button" role="radio" aria-checked={sello === n} onClick={() => setSello(n)}>{n}</button>
+            <button key={n} type="button" role="radio" aria-checked={sello === n} disabled={!ESTACIONES[n - 1].activa} aria-label={`Estación ${n}: ${ESTACIONES[n - 1].nombre}`} onClick={() => setSello(n)}>{n}</button>
           ))}
         </div>
+        <p className="estacion-elegida"><b>{ESTACIONES[sello - 1].nombre}</b> · {ESTACIONES[sello - 1].como}</p>
         <div className="pie-movil">
           <input id="codigo-sello" value={codigo} onChange={e => setCodigo(e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 4))}
             autoComplete="off" autoCapitalize="characters" placeholder="Código" aria-label="Código del timbre" />

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { otorgarCreacion } from '../../../shared/juego';
 import { PIEZAS, pieza } from '../escenario/piezas';
 import { ESCENARIOS, escenario } from '../escenario/escenarios';
 import { sorprendeme } from '../escenario/sorprendeme';
@@ -325,6 +326,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
     c.width = c.height = RESOLUCION_CANVAS;
     dibujarEscenario(c.getContext('2d')!, RESOLUCION_CANVAS, vivo.current.items, relojRef.current, vivo.current.fondo, vivo.current.borde);
     onExportar(c);
+    otorgarCreacion('teatro');
   };
 
   const grabar = async () => {
@@ -352,6 +354,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
       dibujarEscenario(ectx, RESOLUCION_CANVAS, lista, 0, fondo, conBorde);
       const png = (await exportarTarjetaMotion(escena, titulo, 'Lenguaje Orgánica')) ?? blob;
       onVideo(png, { blob, ext, seg });
+      otorgarCreacion('teatro');
     } catch (e) {
       setErrorVideo(e instanceof Error ? e.message : 'No se pudo grabar el loop.');
     } finally {

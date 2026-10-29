@@ -3,9 +3,10 @@ import { Carta, useRecursos } from '../components/Pixel';
 import { Timbrado } from '../components/Timbrado';
 import { obtener, sellar, remoto, guardarMiCredencial, olvidarMiCredencial, miCredencial, fotoDe } from '../lib/store';
 import { guardarArchivo } from '../lib/descargar';
-import { cartaEnLienzo, aBlob, ranuraTimbre, CARTA, SELLOS, type Cara, type DatosCarta } from '../pixel/render';
+import { cartaEnLienzo, aBlob, ranuraTimbre, CARTA, type Cara, type DatosCarta } from '../pixel/render';
 import { TIMBRES, type Tema } from '../temas';
 import type { Ir, PonerTema } from '../App';
+import { ACTIVAS, completa as estaCompleta } from '../../../shared/juego';
 
 const quieto = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 const VACIA: DatosCarta = { nombre: '', codigo: '', receta: { retrato: 'personaje', id: 'pixel' }, marco: 'PM05', sellos: [] };
@@ -51,7 +52,7 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
   }
   if (!datos) return <main className="pantalla centrada"><p>Buscando tu credencial…</p></main>;
 
-  const completos = datos.sellos.length;
+  const completos = datos.sellos.filter(n => ACTIVAS.includes(n)).length, llena = estaCompleta(datos.sellos);
   const descargar = async () => {
     try {
       const blob = await aBlob(cartaEnLienzo(datos, recursos, tema, lado));
@@ -62,7 +63,7 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
   };
   // Modo demo: permite probar el recorrido sin los QR impresos.
   const simular = async () => {
-    const n = Array.from({ length: SELLOS }, (_, i) => i + 1).find(i => !datos.sellos.includes(i));
+    const n = ACTIVAS.find(i => !datos.sellos.includes(i));
     if (!n) return;
     await sellar(datos.codigo, n, 'demo');
     await cargar();
@@ -90,12 +91,18 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
         </span>
       </button>
       <p className="progreso" role="status">
-        {estado || (completos === SELLOS ? '¡Credencial completa!' : `${completos} de ${SELLOS} timbres · toca para ${lado === 'frente' ? 'ver el álbum' : 'volver'}`)}
+        {estado || (datos.canjeado ? 'Premio canjeado. ¡Gracias por jugar!' : llena ? '¡Credencial completa! Canjea tu premio con el equipo.' : `${completos} de ${ACTIVAS.length} timbres · toca para ${lado === 'frente' ? 'ver el álbum' : 'volver'}`)}
       </p>
       <div className="acciones-movil">
-        <button type="button" className="btn primario" onClick={() => ir('#/escanear')}>
-          <span className="material-symbols-outlined" aria-hidden="true">highlight_alt</span>Timbrar
-        </button>
+        {llena ? (
+          <button type="button" className="btn primario" onClick={() => ir('#/canje')}>
+            <span className="material-symbols-outlined" aria-hidden="true">approval</span>{datos.canjeado ? 'Canjeado' : 'Canjear'}
+          </button>
+        ) : (
+          <button type="button" className="btn primario" onClick={() => ir('#/escanear')}>
+            <span className="material-symbols-outlined" aria-hidden="true">highlight_alt</span>Timbrar
+          </button>
+        )}
         <button type="button" className="btn" onClick={descargar}>
           <span className="material-symbols-outlined" aria-hidden="true">download</span>Guardar
         </button>
@@ -104,11 +111,11 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
             <span className="material-symbols-outlined" aria-hidden="true">photo_camera</span>Foto
           </button>
         )}
-        {!remoto && completos < SELLOS && (
+        {!remoto && !llena && (
           <button type="button" className="btn" onClick={simular}>Simular</button>
         )}
       </div>
-      {recien && <Timbrado n={recien} total={completos} tema={tema} onCerrar={cerrarTimbrado} />}
+      {recien && <Timbrado n={recien} total={completos} sellos={datos.sellos} tema={tema} onCerrar={cerrarTimbrado} />}
     </main>
   );
 };

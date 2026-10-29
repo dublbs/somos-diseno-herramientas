@@ -170,3 +170,12 @@ label.btn { cursor: pointer; }
   .barra-movil { padding: 6px 14px 6px; }
   .pantalla { gap: 8px; padding-top: 8px; }
 }
+
+/* Modo juego (plan 005, bloque D): estación elegida, canje y consentimiento del avatar */
+.estacion-elegida { margin: 0; font-size: 14px; text-align: center; }
+.seg-movil button:disabled { opacity: .35; }
+.canje .canje-codigo { margin: 0; font: 800 34px "IBM Plex Mono", monospace; letter-spacing: .08em; color: var(--accent); }
+.canje h2 { margin: 0; }
+.canje-sello { margin: 0; padding: 10px 22px; border: 4px solid var(--accent); color: var(--accent); font: 800 32px var(--fuente-tit); transform: rotate(-6deg); text-transform: uppercase; }
+.consentimiento { display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: start; font-size: 13.5px; line-height: 1.35; padding: 0 4px; }
+.consentimiento input { width: 24px; height: 24px; margin: 0; accent-color: var(--accent); }

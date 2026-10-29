@@ -40,7 +40,7 @@ export function useTutorialVisto(app: string): [boolean, () => void] {
 }
 
 // Modo quiosco: a los 90 s sin uso avisa («¿Sigues ahí?», 10 s antes) y luego deja la experiencia lista para la
-// próxima persona: borra lo guardado en este equipo (`limpiar`), vuelve a mostrar el tutorial y recarga.
+// próxima persona: borra lo guardado en este equipo (`limpiar`) y la sesión (tutorial visto, persona del modo juego) y recarga.
 // Para probarlo rápido: ?quiosco=<segundos> en la URL.
 export const Quiosco: React.FC<{ app: string; activo?: boolean; limpiar?: string[]; alReiniciar?: () => void }> = ({ app, activo = true, limpiar = [], alReiniciar }) => {
   const total = (() => { const s = Number(new URLSearchParams(location.search).get('quiosco')); return (s > 0 ? s : 90) * 1000; })();
@@ -58,7 +58,7 @@ export const Quiosco: React.FC<{ app: string; activo?: boolean; limpiar?: string
       const resta = total - (performance.now() - ultimo.current);
       if (resta <= 0) {
         window.clearInterval(reloj);
-        try { limpiar.forEach(k => localStorage.removeItem(k)); sessionStorage.removeItem(llave(app)); } catch { /* sin almacenamiento */ }
+        try { limpiar.forEach(k => localStorage.removeItem(k)); sessionStorage.clear(); } catch { /* sin almacenamiento */ }
         if (alReiniciar) alReiniciar(); else location.reload();
       } else setQuedan(resta <= aviso ? Math.ceil(resta / 1000) : null);
     }, 250);

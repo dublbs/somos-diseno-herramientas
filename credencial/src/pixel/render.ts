@@ -1,4 +1,5 @@
 import { marcoListo, type Visual } from '../../../shared/marcos';
+import { ACTIVAS, ESTACIONES } from '../../../shared/juego';
 import { HEX, contraste, type NombreColor } from './palette';
 import { GLIFOS, AVANCE, normalizar } from '../../../shared/pixelfont';
 import { TIMBRES, type IdPersonaje, type Tema } from '../temas';
@@ -22,6 +23,7 @@ export interface DatosCarta {
   receta: Retrato;
   marco: string; // id de shared/marcos.ts (PM02, PM05, GM02, GM05, OM02, OM05)
   sellos: number[]; // 1..SELLOS
+  canjeado?: boolean; // el premio de la credencial completa ya se entregó (lo valida el staff con su PIN)
 }
 // Imágenes ya cargadas: la foto o el personaje, y los 4 timbres del lenguaje del marco.
 export interface Recursos { retrato: HTMLImageElement | null; timbres: (HTMLImageElement | null)[] }
@@ -208,13 +210,12 @@ export function pintarFrente(ctx: CanvasRenderingContext2D, d: DatosCarta, rec: 
 // Cara B: el álbum de timbres. Los conseguidos a todo color; los que faltan, como silueta.
 export function pintarAlbum(ctx: CanvasRenderingContext2D, d: DatosCarta, rec: Recursos, tema: Tema, s: number) {
   const W = CARTA.ancho, H = CARTA.alto;
-  const timbres = TIMBRES[tema.visual];
   ctx.save();
   recortarCarta(ctx, tema.visual, s);
   ctx.fillStyle = tema.banda;
   ctx.fillRect(0, 0, W * s, H * s);
   escribir(ctx, tema.visual, 'Timbres', 16, 18, 16, tema.tinta, s);
-  escribir(ctx, tema.visual, `${d.sellos.length}/${SELLOS}`, W - 16, 18, 16, tema.acento, s, 'der');
+  escribir(ctx, tema.visual, `${d.sellos.filter(n => ACTIVAS.includes(n)).length}/${ACTIVAS.length}`, W - 16, 18, 16, tema.acento, s, 'der');
   const cw = (W - 16 * 2 - 10) / 2, ch = (H - 60 - 16 - 10) / 2;
   for (let i = 0; i < SELLOS; i++) {
     const x = 16 + (i % 2) * (cw + 10), y = 52 + Math.floor(i / 2) * (ch + 10), n = i + 1;
@@ -224,8 +225,10 @@ export function pintarAlbum(ctx: CanvasRenderingContext2D, d: DatosCarta, rec: R
     else ctx.fillRect(x * s, y * s, cw * s, ch * s);
     const lado = Math.min(cw - 20, ch - 46);
     if (im) pintarTimbre(ctx, im, s, [x + (cw - lado) / 2, y + 8, lado, lado], d.codigo + n, tengo ? 1 : 0.22);
-    escribir(ctx, tema.visual, timbres[i].nombre, x + cw / 2, y + ch - 32, 9, tema.tinta, s, 'centro', cw - 10);
-    escribir(ctx, tema.visual, tengo ? '¡Conseguido!' : `Estación ${n}`, x + cw / 2, y + ch - 16, 6, tengo ? tema.acento : tema.tinta, s, 'centro', cw - 10);
+    // El timbre se nombra por lo que lo otorga (plan 005, bloque D); el dibujo sigue siendo el del lenguaje.
+    const est = ESTACIONES[i];
+    escribir(ctx, tema.visual, `${n} · ${est.nombre}`, x + cw / 2, y + ch - 32, 9, tema.tinta, s, 'centro', cw - 10);
+    escribir(ctx, tema.visual, tengo ? '¡Conseguido!' : est.como, x + cw / 2, y + ch - 16, 6, tengo ? tema.acento : tema.tinta, s, 'centro', cw - 10);
   }
   ctx.restore();
   bordeCarta(ctx, tema.visual, s);

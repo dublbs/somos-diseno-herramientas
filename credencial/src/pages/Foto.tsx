@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { MarcoVivo } from '../components/Pixel';
-import { obtener, miCredencial, fotoDe, guardarFoto } from '../lib/store';
+import { obtener, miCredencial, fotoDe, guardarFoto, avatarHub, guardarAvatarHub, type AvatarHub } from '../lib/store';
 import { leerFoto, cargarImagen } from '../lib/foto';
 import type { DatosCarta } from '../pixel/render';
 import type { Ir, PonerTema } from '../App';
@@ -13,6 +13,7 @@ export const Foto: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTema
   const [nueva, setNueva] = useState<string | null>(null);
   const [imagen, setImagen] = useState<HTMLImageElement | null>(null);
   const [aviso, setAviso] = useState('');
+  const [avatar, setAvatar] = useState<AvatarHub>(() => (codigo ? avatarHub(codigo) : 'personaje'));
 
   useEffect(() => {
     if (!codigo) return;
@@ -45,6 +46,7 @@ export const Foto: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTema
   };
   const listo = () => {
     if (nueva) guardarFoto(codigo, nueva);
+    guardarAvatarHub(codigo, imagen ? avatar : 'personaje');
     ir(`#/c/${codigo}`, { aviso: nueva ? 'Foto lista en tu credencial.' : undefined });
   };
 
@@ -56,6 +58,12 @@ export const Foto: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTema
       <p className="progreso" role="status">
         {aviso || (imagen ? 'Así queda en tu credencial.' : 'Fotomatón: sácate una selfie y queda dentro de tu marco.')}
       </p>
+      {imagen && (
+        <label className="consentimiento">
+          <input type="checkbox" checked={avatar === 'foto'} onChange={e => setAvatar(e.target.checked ? 'foto' : 'personaje')} />
+          <span>Quiero aparecer en la pantalla del HUB con mi foto. Si no, aparece mi personaje. Puedes cambiarlo cuando quieras.</span>
+        </label>
+      )}
       <div className="acciones-movil">
         <label className={'btn' + (imagen ? '' : ' primario')}>
           <input type="file" accept="image/*" capture="user" hidden onChange={alElegir} aria-label="Sacar foto" />

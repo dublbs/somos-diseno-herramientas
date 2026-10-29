@@ -167,3 +167,11 @@ html:has(.k-tutorial),body:has(.k-tutorial){height:100%;overflow:hidden}
 .k-quiosco-caja h2{margin:0;font:800 28px var(--fuente-tit)}
 .k-quiosco-caja p{margin:0;line-height:1.4}
 .k-quiosco-cuenta{font:800 64px/1 var(--fuente-tit)!important;color:var(--accent)}
+
+/* Modo juego: desbloqueo con el código de la credencial y panel del staff */
+.k-juego-form{display:grid;gap:10px;max-width:520px}
+.k-juego-input{min-height:56px;padding:0 16px;border:2px solid var(--ink);background:var(--surface);color:var(--ink);font:700 24px "IBM Plex Mono",monospace;letter-spacing:.08em;text-transform:uppercase}
+[data-visual="Orgánica"] .k-juego-input{border-radius:18px 22px 16px 20px}
+.k-juego-error{color:#C23B4E;font-weight:700}
+.k-juego-token{margin:4px 0!important;font:800 44px "IBM Plex Mono",monospace!important;letter-spacing:.12em;color:var(--accent)}
+.k-quiosco-cuenta .material-symbols-outlined{font-size:64px}

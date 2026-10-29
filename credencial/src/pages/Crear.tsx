@@ -49,7 +49,7 @@ export const Crear: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTem
       const codigo = await crear({ nombre, receta, marco });
       if (modo === 'foto' && foto) guardarFoto(codigo, foto);
       guardarMiCredencial(codigo);
-      ir(`#/c/${codigo}`, { aviso: 'Credencial lista. Consigue los 4 timbres en la sede.' });
+      ir(`#/c/${codigo}`, { aviso: 'Credencial lista: ya tienes el timbre de Inscripción.', timbre: 1 });
     } catch (err) {
       setAviso('No se pudo crear: ' + (err as Error).message);
       setCreando(false);

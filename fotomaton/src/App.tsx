@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { otorgarCreacion } from '../../shared/juego';
 import { MARCOS, porId, type Visual } from './data/marcos';
 import { TINTAS } from './data/tintas';
 import { Carrete, Lateral } from './components/Barras';
@@ -80,7 +81,7 @@ export function App() {
 
   const llevatela = async () => {
     setOcupado(true);
-    try { setTarjeta(await hacerTarjeta()); setPaso('qr'); }
+    try { setTarjeta(await hacerTarjeta()); setPaso('qr'); otorgarCreacion('fotomaton'); }
     catch { setAviso('No pudimos preparar la tarjeta.'); } finally { setOcupado(false); }
   };
 

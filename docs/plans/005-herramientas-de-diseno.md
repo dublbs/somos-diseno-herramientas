@@ -68,4 +68,14 @@ Kit de interfaz por lenguaje en `shared/ui/` (muestra: `docs/kit/muestra.html`).
 | Fotomatón | inferior: lenguaje, carrete de marcos, disparo · derecha: efecto, paleta, placas | placas de impresión C, M, Y, K |
 | Audioreactiva | derecha: escenas y consola · inferior: espectro, medidores, fuente, sensibilidad | canales que se silencian, escena Escalera (C7) |
 
+**Transversal (bloque C):** tutorial previo común (`shared/ui/Tutorial.tsx`, una vez por sesión) y modo quiosco: a los 90 s sin uso avisa «¿Sigues ahí?» 10 s antes y vuelve al inicio borrando lo guardado.
+
+**Modo juego (bloque D):**
+- Timbres por lo que los otorga (`shared/juego.ts`): 1 Inscripción (al crear la credencial), 2 Creación (exportar o enviar algo en una mesa), 3 Portales (QR de los afiches AR), 4 Hallazgo 3D (apagado). La credencial se completa con los activos.
+- Mesas: con el modo juego encendido, la tablet pide el código de la credencial (SD-XXXXX). Al exportar, la persona gana el timbre 2: la tablet muestra el código de la estación 2 para timbrar desde el celular y lo anota para el HUB (`sd:timbres-mesa`).
+- Staff: `?staff` en la URL de cualquier mesa abre la configuración con PIN (modo juego, código de la estación 2, PIN nuevo, reiniciar mesa). El PIN se guarda como hash en el equipo o llega por `VITE_STAFF_PIN_SHA256` al compilar; nunca en el repo. Sin ninguno, el PIN de demo es 0000 y la pantalla lo avisa.
+- Canje: con la credencial completa aparece «Canjear»; el staff escribe su PIN en el celular de la persona y queda «¡Canjeado!».
+- Avatar del HUB: en la foto de la credencial, casilla de consentimiento (apagada por defecto) para aparecer con la foto; si no, va el personaje. El cuerpo se decide con la hoja de cuerpos (`?cuerpos` en hub-estacion).
+- Sin Supabase, la tablet y el celular no comparten datos: por eso el timbre 2 se entrega con el código de la estación. Con Supabase (bloque E) la mesa lo otorga directo.
+
 **Pendiente con bloqueo:** la calibración de la regla de «los ojos» del Fotomatón (plan 004) necesita los 6 retratos de prueba (tono de piel, luz, lentes) con permiso de las personas. No se pueden inventar: cuando el equipo los suba a una carpeta local (no al repo), se mide con face-api y se ajustan los valores por defecto de cada efecto.

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { otorgarCreacion } from '../../shared/juego';
 import {
   COLS, FILAS, HEX, MODELOS, STICKERS, anchoTag, baseDe, cargar, dibujarAnden, dibujarCarro, dibujarTren, disenoVacio,
   escribir, pintar, pngDelCarro, rellenar, srcSticker, type Diseno, type IdModelo, type IdSticker, type NombreColor,
@@ -131,6 +132,7 @@ export const App: React.FC = () => {
     if (!base) return;
     try { localStorage.setItem('sd:vagon', JSON.stringify({ png: pngDelCarro(base, diseno, imgs), modelo, carros, ts: Date.now() })); } catch { /* sin almacenamiento */ }
     setAviso('Tu vagón va camino a la Estación');
+    otorgarCreacion('vagon');
     if (!QUIETO) setSaliendo(performance.now());
   };
   const exportar = async () => {
@@ -143,6 +145,7 @@ export const App: React.FC = () => {
       dibujarCarro(x, (lado - COLS * cel) / 2, via - FILAS * cel, cel, base, diseno, imgs);
     }, ['Mi vagón', 'de metro']);
     descargar(blob, `vagon-${modelo}-${carros}-carros.png`);
+    otorgarCreacion('vagon');
   };
 
   if (!empezado) return (

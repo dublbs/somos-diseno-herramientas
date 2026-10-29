@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { normalizar } from '../../../shared/pixelfont';
 import { SELLOS, normalizarRetrato, type DatosCarta, type Retrato } from '../pixel/render';
+import { ESTACIONES } from '../../../shared/juego';
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const clave = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -32,14 +33,15 @@ export async function crear({ nombre, receta, marco }: { nombre: string; receta:
   const db = leer();
   let codigo = codigoNuevo();
   while (db[codigo]) codigo = codigoNuevo();
-  db[codigo] = { codigo, nombre: limpio, receta, marco, sellos: [], creada: new Date().toISOString() };
+  // El timbre 1 (Inscripción) se gana al crear la credencial.
+  db[codigo] = { codigo, nombre: limpio, receta, marco, sellos: [1], creada: new Date().toISOString() };
   escribir(db);
   return codigo;
 }
 
 export async function obtener(codigo: string): Promise<DatosCarta> {
   if (sb) {
-    const { data, error } = await sb.from('credenciales').select('codigo,nombre,receta,marco,sellos(sello)').eq('codigo', codigo).maybeSingle();
+    const { data, error } = await sb.from('credenciales').select('codigo,nombre,receta,marco,canjeado,sellos(sello)').eq('codigo', codigo).maybeSingle();
     if (error) throw new Error(error.message);
     if (!data) throw new Error('No encontramos esa credencial.');
     return { ...(data as unknown as DatosCarta), receta: normalizarRetrato(data.receta), sellos: ((data.sellos as { sello: number }[]) || []).map(s => s.sello).sort() };
@@ -51,6 +53,7 @@ export async function obtener(codigo: string): Promise<DatosCarta> {
 
 export async function sellar(codigo: string, sello: number, token: string) {
   if (!Number.isInteger(sello) || sello < 1 || sello > SELLOS) throw new Error('Este QR de sello no es válido.');
+  if (!ESTACIONES[sello - 1].activa) throw new Error(`La estación ${sello} (${ESTACIONES[sello - 1].nombre}) todavía no está abierta.`);
   if (sb) {
     const { error } = await sb.rpc('sellar', { p_codigo: codigo, p_sello: sello, p_token: token });
     if (error) {
@@ -67,6 +70,25 @@ export async function sellar(codigo: string, sello: number, token: string) {
   if (!c.sellos.includes(sello)) c.sellos = [...c.sellos, sello].sort();
   escribir(db);
 }
+
+// Canje del premio con la credencial completa. Lo valida el staff con su PIN en este mismo celular.
+export async function canjear(codigo: string) {
+  if (sb) {
+    const { error } = await sb.rpc('canjear', { p_codigo: codigo });
+    if (error) throw new Error(error.message);
+    return;
+  }
+  const db = leer();
+  if (!db[codigo]) throw new Error('No encontramos tu credencial.');
+  db[codigo].canjeado = true;
+  escribir(db);
+}
+
+// El avatar del HUB: con la foto solo si la persona lo autoriza; si no, su personaje. Queda en este celular
+// hasta que exista la capa de datos compartida (shared/datos.ts).
+export type AvatarHub = 'personaje' | 'foto';
+export function avatarHub(codigo: string): AvatarHub { try { return localStorage.getItem('sd:avatar:' + codigo) === 'foto' ? 'foto' : 'personaje'; } catch { return 'personaje'; } }
+export function guardarAvatarHub(codigo: string, a: AvatarHub) { try { localStorage.setItem('sd:avatar:' + codigo, a); } catch { /* nada */ } }
 
 // La credencial propia de este celular.
 export function miCredencial(): string | null { try { return localStorage.getItem('sd:mia'); } catch { return null; } }
