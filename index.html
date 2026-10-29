@@ -160,18 +160,17 @@ footer .enlace-hub{color:var(--ink);font-weight:700;text-decoration:none;border-
       </li>
 
       <!-- 6. ESTACIÓN AUDIOREACTIVA -->
-      <li class="tarjeta proxima" data-lenguajes="geometrica" id="exp-audioreactiva">
+      <li class="tarjeta" data-lenguajes="geometrica" id="exp-audioreactiva">
         <div class="miniatura">
           <canvas id="cv-audioreactiva" aria-hidden="true"></canvas>
           <span class="etiqueta">Geométrica</span>
-          <span class="badge-estado">En desarrollo</span>
         </div>
         <div class="cuerpo">
           <h2>Estación Audioreactiva</h2>
-          <p>Usa tu voz o música para deformar y dar vida a patrones geométricos reactivos en tiempo real.</p>
+          <p>Habla, aplaude o pon música: el sonido deforma la red de Geométrica en un túnel, un acordeón, un caleidoscopio o un tejido. Graba tu loop.</p>
         </div>
         <div class="tarjeta-acciones">
-          <div class="btn-disabled">Próximamente</div>
+          <a class="btn primario btn-entrar" href="audioreactiva/dist/" id="link-audioreactiva" aria-label="Entrar a la Estación Audioreactiva">Entrar <span aria-hidden="true">→</span></a>
         </div>
       </li>
 
@@ -618,35 +617,33 @@ footer .enlace-hub{color:var(--ink);font-weight:700;text-decoration:none;border-
     });
   }
 
-  // 6. Estación Audioreactiva: barras geométricas que "escuchan"; las formas del Taller de Mosaicos laten con el sonido.
+  // 6. Estación Audioreactiva: el túnel de Geométrica · Motion (M3/C3) que late como si escuchara música.
   const cvAudio = document.getElementById("cv-audioreactiva");
   if (cvAudio) {
     const ctx = cvAudio.getContext("2d");
     miniaturas.push({
       cv: cvAudio, ctx,
       draw: t => {
-        const { width: W, height: H } = cvAudio, n = 12, ancho = W / n;
-        const ms = quieto ? 900 : t;
+        const { width: W, height: H } = cvAudio, ms = quieto ? 900 : t;
+        const golpe = Math.pow(Math.max(0, Math.sin(ms * Math.PI / 500)), 8); // bombo a 120 bpm
+        const fase = ms * 0.0006, sectores = 16, latido = 1 + golpe * 0.12, redondez = golpe * 0.8;
         ctx.fillStyle = HEX.Hueso; ctx.fillRect(0, 0, W, H);
-        for (let i = 0; i < n; i++) {
-          const nivel = 0.25 + 0.75 * Math.abs(Math.sin(ms * 0.0021 + i * 0.7) * Math.cos(ms * 0.0013 + i * 0.35));
-          const alto = Math.max(1, Math.round(nivel * 7)) * (H / 8);
-          const x = i * ancho, base = H * 0.9;
-          const key = MOSAICO[i % MOSAICO.length], def = FORMAS[key];
-          // columna de piezas del mosaico apiladas desde la base
-          for (let j = 0; j * ancho < alto; j++) {
-            ctx.save();
-            ctx.translate(x + ancho / 2, base - j * ancho - ancho / 2);
-            ctx.rotate(((i + j) % 4) * Math.PI / 2);
-            ctx.translate(-ancho / 2, -ancho / 2);
-            ctx.scale(ancho / 12, ancho / 12);
-            for (const [d, ranura] of def) {
-              ctx.fillStyle = ranura === "b" ? HEX.Amarillo : (j % 2 ? HEX.Lapislázuli : HEX.Negro);
-              ctx.fill(path(d), "evenodd");
-            }
-            ctx.restore();
+        ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(ms * 0.00015);
+        const punto = (a, r) => { const c = Math.cos(a), s = Math.sin(a), m = Math.max(Math.abs(c), Math.abs(s)), k = (1 - redondez) / m + redondez; return [c * r * k, s * r * k]; };
+        const f = fase % 1, par = Math.floor(fase) % 2, base = Math.max(W, H) * 0.02;
+        for (let i = 14; i >= 0; i--) {
+          const r0 = base * Math.pow(1.32, i + f) * latido, r1 = base * Math.pow(1.32, i + 1 + f) * latido;
+          for (let j = 0; j < sectores; j++) {
+            if ((i + j + par) % 2) continue;
+            const a0 = j / sectores * Math.PI * 2, a1 = (j + 1) / sectores * Math.PI * 2;
+            ctx.beginPath();
+            for (let k = 0; k <= 4; k++) { const [x, y] = punto(a0 + (a1 - a0) * k / 4, r1); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+            for (let k = 4; k >= 0; k--) { const [x, y] = punto(a0 + (a1 - a0) * k / 4, r0); ctx.lineTo(x, y); }
+            ctx.closePath(); ctx.fillStyle = HEX.Azul; ctx.fill();
           }
         }
+        const n = base * 2.4 * latido; ctx.fillStyle = HEX.Negro; ctx.fillRect(-n / 2, -n / 2, n, n);
+        ctx.restore();
       }
     });
   }

@@ -1,0 +1,39 @@
+@import '../../shared/somos-ui.css';
+@import '../../shared/somos-fonts.css';
+@import '../../shared/somos-icons.css';
+
+.material-symbols-outlined { font-size: 20px; vertical-align: middle; }
+
+/* Escena */
+.marco-escena { border: var(--borde); background: var(--surface); }
+.escena { display: block; width: 100%; height: 100%; }
+
+/* Panel */
+.escenas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.escena-btn { min-height: 64px; display: grid; align-content: center; justify-items: start; gap: 2px; padding: 10px 12px; border: var(--borde); background: var(--surface); color: var(--ink); cursor: pointer; text-align: left; box-shadow: inset 8px 0 0 var(--f); padding-left: 18px; }
+.escena-btn[aria-checked="true"] { background: var(--accent); color: var(--on-accent); }
+.escena-nombre { font: 800 17px/1.1 var(--fuente-tit); text-transform: uppercase; letter-spacing: .02em; }
+.escena-base { font: 600 12px "IBM Plex Mono", monospace; opacity: .8; }
+.que-hace { margin: 0; font-size: 14px; line-height: 1.4; color: var(--muted); }
+.panel-app .label { margin: 2px 0 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.fila-check { display: flex; align-items: center; gap: 8px; font-size: 14px; min-height: 44px; }
+.fila-check input { width: 22px; height: 22px; }
+input[type="range"] { width: 100%; min-height: 44px; accent-color: var(--accent); }
+.medidores { display: grid; gap: 6px; }
+.medidor { display: grid; grid-template-columns: 72px 1fr; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; }
+.medidor i { display: block; height: 12px; background: linear-gradient(90deg, var(--accent) calc(var(--v) * 100%), var(--chip) 0); }
+.golpe { justify-self: start; padding: 4px 10px; border: var(--borde); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+.golpe.si { background: var(--accent); color: var(--on-accent); }
+.aviso { margin: 0; font-size: 13px; font-weight: 700; color: #C23B4E; }
+.panel-pie { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; }
+
+/* Portada: qué hacer en 3 pasos, antes de pedir el micrófono */
+.portada { min-height: 100dvh; display: grid; grid-template-rows: auto 1fr; padding: clamp(16px, 3vw, 40px); background: var(--bg); color: var(--ink); }
+.portada .volver { justify-self: start; display: inline-flex; align-items: center; gap: 6px; color: var(--ink); text-decoration: none; font-weight: 700; min-height: 44px; }
+.portada-cuerpo { align-self: center; justify-self: center; width: min(100%, 640px); display: grid; gap: clamp(14px, 2.4vh, 26px); }
+.portada h1 { margin: 0; font: 800 clamp(36px, 6vw, 72px)/.95 var(--fuente-tit); letter-spacing: -.02em; text-transform: uppercase; }
+.pasos { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.pasos li { display: grid; grid-template-columns: 40px 1fr; align-items: center; gap: 12px; font-size: clamp(16px, 1.6vw, 20px); }
+.pasos b { display: grid; place-items: center; width: 40px; height: 40px; background: var(--accent); color: var(--on-accent); font: 800 20px var(--fuente-tit); }
+.portada-acciones { display: flex; flex-wrap: wrap; gap: 10px; }
+.portada-acciones .btn { min-height: 56px; }
