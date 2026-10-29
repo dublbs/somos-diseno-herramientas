@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { otorgarCreacion } from '../../shared/juego';
-import { BOQUILLAS, ENTRE_CHORROS_MS, MAX_HISTORIAL, MUROS, PALETA, PASO_CHORRO_MS, QUIETO_MS, SPRAY_CONTINUO_MS, STICKERS, COLS, FILAS } from './data/config';
+import { BOQUILLAS, GOTEO, MAX_HISTORIAL, MUROS, PALETA, SECADO, SPRAY_CONTINUO_MS, STICKERS, COLS, FILAS, type NivelGoteo } from './data/config';
 import { PLANTILLAS } from './data/stencils';
 import { cargar } from './lib/imagenes';
 import { borrar, copiar, gotear, linea, mascaraDe, nacerChorro, nuevoDibujo, plantilla, plumon, rociar, rodillo, type Chorro, type Dibujo, type Puesta } from './lib/pintura';
@@ -8,14 +8,14 @@ import { dibujarMuro, dibujarPlacaStencil } from './lib/dibujar';
 import { crearTarjeta, descargar } from './lib/exportar';
 import { Lienzo } from './components/Lienzo';
 import { ModalExportar } from './components/ModalExportar';
-import { BarraHerramientas, BarraSuperior, BotonAccion, Confirmar, Deslizador, Interruptor, Paleta, PantallaHerramienta, Seccion, Segmentado, type DefHerramienta } from '../../shared/ui/Kit';
+import { BarraHerramientas, BarraSuperior, BotonAccion, Confirmar, Deslizador, Paleta, PantallaHerramienta, Seccion, Segmentado, type DefHerramienta } from '../../shared/ui/Kit';
 import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
 import '../../shared/ui/somos-kit.css';
 import './styles.css';
 
 type Herramienta = 'spray' | 'rodillo' | 'plumon' | 'stencil' | 'sticker' | 'borrar';
 const HERRAMIENTAS: (DefHerramienta<Herramienta> & { ayuda: string })[] = [
-  { id: 'spray', nombre: 'Spray', icono: 'blur_on', ayuda: 'Pinta con el dedo. Si dejas el spray quieto, la pintura chorrea.' },
+  { id: 'spray', nombre: 'Spray', icono: 'blur_on', ayuda: 'Pinta con el dedo. Mientras más lento pintes, más chorrea.' },
   { id: 'rodillo', nombre: 'Rodillo', icono: 'format_paint', ayuda: 'Una franja ancha con vetas, como un rodillo de verdad. Pasa dos veces para taparlas.' },
   { id: 'plumon', nombre: 'Plumón', icono: 'ink_highlighter', ayuda: 'Trazo parejo y nítido para firmar tu tag.' },
   { id: 'stencil', nombre: 'Stencil', icono: 'content_cut', ayuda: 'Arrastra la plantilla. Luego pinta encima: la pintura pasa solo por los huecos.' },
@@ -38,7 +38,7 @@ export const App: React.FC = () => {
   const [boquilla, setBoquilla] = useState(BOQUILLAS[1].radio);
   const [herr, setHerr] = useState<Herramienta>('spray');
   const [sticker, setSticker] = useState(STICKERS[0].id);
-  const [goteo, setGoteo] = useState(true);
+  const [goteo, setGoteo] = useState<NivelGoteo>('mucho');
   const [puesta, setPuesta] = useState<Puesta | null>(null);
   const [moviendo, setMoviendo] = useState(false);
   const [version, setVersion] = useState(0);
@@ -51,7 +51,9 @@ export const App: React.FC = () => {
   const atras = useRef<Dibujo[]>([]), adelante = useRef<Dibujo[]>([]);
   const chorros = useRef<Chorro[]>([]);
   const pos = useRef<[number, number] | null>(null); // celda bajo el dedo mientras pinta
-  const ancla = useRef({ x: 0, y: 0, desde: 0, proximo: 0 }); // dónde y desde cuándo está quieto el spray
+  // Carga de pintura por celda: el spray la suma, se seca sola y donde pasa el umbral nace un chorro.
+  const carga = useRef(new Float32Array(COLS * FILAS));
+  const secadoEn = useRef(performance.now()), ultimoChorro = useRef(0);
   const rodar = useRef({ ux: 1, uy: 0, s: 0 }); // eje del rodillo y distancia recorrida
   const arrastre = useRef<{ dx: number; dy: number } | null>(null);
   const redibujar = () => setVersion(v => v + 1);
@@ -65,48 +67,64 @@ export const App: React.FC = () => {
   useEffect(() => { cargar([...MUROS.map(m => m.src), ...STICKERS.map(s => s.src)]).then(redibujar); }, []);
   useEffect(() => { if (!aviso) return; const t = setTimeout(() => setAviso(''), 2600); return () => clearTimeout(t); }, [aviso]);
 
-  // Goteo: mientras haya chorros, cada PASO_CHORRO_MS bajan una celda (lento, para verlos crecer).
+  // Goteo: mientras haya chorros, bajan con su propio ritmo (rápido al empezar, más lento al final).
   const goteando = useRef(false);
   const animarChorros = useCallback(() => {
     if (goteando.current || !chorros.current.length) return;
     if (quieto()) { // sin animación: el chorro se pinta completo de una vez
-      while (chorros.current.length) chorros.current = gotear(dibujo.current, chorros.current, actual.current.mascara);
+      chorros.current = gotear(dibujo.current, chorros.current, actual.current.mascara, Infinity).siguen;
       redibujar();
       return;
     }
     goteando.current = true;
-    let acumulado = 0, previo = performance.now();
+    let previo = performance.now();
     const paso = (t: number) => {
-      acumulado += t - previo; previo = t;
-      let cambio = false;
-      while (acumulado >= PASO_CHORRO_MS && chorros.current.length) {
-        chorros.current = gotear(dibujo.current, chorros.current, actual.current.mascara);
-        acumulado -= PASO_CHORRO_MS; cambio = true;
-      }
-      if (cambio) redibujar();
+      const r = gotear(dibujo.current, chorros.current, actual.current.mascara, t - previo);
+      previo = t; chorros.current = r.siguen;
+      if (r.cambio) redibujar();
       if (chorros.current.length) requestAnimationFrame(paso);
       else goteando.current = false;
     };
     requestAnimationFrame(paso);
   }, []);
 
-  // Mientras el dedo está abajo con el spray, la lata sigue soltando pintura; quieta ~1,2 s, empieza a chorrear.
+  // Seca la carga según el tiempo y, donde la pintura se acumuló, hace nacer un chorro (uno a la vez, cada `cada` ms).
+  const revisarGoteo = (cx: number, cy: number) => {
+    const a = actual.current, t = performance.now(), c = carga.current;
+    const k = Math.pow(SECADO, (t - secadoEn.current) / 1000);
+    secadoEn.current = t;
+    for (let i = 0; i < c.length; i++) if (c[i]) c[i] *= k;
+    if (a.goteo === 'nada') return;
+    const g = GOTEO[a.goteo], r = a.boquilla + 1;
+    if (t - ultimoChorro.current < g.cada) return;
+    // Cada chorro se ve solo: no nace junto a otro que siga bajando (columna o vecinas).
+    const ocupada = (x: number) => chorros.current.some(h => Math.abs(h.x - x) <= 1 + (h.ancho - 1));
+    let mejor = -1, mx = 0;
+    for (let y = Math.max(0, cy - r); y <= Math.min(FILAS - 1, cy + r); y++) for (let x = Math.max(0, cx - r); x <= Math.min(COLS - 1, cx + r); x++) {
+      if (ocupada(x)) continue;
+      const v = c[y * COLS + x];
+      if (v >= g.umbral && v > mejor) { mejor = v; mx = x; }
+    }
+    if (mejor < 0) return;
+    if (nacerChorro(dibujo.current, chorros.current, mx, cy, r, a.color, g.largo, a.boquilla === 3 ? g.anchoDoble : 0)) {
+      ultimoChorro.current = t;
+      // esa columna y sus vecinas ya chorrearon: vuelven a cargarse desde cero
+      for (let y = Math.max(0, cy - r - 1); y <= Math.min(FILAS - 1, cy + r + 1); y++) for (let x = Math.max(0, mx - 1); x <= Math.min(COLS - 1, mx + 1); x++) c[y * COLS + x] = 0;
+      animarChorros();
+    }
+  };
+
+  // Mientras el dedo está abajo con el spray, la lata sigue soltando pintura: quieta o lenta, carga la pared y chorrea.
   const bucleSpray = () => {
     let ultimo = performance.now();
     const cuadro = (t: number) => {
       const p = pos.current, a = actual.current;
       if (!p || a.herr !== 'spray') return;
-      if (t - ultimo >= SPRAY_CONTINUO_MS) { rociar(dibujo.current, p[0], p[1], a.boquilla, a.color, a.mascara); ultimo = t; redibujar(); }
-      if (a.goteo && t - ancla.current.desde >= QUIETO_MS && t >= ancla.current.proximo) {
-        nacerChorro(dibujo.current, chorros.current, p[0], p[1], a.boquilla, a.color);
-        ancla.current.proximo = t + ENTRE_CHORROS_MS;
-        animarChorros();
-      }
+      if (t - ultimo >= SPRAY_CONTINUO_MS) { rociar(dibujo.current, p[0], p[1], a.boquilla, a.color, a.mascara, carga.current); ultimo = t; redibujar(); revisarGoteo(p[0], p[1]); }
       requestAnimationFrame(cuadro);
     };
     requestAnimationFrame(cuadro);
   };
-  const anclar = (x: number, y: number) => { const t = performance.now(); ancla.current = { x, y, desde: t, proximo: t + QUIETO_MS }; };
 
   const guardarHistorial = () => {
     atras.current.push(copiar(dibujo.current));
@@ -128,7 +146,7 @@ export const App: React.FC = () => {
   const pintar = (x: number, y: number) => {
     if (herr === 'borrar') borrar(dibujo.current, x, y, boquilla);
     else if (herr === 'plumon') plumon(dibujo.current, x, y, boquilla, color, mascara);
-    else rociar(dibujo.current, x, y, boquilla, color, mascara);
+    else rociar(dibujo.current, x, y, boquilla, color, mascara, carga.current);
   };
   const rodarHasta = (x0: number, y0: number, x1: number, y1: number) => {
     const d = Math.hypot(x1 - x0, y1 - y0);
@@ -159,7 +177,6 @@ export const App: React.FC = () => {
     guardarHistorial();
     if (herr === 'sticker') { dibujo.current.stickers.push({ id: sticker, x, y }); redibujar(); return; }
     pos.current = [x, y];
-    anclar(x, y);
     if (herr === 'rodillo') { rodar.current.s = 0; rodillo(dibujo.current, x, y, rodar.current.ux, rodar.current.uy, 0, mitad, color, mascara); }
     else pintar(x, y);
     redibujar();
@@ -177,14 +194,14 @@ export const App: React.FC = () => {
     if (herr === 'rodillo') rodarHasta(x0, y0, x, y);
     else linea(x0, y0, x, y, pintar);
     pos.current = [x, y];
-    if (Math.hypot(x - ancla.current.x, y - ancla.current.y) > 2) anclar(x, y);
+    if (herr === 'spray') revisarGoteo(x, y);
     redibujar();
     animarChorros();
   };
 
   const alSoltar = () => { pos.current = null; arrastre.current = null; setMoviendo(false); };
 
-  const vaciar = () => { guardarHistorial(); chorros.current = []; dibujo.current = nuevoDibujo(); redibujar(); };
+  const vaciar = () => { guardarHistorial(); chorros.current = []; carga.current.fill(0); dibujo.current = nuevoDibujo(); redibujar(); };
   const exportar = async () => {
     try { setTarjeta(await crearTarjeta(muro, dibujo.current)); otorgarCreacion('graffiti'); }
     catch { setAviso('No se pudo crear la tarjeta. Inténtalo de nuevo.'); }
@@ -211,7 +228,7 @@ export const App: React.FC = () => {
     <Tutorial etiqueta="Pixel · ilustración y lettering" titulo="Graffiti y Tags"
       pasos={[
         { icono: 'wallpaper', texto: 'Elige muro y color.' },
-        { icono: 'blur_on', texto: 'Pinta con el spray: si lo dejas quieto, la pintura chorrea.' },
+        { icono: 'blur_on', texto: 'Pinta con el spray: mientras más lento pintes, más chorrea.' },
         { icono: 'content_cut', texto: 'Usa stencils de 2 capas, firma con el plumón y descarga tu muro.' },
       ]}
       acciones={[{ texto: 'Empezar a pintar', icono: 'format_paint', alTocar: marcarVisto }]} />
@@ -240,7 +257,10 @@ export const App: React.FC = () => {
           </Seccion>
           <Seccion titulo={activa.nombre} crece>
             {(herr === 'spray' || herr === 'rodillo' || herr === 'plumon' || herr === 'borrar') && grosor}
-            {herr === 'spray' && <Interruptor id="goteo" texto="Goteo" activo={goteo} onCambiar={setGoteo} />}
+            {herr === 'spray' && (
+              <Segmentado etiqueta="Goteo" valor={goteo} onCambiar={setGoteo}
+                opciones={[{ valor: 'nada' as NivelGoteo, texto: 'Sin goteo' }, { valor: 'poco' as NivelGoteo, texto: 'Poco' }, { valor: 'mucho' as NivelGoteo, texto: 'Mucho' }]} />
+            )}
             {herr === 'stencil' && (<>
               <div className="plantillas" role="radiogroup" aria-label="Plantilla">
                 {PLANTILLAS.map(t => (

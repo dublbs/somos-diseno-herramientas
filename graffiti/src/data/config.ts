@@ -45,9 +45,15 @@ export const STICKERS: Sticker[] = [
   { id: 'tag', nombre: 'Tag', src: A('tag/tag-ejemplo'), ancho: 30 },
 ];
 
-export const MAX_CHORROS = 40;
-export const PASO_CHORRO_MS = 180; // el chorro baja una celda cada 180 ms
-export const QUIETO_MS = 1200; // tiempo con el spray quieto antes del primer chorro
-export const ENTRE_CHORROS_MS = 700; // y luego, uno nuevo cada 700 ms mientras siga quieto
+export const MAX_CHORROS = 60;
+// Goteo por carga: cada pasada del spray suma pintura a la celda y la pintura se seca sola (SECADO por segundo).
+// Donde la carga pasa el umbral nace un chorro: el spray quieto chorrea en ~0,5 s, el trazo lento también, el rápido casi no.
+export type NivelGoteo = 'nada' | 'poco' | 'mucho';
+export const GOTEO: Record<Exclude<NivelGoteo, 'nada'>, { umbral: number; largo: [number, number]; cada: number; anchoDoble: number }> = {
+  poco: { umbral: 10, largo: [6, 14], cada: 400, anchoDoble: 0 },
+  mucho: { umbral: 6, largo: [10, 26], cada: 150, anchoDoble: 0.5 }, // anchoDoble: probabilidad de chorro de 2 celdas (boquilla gruesa)
+};
+export const SECADO = 0.6; // la carga que queda después de 1 s
+export const PASO_CHORRO_MS: [number, number] = [140, 260]; // el chorro baja rápido al empezar y frena al final
 export const SPRAY_CONTINUO_MS = 60; // el spray sigue soltando pintura aunque el dedo no se mueva
 export const MAX_HISTORIAL = 40;

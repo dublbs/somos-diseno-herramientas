@@ -1,7 +1,8 @@
-import { COLS, FILAS, MAX_CHORROS } from '../data/config';
+import { COLS, FILAS, MAX_CHORROS, PASO_CHORRO_MS } from '../data/config';
 import { PLANTILLAS, TEXTURA_RODILLO } from '../data/stencils';
 
-export interface Chorro { x: number; y: number; color: number; resta: number }
+// largo: celdas en total; resta: las que faltan; t: tiempo acumulado para el próximo paso.
+export interface Chorro { x: number; y: number; color: number; resta: number; largo: number; ancho: 1 | 2; t: number }
 export interface Estampa { id: string; x: number; y: number }
 export interface Dibujo { pintura: Uint8Array; stickers: Estampa[] }
 
@@ -49,7 +50,8 @@ export function mascaraDe(p: Puesta | null): Mascara {
 const paso = (mascara: Mascara, i: number) => !mascara ? 1 : mascara[i] === HUECO || mascara[i] === LIBRE ? 1 : mascara[i] === BORDE ? 0.12 : 0;
 
 // Spray: pinta las celdas dentro del radio con probabilidad mayor al centro (trazo con borde irregular).
-export function rociar(d: Dibujo, cx: number, cy: number, radio: number, color: number, mascara: Mascara) {
+// `carga` (opcional) acumula cuánta pintura recibe cada celda: de ahí nacen los chorros.
+export function rociar(d: Dibujo, cx: number, cy: number, radio: number, color: number, mascara: Mascara, carga?: Float32Array) {
   const r = radio + 0.5;
   for (let dy = -radio; dy <= radio; dy++) for (let dx = -radio; dx <= radio; dx++) {
     const x = cx + dx, y = cy + dy, dist = Math.hypot(dx, dy);
@@ -57,6 +59,7 @@ export function rociar(d: Dibujo, cx: number, cy: number, radio: number, color: 
     const i = y * COLS + x;
     if (Math.random() > (0.9 - 0.4 * (dist / r)) * paso(mascara, i)) continue;
     d.pintura[i] = color;
+    if (carga) carga[i] += 1;
   }
 }
 
@@ -105,27 +108,48 @@ export function linea(x0: number, y0: number, x1: number, y1: number, cada: (x: 
   }
 }
 
-// Nace un chorro bajo la pintura del spray, en una columna al azar del radio (cuando el spray lleva rato quieto).
-export function nacerChorro(d: Dibujo, chorros: Chorro[], cx: number, cy: number, radio: number, color: number) {
-  if (chorros.length >= MAX_CHORROS) return;
-  const x = cx + Math.round((Math.random() * 2 - 1) * radio);
-  if (x < 0 || x >= COLS) return;
-  let y = Math.min(FILAS - 1, cy + radio);
-  while (y > cy - radio && d.pintura[y * COLS + x] !== color) y--;
-  if (d.pintura[y * COLS + x] !== color) return;
-  chorros.push({ x, y: y + 1, color, resta: 5 + Math.floor(Math.random() * 12) });
+// Nace un chorro en la columna x: desde la celda más baja con pintura de ese color, cerca del spray.
+export function nacerChorro(d: Dibujo, chorros: Chorro[], x: number, cy: number, radio: number, color: number, largo: [number, number], anchoDoble: number): boolean {
+  if (chorros.length >= MAX_CHORROS || x < 0 || x >= COLS) return false;
+  let y = Math.min(FILAS - 1, cy + radio + 1);
+  while (y >= Math.max(0, cy - radio) && d.pintura[y * COLS + x] !== color) y--;
+  if (y < 0 || d.pintura[y * COLS + x] !== color || y >= FILAS - 1) return false;
+  const n = largo[0] + Math.floor(Math.random() * (largo[1] - largo[0] + 1));
+  const ancho = x < COLS - 1 && Math.random() < anchoDoble ? 2 : 1;
+  chorros.push({ x, y: y + 1, color, resta: n, largo: n, ancho, t: 0 });
+  return true;
 }
 
-// Avanza cada chorro una celda hacia abajo; devuelve los que siguen activos. Se detiene contra el cartón del stencil.
-export function gotear(d: Dibujo, chorros: Chorro[], mascara: Mascara): Chorro[] {
+// Avanza los chorros según el tiempo (dt en ms; Infinity los completa de una vez). Bajan rápido al empezar y frenan
+// al final; al terminar dejan una gota más ancha. Se detienen contra el cartón del stencil.
+export function gotear(d: Dibujo, chorros: Chorro[], mascara: Mascara, dt: number): { siguen: Chorro[]; cambio: boolean } {
   const siguen: Chorro[] = [];
+  let cambio = false;
+  const pinta = (x: number, y: number, color: number) => {
+    if (!dentro(x, y)) return false;
+    const i = y * COLS + x;
+    if (mascara && (mascara[i] === TAPADO || mascara[i] === BORDE)) return false;
+    d.pintura[i] = color; return true;
+  };
   for (const c of chorros) {
-    if (!dentro(c.x, c.y) || c.resta <= 0) continue;
-    const i = c.y * COLS + c.x;
-    if (mascara && (mascara[i] === TAPADO || mascara[i] === BORDE)) continue;
-    d.pintura[i] = c.color;
-    c.y++; c.resta--;
-    if (c.resta > 0 && c.y < FILAS) siguen.push(c);
+    c.t += dt;
+    let vivo = true;
+    while (vivo) {
+      const paso = PASO_CHORRO_MS[0] + (PASO_CHORRO_MS[1] - PASO_CHORRO_MS[0]) * (1 - c.resta / c.largo);
+      if (c.t < paso) break;
+      c.t -= paso;
+      if (c.y >= FILAS || !pinta(c.x, c.y, c.color)) { vivo = false; break; }
+      if (c.ancho === 2) pinta(c.x + 1, c.y, c.color);
+      cambio = true;
+      c.y++; c.resta--;
+      if (c.resta <= 0 || c.y >= FILAS) {
+        // la gota del final: una celda más a cada lado
+        pinta(c.x - 1, c.y - 1, c.color); pinta(c.x + c.ancho, c.y - 1, c.color);
+        for (let k = 0; k < c.ancho; k++) pinta(c.x + k, c.y, c.color);
+        vivo = false;
+      }
+    }
+    if (vivo) siguen.push(c);
   }
-  return siguen;
+  return { siguen, cambio };
 }
