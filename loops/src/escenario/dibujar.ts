@@ -1,5 +1,5 @@
 import { muestrear, type Pista } from './animacion';
-import { FONDO, FONDO_DESIERTO, FONDO_MAR, pieza, PIEZAS, type Capa } from './piezas';
+import { FONDO, FONDO_BOSQUE, FONDO_DESIERTO, FONDO_MAR, pieza, PIEZAS, type Capa } from './piezas';
 
 export interface Item {
   uid: number;
@@ -100,7 +100,7 @@ export async function cargarImagen(src: string): Promise<HTMLImageElement> {
   return new Promise((res, rej) => { im.onload = () => res(im); im.onerror = rej; im.src = src; });
 }
 export const cargarTodo = () =>
-  Promise.all([...FONDO.capas, ...FONDO_MAR.capas, ...FONDO_DESIERTO.capas, ...PIEZAS.flatMap(p => p.capas)].map(c => cargarImagen(c.src)));
+  Promise.all([...FONDO.capas, ...FONDO_MAR.capas, ...FONDO_DESIERTO.capas, ...FONDO_BOSQUE.capas, ...PIEZAS.flatMap(p => p.capas)].map(c => cargarImagen(c.src)));
 
 function aplicar(ctx: CanvasRenderingContext2D, pistas: Pista[] | undefined, u: number, pivote?: [number, number]) {
   if (!pistas?.length) return;

@@ -7,6 +7,8 @@ import { pieza } from './piezas';
 const ESCALA: Record<string, number> = {
   pudu: 0.7, paloma: 0.5, sol: 0.8, araucaria: 0.9, pina: 0.6, helecho: 0.8, quisco: 0.8, flor: 0.6,
   pez: 0.6, pinguino: 0.55, cantaro: 0.5, canasto: 0.5, kisa: 0.65,
+  condor: 0.55, gaviota: 0.5, picaflor: 0.45, carpintero: 0.5, chucao: 0.55, huemul: 0.65, guanaco: 0.65,
+  chagual: 0.7, cochayuyo: 0.65, doca: 0.55, concha: 0.45, chanar: 0.75, alerce: 0.9, copihue: 0.55, maqui: 0.6, telar: 0.65, luna: 0.8, lluvia: 0.8,
 };
 const Y: Record<Zona, [number, number]> = { cielo: [38, 82], agua: [118, 150], suelo: [150, 188] };
 const azar = (a: number, b: number) => a + Math.random() * (b - a);
@@ -17,9 +19,10 @@ export function sorprendeme(escId: string, primerUid: number): Item[] {
   const ids = Object.keys(esc.piezas);
   const elegidas: string[] = [];
   if (ids.includes('sol')) elegidas.push('sol');
+  else if (ids.includes('luna')) elegidas.push(Math.random() < 0.5 ? 'luna' : 'lluvia');
   // al menos una pieza de suelo, una de cielo y el resto al azar; una pieza puede repetirse una vez
   const suelo = barajar(ids.filter(i => esc.piezas[i] === 'suelo' || esc.piezas[i] === 'agua'));
-  const cielo = barajar(ids.filter(i => esc.piezas[i] === 'cielo' && i !== 'sol'));
+  const cielo = barajar(ids.filter(i => esc.piezas[i] === 'cielo' && !elegidas.includes(i)));
   elegidas.push(suelo[0], cielo[0]);
   const resto = barajar([...suelo.slice(1), ...cielo.slice(1), ...suelo.slice(0, 2)]);
   const cuantas = 5 + Math.floor(Math.random() * 3); // 5 a 7 piezas

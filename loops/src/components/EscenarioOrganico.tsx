@@ -24,6 +24,8 @@ type Mapa = Record<string, Item[]>;
 const ESCALA_INICIAL: Record<string, number> = {
   pudu: 0.75, paloma: 0.6, sol: 1, araucaria: 1, pina: 0.65, helecho: 0.75, quisco: 0.8, flor: 0.65,
   pez: 0.7, pinguino: 0.6, cantaro: 0.5, canasto: 0.5, kisa: 0.7,
+  condor: 0.6, gaviota: 0.55, picaflor: 0.45, carpintero: 0.5, chucao: 0.6, huemul: 0.7, guanaco: 0.7,
+  chagual: 0.75, cochayuyo: 0.7, doca: 0.6, concha: 0.45, chanar: 0.8, alerce: 0.95, copihue: 0.6, maqui: 0.65, telar: 0.7, luna: 0.9, lluvia: 0.9,
 };
 
 // Límites de escala mínimos y máximos específicos para mantener proporciones creíbles frente a los fondos
@@ -41,6 +43,9 @@ const LIMITES_ESCALA: Record<string, [number, number]> = {
   canasto: [0.28, 1.2],
   cantaro: [0.28, 1.2],
   kisa: [0.32, 1.3],
+  condor: [0.32, 1.3], gaviota: [0.3, 1.2], picaflor: [0.25, 1], carpintero: [0.3, 1.1], chucao: [0.3, 1.1],
+  huemul: [0.38, 1.3], guanaco: [0.38, 1.3], chagual: [0.4, 1.5], cochayuyo: [0.35, 1.4], doca: [0.3, 1.2], concha: [0.25, 1],
+  chanar: [0.45, 1.6], alerce: [0.5, 2], copihue: [0.3, 1.3], maqui: [0.35, 1.4], telar: [0.35, 1.3], luna: [0.5, 1.6], lluvia: [0.5, 1.6],
 };
 
 const limitar = (tipo: string, n: number) => {
@@ -252,7 +257,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
   const alFondo = () => { registrar(); actualizar(l => { const it = l.find(i => i.uid === vivo.current.sel); return it ? [it, ...l.filter(i => i !== it)] : l; }); };
   const vaciar = () => { registrar(); actualizar(() => []); setSel(null); };
 
-  const ES_MOVIL = (tipo: string) => ['pudu', 'pinguino', 'paloma', 'pez'].includes(tipo);
+  const ES_MOVIL = (tipo: string) => ['pudu', 'pinguino', 'paloma', 'pez', 'condor', 'gaviota', 'picaflor', 'carpintero', 'chucao', 'huemul', 'guanaco'].includes(tipo);
 
   const sorprender = () => {
     registrar();
@@ -448,7 +453,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
                 className="btn-escenario"
               >
                 <span className="material-symbols-outlined" aria-hidden="true">
-                  {e.id === 'cordillera' ? 'landscape' : e.id === 'mar' ? 'water' : 'wb_sunny'}
+                  {e.id === 'cordillera' ? 'landscape' : e.id === 'mar' ? 'water' : e.id === 'bosque' ? 'forest' : 'wb_sunny'}
                 </span>
                 <span>{e.nombre}</span>
               </button>
