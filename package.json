@@ -19,6 +19,8 @@
     "dev:hub-estacion": "npm --prefix hub-estacion run dev",
     "dev:audioreactiva": "npm --prefix audioreactiva run dev",
     "dev:audioreactiva:tablet": "npm --prefix audioreactiva run dev:tablet",
+    "dev:telar": "npm --prefix telar run dev",
+    "dev:grabado": "npm --prefix grabado run dev",
     "build:fotomaton": "npm --prefix fotomaton run build",
     "build:mosaicos": "npm --prefix taller-mosaicos run build",
     "build:loops": "npm --prefix loops run build",
@@ -26,7 +28,9 @@
     "build:credencial": "npm --prefix credencial run build",
     "build:hub-estacion": "npm --prefix hub-estacion run build",
     "build:audioreactiva": "npm --prefix audioreactiva run build",
-    "build": "npm run build:fotomaton && npm run build:mosaicos && npm run build:loops && npm run build:graffiti && npm run build:credencial && npm run build:hub-estacion && npm run build:audioreactiva",
+    "build:telar": "npm --prefix telar run build",
+    "build:grabado": "npm --prefix grabado run build",
+    "build": "npm run build:fotomaton && npm run build:mosaicos && npm run build:loops && npm run build:graffiti && npm run build:credencial && npm run build:hub-estacion && npm run build:audioreactiva && npm run build:telar && npm run build:grabado",
     "build:all": "npm run build"
   },
   "devDependencies": {
