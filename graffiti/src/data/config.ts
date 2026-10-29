@@ -18,10 +18,11 @@ export const PALETA: Color[] = [
   { id: 'hueso', nombre: 'Hueso', hex: '#F4EEE3' },
 ];
 
+// radio: spray, plumón y borrador; mitad: medio ancho del rodillo.
 export const BOQUILLAS = [
-  { radio: 1, nombre: 'Fina' },
-  { radio: 2, nombre: 'Media' },
-  { radio: 3, nombre: 'Gruesa' },
+  { radio: 1, mitad: 3, nombre: 'Fina' },
+  { radio: 2, mitad: 5, nombre: 'Media' },
+  { radio: 3, mitad: 8, nombre: 'Gruesa' },
 ];
 
 export interface Muro { id: string; nombre: string; src: string }
@@ -40,12 +41,13 @@ export const STICKERS: Sticker[] = [
   { id: 'tarro', nombre: 'Tarro', src: A('stickers/tarro-pintura'), ancho: 18 },
   { id: 'senal', nombre: 'Señal', src: A('stickers/senal-rodillo'), ancho: 18 },
   { id: 'plumon', nombre: 'Plumón', src: A('stickers/plumon'), ancho: 18 },
-  { id: 'zapatilla', nombre: 'Zapatilla', src: A('stickers/zapatilla'), ancho: 18 },
-  { id: 'cruce', nombre: 'Cruce', src: A('stickers/cruce-peatonal'), ancho: 18 },
   { id: 'personaje', nombre: 'Personaje', src: A('stickers/personaje'), ancho: 18 },
   { id: 'tag', nombre: 'Tag', src: A('tag/tag-ejemplo'), ancho: 30 },
 ];
 
 export const MAX_CHORROS = 40;
-export const PASO_CHORRO_MS = 70;
+export const PASO_CHORRO_MS = 180; // el chorro baja una celda cada 180 ms
+export const QUIETO_MS = 1200; // tiempo con el spray quieto antes del primer chorro
+export const ENTRE_CHORROS_MS = 700; // y luego, uno nuevo cada 700 ms mientras siga quieto
+export const SPRAY_CONTINUO_MS = 60; // el spray sigue soltando pintura aunque el dedo no se mueva
 export const MAX_HISTORIAL = 40;

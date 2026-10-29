@@ -2,54 +2,24 @@
 @import '../../shared/somos-fonts.css';
 @import '../../shared/somos-icons.css';
 
+/* Graffiti y Tags: herramienta de ilustración con barras fijas (propuesta 005). La pantalla, las barras y los
+   controles vienen del kit (shared/ui/somos-kit.css); aquí solo el muro y las miniaturas. */
 .material-symbols-outlined { font-size: 20px; vertical-align: middle; }
 
-/* Muro */
-.marco-muro { border: var(--borde); box-shadow: var(--sombra); background: #D9CDB7; }
-.muro { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; image-rendering: pixelated; }
+/* Muro cuadrado que entra entero en el lienzo */
+.muro-fit { width: 100%; height: 100%; min-height: 0; container-type: size; display: grid; place-items: center; }
+.muro { display: block; width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); touch-action: none; cursor: crosshair; image-rendering: pixelated; border: 3px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); background: #D9CDB7; }
+.muro.herr-stencil { cursor: move; }
+.muro.herr-sticker { cursor: copy; }
 
-.panel-app .label { margin: 2px 0 0; }
-.herramienta button, .boquillas button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; }
-
-/* Colores: muestras grandes, fáciles de tocar */
-.colores { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.color {
-  aspect-ratio: 1;
-  min-height: 48px;
-  max-height: 72px;
-  width: 100%;
-  border: 3px solid var(--ink);
-  background: var(--c);
-  cursor: pointer;
-  box-shadow: 3px 3px 0 var(--ink);
-}
-.color[aria-checked="true"] { outline: 4px solid var(--accent); outline-offset: 3px; }
-.punto { display: inline-block; background: currentColor; flex: none; }
-
-/* Muros y stickers en grilla que reparte el alto disponible, sin scroll */
-.grilla-imagenes { flex: 1 1 auto; min-height: 0; display: grid; gap: 8px; grid-auto-rows: minmax(0, 1fr); max-height: 420px; }
-.grilla-imagenes button {
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 6px;
-  border: 2px solid var(--line);
-  background: var(--surface);
-  color: var(--ink);
-  font-weight: 600;
-  font-size: 13px;
-  cursor: pointer;
-  overflow: hidden;
-}
-.grilla-imagenes button[aria-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent); }
-.grilla-imagenes img { flex: 1 1 auto; min-height: 0; max-width: 100%; aspect-ratio: 1; object-fit: contain; image-rendering: pixelated; }
-.muros { grid-template-columns: 1fr 1fr; }
-.muros img { object-fit: cover; width: 100%; }
-.stickers { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.k-seg button .punto { display: inline-block; width: calc(var(--n) * 4px + 2px); height: calc(var(--n) * 4px + 2px); background: currentColor; margin-right: 6px; vertical-align: middle; }
+.muros, .plantillas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.stickers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.miniatura.k-color { width: auto; height: auto; aspect-ratio: 1; padding: 4px; background: var(--bg); }
+.miniatura img { width: 100%; height: 100%; display: block; object-fit: contain; image-rendering: pixelated; }
+.muros .miniatura img { object-fit: cover; }
+.stencil-puesto { display: grid; gap: 8px; }
+@media (max-width: 1100px) and (min-aspect-ratio: 1/1) { .k-bajada { display: none; } .k-herr { min-width: 60px; padding: 4px 6px; } .k-color { width: 40px; height: 40px; } }
 
 /* Modal */
 .modal-fondo { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); display: grid; place-items: center; padding: 16px; z-index: 30; }
@@ -59,16 +29,5 @@
 .modal-acciones { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 .modal-acciones .btn { display: inline-flex; align-items: center; gap: 8px; }
 
-/* Vertical: panel abajo y ancho */
-@media (min-height: 560px) and (min-width: 600px) and (orientation: portrait) {
-  .app-pantalla { --alto-panel: 43%; }
-  .colores { grid-template-columns: repeat(8, minmax(0, 1fr)); }
-  .color { aspect-ratio: auto; height: 52px; }
-  .muros { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .stickers { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-  .panel-pie { grid-template-columns: 1.3fr 1fr; align-items: stretch; }
-}
-/* Teléfono / sin pantalla fija */
-@media (max-height: 559px), (max-width: 599px) {
-  .grilla-imagenes { grid-auto-rows: 96px; max-height: none; }
-}
+/* Vertical: la barra de opciones tiene siempre el mismo alto, así el muro no salta al cambiar de herramienta. */
+@media (orientation: portrait) and (min-width: 600px) { .k-lateral { min-height: 352px; } }

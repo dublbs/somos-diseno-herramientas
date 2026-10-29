@@ -8,10 +8,11 @@ interface Props {
   alMover: (x: number, y: number) => void;
   alSoltar: () => void;
   etiqueta: string;
+  clase?: string;
 }
 
-// Lienzo cuadrado: el tamaño lo da .lienzo-fit (CSS); aquí solo se ajusta la resolución y se traducen toques a celdas.
-export const Lienzo: React.FC<Props> = ({ version, dibujar, alBajar, alMover, alSoltar, etiqueta }) => {
+// Lienzo cuadrado: el tamaño lo da .muro-fit (CSS); aquí solo se ajusta la resolución y se traducen toques a celdas.
+export const Lienzo: React.FC<Props> = ({ version, dibujar, alBajar, alMover, alSoltar, etiqueta, clase }) => {
   const ref = useRef<HTMLCanvasElement>(null);
   const [lado, setLado] = React.useState(0);
   const activo = useRef<number | null>(null);
@@ -42,7 +43,7 @@ export const Lienzo: React.FC<Props> = ({ version, dibujar, alBajar, alMover, al
   return (
     <canvas
       ref={ref}
-      className="muro"
+      className={'muro ' + (clase ?? '')}
       role="img"
       aria-label={etiqueta}
       onPointerDown={e => {
