@@ -116,20 +116,33 @@ Se eligen 4 «escenas» y en cada una el sonido maneja el movimiento:
 **Los timbres se ven en el HUB:**
 - Cada timbre sube al personaje un nivel: llega en tren → cruza el mezanine → sale a la plaza.
 - Con 4/4, celebración en la plaza.
-- Los capítulos del evento (Boceto → Prototipo → Lanzamiento) cambian la hora del día.
+- ~~Los capítulos cambian la hora del día~~: descartado. El HUB puede seguir la hora real (10:00 → 20:00: mañana, tarde, atardecer).
 
 **Técnica:** app aparte que lee la vista `galeria` de Supabase en tiempo real.
 **Siguiente paso:** prototipo navegable con **40 personajes de prueba** para ver cómo se ve poblado.
 
-## 8 · Actividades de los timbres (dificultad creciente)
-Son 4 timbres y 5 mesas. El kit de regalo es limitado, así que la dificultad sube con cada timbre y solo se canjea con 4/4:
+## 8 · Actividades de los timbres (decidido 2026-10-29)
+El evento dura de **10:00 a 20:00**: toda actividad tiene que poder hacerse en cualquier momento del día. Por eso **se descartan los cambios de capítulo** y el reto tipo Kahoot queda solo planificado.
 
 | Timbre | Actividad | Dificultad |
 |---|---|---|
-| 1 · Llegada | Escanear el afiche de entrada | Fácil: todos |
-| 2 · Explorador | Escanear **3 afiches** repartidos por la sede (contador 0/3 en el álbum) | Media |
-| 3 · Creador | **Modo juego en una mesa**: solo para quien está jugando (ver abajo) | Media-alta |
-| 4 · Hallazgo | Encontrar **3 de 5 figuras escondidas en el HUB**: aparecen de vez en cuando en la pantalla y se escanean o se toca su código en el celular | Alta |
+| 1 · Inscripción | Crear la credencial (certifica que te inscribiste) | Fácil: todos |
+| 2 · Creador | Crear algo en una experiencia que **alimenta el HUB** (ver abajo), en modo juego | Media |
+| 3 · Portales | Encontrar **3 portales**: los afiches de la sede son los marcos (experiencia AR) | Media-alta |
+| 4 · Hallazgo | Encontrar las figuras 3D impresas en el HUB · **en revisión**, no convence aún | Alta |
+
+**Experiencias que alimentan el HUB** (una por lenguaje):
+- **Pixel → Vagón:** lo que la gente pinta en el vagón pasa por el andén del HUB, como easter egg.
+- **Geométrica → Estación Audioreactiva:** lo que la gente hace sonar mueve la pantalla del mezanine.
+- **Orgánica → Telar o Grabado:** se construyen las dos para compararlas. Las fajas o las estampas se cuelgan en la plaza del HUB.
+
+El HUB vive en la pantalla flip y también en los **Mac** del evento.
+
+**Portales AR (timbre 3):**
+- Los 15 afiches son los 15 marcos (5 por lenguaje), cada uno con un QR.
+- Al escanearlo, la credencial abre la cámara con el marco encima. Por la ventana del marco se ve el **mundo animado de ese lenguaje** (un portal); alrededor, la cámara real. No necesita seguimiento: funciona con `getUserMedia` en el sitio publicado.
+- **Actividad:** dentro de cada portal vive una figura de su mundo (p. ej. la Paloma en un portal Orgánico, el Alien en uno Pixel). Se atrapa tocándola cuando cruza la ventana y queda en el álbum.
+- **3 portales distintos = timbre 3.** Coleccionar los 15 es un extra (sin timbre) para quien quiera seguir.
 
 **Modo juego en las tablets** (para el timbre «Creador»):
 - La persona entrega su código SD-XXXXX en la mesa: lo escribe en la tablet o escanea su credencial.
@@ -137,10 +150,10 @@ Son 4 timbres y 5 mesas. El kit de regalo es limitado, así que la dificultad su
 - Quien no juega usa la experiencia normal, sin reto.
 - **Volver al estado base:** un encargado lo hace con un gesto oculto (mantener presionado el logo 3 s + PIN). Cierra la sesión, borra el trabajo y vuelve a la portada. También hay un cierre automático tras 90 s sin uso.
 
-**Interacciones desde el celular en eventos en vivo** (pueden dar timbres o extras):
-- Escanear el QR que aparece en el HUB durante el **cambio de capítulo** (solo 60 s).
-- **Reto en vivo** tipo Kahoot en el HUB: se responde desde la credencial.
-- Las figuras escondidas del timbre 4.
+**Interacciones desde el celular:**
+- Los portales AR (timbre 3).
+- ~~Escanear el QR del cambio de capítulo~~: descartado (no hay capítulos).
+- **Reto en vivo** tipo Kahoot en el HUB: planificado, no se construye por ahora.
 
 **Canje del kit:**
 - Un staff ingresa el código en una pantalla de canje que valida 4/4.
@@ -158,29 +171,20 @@ No es necesario partir en Figma. Propuesta:
 
 **Límite:** la captura es una buena base editable, pero no un archivo «limpio» con componentes; si se quiere así, se reconstruye a mano o con el skill de Figma a partir de la captura.
 
-## Orden recomendado
-1. **QoL rápida** (1–2 días): pantallas previas con tutorial, deshacer en Mosaicos, goteo más suave, rodillo y stencils en Graffiti.
-2. **Fotomatón:**
-   - 15 marcos;
-   - zona de foto estándar (requiere ajustes en Figma);
-   - calibración «ojos».
-3. **Teatro de Papel:**
-   - arrastrar a la escena (código);
-   - elenco estandarizado (requiere arte nuevo: primero los bocetos en Figma).
-4. **Credencial:**
-   - personaje desde la foto;
-   - sistema de actividades y canje.
-5. **HUB:** prototipo con personajes de prueba.
-6. **Audioreactiva** y la nueva experiencia Orgánica y la Pixel (después de elegir cuál).
+## Orden de trabajo (decidido 2026-10-29)
+1. **HUB «Estación Somos Diseño»**: prototipo en código (`hub-estacion/`), adaptable a la pantalla flip (orientación por confirmar) y a los Mac.
+2. **Estación Audioreactiva:** 4 escenas con los movimientos de Geométrica · Motion; reaccionar a notas viene después.
+3. **Telar y Grabado:** las dos, para compararlas.
+4. **Teatro de Papel:** las piezas nuevas en boceto y el escenario Bosque, con las dos opciones donde hay duda (Chagual y Cochayuyo, Carpintero negro y Chucao, Luna y Lluvia).
+
+Después: tutoriales, deshacer en Mosaicos, Graffiti (stencils, rodillo, goteo), Fotomatón (marcos, zona estándar, «ojos»), Vagón, portales AR y credencial (personaje desde la foto, modo juego, canje).
 
 ## Decisiones pendientes
-- **Teatro:**
-  - ¿Planta del mar: Chagual o Cochayuyo?
-  - Bosque: ¿Carpintero negro o Chucao? ¿Luna o lluvia como astro?
-  - Bosque: ¿Telar mapuche como artesanía? Hay que validarlo con el equipo.
-- **Nuevas experiencias:** ¿Telar o Grabado? ¿Vagón o Letrero?
+- **Teatro:** elegir después de ver los bocetos: Chagual o Cochayuyo, Carpintero negro o Chucao, Luna o Lluvia. (El Telar mapuche está aprobado.)
+- **Orgánica:** ¿Telar o Grabado? Se comparan con los dos construidos. (Pixel: Vagón, decidido.)
+- **Pantalla flip:** orientación y resolución.
 - **Timbres:**
-  - ¿Las 4 actividades propuestas?
-  - ¿Qué reto tiene cada mesa en modo juego?
+  - Timbre 4 (figuras 3D en el HUB): ¿se mantiene?
+  - ¿Qué reto tiene cada experiencia en modo juego?
   - ¿Quién tiene el PIN para devolver la tablet al estado base y validar el canje?
 - **Personaje:** ¿foto + cuerpo por lenguaje, o solo personajes predeterminados?
