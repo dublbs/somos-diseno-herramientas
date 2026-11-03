@@ -1,8 +1,41 @@
 # Somos Diseño · Hub de Experiencias — Estado, diagnóstico y plan
 
-> Actualizado: 2026-10-28 · Rama: `claude/ecstatic-lovelace-xjgq6d`
+> Actualizado: 2026-11-03 · Rama: `rescate/estado-actual` (igual a `claude/ecstatic-lovelace-xjgq6d` + esta documentación) · PR hacia `main` pendiente de merge
 
-## Estado actual (lo hizo Claude Code, sin pasar por Antigravity)
+## Estado de ejecución (2026-11-03)
+**Por qué `main` se veía desactualizado.** `origin/main` quedó en el merge del PR #3 (28-oct). Todo el trabajo posterior (48 commits) estaba en la rama `claude/ecstatic-lovelace-xjgq6d`: subido a GitHub, pero nunca fusionado.
+- Esa rama contiene todo `main` y también las ramas `teatro-de-papel`, `viewport-tablet-fit` y `archive/taller-de-pixeles`.
+- El merge hacia `main` es directo (fast-forward, sin conflictos).
+- En el ambiente no había nada sin commit, ni stash, ni otros worktrees.
+
+Builds verificados (`npm --prefix <app> run build`) y revisión del código:
+
+| App | Código | Build | Tareas de `docs/tasks/` | Falta para el MVP |
+|---|---|---|---|---|
+| `fotomaton/` | Completo (~1.100 líneas) | Verde | T-001 y T-002 hechas. T-002 verificada: `#/f/<uuid>` muestra «Esta tarjeta ya no está», sin errores de consola. | Supabase real (QR entre equipos) y prueba con el celular en la red del evento. Calibrar la regla de «los ojos», bloqueada: faltan 6 retratos de prueba con permiso. |
+| `taller-mosaicos/` | Completo (~1.100) | Verde | T-003 a T-006, T-008 y T-010 hechas (`fs.allow` presente, TS ^7.0.2) | Prueba en la tablet física |
+| `loops/` (Teatro de Papel) | Completo (~1.750) | Verde | — | Que la persona del equipo revise la línea de tiempo y los bocetos del elenco. Rendimiento del video en la tablet. |
+| `graffiti/` | Completo (~750) | Verde | T-010 a T-017 hechas | Probar el goteo en la tablet física (táctil real) |
+| `taller-de-pixeles/` | No está en esta rama | — | — | Descartado. No aparece en el hub (`index.html`); el código vive en `archive/taller-de-pixeles`. |
+| `vagon/` | Completo (~410) | Verde | — | Vagones B y C (Señalética, Traza tu línea): propuestos, sin construir |
+| `audioreactiva/` | Completo (~590) | Verde | — | Prueba de micrófono en la sala |
+| `grabado/` | Completo (~340) | Verde | — | — |
+| `telar/` | Completo (~360), en pausa | Verde | — | En pausa por decisión del equipo |
+| `credencial/` | Completo (~1.340) | Verde | — | Supabase real, imprimir los QR de las estaciones, PIN real del staff. Timbre 4 (Hallazgo 3D) por definir. |
+| `hub-estacion/` | Completo (~1.150) | Verde | — | Elegir los cuerpos de los avatares (`?cuerpos`). Probar en la pantalla flip. |
+
+Las tareas T-007 (README raíz) y T-009 (`FIGMA_SYNC.md`) se rehicieron en esta revisión: los comandos del README existen en `package.json` y las rutas citadas existen.
+
+**Pendiente:**
+1. Revisar y fusionar el PR `rescate/estado-actual` → `main`.
+2. Vercel: proyecto y dominio, **pendiente de definir**. `vercel.json` ya está listo (sin build).
+3. Supabase: proyecto del evento, **pendiente de definir**. Guía en [`supabase.md`](supabase.md).
+4. Probar todo en la tablet física, en la pantalla flip y en celulares reales.
+5. Retratos de prueba para la regla de los ojos; elección de los cuerpos del HUB; PIN del staff.
+6. Post-MVP: workspaces + `packages/shared`, sacar `dist/` de git, lint/CI.
+
+## Estado al 2026-10-28 (historial)
+
 
 **Las 4 experiencias están arriba y caben en pantalla sin scroll.** Verificado con Playwright en 1024×768, 1180×820, 1280×720, 1366×768, 1920×1080, 768×1024 y 820×1180, en cada pestaña de cada panel: 0 scroll de página, 0 controles fuera de vista o recortados y ningún panel con scroll interno.
 
