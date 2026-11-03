@@ -10,7 +10,7 @@ npm run dev          # http://localhost:5173 (la cámara funciona en localhost)
 npm run dev:tablet   # HTTPS con certificado local (vite-plugin-mkcert) para probar en la tablet por la red
 ```
 
-## Supabase (para «Llévatela» y `/f/:id`)
+## Supabase (para «Llévatela» y `#/f/:id`)
 
 1. Crear el proyecto y correr `supabase/migrations/0001_fotomaton.sql` (tabla, RLS, bucket privado).
 2. Desplegar las funciones: `supabase functions deploy tarjeta` y `supabase functions deploy limpiar`.
@@ -37,7 +37,7 @@ entrar al panel o usarlo el día antes del evento lo despierta.
 
 ## Deploy
 
-Vercel con las mismas dos variables de entorno. `vercel.json` ya reescribe `/f/:id` hacia `index.html`.
+Vercel con las mismas dos variables de entorno. No hace falta ninguna regla de reescritura: la descarga usa `HashRouter` (`…/#/f/:id`) y el QR se arma con la ruta donde esté servida la app, así funciona en la raíz, en una subcarpeta o dentro del hub.
 
 ## Pendiente
 

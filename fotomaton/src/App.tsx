@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { otorgarCreacion } from '../../shared/juego';
 import { MARCOS, porId, type Visual } from './data/marcos';
 import { TINTAS } from './data/tintas';
-import { Ajustes } from './components/Ajustes';
+import { Carrete, Lateral } from './components/Barras';
+import { BotonAccion } from '../../shared/ui/Kit';
+import { Quiosco } from '../../shared/ui/Tutorial';
+import '../../shared/ui/somos-kit.css';
 import { Camara } from './components/Camara';
 import { Editor, type FotoEditable } from './components/Editor';
 import { PasoQR } from './components/PasoQR';
 import { Portada } from './components/Portada';
-import { Selector } from './components/Selector';
 import { useRetardo } from './hooks/useRetardo';
 import { cargarCara, detectarCara } from './lib/cara';
 import { exportarTarjeta, nombreArchivo } from './lib/tarjeta';
@@ -78,7 +81,7 @@ export function App() {
 
   const llevatela = async () => {
     setOcupado(true);
-    try { setTarjeta(await hacerTarjeta()); setPaso('qr'); }
+    try { setTarjeta(await hacerTarjeta()); setPaso('qr'); otorgarCreacion('fotomaton'); }
     catch { setAviso('No pudimos preparar la tarjeta.'); } finally { setOcupado(false); }
   };
 
@@ -89,44 +92,52 @@ export function App() {
   };
 
   const destino = porId(marcoId), textoCambio = destino.visual + ' · ' + destino.name;
-  const panel = (
-    <aside className="panel">
-      <Selector visual={visual} elegirVisual={elegirVisual} marcoId={marcoId} setMarcoId={setMarcoId} miniaturas={miniaturas} />
-      <Ajustes visual={visual} celda={celda} setCelda={setCelda} tinta={tinta} setTinta={setTinta} />
-    </aside>
+  const lateral = <Lateral visual={visual} celda={celda} setCelda={setCelda} tinta={tinta} setTinta={setTinta} foto={paso === 'editar' && !revelando ? foto : null} />;
+  const carrete = <Carrete visual={visual} elegirVisual={elegirVisual} marcoId={marcoId} setMarcoId={setMarcoId} miniaturas={miniaturas} />;
+  const inicio = <BotonAccion icono="restart_alt" texto="Inicio" onClick={terminar} />;
+  const input = <input ref={archivo} type="file" accept="image/*" capture="user" style={{ display: 'none' }} onChange={alArchivo} />;
+  const avisoEl = <>{aviso ? <div className="aviso" role="status">{aviso}</div> : null}<Quiosco app="fotomaton" activo={paso !== 'inicio'} alReiniciar={terminar} /></>;
+
+  // Cámara y edición son la herramienta (barras fijas del kit); portada y QR son pantallas de paso.
+  if (paso === 'camara' || paso === 'editar') return (
+    <>
+      {input}
+      {paso === 'camara' ? (
+        <Camara marco={marcoMostrado} celda={celda} tinta={tinta} cambiando={cambiando} textoCambio={textoCambio} alSubir={subir}
+          volver={HUB_URL} acciones={inicio} lateral={lateral} carrete={carrete}
+          alFoto={(f, c) => { revelar(); setFoto({ c: f, cara: c }); setPaso('editar'); }} />
+      ) : (
+        <Editor foto={foto} marco={marcoMostrado} celda={celda} tinta={tinta} revelando={revelando} cambiando={cambiando}
+          textoCambio={textoCambio} ocupado={ocupado} alGuardar={guardar} alLlevatela={llevatela} alOtra={() => setPaso('camara')}
+          volver={HUB_URL} acciones={inicio} lateral={lateral} carrete={carrete} />
+      )}
+      {avisoEl}
+    </>
   );
 
   return (
     <div className="app-pantalla">
-      <input ref={archivo} type="file" accept="image/*" capture="user" style={{ display: 'none' }} onChange={alArchivo} />
-      <header className="top">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-          <a className="volver" href={HUB_URL} aria-label="Volver a las experiencias"><span aria-hidden="true">←</span> Experiencias</a>
-          <div className="marca">Fotomatón <span className="chip">Somos Diseño</span></div>
+      {input}
+      <header className="barra-superior">
+        <div className="lado-izq">
+          <a className="volver" href={HUB_URL} aria-label="Volver a las experiencias">
+            <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+            Experiencias
+          </a>
+          <div className="barra-info">
+            <h1>Fotomatón</h1>
+            <p className="bajada-corta">Tu foto con el efecto y el marco de cada lenguaje</p>
+          </div>
         </div>
-        {paso !== 'inicio' ? <button className="btn" style={{ minHeight: 44, padding: '0 18px', fontSize: 15 }} onClick={terminar}>Inicio</button> : null}
+        {paso !== 'inicio' ? <button className="btn btn-inicio" onClick={terminar}>Inicio</button> : null}
       </header>
       {paso === 'inicio' && <Portada alCamara={() => setPaso('camara')} alSubir={subir} />}
-      {paso === 'camara' && (
-        <main className="layout">
-          <Camara marco={marcoMostrado} celda={celda} tinta={tinta} cambiando={cambiando} textoCambio={textoCambio} alSubir={subir}
-            alFoto={(f, c) => { revelar(); setFoto({ c: f, cara: c }); setPaso('editar'); }} />
-          {panel}
-        </main>
-      )}
-      {paso === 'editar' && (
-        <main className="layout">
-          <Editor foto={foto} marco={marcoMostrado} celda={celda} tinta={tinta} revelando={revelando} cambiando={cambiando}
-            textoCambio={textoCambio} ocupado={ocupado} alGuardar={guardar} alLlevatela={llevatela} alOtra={() => setPaso('camara')} />
-          {panel}
-        </main>
-      )}
       {paso === 'qr' && tarjeta && (
-        <main className="layout" style={{ display: 'block' }}>
+        <main className="cuerpo-pantalla cuerpo-qr">
           <PasoQR blob={tarjeta} marco={marcoMostrado} tinta={tinta} alTerminar={terminar} alVolver={() => setPaso('editar')} />
         </main>
       )}
-      {aviso ? <div className="aviso" role="status">{aviso}</div> : null}
+      {avisoEl}
     </div>
   );
 }

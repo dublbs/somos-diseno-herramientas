@@ -34,13 +34,13 @@ function tintasDe(t: Tinta): string[] {
 // Recolorea un marco con la paleta de la tinta. Se conserva su estructura de claros y oscuros:
 // lo casi blanco pasa a ser el papel; el resto se reparte entre las tintas por luminosidad
 // (el color más oscuro del marco → la tinta más oscura, y así hacia arriba).
-const cacheMarcos = new Map<string, { bg: string; fills: string[] }>();
-function marcoConTinta(m: { id: string; bg: string; _p: [Path2D, string][] }, t: Tinta) {
+const cacheMarcos = new Map<string, { bg: string; fills: string[]; encima: string[] }>();
+function marcoConTinta(m: { id: string; bg: string; _p: [Path2D, string][]; _encima: [Path2D, string][] }, t: Tinta) {
   const key = m.id + '|' + t.label;
   let r = cacheMarcos.get(key);
   if (r) return r;
-  const orig = [m.bg, ...m._p.map(p => p[1])].map(largo);
-  if (!orig.every(c => HEX6.test(c))) { r = { bg: m.bg, fills: m._p.map(p => p[1]) }; cacheMarcos.set(key, r); return r; }
+  const orig = [m.bg, ...m._p.map(p => p[1]), ...m._encima.map(p => p[1])].map(largo);
+  if (!orig.every(c => HEX6.test(c))) { r = { bg: m.bg, fills: m._p.map(p => p[1]), encima: m._encima.map(p => p[1]) }; cacheMarcos.set(key, r); return r; }
   const mapa = new Map<string, string>();
   const claros = new Set(orig.map(c => c.toLowerCase()).filter(c => lum(c) > 0.86 && !FIJOS.has(c)));
   claros.forEach(c => mapa.set(c, t.papel));
@@ -48,7 +48,7 @@ function marcoConTinta(m: { id: string; bg: string; _p: [Path2D, string][] }, t:
   const pal = tintasDe(t), n = resto.length;
   resto.forEach((c, i) => mapa.set(c, pal[n === 1 ? Math.floor(pal.length / 2) : Math.round(i * (pal.length - 1) / (n - 1))]));
   const f = (c: string) => mapa.get(largo(c).toLowerCase()) ?? largo(c);
-  r = { bg: f(m.bg), fills: m._p.map(p => f(p[1])) };
+  r = { bg: f(m.bg), fills: m._p.map(p => f(p[1])), encima: m._encima.map(p => f(p[1])) };
   cacheMarcos.set(key, r);
   return r;
 }
@@ -79,7 +79,7 @@ export function dibujarEncuadre(ctx: CanvasRenderingContext2D, src: Fuente, w: n
   ctx.drawImage(src, dx, dy, sw * s, sh * s);
 }
 
-export function trama(src: Fuente, w: number, h: number, celda: number, tinta: Tinta, cara: Cara | null) {
+export function trama(src: Fuente, w: number, h: number, celda: number, tinta: Tinta, cara: Cara | null, solo?: string) {
   w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h)); celda = Math.max(3, celda);
   const paso = Math.max(1, celda / 2), mw = Math.ceil(w / paso), mh = Math.ceil(h / paso);
   const m = lienzoTmp('muestra', mw, mh), mx = m.getContext('2d', { willReadFrequently: true })!;
@@ -98,6 +98,7 @@ export function trama(src: Fuente, w: number, h: number, celda: number, tinta: T
   // Opaca: de lo más claro a lo más oscuro, así los puntos oscuros siempre quedan arriba.
   if (opaca) canales.sort((p, q) => lum(q[2]) - lum(p[2]));
   for (const [ch, ang, color] of canales) {
+    if (solo && ch !== solo) continue;
     const a = ang * Math.PI / 180, co = Math.cos(a), si = Math.sin(a);
     o.fillStyle = color; o.beginPath();
     for (let i = -n; i <= n; i++) for (let j = -n; j <= n; j++) {
@@ -219,7 +220,18 @@ export function celdaRelativa(src: Fuente, bw: number, bh: number, celda: number
   return Math.max(0.8, celda * escala);
 }
 
-// Compone marco: fondo → figura → foto en trama dentro de su zona.
+// Placas de impresión: cada tinta de la trama por separado (C, M, Y, K; o las dos del dúo; o la única), como las
+// planchas que se entintan una a una en la imprenta. Se ven en la barra derecha.
+export const placasDe = (t: Tinta): { canal: string; nombre: string; color: string }[] =>
+  t.modo === 'cmyk' ? [{ canal: 'c', nombre: 'C', color: t.c! }, { canal: 'm', nombre: 'M', color: t.m! }, { canal: 'y', nombre: 'Y', color: t.y! }, { canal: 'k', nombre: 'K', color: t.k! }]
+    : t.modo === 'duo' ? [{ canal: 'a', nombre: 'Sombras', color: t.a! }, { canal: 'b', nombre: 'Medios', color: t.b! }]
+    : [{ canal: 'l', nombre: 'Tinta', color: t.a! }];
+export function dibujarPlaca(ctx: CanvasRenderingContext2D, lado: number, src: Fuente, celda: number, tinta: Tinta, cara: Cara | null, canal: string) {
+  const t = trama(src, lado, lado, celdaRelativa(src, 240, 240, celda, cara) * (lado / 240), tinta, cara, canal);
+  ctx.drawImage(t, 0, 0);
+}
+
+// Compone marco: fondo → figura → foto en trama dentro de su zona → lo que en Figma va sobre la foto.
 export function componer(ctx: CanvasRenderingContext2D, size: number, marcoId: string, src: Fuente, celda: number, tinta: Tinta, cara?: Cara | null) {
   const m = marcoListo(marcoId), s = size / 240, marco = marcoConTinta(m, tinta);
   ctx.save();
@@ -229,9 +241,12 @@ export function componer(ctx: CanvasRenderingContext2D, size: number, marcoId: s
   m._p.forEach(([p], i) => { ctx.fillStyle = marco.fills[i]; ctx.fill(p); });
   const [bx, by, bw, bh] = m._clip.box;
   const t = efectoDe(m.visual)(src, bw * s, bh * s, celdaRelativa(src, bw, bh, celda, cara ?? null) * s, tinta, cara ?? null);
+  ctx.save();
   ctx.clip(m._clip.path);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.drawImage(t, Math.round(bx * s), Math.round(by * s));
+  ctx.restore();
+  m._encima.forEach(([p], i) => { ctx.fillStyle = marco.encima[i]; ctx.fill(p); });
   ctx.restore();
 }
 

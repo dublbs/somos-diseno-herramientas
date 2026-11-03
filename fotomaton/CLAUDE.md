@@ -89,10 +89,13 @@ En el prototipo hay 12 de 15 como paths. Para la versión oficial, exportar los 
 (capas `Fondo`, `Figura` y la zona de foto `Foto · fondo` / `Foto`; ocultar la silueta de muestra y los efectos):
 
 - Geométrica: M01 `647:113589`, M02 `647:113590`, M04 `647:113591`, M05 `647:113592`, M06 `647:113593`
-- Orgánica: M01 `647:1379`, M02 `647:1380`, M04 `647:1381`, M05 `647:1382`, M06 `647:1383` (faltan M01, M04, M06)
+- Orgánica: M01 `647:1379`, M02 `647:1380`, M04 `647:1381`, M05 `647:1382`, M06 `647:1383`
 - Pixel: M01 `510:1121`, M02 `510:1129`, M04 `510:1137`, M05 `510:1146`, M06 `510:1154`
 
-Ojo: en Orgánica y en Pixel la zona de foto no siempre es una capa propia (ver `clip` en `MARCOS` del prototipo).
+Los 15 están importados (2026-10-29): `python3 scripts/marcos-desde-figma.py <carpeta con los SVG>` genera
+`shared/marcos-figma.ts`. Lo que en Figma va sobre la foto (contornos Pixel, enredaderas, franjas) queda en `encima`.
+`shared/marcos.ts` ajusta cada marco a la zona de foto estándar de 150 × 150 al centro (tabla `AJUSTES`).
+Ojo: en Orgánica y en Pixel la zona de foto no siempre es una capa propia (casos especiales en el script).
 Cuidar las llamadas al MCP de Figma: el plan es de estudiante.
 
 ## Primer encargo para Claude Code

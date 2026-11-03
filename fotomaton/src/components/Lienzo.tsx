@@ -5,9 +5,10 @@ interface Props {
   dibujar?: (ctx: CanvasRenderingContext2D, size: number) => void;
   deps?: unknown[];
   children?: ReactNode;
+  className?: string;
 }
 
-export function Lienzo({ cref, dibujar, deps = [], children }: Props) {
+export function Lienzo({ cref, dibujar, deps = [], children, className = '' }: Props) {
   const propio = useRef<HTMLCanvasElement>(null);
   const ref = cref ?? propio;
   const [tam, setTam] = useState(0);
@@ -23,5 +24,5 @@ export function Lienzo({ cref, dibujar, deps = [], children }: Props) {
     const c = ref.current;
     if (dibujar && c && c.width) dibujar(c.getContext('2d')!, c.width);
   }, [tam, ...deps]);
-  return <div className="lienzo-wrap"><canvas ref={ref}></canvas>{children}</div>;
+  return <div className={`lienzo-wrap ${className}`}><canvas ref={ref}></canvas>{children}</div>;
 }

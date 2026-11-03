@@ -1,13 +1,16 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { otorgarCreacion } from '../../../shared/juego';
 import { PIEZAS, pieza } from '../escenario/piezas';
 import { ESCENARIOS, escenario } from '../escenario/escenarios';
 import { sorprendeme } from '../escenario/sorprendeme';
 import { cargarFuentesTarjeta, dibujarTarjetaMotion, exportarTarjetaMotion } from '../lib/exportarTarjeta';
 import { duracionLoop, grabarLoop, puedeGrabar } from '../lib/grabarLoop';
 import type { VideoLoop } from './ModalExportar';
+import { LineaDeTiempo } from './LineaDeTiempo';
+import { BarraSuperior, BotonAccion, Confirmar, PantallaHerramienta, Seccion, Segmentado } from '../../../shared/ui/Kit';
 import {
-  ASA, ESCENARIO, cajaItem, cargarTodo, dibujarEscenario, dibujarPieza, dibujarSeleccion,
-  posicionItem, type Item,
+  ASA, ESCENARIO, cajaItem, quieto, cargarTodo, dibujarEscenario, dibujarPieza, dibujarSeleccion,
+  posicionItem, DURACION_TRAYECTO, type Item,
 } from '../escenario/dibujar';
 
 interface Props {
@@ -17,12 +20,15 @@ interface Props {
 
 type Gesto =
   | { tipo: 'mover'; uid: number; dx: number; dy: number; movido: boolean }
-  | { tipo: 'escalar'; uid: number; d0: number; e0: number; movido: boolean };
+  | { tipo: 'escalar'; uid: number; d0: number; e0: number; movido: boolean }
+  | { tipo: 'destino'; uid: number; movido: boolean };
 type Mapa = Record<string, Item[]>;
 
 const ESCALA_INICIAL: Record<string, number> = {
-  pudu: 0.75, paloma: 0.6, sol: 1, araucaria: 1, pina: 0.65, helecho: 0.75, quisco: 0.8, flor: 0.65,
+  pudu: 0.75, paloma: 0.6, sol: 1, araucaria: 1.1, pina: 0.65, helecho: 0.6, quisco: 0.7, flor: 0.65,
   pez: 0.7, pinguino: 0.6, cantaro: 0.5, canasto: 0.5, kisa: 0.7,
+  condor: 0.6, gaviota: 0.55, picaflor: 0.45, carpintero: 0.5, chucao: 0.6, huemul: 0.7, guanaco: 0.7,
+  chagual: 0.75, cochayuyo: 0.7, doca: 0.6, concha: 0.45, chanar: 0.8, alerce: 0.95, copihue: 0.6, maqui: 0.65, telar: 0.7, luna: 0.9, lluvia: 0.9,
 };
 
 // Límites de escala mínimos y máximos específicos para mantener proporciones creíbles frente a los fondos
@@ -40,6 +46,9 @@ const LIMITES_ESCALA: Record<string, [number, number]> = {
   canasto: [0.28, 1.2],
   cantaro: [0.28, 1.2],
   kisa: [0.32, 1.3],
+  condor: [0.32, 1.3], gaviota: [0.3, 1.2], picaflor: [0.25, 1], carpintero: [0.3, 1.1], chucao: [0.3, 1.1],
+  huemul: [0.38, 1.3], guanaco: [0.38, 1.3], chagual: [0.4, 1.5], cochayuyo: [0.35, 1.4], doca: [0.3, 1.2], concha: [0.25, 1],
+  chanar: [0.45, 1.6], alerce: [0.5, 2], copihue: [0.3, 1.3], maqui: [0.35, 1.4], telar: [0.35, 1.3], luna: [0.5, 1.6], lluvia: [0.5, 1.6],
 };
 
 const limitar = (tipo: string, n: number) => {
@@ -52,8 +61,7 @@ const durDe = (it: Item) => {
   return p.variantes?.[it.variante ?? 0]?.durMs ?? p.durMs;
 };
 
-const FPS = [8, 12, 24];
-const DURACION_LOOP = 4000;
+const DURACION_LOOP = DURACION_TRAYECTO;
 const RESOLUCION_CANVAS = 1080;
 
 export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
@@ -62,14 +70,19 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
   const [mapa, setMapa] = useState<Mapa>({});
   const [sel, setSel] = useState<number | null>(null);
   const [fps, setFps] = useState(12);
-  const [pausado, setPausado] = useState(false);
+  // Parte pausado: así se arma la escena con calma; al darle play se ve el loop completo.
+  const [pausado, setPausado] = useState(true);
   const [borde, setBorde] = useState(true);
   const [listo, setListo] = useState(false);
   const [grabando, setGrabando] = useState<number | null>(null);
   const [errorVideo, setErrorVideo] = useState('');
   const [puedeDeshacer, setPuedeDeshacer] = useState(false);
   const [miniaturas, setMiniaturas] = useState<Record<string, string>>({});
+  const [puedeRehacer, setPuedeRehacer] = useState(false);
   const [tiempoVisual, setTiempoVisual] = useState(0);
+  // Pieza que se arrastra desde la biblioteca al escenario (el «fantasma» sigue al dedo).
+  const [fantasma, setFantasma] = useState<{ tipo: string; x: number; y: number } | null>(null);
+  const toque = useRef<{ tipo: string; x: number; y: number } | null>(null);
 
   const esc = escenario(escId);
   const items = mapa[escId] ?? [];
@@ -80,12 +93,15 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
   const gesto = useRef<Gesto | null>(null);
   const antesDelGesto = useRef<Mapa | null>(null);
   const historial = useRef<Mapa[]>([]);
+  const adelante = useRef<Mapa[]>([]);
   const uidSig = useRef(1);
 
   const registrar = useCallback((m: Mapa = vivo.current.mapa) => {
     historial.current.push(m);
     if (historial.current.length > 40) historial.current.shift();
+    adelante.current = [];
     setPuedeDeshacer(true);
+    setPuedeRehacer(false);
   }, []);
 
   const actualizar = useCallback((f: (l: Item[]) => Item[]) => {
@@ -143,9 +159,10 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
         ultimoSegundoUI = ahora;
       }
 
-      dibujarEscenario(ctx, c.width, v.items, ms, v.fondo, v.borde);
+      // En pausa, la pieza elegida se edita quieta en su punto A; en play, camina como en el video.
+      dibujarEscenario(ctx, c.width, v.items, ms, v.fondo, v.borde, v.pausado ? v.sel : null);
       const it = v.items.find(i => i.uid === v.sel);
-      if (it) dibujarSeleccion(ctx, c.width, it, ms);
+      if (it) dibujarSeleccion(ctx, c.width, it, ms, v.pausado);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
@@ -157,7 +174,8 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
   };
 
   const alBajar = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    const p = aEscenario(e), { items: lista, sel: actual } = vivo.current;
+    const p = aEscenario(e), { items: lista, sel: actual, pausado: enPausa } = vivo.current;
+    const comoSeVe = (it: Item) => (enPausa ? quieto(it) : it);
     const msActual = relojRef.current;
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* sin captura */ }
     antesDelGesto.current = vivo.current.mapa;
@@ -165,19 +183,26 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
     // 1. Tirador de escala de la pieza elegida
     const elegido = lista.find(i => i.uid === actual);
     if (elegido) {
-      const b = cajaItem(elegido, msActual);
+      // 0. El punto B del trayecto (se arrastra para elegir hacia dónde camina)
+      if (elegido.destino && Math.hypot(p.x - elegido.destino.x, p.y - elegido.destino.y) <= ASA * 2.2) {
+        gesto.current = { tipo: 'destino', uid: elegido.uid, movido: false };
+        return;
+      }
+      const b = cajaItem(comoSeVe(elegido), msActual);
       if (Math.hypot(p.x - (b.x + b.w), p.y - (b.y + b.h)) <= ASA * 2.2) {
-        const pos = posicionItem(elegido, msActual);
+        const pos = posicionItem(comoSeVe(elegido), msActual);
         gesto.current = { tipo: 'escalar', uid: elegido.uid, d0: Math.hypot(p.x - pos.x, p.y - pos.y) || 1, e0: elegido.escala, movido: false };
         return;
       }
     }
     // 2. La pieza bajo el dedo
     for (let i = lista.length - 1; i >= 0; i--) {
-      const b = cajaItem(lista[i], msActual);
+      // En pausa, la pieza se toca en su punto A (ahí empieza el trayecto).
+      const it = comoSeVe(lista[i]);
+      const b = cajaItem(it, msActual);
       if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) {
         setSel(lista[i].uid);
-        const pos = posicionItem(lista[i], msActual);
+        const pos = posicionItem(it, msActual);
         gesto.current = { tipo: 'mover', uid: lista[i].uid, dx: pos.x - p.x, dy: pos.y - p.y, movido: false };
         return;
       }
@@ -192,8 +217,14 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
     const p = aEscenario(e);
     actualizar(l => l.map(it => {
       if (it.uid !== g.uid) return it;
+      if (g.tipo === 'destino') {
+        return { ...it, destino: { x: Math.min(ESCENARIO, Math.max(0, p.x)), y: Math.min(ESCENARIO, Math.max(0, p.y)) } };
+      }
       if (g.tipo === 'mover') {
-        return { ...it, x: Math.min(ESCENARIO, Math.max(0, p.x + g.dx)), y: Math.min(ESCENARIO, Math.max(0, p.y + g.dy)) };
+        const x = Math.min(ESCENARIO, Math.max(0, p.x + g.dx)), y = Math.min(ESCENARIO, Math.max(0, p.y + g.dy));
+        // Mover la pieza lleva el trayecto completo (A y B juntos).
+        const destino = it.destino && { x: Math.min(ESCENARIO, Math.max(0, it.destino.x + x - it.x)), y: Math.min(ESCENARIO, Math.max(0, it.destino.y + y - it.y)) };
+        return { ...it, x, y, destino };
       }
       return { ...it, escala: limitar(it.tipo, g.e0 * (Math.hypot(p.x - it.x, p.y - it.y) / g.d0)) };
     }));
@@ -201,13 +232,13 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
 
   const alSoltar = () => { gesto.current = null; };
 
-  const agregar = (tipo: string) => {
+  const agregar = (tipo: string, en?: { x: number; y: number }) => {
     registrar();
     const n = vivo.current.items.length, uid = uidSig.current++;
     const zona = esc.piezas[tipo];
     const it: Item = {
       uid, tipo, escala: ESCALA_INICIAL[tipo] ?? 1, espejo: false, variante: 0,
-      x: ESCENARIO / 2 + ((n * 23) % 70) - 35, y: zona === 'cielo' ? 70 : zona === 'agua' ? 128 : 172,
+      x: en?.x ?? ESCENARIO / 2 + ((n * 23) % 70) - 35, y: en?.y ?? (zona === 'cielo' ? 70 : zona === 'agua' ? 128 : 172),
     };
     actualizar(l => [...l, it]);
     setSel(uid);
@@ -234,7 +265,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
   const alFondo = () => { registrar(); actualizar(l => { const it = l.find(i => i.uid === vivo.current.sel); return it ? [it, ...l.filter(i => i !== it)] : l; }); };
   const vaciar = () => { registrar(); actualizar(() => []); setSel(null); };
 
-  const ES_MOVIL = (tipo: string) => ['pudu', 'pinguino', 'paloma', 'pez'].includes(tipo);
+  const ES_MOVIL = (tipo: string) => ['pudu', 'pinguino', 'paloma', 'pez', 'condor', 'gaviota', 'picaflor', 'carpintero', 'chucao', 'huemul', 'guanaco'].includes(tipo);
 
   const sorprender = () => {
     registrar();
@@ -252,18 +283,38 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
 
   const deshacer = useCallback(() => {
     const previo = historial.current.pop();
-    if (previo) { setMapa(previo); setSel(null); }
+    if (previo) { adelante.current.push(vivo.current.mapa); setMapa(previo); setSel(null); }
     setPuedeDeshacer(historial.current.length > 0);
+    setPuedeRehacer(adelante.current.length > 0);
   }, []);
+  const rehacer = useCallback(() => {
+    const siguiente = adelante.current.pop();
+    if (siguiente) { historial.current.push(vivo.current.mapa); setMapa(siguiente); setSel(null); }
+    setPuedeDeshacer(historial.current.length > 0);
+    setPuedeRehacer(adelante.current.length > 0);
+  }, []);
+
+  // Biblioteca → escenario: tocar agrega la pieza; arrastrarla la deja donde se suelta.
+  const soltarFantasma = (e: React.PointerEvent) => {
+    const t = toque.current;
+    toque.current = null;
+    if (!t) return;
+    if (!fantasma) { agregar(t.tipo); return; }
+    setFantasma(null);
+    const r = lienzo.current?.getBoundingClientRect();
+    if (r && e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+      agregar(t.tipo, { x: Math.round(((e.clientX - r.left) / r.width) * ESCENARIO), y: Math.round(((e.clientY - r.top) / r.height) * ESCENARIO) });
+    }
+  };
 
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => {
       if ((e.key === 'Delete' || e.key === 'Backspace') && vivo.current.sel != null) { e.preventDefault(); quitar(); }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); deshacer(); }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) rehacer(); else deshacer(); }
     };
     window.addEventListener('keydown', tecla);
     return () => window.removeEventListener('keydown', tecla);
-  }, [quitar, deshacer]);
+  }, [quitar, deshacer, rehacer]);
 
   const cambiarTiempoManual = (ms: number) => {
     relojRef.current = ms;
@@ -275,6 +326,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
     c.width = c.height = RESOLUCION_CANVAS;
     dibujarEscenario(c.getContext('2d')!, RESOLUCION_CANVAS, vivo.current.items, relojRef.current, vivo.current.fondo, vivo.current.borde);
     onExportar(c);
+    otorgarCreacion('teatro');
   };
 
   const grabar = async () => {
@@ -296,12 +348,13 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
         canvas: tarjeta, fps: f, durMs, alProgreso: setGrabando,
         dibujarCuadro: ms => {
           dibujarEscenario(ectx, RESOLUCION_CANVAS, lista, ms, fondo, conBorde);
-          dibujarTarjetaMotion(tctx, escena, titulo, 'Día Orgánica · Mesa 4', pie);
+          dibujarTarjetaMotion(tctx, escena, titulo, 'Lenguaje Orgánica', pie);
         },
       });
       dibujarEscenario(ectx, RESOLUCION_CANVAS, lista, 0, fondo, conBorde);
-      const png = (await exportarTarjetaMotion(escena, titulo, 'Día Orgánica · Mesa 4')) ?? blob;
+      const png = (await exportarTarjetaMotion(escena, titulo, 'Lenguaje Orgánica')) ?? blob;
       onVideo(png, { blob, ext, seg });
+      otorgarCreacion('teatro');
     } catch (e) {
       setErrorVideo(e instanceof Error ? e.message : 'No se pudo grabar el loop.');
     } finally {
@@ -310,22 +363,108 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
   };
 
   const elegido = items.find(i => i.uid === sel) ?? null;
+
   const ocupado = grabando !== null;
   const ayuda = !listo ? 'Cargando piezas…'
-    : items.length === 0 ? 'Toca una pieza de la bandeja o prueba «Sorpréndeme»'
+    : items.length === 0 ? 'Arrastra una pieza de la biblioteca al escenario o prueba «Sorpréndeme»'
     : elegido ? `Seleccionado: ${pieza(elegido.tipo).nombre} · Arrastra para mover o tira de la esquina amarilla para tamaño`
     : 'Toca cualquier figura del escenario para seleccionarla';
 
 
-  return (
-    <main className="layout layout-teatro">
-      <div className="zona-escenario">
-        <div className="lienzo-wrap">
+  const ICONO_ESC: Record<string, string> = { cordillera: 'landscape', mar: 'water', bosque: 'forest', desierto: 'wb_sunny' };
+  const p = elegido && pieza(elegido.tipo);
+  const variantes = p?.variantes ?? [];
+
+  return (<>
+    <PantallaHerramienta
+      anchoLateral={320}
+      superior={
+        <BarraSuperior titulo="Teatro de Papel" bajada={ayuda}>
+          <BotonAccion icono="undo" etiqueta="Deshacer" onClick={deshacer} disabled={!puedeDeshacer} />
+          <BotonAccion icono="redo" etiqueta="Rehacer" onClick={rehacer} disabled={!puedeRehacer} />
+          <BotonAccion icono="auto_awesome" texto="Sorpréndeme" onClick={sorprender} disabled={!listo} />
+          <BotonAccion icono="download" texto="Tarjeta" etiqueta="Descargar la tarjeta PNG" onClick={exportar} disabled={items.length === 0 || ocupado} />
+          {puedeGrabar() && (
+            <BotonAccion icono="movie" primario onClick={grabar} disabled={items.length === 0 || ocupado}
+              texto={grabando === null ? 'Grabar loop' : `Grabando… ${Math.round(grabando * 100)} %`} />
+          )}
+        </BarraSuperior>
+      }
+      lateral={<>
+        <Seccion titulo="Escenario">
+          <Segmentado etiqueta="Escenario" valor={escId} onCambiar={id => { setEscId(id); setSel(null); }}
+            opciones={ESCENARIOS.map(e => ({ valor: e.id, texto: <span className="esc-op"><span className="material-symbols-outlined" aria-hidden="true">{ICONO_ESC[e.id]}</span>{e.nombre}</span> }))} />
+        </Seccion>
+
+        <Seccion titulo="Biblioteca · arrastra al escenario">
+          <div className="bandeja">
+            {PIEZAS.filter(pz => pz.id in esc.piezas).map(pz => (
+              <button key={pz.id} type="button" className="k-btn pieza-btn" disabled={!listo} aria-label={`Añadir ${pz.nombre}`} title={pz.nombre}
+                onClick={e => { if (e.detail === 0) agregar(pz.id); }}
+                onPointerDown={e => { toque.current = { tipo: pz.id, x: e.clientX, y: e.clientY }; try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* sin captura */ } }}
+                onPointerMove={e => {
+                  const t = toque.current;
+                  if (t && (fantasma || Math.hypot(e.clientX - t.x, e.clientY - t.y) > 8)) setFantasma({ tipo: t.tipo, x: e.clientX, y: e.clientY });
+                }}
+                onPointerUp={soltarFantasma}
+                onPointerCancel={() => { toque.current = null; setFantasma(null); }}>
+                {miniaturas[pz.id] ? <img src={miniaturas[pz.id]} alt="" draggable={false} /> : <span className="pieza-vacia" />}
+                <span>{pz.nombre}</span>
+              </button>
+            ))}
+          </div>
+        </Seccion>
+
+        <Seccion titulo={elegido ? `Propiedades · ${p!.nombre}` : 'Propiedades'} crece>
+          {!elegido && <p className="k-ayuda">Toca una figura del escenario (o su fila en la línea de tiempo) para moverla, cambiar su tamaño, su animación o su trayecto.</p>}
+          {elegido && (<>
+            {ES_MOVIL(elegido.tipo) && (
+              <Segmentado etiqueta="Trayecto" valor={elegido.destino ? 'camina' : 'fijo'}
+                onCambiar={v => {
+                  if (v === 'fijo') cambiarElegida(i => ({ ...i, destino: undefined }));
+                  else if (!elegido.destino) cambiarElegida(i => ({ ...i, destino: { x: Math.max(25, Math.min(215, Math.round(i.x + (i.espejo ? -70 : 70)))), y: i.y } }));
+                }}
+                opciones={[{ valor: 'fijo', texto: 'En su lugar' }, { valor: 'camina', texto: 'Camina A → B' }]} />
+            )}
+            {variantes.length > 1 && (
+              <Segmentado etiqueta="Animación" valor={elegido.variante ?? 0} onCambiar={n => cambiarElegida(i => ({ ...i, variante: n }))}
+                opciones={variantes.map((v, n) => ({ valor: n, texto: v.nombre }))} />
+            )}
+            <div className="transformar">
+              <BotonAccion icono="zoom_in" etiqueta="Más grande" onClick={() => cambiarElegida(i => ({ ...i, escala: limitar(i.tipo, i.escala * 1.15) }))} />
+              <BotonAccion icono="zoom_out" etiqueta="Más chica" onClick={() => cambiarElegida(i => ({ ...i, escala: limitar(i.tipo, i.escala / 1.15) }))} />
+              <BotonAccion icono="flip" etiqueta="Voltear" onClick={() => cambiarElegida(i => ({ ...i, espejo: !i.espejo }))} />
+              {elegido.destino && <BotonAccion icono="swap_horiz" etiqueta="Invertir el trayecto" onClick={() => cambiarElegida(i => i.destino ? ({ ...i, x: i.destino.x, y: i.destino.y, destino: { x: i.x, y: i.y }, espejo: !i.espejo }) : i)} />}
+              <BotonAccion icono="flip_to_front" etiqueta="Al frente" onClick={alFrente} />
+              <BotonAccion icono="flip_to_back" etiqueta="Al fondo" onClick={alFondo} />
+              <BotonAccion icono="content_copy" etiqueta="Duplicar" onClick={duplicar} />
+              <BotonAccion icono="delete" etiqueta="Quitar" onClick={quitar} />
+            </div>
+            {elegido.destino && <p className="k-ayuda">{pausado ? 'Arrastra el punto verde B en el escenario. En la línea de tiempo, mueve B para elegir cuándo llega.' : 'Pausa el loop para editar el trayecto.'}</p>}
+          </>)}
+        </Seccion>
+        <Confirmar icono="restart_alt" texto="Vaciar el escenario" disabled={items.length === 0 || ocupado} onConfirmar={vaciar} />
+        {errorVideo && <p className="k-ayuda ayuda-error" role="alert">{errorVideo}</p>}
+      </>}
+      inferior={
+        <LineaDeTiempo
+          items={items} sel={sel} tiempo={tiempoVisual} pausado={pausado} fps={fps} borde={borde}
+          onPlay={() => setPausado(v => !v)}
+          onTiempo={ms => { setPausado(true); cambiarTiempoManual(ms); }}
+          onFps={setFps} onBorde={setBorde}
+          onElegir={uid => setSel(uid)}
+          onLlegadaInicio={() => registrar()}
+          onLlegada={(uid, t) => actualizar(l => l.map(it => (it.uid === uid ? { ...it, llegada: Math.round(t * 100) / 100 } : it)))}
+        />
+      }
+    >
+      <div className="escenario-fit">
+        <div className="lienzo-wrap lienzo-fit">
           <canvas
             ref={lienzo}
             width={RESOLUCION_CANVAS}
             height={RESOLUCION_CANVAS}
-            className="canvas-escenario"
+            className={'canvas-escenario' + (fantasma ? ' recibe' : '')}
             onPointerDown={alBajar}
             onPointerMove={alMover}
             onPointerUp={alSoltar}
@@ -333,300 +472,10 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
             aria-label={`Escenario ${esc.nombre}: toca una pieza para moverla`}
           />
         </div>
-
-        {/* Línea de tiempo interactiva */}
-        <div className="linea-tiempo">
-          <div className="linea-tiempo-controles">
-            <button
-              type="button"
-              className="btn-icono-tiempo"
-              onClick={() => setPausado(p => !p)}
-              title={pausado ? 'Reanudar loop' : 'Pausar loop'}
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">
-                {pausado ? 'play_arrow' : 'pause'}
-              </span>
-            </button>
-            <span className="tiempo-texto">
-              {(tiempoVisual / 1000).toFixed(1)}s / {(DURACION_LOOP / 1000).toFixed(1)}s
-            </span>
-          </div>
-
-          <input
-            type="range"
-            min={0}
-            max={DURACION_LOOP}
-            step={50}
-            value={tiempoVisual}
-            onChange={(e) => {
-              setPausado(true);
-              cambiarTiempoManual(Number(e.target.value));
-            }}
-            className="timeline-slider"
-            aria-label="Línea de tiempo del loop"
-          />
-
-          <div className="tiempo-ajustes">
-            <div className="seg chico-seg" role="group" aria-label="Velocidad">
-              {FPS.map(f => (
-                <button key={f} type="button" aria-pressed={fps === f} onClick={() => setFps(f)}>
-                  {f} FPS
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              className="btn-tiempo-opcion"
-              aria-pressed={borde}
-              onClick={() => setBorde(b => !b)}
-              title="Activar o desactivar borde de papel recortado"
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">layers</span>
-              Borde
-            </button>
-            <button
-              type="button"
-              className="btn-tiempo-opcion"
-              disabled={!puedeDeshacer}
-              onClick={deshacer}
-              title="Deshacer última acción"
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">undo</span>
-            </button>
-          </div>
-        </div>
-
-        <p className="nota">{ayuda}</p>
       </div>
-
-      <aside className="panel panel-teatro">
-        {/* 1. Escenario */}
-        <div className="bloque">
-          <p className="label">1 · Escenario</p>
-          <div className="seg seg-escenarios" role="group" aria-label="Escenario">
-            {ESCENARIOS.map(e => (
-              <button
-                key={e.id}
-                type="button"
-                aria-pressed={e.id === escId}
-                onClick={() => { setEscId(e.id); setSel(null); }}
-                className="btn-escenario"
-              >
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  {e.id === 'cordillera' ? 'landscape' : e.id === 'mar' ? 'water' : 'wb_sunny'}
-                </span>
-                <span>{e.nombre}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* 2. Bandeja de Piezas */}
-        <div className="bloque">
-          <div className="etiqueta-fila">
-            <p className="label">2 · Personajes y Piezas</p>
-            <button
-              type="button"
-              className="btn-sorprende-link"
-              disabled={!listo}
-              onClick={sorprender}
-              title="Generar composición al azar"
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">auto_awesome</span>
-              Sorpréndeme
-            </button>
-          </div>
-          <div className="bandeja">
-            {PIEZAS.filter(p => p.id in esc.piezas).map(p => (
-              <button
-                key={p.id}
-                type="button"
-                className="pieza-btn"
-                onClick={() => agregar(p.id)}
-                disabled={!listo}
-                title={`Añadir ${p.nombre}`}
-              >
-                {miniaturas[p.id] ? <img src={miniaturas[p.id]} alt="" /> : <span className="pieza-vacia" />}
-                <span>{p.nombre}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* 3. Ajustes de la pieza seleccionada */}
-        {elegido && (
-          <div className="bloque bloque-ajustes">
-            <p className="label">3 · Ajusta {pieza(elegido.tipo).nombre}</p>
-
-            {/* Trayecto de desplazamiento en el espacio (solo para seres móviles: pudú, pingüino, paloma, pez) */}
-            {ES_MOVIL(elegido.tipo) && (
-              <div className="seccion-trayecto">
-                <span className="sublabel">Trayecto en el escenario</span>
-                <div className="seg seg-trayecto" role="group" aria-label="Trayecto de movimiento">
-                  <button
-                    type="button"
-                    aria-pressed={!elegido.destino}
-                    onClick={() => cambiarElegida(i => ({ ...i, destino: undefined }))}
-                    className="btn-trayecto"
-                    title="Mantener en su lugar fijo"
-                  >
-                    <span className="material-symbols-outlined" aria-hidden="true">place</span>
-                    <span>En su lugar</span>
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={!!elegido.destino}
-                    onClick={() => {
-                      if (!elegido.destino) {
-                        const offset = elegido.espejo ? -70 : 70;
-                        const destX = Math.max(25, Math.min(215, Math.round(elegido.x + offset)));
-                        cambiarElegida(i => ({ ...i, destino: { x: destX, y: elegido.y } }));
-                      }
-                    }}
-                    className="btn-trayecto"
-                    title="Crear recorrido de desplazamiento de punto A a punto B"
-                  >
-                    <span className="material-symbols-outlined" aria-hidden="true">route</span>
-                    <span>Caminar A ➔ B</span>
-                  </button>
-                </div>
-                {elegido.destino && (
-                  <div className="acciones-trayecto">
-                    <button
-                      type="button"
-                      className="btn chico"
-                      onClick={() => cambiarElegida(i => i.destino ? ({
-                        ...i,
-                        x: i.destino.x,
-                        y: i.destino.y,
-                        destino: { x: i.x, y: i.y },
-                        espejo: !i.espejo,
-                      }) : i)}
-                      title="Invertir dirección del trayecto"
-                    >
-                      <span className="material-symbols-outlined" aria-hidden="true">swap_horiz</span>
-                      Invertir
-                    </button>
-                    <button
-                      type="button"
-                      className="btn chico"
-                      onClick={() => cambiarElegida(i => ({ ...i, destino: undefined }))}
-                      title="Quitar trayecto y dejar en su lugar"
-                    >
-                      <span className="material-symbols-outlined" aria-hidden="true">close</span>
-                      Fijar punto
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Animaciones y poses orgánicas (para todas las piezas que tengan estilos de movimiento) */}
-            {(pieza(elegido.tipo).variantes?.length ?? 0) > 1 && (
-              <div className="seccion-animacion">
-                <span className="sublabel">Animación</span>
-                <div className="seg seg-animaciones" role="group" aria-label="Pose / Animación">
-                  {pieza(elegido.tipo).variantes!.map((v, n) => (
-                    <button
-                      key={v.id}
-                      type="button"
-                      aria-pressed={(elegido.variante ?? 0) === n}
-                      onClick={() => cambiarElegida(i => ({ ...i, variante: n }))}
-                    >
-                      {v.nombre}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Herramientas de transformación */}
-            <div className="herramientas">
-              <button
-                type="button"
-                className="btn chico"
-                onClick={() => cambiarElegida(i => ({ ...i, escala: limitar(i.tipo, i.escala * 1.15) }))}
-                title="Agrandar tamaño"
-              >
-                <span className="material-symbols-outlined" aria-hidden="true">zoom_in</span>
-                Más grande
-              </button>
-              <button
-                type="button"
-                className="btn chico"
-                onClick={() => cambiarElegida(i => ({ ...i, escala: limitar(i.tipo, i.escala / 1.15) }))}
-                title="Reducir tamaño"
-              >
-                <span className="material-symbols-outlined" aria-hidden="true">zoom_out</span>
-                Más chica
-              </button>
-              <button
-                type="button"
-                className="btn chico"
-                onClick={() => cambiarElegida(i => ({ ...i, espejo: !i.espejo }))}
-                title="Voltear orientación horizontal"
-              >
-                <span className="material-symbols-outlined" aria-hidden="true">flip</span>
-                Voltear
-              </button>
-              <button type="button" className="btn chico" onClick={alFrente} title="Traer al frente">
-                <span className="material-symbols-outlined" aria-hidden="true">flip_to_front</span>
-                Al frente
-              </button>
-              <button type="button" className="btn chico" onClick={alFondo} title="Enviar al fondo">
-                <span className="material-symbols-outlined" aria-hidden="true">flip_to_back</span>
-                Al fondo
-              </button>
-              <button type="button" className="btn chico" onClick={duplicar} title="Duplicar pieza">
-                <span className="material-symbols-outlined" aria-hidden="true">content_copy</span>
-                Duplicar
-              </button>
-              <button type="button" className="btn chico peligro" onClick={quitar} title="Eliminar pieza seleccionada">
-                <span className="material-symbols-outlined" aria-hidden="true">delete</span>
-                Quitar
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* 4. Cierre y Exportación */}
-        <div className="cierre">
-          {puedeGrabar() && (
-            <button
-              type="button"
-              className="btn primario btn-grabar-loop"
-              disabled={items.length === 0 || ocupado}
-              onClick={grabar}
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">movie</span>
-              {grabando === null ? 'Generar loop animado (Video)' : `Grabando tu loop… ${Math.round(grabando * 100)} %`}
-            </button>
-          )}
-
-          <div className="acciones-secundarias-teatro">
-            <button
-              type="button"
-              className="btn secundario"
-              disabled={items.length === 0 || ocupado}
-              onClick={exportar}
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">download</span>
-              Tarjeta en PNG
-            </button>
-            <button
-              type="button"
-              className="btn secundario"
-              disabled={items.length === 0 || ocupado}
-              onClick={vaciar}
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">restart_alt</span>
-              Vaciar
-            </button>
-          </div>
-
-          {errorVideo && <p className="ayuda ayuda-error" role="alert">{errorVideo}</p>}
-        </div>
-      </aside>
-    </main>
-  );
+    </PantallaHerramienta>
+    {fantasma && miniaturas[fantasma.tipo] && (
+      <img className="fantasma" src={miniaturas[fantasma.tipo]} alt="" style={{ left: fantasma.x, top: fantasma.y }} />
+    )}
+  </>);
 };

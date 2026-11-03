@@ -1,9 +1,6 @@
 <svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="240" height="240" fill="#1E1E1E"/>
 <g id="Pixel &#194;&#183; Sistema">
-<rect width="2640" height="7060" transform="translate(-700 -4160)" fill="#171717"/>
 <g id="Pixel &#194;&#183; Hoja de stickers">
-<rect width="2320" height="1280" transform="translate(-600 -40)" fill="#7FC8F8"/>
 <g id="Pixel / Urbano &#194;&#183; Tarro de pintura / sticker">
 <g id="Troquel (borde y sombra)" filter="url(#filter0_d_294_54606)">
 <path fill-rule="evenodd" clip-rule="evenodd" d="M160 48H176V56H184V64H192V72H200V96H208V104H200V200H192V208H152V216H80V208H48V200H40V72H48V64H56V56H64V48H80V40H160V48ZM160 80H168V72H160V80ZM88 72H152V64H88V72Z" fill="#F4EEE3"/>

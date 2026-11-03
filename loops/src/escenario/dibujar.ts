@@ -1,5 +1,5 @@
 import { muestrear, type Pista } from './animacion';
-import { FONDO, FONDO_DESIERTO, FONDO_MAR, pieza, PIEZAS, type Capa } from './piezas';
+import { FONDO, FONDO_BOSQUE, FONDO_DESIERTO, FONDO_MAR, pieza, PIEZAS, type Capa } from './piezas';
 
 export interface Item {
   uid: number;
@@ -10,7 +10,12 @@ export interface Item {
   espejo: boolean;
   variante?: number; // forma de moverse (índice en `variantes` de la pieza)
   destino?: { x: number; y: number }; // Punto B (llegada) personalizado estilo After Effects
+  llegada?: number; // keyframe B en la línea de tiempo: fracción del loop en que llega a B (0,1); vuelve a A al final
 }
+
+export const DURACION_TRAYECTO = 4000;
+export const LLEGADA = 0.5;
+const suave = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2); // easeInOut
 
 export const ESCENARIO = 240;
 
@@ -19,24 +24,17 @@ export function posicionItem(it: Item, ms = 0): { x: number; y: number; espejo: 
     return { x: it.x, y: it.y, espejo: it.espejo };
   }
 
-  const dur = 4000;
-  const u = (ms % dur) / dur; // 0..1
-  // Movimiento suave ida y vuelta con aceleración y desaceleración natural
-  const p = Math.sin(u * Math.PI * 2 - Math.PI / 2) * 0.5 + 0.5;
+  // Keyframes: A en 0, B en `llegada`, A otra vez al cerrar el loop; cada tramo con entrada y salida suaves.
+  const u = (ms % DURACION_TRAYECTO) / DURACION_TRAYECTO, b = it.llegada ?? LLEGADA;
+  const ida = u < b;
+  const p = ida ? suave(u / b) : 1 - suave((u - b) / (1 - b));
   const x = it.x + (it.destino.x - it.x) * p;
   const y = it.y + (it.destino.y - it.y) * p;
 
   // Orientación natural: mira hacia donde avanza
   const dx = it.destino.x - it.x;
   let espejo = it.espejo;
-  if (Math.abs(dx) > 12) {
-    const avanzaHaciaDestino = Math.cos(u * Math.PI * 2 - Math.PI / 2) > 0;
-    if (dx > 0) {
-      espejo = avanzaHaciaDestino ? false : true;
-    } else {
-      espejo = avanzaHaciaDestino ? true : false;
-    }
-  }
+  if (Math.abs(dx) > 12) espejo = dx > 0 ? !ida : ida;
 
   return { x, y, espejo };
 }
@@ -100,7 +98,7 @@ export async function cargarImagen(src: string): Promise<HTMLImageElement> {
   return new Promise((res, rej) => { im.onload = () => res(im); im.onerror = rej; im.src = src; });
 }
 export const cargarTodo = () =>
-  Promise.all([...FONDO.capas, ...FONDO_MAR.capas, ...FONDO_DESIERTO.capas, ...PIEZAS.flatMap(p => p.capas)].map(c => cargarImagen(c.src)));
+  Promise.all([...FONDO.capas, ...FONDO_MAR.capas, ...FONDO_DESIERTO.capas, ...FONDO_BOSQUE.capas, ...PIEZAS.flatMap(p => p.capas)].map(c => cargarImagen(c.src)));
 
 function aplicar(ctx: CanvasRenderingContext2D, pistas: Pista[] | undefined, u: number, pivote?: [number, number]) {
   if (!pistas?.length) return;
@@ -220,7 +218,7 @@ function dibujarItem(ctx: CanvasRenderingContext2D, it: Item, ms: number, size: 
 
 export function dibujarEscenario(
   ctx: CanvasRenderingContext2D, size: number, items: Item[], ms: number,
-  fondo: { dur: number; capas: Capa[] } = FONDO, borde = true
+  fondo: { dur: number; capas: Capa[] } = FONDO, borde = true, enEdicion: number | null = null
 ) {
   ctx.save();
   ctx.imageSmoothingEnabled = true;
@@ -230,10 +228,14 @@ export function dibujarEscenario(
   dibujarCapas(ctx, fondo.capas, fondo.dur, ms);
   ctx.save();
   ctx.beginPath(); ctx.rect(0, 0, ESCENARIO, ESCENARIO); ctx.clip();
-  for (const it of items) dibujarItem(ctx, it, ms, size, borde);
+  // La pieza que se está editando se queda quieta en su punto A para elegir el trayecto con calma.
+  for (const it of items) dibujarItem(ctx, it.uid === enEdicion ? quieto(it) : it, ms, size, borde);
   ctx.restore();
   ctx.restore();
 }
+
+// La misma pieza sin trayecto: se dibuja en su punto A.
+export const quieto = (it: Item): Item => (it.destino ? { ...it, destino: undefined } : it);
 
 // Caja del item en coordenadas del escenario (para tocar, seleccionar y escalar).
 export function cajaItem(it: Item, ms = 0) {
@@ -243,38 +245,37 @@ export function cajaItem(it: Item, ms = 0) {
   return { x: pos.x - w / 2, y: pos.y - h / 2, w, h };
 }
 
-export function dibujarSeleccion(ctx: CanvasRenderingContext2D, size: number, it: Item, ms = 0) {
-  const k = size / ESCENARIO, b = cajaItem(it, ms);
+// editando: en pausa la pieza se muestra en A con un fantasma en B; en play, solo la guía del trayecto.
+export function dibujarSeleccion(ctx: CanvasRenderingContext2D, size: number, it: Item, ms = 0, editando = true) {
+  const k = size / ESCENARIO, b = cajaItem(editando ? quieto(it) : it, ms);
   ctx.save();
   ctx.setTransform(k, 0, 0, k, 0, 0);
 
-  // Guía visual de trayectoria estilo After Effects (si el usuario definió un trayecto A -> B)
+  // Trayecto A → B: A (amarillo) es donde está la pieza; B (verde) se arrastra para elegir hacia dónde camina.
   if (it.destino) {
+    const d = it.destino;
+    if (editando) {
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.translate(d.x, d.y);
+      ctx.scale(it.escala * (d.x < it.x ? -1 : 1), it.escala);
+      dibujarPieza(ctx, it.tipo, ms, it.variante ?? 0);
+      ctx.restore();
+    }
     ctx.save();
-    ctx.strokeStyle = '#00A651';
+    ctx.strokeStyle = '#000';
     ctx.lineWidth = 1.8;
     ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(it.x, it.y);
-    ctx.lineTo(it.destino.x, it.destino.y);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(it.x, it.y); ctx.lineTo(d.x, d.y); ctx.stroke();
     ctx.setLineDash([]);
-
-    // Punto A (inicio)
-    ctx.fillStyle = '#00A651';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.arc(it.x, it.y, 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    // Punto B (destino)
-    ctx.fillStyle = '#FFC20E';
-    ctx.beginPath();
-    ctx.arc(it.destino.x, it.destino.y, 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
+    const punto = (x: number, y: number, color: string, letra: string, r: number) => {
+      ctx.fillStyle = color; ctx.strokeStyle = '#000'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#000'; ctx.font = `700 ${r * 1.2}px "DM Sans", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(letra, x, y + 0.5);
+    };
+    punto(it.x, it.y, '#FFC20E', 'A', 5);
+    punto(d.x, d.y, '#00A651', 'B', ASA);
     ctx.restore();
   }
 

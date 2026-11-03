@@ -1,0 +1,36 @@
+@import '../../shared/somos-ui.css';
+@import '../../shared/somos-fonts.css';
+@import '../../shared/somos-icons.css';
+
+/* Vagón: piloto de las barras fijas (propuesta 005). Lienzo grande, barra derecha (biblioteca y opciones de la
+   herramienta activa) y barra inferior (herramientas y paleta). Nada se colapsa y nada hace scroll. */
+.material-symbols-outlined { font-size: 20px; vertical-align: middle; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* La pantalla, las barras y los controles vienen del kit (shared/ui/somos-kit.css). Aquí solo lo propio del Vagón. */
+.lienzo-vagon { width: 100%; height: 100%; min-height: 0; display: block; touch-action: none; image-rendering: pixelated; cursor: crosshair; border: 3px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); background: var(--surface); }
+.lienzo-vagon.herr-sticker, .lienzo-vagon.herr-tag, .lienzo-vagon.herr-balde { cursor: copy; }
+.modelos { display: grid; gap: 10px; }
+.modelo-btn.k-btn { justify-content: flex-start; min-height: 62px; padding: 4px 10px 4px 4px; gap: 10px; text-align: left; }
+.modelo-btn img { width: 50px; height: 50px; image-rendering: pixelated; display: block; flex: none; }
+.modelo-btn b { display: block; font: 400 13px "Silkscreen", monospace; }
+.modelo-btn small { color: var(--muted); font: 500 12px "DM Sans", sans-serif; text-transform: none; }
+.modelo-btn[aria-checked="true"] { background: var(--accent); color: var(--on-accent); }
+.modelo-btn[aria-checked="true"] small { color: inherit; opacity: .85; }
+.k-seg button .punto { display: inline-block; width: calc(var(--n) * 4px + 2px); height: calc(var(--n) * 4px + 2px); background: currentColor; margin-right: 6px; vertical-align: middle; }
+.stickers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.sticker-btn.k-color { width: auto; height: auto; aspect-ratio: 1; padding: 4px; background: var(--bg); }
+.sticker-btn img { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+.campo-tag input { width: 100%; min-height: 52px; padding: 0 14px; border: 3px solid var(--ink); background: var(--bg); color: var(--ink); font: 400 22px "Silkscreen", monospace; letter-spacing: .06em; text-transform: uppercase; }
+@media (max-width: 1100px) and (min-aspect-ratio: 1/1) { .k-bajada { display: none; } .k-herr { min-width: 60px; padding: 4px 6px; } .k-color { width: 40px; height: 40px; } }
+
+.portada { min-height: 100dvh; display: grid; grid-template-rows: auto 1fr; padding: clamp(16px, 3vw, 40px); background: var(--bg); color: var(--ink); }
+.portada .volver { justify-self: start; }
+.portada-cuerpo { align-self: center; justify-self: center; width: min(100%, 640px); display: grid; gap: clamp(14px, 2.4vh, 26px); }
+.portada .etq { margin: 0; font: 400 14px "Silkscreen", monospace; color: var(--accent); text-transform: uppercase; }
+.portada h1 { margin: 0; font: 800 clamp(40px, 7vw, 84px)/.95 var(--fuente-tit); letter-spacing: -.02em; }
+.pasos { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.pasos li { display: grid; grid-template-columns: 40px 1fr; align-items: center; gap: 12px; font-size: clamp(16px, 1.6vw, 20px); }
+.pasos b { display: grid; place-items: center; width: 40px; height: 40px; background: var(--accent); color: var(--on-accent); font: 800 20px var(--fuente-tit); }
+.portada-acciones { display: flex; flex-wrap: wrap; gap: 10px; }
+.portada-acciones .btn { min-height: 56px; }

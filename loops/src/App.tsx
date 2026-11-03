@@ -2,38 +2,40 @@ import React, { useEffect, useState } from 'react';
 import { EscenarioOrganico } from './components/EscenarioOrganico';
 import { ModalExportar, type VideoLoop } from './components/ModalExportar';
 import { exportarTarjetaMotion } from './lib/exportarTarjeta';
+import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
+import '../../shared/ui/somos-kit.css';
 import './styles.css';
 
 const NOMBRE = 'Teatro de Papel';
 
-// Por ahora es solo Orgánica; Geométrica y Pixel vuelven con el mismo sistema de escenarios.
 export const App: React.FC = () => {
   const [blobTarjeta, setBlobTarjeta] = useState<Blob | null>(null);
   const [videoLoop, setVideoLoop] = useState<VideoLoop | null>(null);
+  const [aviso, setAviso] = useState('');
+  const [visto, marcarVisto] = useTutorialVisto('teatro');
+  useEffect(() => { if (!aviso) return; const t = setTimeout(() => setAviso(''), 3500); return () => clearTimeout(t); }, [aviso]);
 
   useEffect(() => { document.documentElement.dataset.visual = 'Orgánica'; }, []);
 
   const exportarPng = async (canvas: HTMLCanvasElement) => {
-    const blob = await exportarTarjetaMotion(canvas, NOMBRE, 'Día Orgánica · Mesa 4');
+    const blob = await exportarTarjetaMotion(canvas, NOMBRE, 'Lenguaje Orgánica');
+    if (!blob) { setAviso('No se pudo crear la tarjeta. Inténtalo de nuevo.'); return; }
     setVideoLoop(null);
     setBlobTarjeta(blob);
   };
 
-  return (
-    <div className="app-pantalla">
-      <header className="barra-superior">
-        <div className="lado-izq">
-          <a className="volver" href="../../" id="volver-hub">
-            <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
-            Experiencias
-          </a>
-          <div className="barra-info">
-            <h1>Teatro de Papel</h1>
-            <p className="bajada-corta">Anima figuras y paisajes en un loop de papel</p>
-          </div>
-        </div>
-      </header>
+  if (!visto) return (
+    <Tutorial etiqueta="Orgánica · animación" titulo="Teatro de Papel"
+      pasos={[
+        { icono: 'landscape', texto: 'Elige un escenario: cordillera, mar, desierto o bosque.' },
+        { icono: 'pets', texto: 'Arrastra personajes y piezas al escenario.' },
+        { icono: 'movie', texto: 'Dales un trayecto en la línea de tiempo y llévate el video.' },
+      ]}
+      acciones={[{ texto: 'Armar mi escena', icono: 'play_arrow', alTocar: marcarVisto }]} />
+  );
 
+  return (
+    <>
       <EscenarioOrganico
         onExportar={exportarPng}
         onVideo={(png, v) => { setVideoLoop(v); setBlobTarjeta(png); }}
@@ -47,6 +49,8 @@ export const App: React.FC = () => {
           nombreModo={NOMBRE}
         />
       )}
-    </div>
+      {aviso && <div className="aviso" role="status">{aviso}</div>}
+      <Quiosco app="teatro" />
+    </>
   );
 };

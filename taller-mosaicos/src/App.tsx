@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { jugador, otorgarCreacion } from '../../shared/juego';
+import { miniatura, publicar } from '../../shared/datos';
 import {
   Formato,
   FORMATOS,
   FORMAS,
-  COLORES,
   Celda,
   Pincel,
   PaletaDef,
@@ -15,7 +16,10 @@ import {
 import { leerStorage, guardarStorage } from './lib/almacen';
 import { guardarArchivo } from './lib/exportar';
 import { Lienzo, pintarCelda } from './components/Lienzo';
-import { Panel } from './components/Panel';
+import { PanelLateral, PincelActual } from './components/Panel';
+import { BarraHerramientas, BarraSuperior, BotonAccion, PantallaHerramienta, useHistorial } from '../../shared/ui/Kit';
+import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
+import '../../shared/ui/somos-kit.css';
 import './styles.css';
 
 interface EstadoPersistido {
@@ -49,7 +53,12 @@ export const App: React.FC = () => {
   const [formatoId, setFormatoId] = useState<string>(
     normalizarFormato(estadoInicial?.formato)
   );
-  const [celdas, setCeldas] = useState<Record<string, Celda>>(estadoInicial?.celdas || {});
+  // Historial de deshacer y rehacer (40 pasos). Un trazo con el dedo cuenta como un solo paso.
+  const historial = useHistorial<Record<string, Celda>>(estadoInicial?.celdas || {});
+  const celdas = historial.estado;
+  const trazo = useRef(false);
+  const setCeldas = (nuevas: Record<string, Celda>, guardar = true) => historial.cambiar(nuevas, guardar);
+  const consumirTrazo = () => { const g = trazo.current; trazo.current = false; return g; };
   const [pincel, setPincel] = useState<Pincel>(
     estadoInicial?.pincel || {
       id: 'media',
@@ -63,6 +72,8 @@ export const App: React.FC = () => {
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
   const [grilla, setGrilla] = useState<boolean>(true);
   const [estadoMsg, setEstadoMsg] = useState<string>('');
+  const [visto, marcarVisto] = useTutorialVisto('mosaicos');
+  useEffect(() => { if (!estadoMsg) return; const t = setTimeout(() => setEstadoMsg(''), 2600); return () => clearTimeout(t); }, [estadoMsg]);
 
   useEffect(() => {
     document.documentElement.dataset.visual = 'Geométrica';
@@ -86,7 +97,7 @@ export const App: React.FC = () => {
   // Si no había estado guardado inicial, generamos una muestra
   useEffect(() => {
     if (!estadoInicial) {
-      generarMosaico(20261103);
+      generarMosaico(20261103, false);
     }
   }, []);
 
@@ -105,7 +116,7 @@ export const App: React.FC = () => {
             e: pincel.e,
             c: { ...pincel.c },
           },
-        });
+        }, consumirTrazo());
         break;
       }
       case 'girar': {
@@ -113,7 +124,7 @@ export const App: React.FC = () => {
           setCeldas({
             ...celdas,
             [clave]: { ...celActual, ...girar(celActual) },
-          });
+          }, consumirTrazo());
         }
         break;
       }
@@ -122,7 +133,7 @@ export const App: React.FC = () => {
           setCeldas({
             ...celdas,
             [clave]: { ...celActual, ...reflejarH(celActual) },
-          });
+          }, consumirTrazo());
         }
         break;
       }
@@ -130,7 +141,7 @@ export const App: React.FC = () => {
         if (celActual) {
           const copia = { ...celdas };
           delete copia[clave];
-          setCeldas(copia);
+          setCeldas(copia, consumirTrazo());
         }
         break;
       }
@@ -142,7 +153,7 @@ export const App: React.FC = () => {
     if (celdas[clave]) {
       const copia = { ...celdas };
       delete copia[clave];
-      setCeldas(copia);
+      setCeldas(copia, consumirTrazo());
     }
   };
 
@@ -296,7 +307,7 @@ export const App: React.FC = () => {
     }
   };
 
-  const generarMosaico = (seed = Date.now()) => {
+  const generarMosaico = (seed = Date.now(), guardar = true) => {
     const r = azar(seed);
     const paletaElegida = PALETAS[Math.floor(r() * PALETAS.length)];
     const formasIds = FORMAS.filter((x) => x.id !== 'vacia').map((x) => x.id);
@@ -360,7 +371,7 @@ export const App: React.FC = () => {
       }
     }
 
-    setCeldas(nuevas);
+    setCeldas(nuevas, guardar);
     setSel(null);
     setPincel((p) => ({ ...p, c: { f: paletaElegida.f, a: paletaElegida.a, b: paletaElegida.b } }));
     setEstadoMsg(`Mosaico generado con paleta «${paletaElegida.nombre}».`);
@@ -377,6 +388,15 @@ export const App: React.FC = () => {
     setCeldas(nuevas);
     setPincel((p) => ({ ...p, c: { f: paleta.f, a: paleta.a, b: paleta.b } }));
     setEstadoMsg(`Paleta «${paleta.nombre}» aplicada a todo el diseño.`);
+  };
+
+  // Intercambia fondo y figura en cada celda (respeta las paletas mezcladas) y en el pincel.
+  const invertirMosaico = () => {
+    const nuevas: Record<string, Celda> = {};
+    for (const [clave, cel] of Object.entries(celdas)) nuevas[clave] = { ...cel, c: { ...cel.c, f: cel.c.a, a: cel.c.f } };
+    setCeldas(nuevas);
+    setPincel((p) => ({ ...p, c: { ...p.c, f: p.c.a, a: p.c.f } }));
+    setEstadoMsg('Colores invertidos en todo el diseño.');
   };
 
   const exportarPNG = async () => {
@@ -400,6 +420,10 @@ export const App: React.FC = () => {
       `mosaico-${formato.id}-${canvas.width}x${canvas.height}.png`,
       blob
     );
+    if (res !== 'cancelado') {
+      publicar('mosaico', { png: miniatura(canvas, 200) }, jugador()?.codigo ?? null).catch(() => { /* sin red */ });
+      otorgarCreacion('mosaicos');
+    }
     setEstadoMsg(
       res === 'cancelado'
         ? 'Descarga cancelada.'
@@ -409,23 +433,65 @@ export const App: React.FC = () => {
     );
   };
 
-  return (
-    <div className="app-pantalla">
-      <header className="barra-superior">
-        <div className="lado-izq">
-          <a className="volver" href="../../" id="volver-hub">
-            <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
-            Experiencias
-          </a>
-          <div className="barra-info">
-            <h1>Taller de Mosaicos</h1>
-            <p className="bajada-corta">Diseña símbolos y patrones geométricos interactivos</p>
-          </div>
-        </div>
-      </header>
+  const HERRAMIENTAS = [
+    { id: 'poner', nombre: 'Poner', icono: 'draw' },
+    { id: 'girar', nombre: 'Girar', icono: 'rotate_right' },
+    { id: 'reflejar', nombre: 'Reflejar', icono: 'flip' },
+    { id: 'borrar', nombre: 'Borrar', icono: 'ink_eraser' },
+    { id: 'seleccionar', nombre: 'Multiplicar', icono: 'highlight_alt' },
+  ];
+  const AYUDA: Record<string, string> = {
+    poner: 'Toca o arrastra para poner el módulo. La tecla R lo gira.',
+    girar: 'Toca una celda para girarla 90°.',
+    reflejar: 'Toca una celda para reflejarla.',
+    borrar: 'Toca o arrastra para borrar celdas.',
+    seleccionar: 'Arrastra para elegir un área y multiplícala: repetir, escalonar, simetría.',
+  };
 
-      <div className="layout layout-mosaicos">
-        <section className="escena" aria-label="Mosaico">
+  if (!visto) return (
+    <Tutorial etiqueta="Geométrica · sistemas y patrones" titulo="Taller de Mosaicos"
+      pasos={[
+        { icono: 'grid_view', texto: 'Elige un módulo de la biblioteca.' },
+        { icono: 'draw', texto: 'Toca la grilla: pon, gira y refleja.' },
+        { icono: 'repeat', texto: 'Multiplica un área, cambia la paleta y descarga tu patrón.' },
+      ]}
+      acciones={[{ texto: 'Empezar a diseñar', icono: 'grid_on', alTocar: marcarVisto }]} />
+  );
+
+  return (
+    <>
+      <PantallaHerramienta
+        anchoLateral={300}
+        superior={
+          <BarraSuperior titulo="Taller de Mosaicos" bajada={AYUDA[herramienta]}>
+            <BotonAccion icono="undo" etiqueta="Deshacer" onClick={() => { historial.deshacer(); setSel(null); }} disabled={!historial.puedeDeshacer} />
+            <BotonAccion icono="redo" etiqueta="Rehacer" onClick={() => { historial.rehacer(); setSel(null); }} disabled={!historial.puedeRehacer} />
+            <BotonAccion icono="shuffle" texto="Sorpréndeme" onClick={() => generarMosaico()} />
+            <BotonAccion icono="download" texto="Descargar" primario onClick={exportarPNG} />
+          </BarraSuperior>
+        }
+        lateral={
+          <PanelLateral
+            formato={formato}
+            onCambiarFormato={(fId) => { setFormatoId(fId); setSel(null); }}
+            herramienta={herramienta}
+            pincel={pincel}
+            onCambiarPincel={setPincel}
+            sel={sel}
+            onEjecutarOp={ejecutarOp}
+            grilla={grilla}
+            onToggleGrilla={setGrilla}
+            onVaciar={() => { setCeldas({}); setSel(null); setEstadoMsg('Lienzo vaciado.'); }}
+            onAplicarPaletaMosaico={aplicarPaletaMosaico}
+            onInvertirMosaico={invertirMosaico}
+          />
+        }
+        inferior={<>
+          <BarraHerramientas herramientas={HERRAMIENTAS} activa={herramienta} onElegir={(h) => { setHerramienta(h); if (h !== 'seleccionar') setSel(null); }} />
+          <PincelActual pincel={pincel} onCambiarPincel={setPincel} />
+        </>}
+      >
+        <div className="escenario-fit" aria-label="Mosaico">
           <Lienzo
             formato={formato}
             celdas={celdas}
@@ -434,42 +500,17 @@ export const App: React.FC = () => {
             grilla={grilla}
             sel={sel}
             onAplicar={aplicarHerramienta}
+            onTrazo={() => { trazo.current = true; }}
             onBorrar={borrarCelda}
             onGirarPincel={() => setPincel((p) => ({ ...p, ...girar(p) }))}
             onSetSel={setSel}
             hover={hover}
             setHover={setHover}
           />
-        </section>
-
-        <Panel
-          formato={formato}
-          onCambiarFormato={(fId) => {
-            setFormatoId(fId);
-            setSel(null);
-          }}
-          herramienta={herramienta}
-          onCambiarHerramienta={(h) => {
-            setHerramienta(h);
-            if (h !== 'seleccionar') setSel(null);
-          }}
-          pincel={pincel}
-          onCambiarPincel={setPincel}
-          sel={sel}
-          onEjecutarOp={ejecutarOp}
-          grilla={grilla}
-          onToggleGrilla={setGrilla}
-          onGenerar={() => generarMosaico()}
-          onVaciar={() => {
-            setCeldas({});
-            setSel(null);
-            setEstadoMsg('Lienzo vaciado.');
-          }}
-          onExportarPNG={exportarPNG}
-          onAplicarPaletaMosaico={aplicarPaletaMosaico}
-          estadoMsg={estadoMsg}
-        />
-      </div>
-    </div>
+        </div>
+      </PantallaHerramienta>
+      {estadoMsg && <div className="aviso" role="status">{estadoMsg}</div>}
+      <Quiosco app="mosaicos" limpiar={['geo:estado']} />
+    </>
   );
 };

@@ -1,0 +1,9 @@
+{
+  "name": "Credencial · Somos Diseño",
+  "short_name": "Credencial",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#F4EEE3",
+  "theme_color": "#F4EEE3",
+  "icons": [{ "src": "icono.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

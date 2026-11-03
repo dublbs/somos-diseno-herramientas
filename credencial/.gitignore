@@ -1,0 +1,4 @@
+node_modules
+qr
+.env.local
+artifact

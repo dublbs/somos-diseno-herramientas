@@ -46,6 +46,7 @@
 
 @media (max-width:768px){.experiencias-grid{grid-template-columns:minmax(0,1fr)}.contenedor{padding-inline:16px}.brand-sub{display:none}}
 footer{margin-top:auto;padding-top:16px;border-top:1.5px solid var(--line);font-size:13px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+footer .enlace-hub{color:var(--ink);font-weight:700;text-decoration:none;border-bottom:2px solid var(--accent)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important}}
 </style>
 </head>
@@ -129,50 +130,95 @@ footer{margin-top:auto;padding-top:16px;border-top:1.5px solid var(--line);font-
       </li>
 
       <!-- 4. GRAFFITI Y TAGS -->
-      <li class="tarjeta proxima" data-lenguajes="pixel" id="exp-graffiti">
+      <li class="tarjeta" data-lenguajes="pixel" id="exp-graffiti">
         <div class="miniatura">
           <canvas id="cv-graffiti" aria-hidden="true"></canvas>
           <span class="etiqueta">Pixel</span>
-          <span class="badge-estado">En desarrollo</span>
         </div>
         <div class="cuerpo">
           <h2>Graffiti y Tags</h2>
           <p>Pinta tu firma o ilustración urbana con trazo grueso y goteo de pintura en estética pixel digital.</p>
         </div>
         <div class="tarjeta-acciones">
-          <div class="btn-disabled">Próximamente</div>
+          <a class="btn primario btn-entrar" href="graffiti/dist/" id="link-graffiti" aria-label="Entrar a Graffiti y Tags">Entrar <span aria-hidden="true">→</span></a>
         </div>
       </li>
 
-      <!-- 5. ESTACIÓN AUDIOREACTIVA -->
-      <li class="tarjeta proxima" data-lenguajes="geometrica" id="exp-audioreactiva">
+      <!-- 4b. VAGÓN -->
+      <li class="tarjeta" data-lenguajes="pixel" id="exp-vagon">
+        <div class="miniatura">
+          <canvas id="cv-vagon" aria-hidden="true"></canvas>
+          <span class="etiqueta">Pixel</span>
+          <span class="badge-estado">Nuevo</span>
+        </div>
+        <div class="cuerpo">
+          <h2>Vagón</h2>
+          <p>Diseña tu carro de metro pixel a pixel: elige el modelo, pinta, rellena, pega stickers y pon tu tag. Después sale a la vía y pasa por la Estación.</p>
+        </div>
+        <div class="tarjeta-acciones">
+          <a class="btn primario btn-entrar" href="vagon/dist/" id="link-vagon" aria-label="Entrar al Vagón">Entrar <span aria-hidden="true">→</span></a>
+        </div>
+      </li>
+
+      <!-- 5. CREDENCIAL (celular) -->
+      <li class="tarjeta" data-lenguajes="pixel geometrica organica" id="exp-credencial">
+        <div class="miniatura">
+          <canvas id="cv-credencial" aria-hidden="true"></canvas>
+          <span class="etiqueta">En tu celular · 3 Lenguajes</span>
+        </div>
+        <div class="cuerpo">
+          <h2>Credencial</h2>
+          <p>Crea tu personaje pixel en tu celular, ponlo en uno de los marcos de la campaña y junta los 4 sellos de la sede escaneando sus QR.</p>
+        </div>
+        <div class="tarjeta-acciones">
+          <a class="btn primario btn-entrar" href="credencial/dist/" id="link-credencial" aria-label="Entrar a la Credencial">Entrar <span aria-hidden="true">→</span></a>
+        </div>
+      </li>
+
+      <!-- 6. ESTACIÓN AUDIOREACTIVA -->
+      <li class="tarjeta" data-lenguajes="geometrica" id="exp-audioreactiva">
         <div class="miniatura">
           <canvas id="cv-audioreactiva" aria-hidden="true"></canvas>
           <span class="etiqueta">Geométrica</span>
-          <span class="badge-estado">En desarrollo</span>
         </div>
         <div class="cuerpo">
           <h2>Estación Audioreactiva</h2>
-          <p>Usa tu voz o música para deformar y dar vida a patrones geométricos reactivos en tiempo real.</p>
+          <p>Habla, aplaude o pon música: el sonido deforma la red de Geométrica en un túnel, un acordeón, un caleidoscopio, un tejido o una escalera. Silencia canales en la consola y graba tu loop.</p>
         </div>
         <div class="tarjeta-acciones">
-          <div class="btn-disabled">Próximamente</div>
+          <a class="btn primario btn-entrar" href="audioreactiva/dist/" id="link-audioreactiva" aria-label="Entrar a la Estación Audioreactiva">Entrar <span aria-hidden="true">→</span></a>
         </div>
       </li>
 
-      <!-- 6. JARDÍN DE PAPEL -->
-      <li class="tarjeta proxima" data-lenguajes="organica" id="exp-jardin">
+      <!-- 7. TELAR -->
+      <li class="tarjeta proxima" data-lenguajes="organica" id="exp-telar">
         <div class="miniatura">
-          <canvas id="cv-jardin" aria-hidden="true"></canvas>
+          <canvas id="cv-telar" aria-hidden="true"></canvas>
           <span class="etiqueta">Orgánica</span>
-          <span class="badge-estado">En desarrollo</span>
+          <span class="badge-estado">En proceso</span>
         </div>
         <div class="cuerpo">
-          <h2>Jardín de Papel</h2>
-          <p>Compone flores, hojas y formas botánicas recortando y combinando texturas orgánicas de papel.</p>
+          <h2>Telar</h2>
+          <p>Elige figuras y colores de hilo, y mira cómo se teje tu faja pasada por pasada. En proceso: por ahora el Taller de Grabado es el elegido para Orgánica.</p>
         </div>
         <div class="tarjeta-acciones">
-          <div class="btn-disabled">Próximamente</div>
+          <a class="btn primario btn-entrar" href="telar/dist/" id="link-telar" aria-label="Entrar al Telar">Entrar <span aria-hidden="true">→</span></a>
+        </div>
+      </li>
+
+      <!-- 8. TALLER DE GRABADO -->
+      <li class="tarjeta" data-lenguajes="organica" id="exp-grabado">
+        <div class="miniatura">
+          <canvas id="cv-grabado" aria-hidden="true"></canvas>
+          <span class="etiqueta">Orgánica</span>
+          <span class="badge-estado">Elegido</span>
+        </div>
+        <div class="cuerpo">
+          <h2>Taller de Grabado</h2>
+          <p>Estampa figuras orgánicas con tinta sobre papel, como con un taco de madera. Las tintas se mezclan donde se cruzan. Tus grabados se vuelven banderines en la plaza de la Estación.</p>
+        </div>
+        <div class="tarjeta-acciones">
+          <a class="btn primario btn-entrar" href="grabado/dist/" id="link-grabado" aria-label="Entrar al Taller de Grabado">Entrar <span aria-hidden="true">→</span></a>
         </div>
       </li>
 
@@ -182,6 +228,7 @@ footer{margin-top:auto;padding-top:16px;border-top:1.5px solid var(--line);font-
   <footer>
     <span>Somos Diseño · INACAP Sede Santiago Centro</span>
     <span>Modo quiosco · vuelve al inicio tras 90 s sin uso</span>
+    <a class="enlace-hub" href="hub-estacion/dist/">Pantalla HUB · Estación Somos Diseño →</a>
   </footer>
 </div>
 
@@ -538,69 +585,176 @@ footer{margin-top:auto;padding-top:16px;border-top:1.5px solid var(--line);font-
     });
   }
 
-  // 6. Estación Audioreactiva: barras geométricas que "escuchan"; las formas del Taller de Mosaicos laten con el sonido.
+  // 5. Credencial: la tarjeta con el personaje en su marco y los 4 sellos que se van timbrando.
+  const cvCred = document.getElementById("cv-credencial");
+  if (cvCred) {
+    const ctx = cvCred.getContext("2d");
+    // Personaje de 12 × 12 (0 vacío, 1 contorno, 2 piel, 3 pelo, 4 mejilla)
+    const CARA = [
+      "....3333....", "..33333333..", ".3333333333.", ".3111111113.", ".1222222221.", "122122221221",
+      "122222222221", "142222222241", "122211112221", ".1222222221.", "..11111111..", "............"
+    ];
+    const TINTA = { 1: HEX.Negro, 2: "#F2C9A0", 3: HEX.Morado, 4: HEX.Rosa };
+    const CICLO = 6400;
+    miniaturas.push({
+      cv: cvCred, ctx,
+      draw: t => {
+        const { width: W, height: H } = cvCred, s = W / VW;
+        const ms = quieto ? 5000 : t % CICLO;
+        const R = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x * s), Math.round(y * s), Math.ceil(w * s), Math.ceil(h * s)); };
+        R(0, 0, VW, VH, HEX.Hueso);
+        // tarjeta vertical (como la de la app): marco arriba, ficha y sellos abajo
+        const cx = 214, cy = 12, cw = 140, ch = 226;
+        R(cx - 3, cy - 3, cw + 6, ch + 6, HEX.Negro);
+        R(cx, cy, cw, ch, HEX.Celeste);
+        R(cx, cy, cw, cw, HEX.Lapislázuli);
+        // figura del marco: un rombo amarillo y la zona de foto
+        ctx.fillStyle = HEX.Amarillo;
+        ctx.beginPath();
+        ctx.moveTo((cx + cw / 2) * s, (cy + 8) * s); ctx.lineTo((cx + cw - 8) * s, (cy + cw / 2) * s);
+        ctx.lineTo((cx + cw / 2) * s, (cy + cw - 8) * s); ctx.lineTo((cx + 8) * s, (cy + cw / 2) * s);
+        ctx.fill();
+        R(cx + 30, cy + 30, cw - 60, cw - 60, HEX.Hueso);
+        const lado = 6, px = cx + cw / 2 - 6 * lado, py = cy + cw - 30 - 12 * lado + (quieto ? 0 : (Math.floor(ms / 400) % 2));
+        CARA.forEach((fila, y) => [...fila].forEach((c, x) => { if (TINTA[c]) R(px + x * lado, py + y * lado, lado, lado, TINTA[c]); }));
+        // nombre y código como barras de pixeles
+        R(cx + 10, cy + cw + 12, 78, 10, HEX.Negro);
+        R(cx + 10, cy + cw + 28, 48, 6, HEX.Lapislázuli);
+        // sellos: se timbran uno tras otro
+        const sw = 28, gap = (cw - 20 - 4 * sw) / 3, sy = cy + ch - 40;
+        for (let i = 0; i < 4; i++) {
+          const x = cx + 10 + i * (sw + gap);
+          const listo = ms > 900 + i * 1000;
+          if (listo) {
+            const k = Math.min(1, (ms - 900 - i * 1000) / 180), e = 1 + (1 - k) * 0.35;
+            const w = sw * e, d = (w - sw) / 2;
+            R(x - d, sy - d, w, w, HEX.Amarillo);
+            R(x - d + 9 * e, sy - d + 9 * e, 10 * e, 10 * e, HEX.Negro);
+          } else {
+            for (let a = 0; a < sw; a += 4) { R(x + a, sy, 2, 2, HEX.Negro); R(x + a, sy + sw - 2, 2, 2, HEX.Negro); R(x, sy + a, 2, 2, HEX.Negro); R(x + sw - 2, sy + a, 2, 2, HEX.Negro); }
+          }
+        }
+        // QR del sello a la izquierda: 21 × 21 módulos con los tres cuadros de esquina
+        const qx = 52, qy = 92, q = 3;
+        R(qx - 8, qy - 8, 21 * q + 16, 21 * q + 16, "#FFFFFF");
+        const esquina = (x, y) => { R(x, y, 7 * q, 7 * q, HEX.Negro); R(x + q, y + q, 5 * q, 5 * q, "#FFFFFF"); R(x + 2 * q, y + 2 * q, 3 * q, 3 * q, HEX.Negro); };
+        for (let y = 0; y < 21; y++) for (let x = 0; x < 21; x++) {
+          if ((x < 8 && y < 8) || (x > 12 && y < 8) || (x < 8 && y > 12)) continue;
+          if (((x * 7 + y * 13 + x * y) % 5) < 2) R(qx + x * q, qy + y * q, q, q, HEX.Negro);
+        }
+        esquina(qx, qy); esquina(qx + 14 * q, qy); esquina(qx, qy + 14 * q);
+        // flecha del QR a la tarjeta
+        for (let i = 0; i < 5; i++) R(qx + 21 * q + 22 + i * 8, qy + 30, 4, 4, HEX.Negro);
+      }
+    });
+  }
+
+  // 6. Estación Audioreactiva: el loop C3 «Túnel → estallido → túnel», el mismo de la escena Túnel y de la pantalla del HUB.
+  // El módulo vive en shared/c3-tunel.js y lo carga el <script type="module"> del final; mientras llega, la tarjeta queda en hueso.
   const cvAudio = document.getElementById("cv-audioreactiva");
   if (cvAudio) {
     const ctx = cvAudio.getContext("2d");
     miniaturas.push({
       cv: cvAudio, ctx,
       draw: t => {
-        const { width: W, height: H } = cvAudio, n = 12, ancho = W / n;
-        const ms = quieto ? 900 : t;
+        const { width: W, height: H } = cvAudio;
+        if (!window.somosC3) { ctx.fillStyle = HEX.Hueso; ctx.fillRect(0, 0, W, H); return; }
+        window.somosC3.dibujarC3(ctx, W, H, window.somosC3.c3EnTiempo(quieto ? 2000 : t));
+      }
+    });
+  }
+
+  // 4b. Vagón: el lateral del metro de Figma (Línea 1) que pasa por la vía, con algunos pixeles pintados encima.
+  const cvVagon = document.getElementById("cv-vagon");
+  if (cvVagon) {
+    const ctx = cvVagon.getContext("2d");
+    const modulo = new Image(); modulo.src = "vagon/dist/figma/metro/linea1-lateral.svg";
+    const pintados = [[6, 6, HEX.Amarillo], [7, 6, HEX.Amarillo], [8, 7, HEX.Amarillo], [9, 7, HEX.Amarillo], [10, 6, HEX.Rosa], [11, 6, HEX.Rosa], [12, 7, HEX.Rosa], [30, 5, HEX.Verde], [31, 5, HEX.Verde], [31, 6, HEX.Verde], [32, 6, HEX.Verde]];
+    miniaturas.push({
+      cv: cvVagon, ctx,
+      draw: t => {
+        const { width: W, height: H } = cvVagon, via = H * 0.84, alto = H * 0.62, cel = alto / 24;
         ctx.fillStyle = HEX.Hueso; ctx.fillRect(0, 0, W, H);
-        for (let i = 0; i < n; i++) {
-          const nivel = 0.25 + 0.75 * Math.abs(Math.sin(ms * 0.0021 + i * 0.7) * Math.cos(ms * 0.0013 + i * 0.35));
-          const alto = Math.max(1, Math.round(nivel * 7)) * (H / 8);
-          const x = i * ancho, base = H * 0.9;
-          const key = MOSAICO[i % MOSAICO.length], def = FORMAS[key];
-          // columna de piezas del mosaico apiladas desde la base
-          for (let j = 0; j * ancho < alto; j++) {
-            ctx.save();
-            ctx.translate(x + ancho / 2, base - j * ancho - ancho / 2);
-            ctx.rotate(((i + j) % 4) * Math.PI / 2);
-            ctx.translate(-ancho / 2, -ancho / 2);
-            ctx.scale(ancho / 12, ancho / 12);
-            for (const [d, ranura] of def) {
-              ctx.fillStyle = ranura === "b" ? HEX.Amarillo : (j % 2 ? HEX.Lapislázuli : HEX.Negro);
-              ctx.fill(path(d), "evenodd");
-            }
-            ctx.restore();
+        ctx.fillStyle = HEX.Morado; ctx.fillRect(0, H * 0.08, W, H * 0.06);
+        ctx.fillStyle = HEX.Amarillo; ctx.fillRect(0, via - 4, W, 3);
+        ctx.fillStyle = "#2A2A2A"; ctx.fillRect(0, via, W, H - via);
+        if (!modulo.complete || !modulo.naturalWidth) return;
+        const largo = alto * 6, x = W - ((quieto ? 0.4 : (t / 9000) % 1) * (W + largo));
+        ctx.imageSmoothingEnabled = false;
+        for (let k = 0; k < 6; k++) ctx.drawImage(modulo, x + k * alto, via - alto - 2, alto, alto);
+        for (const [c, f, color] of pintados) { ctx.fillStyle = color; ctx.fillRect(x + alto * 2 + c * cel, via - alto - 2 + f * cel, cel, cel); }
+      }
+    });
+  }
+
+  // 7. Telar: una faja que se teje pasada por pasada, con la lanzadera amarilla.
+  const cvTelar = document.getElementById("cv-telar");
+  if (cvTelar) {
+    const ctx = cvTelar.getContext("2d");
+    miniaturas.push({
+      cv: cvTelar, ctx,
+      draw: t => {
+        const { width: W, height: H } = cvTelar, filas = 18, cel = H / filas, cols = Math.ceil(W / cel);
+        const ms = quieto ? 5000 : t % 7000, tejido = Math.min(filas, ms / 300);
+        ctx.fillStyle = "#2A2622"; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = HEX.Hueso;
+        for (let x = 0; x < cols; x++) ctx.fillRect(x * cel + cel * 0.35, 0, cel * 0.3, H);
+        const completas = Math.floor(tejido), parcial = tejido - completas;
+        for (let y = 0; y < Math.min(filas, completas + 1); y++) {
+          const hasta = y < completas ? cols : Math.floor(parcial * cols), izq = y % 2 === 0;
+          for (let i = 0; i < hasta; i++) {
+            const x = izq ? i : cols - 1 - i, z = Math.abs(((x + Math.floor(y / 6) * 3) % 8) - 4), k = y % 6;
+            ctx.fillStyle = y < 1 || y >= filas - 1 ? HEX.Negro : (z === k || z === k - 1) ? (Math.floor(y / 6) % 2 ? HEX.Rosa : HEX.Verde) : HEX.Hueso;
+            ctx.fillRect(x * cel, y * cel, cel + 0.5, cel + 0.5);
           }
+        }
+        if (tejido < filas) {
+          const y = completas * cel + cel / 2, x = (completas % 2 === 0 ? parcial : 1 - parcial) * W;
+          ctx.fillStyle = HEX.Amarillo; ctx.strokeStyle = HEX.Negro; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(x - cel * 2, y); ctx.lineTo(x, y - cel * 0.7); ctx.lineTo(x + cel * 2, y); ctx.lineTo(x, y + cel * 0.7); ctx.closePath(); ctx.fill(); ctx.stroke();
         }
       }
     });
   }
 
-  // 7. Jardín de Papel: flor y helecho de loops (mismos SVG), mecidos por la brisa sobre papel de color.
-  const cvJardin = document.getElementById("cv-jardin");
-  if (cvJardin) {
-    const ctx = cvJardin.getContext("2d");
-    const BASE_J = "loops/dist/figma/organica/";
-    const ASSETS_JARDIN = { flor: "flor/flor-propia", helecho: "helecho/helecho" };
-    const imJ = {};
-    let listoJ = false;
-    Promise.all(Object.entries(ASSETS_JARDIN).map(([k, r]) => new Promise((ok, no) => {
-      const im = new Image(); im.onload = () => { imJ[k] = im; ok(); }; im.onerror = no; im.src = BASE_J + r + ".svg";
-    }))).then(() => { listoJ = true; }).catch(() => {});
-    const rama = (ctx, im, x, y, alto, rot, k) => {
-      const e = alto / im.naturalHeight, w = im.naturalWidth * e;
-      ctx.save(); ctx.translate(x, y); ctx.rotate(rot * Math.PI / 180);
-      ctx.shadowColor = "rgba(0,0,0,.25)"; ctx.shadowBlur = 3 * k; ctx.shadowOffsetY = 2 * k;
-      ctx.drawImage(im, -w / 2, -alto, w, alto);
-      ctx.restore();
+  // 8. Taller de Grabado: estampas de helecho, sol y pingüino que aparecen sobre papel, con tinta que se mezcla.
+  const cvGrabado = document.getElementById("cv-grabado");
+  if (cvGrabado) {
+    const ctx = cvGrabado.getContext("2d");
+    const BASE_G = "loops/dist/figma/organica/";
+    const TACOS = { helecho: "helecho/helecho", sol: "sol/sol", pinguino: "pinguino/pinguino" };
+    const imG = {}, tintas = {};
+    let listoG = false;
+    Promise.all(Object.entries(TACOS).map(([k, r]) => new Promise((ok, no) => {
+      const im = new Image(); im.onload = () => { imG[k] = im; ok(); }; im.onerror = no; im.src = BASE_G + r + ".svg";
+    }))).then(() => { listoG = true; }).catch(() => {});
+    const entintado = (k, color) => {
+      const clave = k + color;
+      if (!tintas[clave]) {
+        const im = imG[k], c = document.createElement("canvas"); c.width = im.naturalWidth || 240; c.height = im.naturalHeight || 240;
+        const x = c.getContext("2d"); x.drawImage(im, 0, 0, c.width, c.height); x.globalCompositeOperation = "source-in"; x.fillStyle = color; x.fillRect(0, 0, c.width, c.height);
+        tintas[clave] = c;
+      }
+      return tintas[clave];
     };
+    const ESTAMPAS = [["helecho", HEX.Verde, 0.2, 0.55, 0.9], ["sol", HEX.Amarillo, 0.5, 0.45, 1.1], ["pinguino", HEX.Rosa, 0.42, 0.62, 0.8], ["helecho", HEX.Azul, 0.78, 0.5, 0.85], ["sol", HEX.Rosa, 0.82, 0.62, 0.7]];
     miniaturas.push({
-      cv: cvJardin, ctx,
+      cv: cvGrabado, ctx,
       draw: t => {
-        const { width: W, height: H } = cvJardin, k = H / 250;
-        const ms = quieto ? 1200 : t;
-        ctx.fillStyle = HEX.Celeste; ctx.fillRect(0, 0, W, H);
-        ctx.fillStyle = HEX.Verde; ctx.fillRect(0, H * 0.86, W, H * 0.14);
-        if (!listoJ) return;
-        const b = f => Math.sin(ms * 0.0016 + f);
-        rama(ctx, imJ.helecho, W * 0.22, H * 0.97, H * 0.9, 4 * b(0), k);
-        rama(ctx, imJ.helecho, W * 0.78, H * 0.97, H * 0.75, -4 * b(1.3), k);
-        rama(ctx, imJ.flor, W * 0.5, H * 0.97, H * 0.7, 3 * b(2.1), k);
+        const { width: W, height: H } = cvGrabado, ms = quieto ? 6000 : t % 7000;
+        ctx.fillStyle = HEX.Hueso; ctx.fillRect(0, 0, W, H);
+        if (!listoG) return;
+        ctx.save(); ctx.globalCompositeOperation = "multiply";
+        ESTAMPAS.forEach(([k, color, fx, fy, esc], i) => {
+          const desde = 400 + i * 900; if (ms < desde) return;
+          const p = Math.min(1, (ms - desde) / 180), alto = H * esc * 0.62 * (1.12 - 0.12 * p);
+          const im = entintado(k, color), ancho = alto * im.width / im.height;
+          ctx.globalAlpha = 0.3 + 0.7 * p;
+          ctx.save(); ctx.translate(W * fx, H * fy); ctx.rotate((i % 2 ? -1 : 1) * 0.08);
+          ctx.drawImage(im, -ancho / 2, -alto / 2, ancho, alto);
+          ctx.restore();
+        });
+        ctx.restore();
       }
     });
   }
@@ -687,6 +841,10 @@ footer{margin-top:auto;padding-top:16px;border-top:1.5px solid var(--line);font-
     });
   }
 })();
+</script>
+<script type="module">
+  import * as c3 from "./shared/c3-tunel.js";
+  window.somosC3 = c3;
 </script>
 </body>
 </html>

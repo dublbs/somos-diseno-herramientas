@@ -25,8 +25,6 @@ Recomendación de UI: ofrecer 4 muros (ladrillo, hormigón, persiana, damero) y 
 | `stickers/tarro-pintura.svg` | `#0062B8` `#2B4BD8` `#FF8FB1` `#7FC8F8` | `510:1222` Urbano · Tarro de pintura |
 | `stickers/senal-rodillo.svg` | `#FFC20E` `#FF8FB1` `#7FC8F8` | `510:1228` Urbano · Señal rodillo |
 | `stickers/plumon.svg` | `#0062B8` `#FF8FB1` `#7FC8F8` | `510:1234` Urbano · Plumón |
-| `stickers/zapatilla.svg` | `#0062B8` `#FF8FB1` `#7FC8F8` | `510:1242` Urbano · Zapatilla |
-| `stickers/cruce-peatonal.svg` | `#2B4BD8` `#00A651` `#FFC20E` `#7FC8F8` | `510:1285` Urbano · Cruce peatonal |
 | `stickers/personaje.svg` | `#00A651` `#7FC8F8` | `510:1273` FA10 · Personaje |
 
 ## Otros
@@ -39,3 +37,17 @@ Recomendación de UI: ofrecer 4 muros (ladrillo, hormigón, persiana, damero) y 
 - No dibujes ni modifiques estos SVG. Si necesitas otra pieza, anótalo en la tarea y Claude Code la trae de Figma.
 - Los stickers traen contorno y fondo propios: se estampan tal cual (rasterizados a la cuadrícula o dibujados directo sobre el canvas de exportación).
 - Más piezas disponibles en Figma si hacen falta: hoja `510:1209` (Ajedrez, Ecualizador, Vinilo, Metro, marcas FoF/Figma/INACAP).
+
+«Zapatilla» y «Cruce peatonal» salieron en la ronda 5: en su lugar está el stencil como herramienta (plan 004).
+
+## Stencils (herramienta, 2 capas) · ronda 5
+Generados por `graffiti/scripts/generar-stencils.py` desde los SVG pixel de Figma, en `graffiti/src/data/stencils.ts` (máscaras) y `stencils/<id>.svg` (vista previa: capa 1 lapislázuli, capa 2 amarillo). Capa 1 = silueta; capa 2 = contorno y colores de detalle.
+
+| Archivo | Grilla | Origen | Capa 2 |
+|---|---|---|---|
+| `stencils/alien.svg` | 22×22 | Figma `510:1273` FA10 · Personaje | contorno y ojos (hueso) |
+| `stencils/diseno.svg` | 37×9 | `shared/pixelfont.ts`, «DISEÑO» | la letra (capa 1 es la letra engrosada) |
+| `stencils/lata.svg` | 22×23 | Figma `510:1266` FA09 · Spray | contorno y la nube (rosa) |
+| `stencils/metro.svg` | 20×22 | Figma FA08 · Metro / Línea 1 · frente | contorno, ventanas (negro) y luces (amarillo) |
+
+La textura del **rodillo** sale del patrón P12 «Trazos de rodillo» (`510:1200`, `muros/trazos-rodillo.svg`): el hueso es la veta que queda sin pintar (`TEXTURA_RODILLO`, 24×24).

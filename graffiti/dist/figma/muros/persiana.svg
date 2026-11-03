@@ -1,0 +1,29 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="240" height="240" fill="#1E1E1E"/>
+<g id="Pixel &#194;&#183; Sistema">
+<rect width="2640" height="7060" transform="translate(-922 -3600)" fill="#171717"/>
+<g id="Pixel / P05 &#194;&#183; Persiana" clip-path="url(#clip0_294_54606)">
+<g id="Celda 1">
+<path id="color celeste" d="M0 0H120V20H0V0ZM0 30H120V50H0V30ZM0 60H120V80H0V60ZM0 90H120V110H0V90Z" fill="#7FC8F8"/>
+<path id="color azul" d="M0 20H120V30H0V20ZM0 50H120V60H0V50ZM0 80H120V90H0V80ZM0 110H120V120H0V110Z" fill="#0062B8"/>
+</g>
+<g id="Celda 2">
+<path id="color azul_2" d="M120 0H240V20H120V0ZM120 30H240V50H120V30ZM120 60H240V80H120V60ZM120 90H240V110H120V90Z" fill="#0062B8"/>
+<path id="color celeste_2" d="M120 20H240V30H120V20ZM120 50H240V60H120V50ZM120 80H240V90H120V80ZM120 110H240V120H120V110Z" fill="#7FC8F8"/>
+</g>
+<g id="Celda 3">
+<path id="color azul_3" d="M0 120H120V140H0V120ZM0 150H120V170H0V150ZM0 180H120V200H0V180ZM0 210H120V230H0V210Z" fill="#0062B8"/>
+<path id="color celeste_3" d="M0 140H120V150H0V140ZM0 170H120V180H0V170ZM0 200H120V210H0V200ZM0 230H120V240H0V230Z" fill="#7FC8F8"/>
+</g>
+<g id="Celda 4">
+<path id="color celeste_4" d="M120 120H240V140H120V120ZM120 150H240V170H120V150ZM120 180H240V200H120V180ZM120 210H240V230H120V210Z" fill="#7FC8F8"/>
+<path id="color azul_4" d="M120 140H240V150H120V140ZM120 170H240V180H120V170ZM120 200H240V210H120V200ZM120 230H240V240H120V230Z" fill="#0062B8"/>
+</g>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_294_54606">
+<rect width="240" height="240" fill="white"/>
+</clipPath>
+</defs>
+</svg>

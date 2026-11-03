@@ -1,18 +1,67 @@
 # Somos Diseño · Hub de Experiencias — Estado, diagnóstico y plan
 
-> Actualizado: 2026-10-28 · Rama: `claude/ecstatic-lovelace-xjgq6d`
+> Actualizado: 2026-11-03 · Rama: `rescate/estado-actual` (igual a `claude/ecstatic-lovelace-xjgq6d` + esta documentación) · PR hacia `main` pendiente de merge
 
-### Estado de ejecución (Set A)
-| Tarea | Estado |
+## Estado de ejecución (2026-11-03)
+**Por qué `main` se veía desactualizado.** `origin/main` quedó en el merge del PR #3 (28-oct). Todo el trabajo posterior (48 commits) estaba en la rama `claude/ecstatic-lovelace-xjgq6d`: subido a GitHub, pero nunca fusionado.
+- Esa rama contiene todo `main` y también las ramas `teatro-de-papel`, `viewport-tablet-fit` y `archive/taller-de-pixeles`.
+- El merge hacia `main` es directo (fast-forward, sin conflictos).
+- En el ambiente no había nada sin commit, ni stash, ni otros worktrees.
+
+Builds verificados (`npm --prefix <app> run build`) y revisión del código:
+
+| App | Código | Build | Tareas de `docs/tasks/` | Falta para el MVP |
+|---|---|---|---|---|
+| `fotomaton/` | Completo (~1.100 líneas) | Verde | T-001 y T-002 hechas. T-002 verificada: `#/f/<uuid>` muestra «Esta tarjeta ya no está», sin errores de consola. | Supabase real (QR entre equipos) y prueba con el celular en la red del evento. Calibrar la regla de «los ojos», bloqueada: faltan 6 retratos de prueba con permiso. |
+| `taller-mosaicos/` | Completo (~1.100) | Verde | T-003 a T-006, T-008 y T-010 hechas (`fs.allow` presente, TS ^7.0.2) | Prueba en la tablet física |
+| `loops/` (Teatro de Papel) | Completo (~1.750) | Verde | — | Que la persona del equipo revise la línea de tiempo y los bocetos del elenco. Rendimiento del video en la tablet. |
+| `graffiti/` | Completo (~750) | Verde | T-010 a T-017 hechas | Probar el goteo en la tablet física (táctil real) |
+| `taller-de-pixeles/` | No está en esta rama | — | — | Descartado. No aparece en el hub (`index.html`); el código vive en `archive/taller-de-pixeles`. |
+| `vagon/` | Completo (~410) | Verde | — | Vagones B y C (Señalética, Traza tu línea): propuestos, sin construir |
+| `audioreactiva/` | Completo (~590) | Verde | — | Prueba de micrófono en la sala |
+| `grabado/` | Completo (~340) | Verde | — | — |
+| `telar/` | Completo (~360), en pausa | Verde | — | En pausa por decisión del equipo |
+| `credencial/` | Completo (~1.340) | Verde | — | Supabase real, imprimir los QR de las estaciones, PIN real del staff. Timbre 4 (Hallazgo 3D) por definir. |
+| `hub-estacion/` | Completo (~1.150) | Verde | — | Elegir los cuerpos de los avatares (`?cuerpos`). Probar en la pantalla flip. |
+
+Las tareas T-007 (README raíz) y T-009 (`FIGMA_SYNC.md`) se rehicieron en esta revisión: los comandos del README existen en `package.json` y las rutas citadas existen.
+
+**Pendiente:**
+1. Revisar y fusionar el PR `rescate/estado-actual` → `main`.
+2. Vercel: proyecto y dominio, **pendiente de definir**. `vercel.json` ya está listo (sin build).
+3. Supabase: proyecto del evento, **pendiente de definir**. Guía en [`supabase.md`](supabase.md).
+4. Probar todo en la tablet física, en la pantalla flip y en celulares reales.
+5. Retratos de prueba para la regla de los ojos; elección de los cuerpos del HUB; PIN del staff.
+6. Post-MVP: workspaces + `packages/shared`, sacar `dist/` de git, lint/CI.
+
+## Estado al 2026-10-28 (historial)
+
+
+**Las 4 experiencias están arriba y caben en pantalla sin scroll.** Verificado con Playwright en 1024×768, 1180×820, 1280×720, 1366×768, 1920×1080, 768×1024 y 820×1180, en cada pestaña de cada panel: 0 scroll de página, 0 controles fuera de vista o recortados y ningún panel con scroll interno.
+
+| Área | Qué quedó |
 |---|---|
-| A1 documento, `AGENTS.md`, carpetas de planes | Hecha |
-| A2 miniatura de Teatro de Papel con arte real | Hecha (verificada con capturas Playwright) |
-| A3 miniaturas Graffiti/Audioreactiva/Jardín, retirar Píxeles del hub y de los scripts raíz | Hecha. La carpeta `taller-de-pixeles/` **sigue en el repo**: falta tu OK para archivarla |
-| A4 `fullscreenchange`, reduced-motion, fuentes autoalojadas (`shared/somos-fonts.css`), texto del footer | Hecha (sin ninguna petición externa en el hub) |
-| A5 assets de Graffiti | Hecha: 7 muros (2 generados), 8 stickers, tag y cuentagotas descargados de Figma; manifiesto completo |
-| A6 QR del Fotomatón | Diagnosticado y confirmado; la corrección va como tarea T-002 (toca `fotomaton/src`, zona de Antigravity) |
-| A7 planes y tareas para Antigravity | Hecha (`docs/plans/001-*`, `002-*`, `docs/tasks/001-*`, `002-*`) |
-| A8 revisión final | Pendiente (cuando Antigravity termine) |
+| Sistema de layout (`shared/somos-ui.css`) | `.app-pantalla` (100dvh, barra + cuerpo), `.cuerpo-pantalla` (2 columnas en horizontal, 2 filas en vertical), `.escenario-fit` + `.lienzo-fit` (el lienzo se mide por alto con container queries y respeta la proporción `--ratio`), `.panel-app` con `.pestanas`, `.panel-pagina` y `.panel-pie` (acciones fijas). Bajo 600×560 (teléfono) la página hace scroll. |
+| Fuentes e íconos | Todo local: `shared/somos-fonts.css` (Bricolage, DM Sans, Silkscreen, IBM Plex Mono) y `shared/somos-icons.css` (subconjunto de Material Symbols, 6 KB). Ninguna app pide nada a Google. |
+| Fotomatón | Barra común; panel «Lenguaje y marco» / «Efecto y paleta» (juntos en horizontal amplio, en pestañas en vertical o alto chico); marcos en grilla; portada que cabe por alto. **QR arreglado** (`HashRouter` + enlace con la ruta real: `…/fotomaton/dist/#/f/<id>` abre la descarga, probado de punta a punta). Timers de la cuenta regresiva limpiados al salir. |
+| Taller de Mosaicos | Simplificado en 3 pestañas: **Dibujar** (herramientas + 18 formas sin nombres, Girar/Reflejar en la misma fila; Multiplicar reemplaza la grilla por las operaciones), **Color** (8 paletas + Invertir + Aplicar a todo), **Formato** (6 formatos como botones + grilla). Pie: Descargar, Sorpréndeme, Limpiar. Lienzo por alto con la proporción del formato. Sin `window.claude` ni código muerto; `fs.allow`. |
+| Teatro de Papel | Pestañas **Escena** (escenario + bandeja) y **Pieza** (se abre sola al tocar una figura). Línea de tiempo en una fila bajo el lienzo. Pie: video, PNG, vaciar. Modal accesible (Esc), nombre de archivo correcto, aviso si falla el PNG, sin «Día Orgánica · Mesa 4». Animación y render intactos. |
+| Graffiti y Tags (nuevo) | Muro 60×60, spray interpolado, **goteo** animado (máx. 40 chorros; con «reducir movimiento» se pinta de una vez), borrador, deshacer (40), vaciar con doble toque; 4 muros, 8 stickers + tag de Figma (sin fondos de marcos), 8 colores; tarjeta 1080×1350. Tarjeta activa en el hub. |
+| Hub | Miniatura de Teatro de Papel con el arte real; miniaturas canvas para Graffiti, Audioreactiva y Jardín; Píxeles retirado; `fullscreenchange`; reduced-motion sin bucle. Navegación hub → app → volver probada en las 4. |
+| Stack | React 18.3.1 + **TypeScript 7.0.2 en las 4 apps** + Vite 8.3.5. |
+| Credencial (nuevo, celular) | `credencial/`: personaje Pixel creado en el celular, dentro de un **marco** del sistema (`shared/marcos.ts`, compartido con el Fotomatón), y 4 sellos genéricos que se ganan escaneando QR o escribiendo su código. MVP: 6 marcos (M02 y M05 por lenguaje) que tematizan toda la UI, foto (Fotomatón sin efectos) o uno de 3 personajes, y 4 timbres de Figma por lenguaje con su álbum y su momento de timbrado. Mobile-first, sin scroll en teléfonos. Modo demo o Supabase. Ver [`plans/003-credencial.md`](plans/003-credencial.md). |
+| Taller de Píxeles | Archivado: la carpeta se borró de `main` y el código vive en la rama `archive/taller-de-pixeles`. |
+
+**Feedback del 2026-10-29:** arreglos hechos y propuestas (tutoriales, elenco de Teatro, marcos y efectos del Fotomatón, stencils, Audioreactiva, HUB y timbres) en [`plans/004-feedback-prototipos.md`](plans/004-feedback-prototipos.md).
+
+**Sigue pendiente (decisión tuya o fuera del código):**
+0. Publicar en **Vercel** (lo conectas tú; `vercel.json` ya evita el build) y correr `credencial/supabase/schema.sql` para la credencial real.
+1. Fotomatón con Supabase real: activar el `cron.schedule` de limpieza (24 h) en la migración y probar el QR con un celular en la red del evento.
+2. 15 marcos del Fotomatón (hoy 12) y envío a «Pantalla Flip».
+3. Probar todo en la tablet física (táctil real, rendimiento del goteo y de los videos de Teatro de Papel).
+4. Post-MVP: workspaces + `packages/shared`, sacar `dist/` de git, lint/CI, Framer Motion acotado.
+
+> Las secciones de abajo son el **diagnóstico original** (antes de estos cambios). Se conservan como contexto; varias cosas que describen ya están resueltas (ver tabla de arriba).
 
 ## 1. Resumen en 60 segundos
 
@@ -100,7 +149,7 @@ Texto de la tarjeta hoy: *"Pinta tu firma o ilustración urbana con trazo grueso
 - Criterio de listo: se entra desde el hub, se pinta, se deshace, se exporta PNG, se vuelve al hub; probado en la tablet.
 
 ### 3.6 Maquetas posteriores
-Estación Audioreactiva (Geométrica, Web Audio) y Jardín de Papel (Orgánica): se mantienen como tarjetas "Próximamente" bien diseñadas; no se construyen en este MVP. La carpeta `credencial/` del primer commit se eliminó sin rastro: decidir si se retoma.
+Estación Audioreactiva (Geométrica, Web Audio) y Jardín de Papel (Orgánica): se mantienen como tarjetas "Próximamente" bien diseñadas; no se construyen en este MVP. La credencial se retomó como app de celular (plan 003).
 
 ## 4. Qué está proyectado
 
@@ -284,7 +333,7 @@ Contexto a entregarle: `AGENTS.md`, `docs/plans/00X`, `docs/tasks/00X` y el mani
 1. Alcance exacto de Graffiti (herramientas, stencils, exportación).
 2. Despliegue: un dominio con todo vs. Fotomatón aparte (condiciona el QR).
 3. ~~¿TypeScript 5.9 o 7?~~ **Decidido: 7.0.2 en todas las apps** (pendiente: `taller-mosaicos` y, cuando su responsable lo decida, `loops`).
-4. ¿Se retoma `credencial/`? ¿Qué Pixel entra después de Graffiti?
+4. ~~¿Se retoma `credencial/`?~~ **Sí, en el celular (plan 003).** ¿Qué Pixel entra después de Graffiti?
 5. Quién administra Supabase y sus claves.
 
 ## 9b. Sugerencias opcionales (NO forman parte del plan)
