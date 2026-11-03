@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { SELLOS } from '../pixel/render';
 import { TIMBRES, type Tema } from '../temas';
 import { ACTIVAS, ESTACIONES, completa as estaCompleta } from '../../../shared/juego';
@@ -15,14 +15,20 @@ export const Timbrado: React.FC<{ n: number; total: number; sellos: number[]; te
     window.addEventListener('keydown', alTeclear);
     return () => window.removeEventListener('keydown', alTeclear);
   }, [completa, onCerrar]);
+  // Cada timbre cae a su tiempo, con su tamaño y su vaivén: nunca se repite la misma tanda.
+  const gotas = useMemo(() => Array.from({ length: 18 }, (_, i) => {
+    const r = (a: number, b: number) => a + Math.random() * (b - a);
+    return { i, x: `${r(-4, 94).toFixed(1)}%`, d: `${r(-3, 2.5).toFixed(2)}s`, t: `${r(2.2, 4.6).toFixed(2)}s`, w: `${Math.round(r(46, 96))}px`,
+      g: `${Math.round(r(-200, 200))}deg`, v: `${Math.round(r(-34, 34))}px` };
+  }), []);
   if (!timbre) return null;
 
   return (
     <div className={'timbrado' + (completa ? ' completa' : '')} role="dialog" aria-modal="true" aria-labelledby="titulo-timbre">
       {completa && (
         <div className="lluvia" aria-hidden="true">
-          {Array.from({ length: 14 }, (_, i) => (
-            <img key={i} src={timbres[i % SELLOS].src} alt="" style={{ '--x': `${(i * 37) % 100}%`, '--d': `${(i % 5) * 0.22}s`, '--g': `${(i % 2 ? 1 : -1) * (12 + (i * 7) % 20)}deg` } as React.CSSProperties} />
+          {gotas.map(g => (
+            <img key={g.i} src={timbres[g.i % SELLOS].src} alt="" style={{ '--x': g.x, '--d': g.d, '--t': g.t, '--w': g.w, '--g': g.g, '--v': g.v } as React.CSSProperties} />
           ))}
         </div>
       )}

@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { MarcoVivo } from '../components/Pixel';
 import { obtener, miCredencial, fotoDe, guardarFoto, avatarHub, guardarAvatarHub, type AvatarHub } from '../lib/store';
-import { leerFoto, cargarImagen } from '../lib/foto';
+import { cargarImagen } from '../lib/foto';
+import { Camara } from '../components/Camara';
 import type { DatosCarta } from '../pixel/render';
 import type { Ir, PonerTema } from '../App';
 
 // Fotomatón sin efectos: cambiar la selfie que va dentro del marco de tu credencial.
-// La cámara se abre con el selector nativo del teléfono (funciona también dentro de claude.ai).
+// La cámara frontal se abre dentro de la app (components/Camara.tsx); si no se puede, queda la galería.
 // Miniatura de la cara para el avatar del HUB: recorte cuadrado del centro alto de la selfie, 96 px.
 function cara(im: HTMLImageElement): string {
   const w = im.naturalWidth, h = im.naturalHeight, lado = Math.min(w, h) * 0.7;
@@ -21,6 +22,7 @@ export const Foto: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTema
   const [nueva, setNueva] = useState<string | null>(null);
   const [imagen, setImagen] = useState<HTMLImageElement | null>(null);
   const [aviso, setAviso] = useState('');
+  const [camara, setCamara] = useState(false);
   const [avatar, setAvatar] = useState<AvatarHub>(() => (codigo ? avatarHub(codigo) : 'personaje'));
 
   useEffect(() => {
@@ -45,13 +47,7 @@ export const Foto: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTema
     );
   }
 
-  const alElegir = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const archivo = e.target.files?.[0];
-    e.target.value = '';
-    if (!archivo) return;
-    setAviso('');
-    try { setNueva(await leerFoto(archivo)); } catch (err) { setAviso((err as Error).message); }
-  };
+  const alTomar = (url: string) => { setAviso(''); setNueva(url); setCamara(false); };
   const listo = () => {
     if (nueva) guardarFoto(codigo, nueva);
     guardarAvatarHub(codigo, imagen ? avatar : 'personaje', datos ?? undefined, imagen && avatar === 'foto' ? cara(imagen) : undefined);
@@ -73,14 +69,14 @@ export const Foto: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTema
         </label>
       )}
       <div className="acciones-movil">
-        <label className={'btn' + (imagen ? '' : ' primario')}>
-          <input type="file" accept="image/*" capture="user" hidden onChange={alElegir} aria-label="Sacar foto" />
+        <button type="button" className={'btn' + (imagen ? '' : ' primario')} onClick={() => setCamara(true)}>
           <span className="material-symbols-outlined" aria-hidden="true">photo_camera</span>{imagen ? 'Otra foto' : 'Sacar foto'}
-        </label>
+        </button>
         <button type="button" className={'btn' + (imagen ? ' primario' : '')} onClick={listo}>
           <span className="material-symbols-outlined" aria-hidden="true">check</span>{nueva ? 'Usar foto' : 'Volver'}
         </button>
       </div>
+      {camara && <Camara onFoto={alTomar} onCerrar={() => setCamara(false)} />}
     </main>
   );
 };

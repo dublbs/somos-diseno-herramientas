@@ -28,7 +28,7 @@ export const Canje: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTem
   const validar = async (e: React.FormEvent) => {
     e.preventDefault();
     setEnviando(true); setAviso('');
-    if (!(await verificarPin(pin))) { setAviso('PIN incorrecto. Este paso lo hace el equipo de Somos Diseño.'); setEnviando(false); return; }
+    if (!(await verificarPin(pin))) { setAviso('PIN incorrecto. Este paso lo hace el equipo de Somos Diseño: pídele que lo escriba.'); setEnviando(false); return; }
     try { await canjear(datos.codigo); setDatos({ ...datos, canjeado: true }); }
     catch (err) { setAviso((err as Error).message); }
     setEnviando(false);
@@ -45,10 +45,10 @@ export const Canje: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTem
           <p>Gracias por recorrer la Semana del Diseño con nosotros.</p>
         </>
       ) : !completa(datos.sellos) ? (
-        <p>Aún te faltan timbres. Completa tu credencial y vuelve a esta pantalla.</p>
+        <p>Todavía te faltan timbres. Complétalos y vuelve a esta pantalla para canjear tu premio.</p>
       ) : (
         <form className="codigo-sello" onSubmit={validar}>
-          <p>Muestra esta pantalla al equipo. El staff escribe su PIN para entregarte el premio.</p>
+          <p>Muestra esta pantalla al equipo de Somos Diseño. Pídele que escriba su PIN para entregarte tu premio.</p>
           <div className="pie-movil">
             <input type="password" inputMode="numeric" autoComplete="off" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 8))}
               placeholder={pinDeDemo() ? 'PIN (demo 0000)' : 'PIN del staff'} aria-label="PIN del staff" />

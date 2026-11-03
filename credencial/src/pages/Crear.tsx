@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { porId, VISUALES } from '../../../shared/marcos';
 import { MarcoVivo } from '../components/Pixel';
 import { useImagenes } from '../lib/imagenes';
-import { leerFoto } from '../lib/foto';
+import { Camara } from '../components/Camara';
 import { crear, limpiarNombre, guardarMiCredencial, guardarFoto } from '../lib/store';
 import { PERSONAJES, TEMAS, MARCO_INICIAL, type IdPersonaje } from '../temas';
 import type { Retrato } from '../pixel/render';
@@ -21,6 +21,7 @@ export const Crear: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTem
   const [nombre, setNombre] = useState('');
   const [aviso, setAviso] = useState('');
   const [creando, setCreando] = useState(false);
+  const [camara, setCamara] = useState(false);
 
   useEffect(() => { ponerTema(marco); }, [marco, ponerTema]);
   const srcPersonaje = PERSONAJES.find(p => p.id === personaje)!.src;
@@ -31,13 +32,7 @@ export const Crear: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTem
     setMarco(id);
     if (!elegido) setPersonaje(ID_VISUAL[porId(id).visual]);
   };
-  const alElegirFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const archivo = e.target.files?.[0];
-    e.target.value = '';
-    if (!archivo) return;
-    setAviso('');
-    try { setFoto(await leerFoto(archivo)); setModo('foto'); } catch (err) { setAviso((err as Error).message); }
-  };
+  const alTomarFoto = (url: string) => { setAviso(''); setFoto(url); setModo('foto'); setCamara(false); };
 
   const emitir = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,7 +95,7 @@ export const Crear: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTem
                   {PERSONAJES.map((p, i) => (
                     <button key={p.id} type="button" role="radio" aria-checked={personaje === p.id} className="personaje-opcion"
                       onClick={() => { setPersonaje(p.id); setElegido(true); }}>
-                      {miniaturas[i] ? <img src={miniaturas[i]!.src} alt="" /> : <span className="img-vacia" />}
+                      <span className="personaje-foto">{miniaturas[i] ? <img src={miniaturas[i]!.src} alt="" /> : <span className="img-vacia" />}</span>
                       <span className="nombre">{p.nombre}</span>
                       <span className="etq">{p.visual}</span>
                     </button>
@@ -109,10 +104,9 @@ export const Crear: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTem
               ) : (
                 <div className="foto-paso">
                   <p>Fotomatón sin efectos: tu selfie queda dentro del marco.</p>
-                  <label className={'btn' + (foto ? '' : ' primario')}>
-                    <input type="file" accept="image/*" capture="user" hidden onChange={alElegirFoto} aria-label="Sacar foto" />
+                  <button type="button" className={'btn' + (foto ? '' : ' primario')} onClick={() => setCamara(true)}>
                     <span className="material-symbols-outlined" aria-hidden="true">photo_camera</span>{foto ? 'Otra foto' : 'Sacar foto'}
-                  </label>
+                  </button>
                 </div>
               )}
             </>
@@ -125,6 +119,7 @@ export const Crear: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTem
           <button className="btn primario" disabled={creando}>{creando ? 'Creando…' : 'Crear'}</button>
         </form>
       </section>
+      {camara && <Camara onFoto={alTomarFoto} onCerrar={() => setCamara(false)} />}
     </main>
   );
 };

@@ -161,7 +161,7 @@ footer .enlace-hub{color:var(--ink);font-weight:700;text-decoration:none;border-
       </li>
 
       <!-- 5. CREDENCIAL (celular) -->
-      <li class="tarjeta" data-lenguajes="pixel geometrica organica" id="exp-credencial">
+      <li class="tarjeta" data-aparte id="exp-credencial">
         <div class="miniatura">
           <canvas id="cv-credencial" aria-hidden="true"></canvas>
           <span class="etiqueta">En tu celular · 3 Lenguajes</span>
@@ -190,21 +190,6 @@ footer .enlace-hub{color:var(--ink);font-weight:700;text-decoration:none;border-
         </div>
       </li>
 
-      <!-- 7. TELAR -->
-      <li class="tarjeta proxima" data-lenguajes="organica" id="exp-telar">
-        <div class="miniatura">
-          <canvas id="cv-telar" aria-hidden="true"></canvas>
-          <span class="etiqueta">Orgánica</span>
-          <span class="badge-estado">En proceso</span>
-        </div>
-        <div class="cuerpo">
-          <h2>Telar</h2>
-          <p>Elige figuras y colores de hilo, y mira cómo se teje tu faja pasada por pasada. En proceso: por ahora el Taller de Grabado es el elegido para Orgánica.</p>
-        </div>
-        <div class="tarjeta-acciones">
-          <a class="btn primario btn-entrar" href="telar/dist/" id="link-telar" aria-label="Entrar al Telar">Entrar <span aria-hidden="true">→</span></a>
-        </div>
-      </li>
 
       <!-- 8. TALLER DE GRABADO -->
       <li class="tarjeta" data-lenguajes="organica" id="exp-grabado">
@@ -687,36 +672,6 @@ footer .enlace-hub{color:var(--ink);font-weight:700;text-decoration:none;border-
     });
   }
 
-  // 7. Telar: una faja que se teje pasada por pasada, con la lanzadera amarilla.
-  const cvTelar = document.getElementById("cv-telar");
-  if (cvTelar) {
-    const ctx = cvTelar.getContext("2d");
-    miniaturas.push({
-      cv: cvTelar, ctx,
-      draw: t => {
-        const { width: W, height: H } = cvTelar, filas = 18, cel = H / filas, cols = Math.ceil(W / cel);
-        const ms = quieto ? 5000 : t % 7000, tejido = Math.min(filas, ms / 300);
-        ctx.fillStyle = "#2A2622"; ctx.fillRect(0, 0, W, H);
-        ctx.fillStyle = HEX.Hueso;
-        for (let x = 0; x < cols; x++) ctx.fillRect(x * cel + cel * 0.35, 0, cel * 0.3, H);
-        const completas = Math.floor(tejido), parcial = tejido - completas;
-        for (let y = 0; y < Math.min(filas, completas + 1); y++) {
-          const hasta = y < completas ? cols : Math.floor(parcial * cols), izq = y % 2 === 0;
-          for (let i = 0; i < hasta; i++) {
-            const x = izq ? i : cols - 1 - i, z = Math.abs(((x + Math.floor(y / 6) * 3) % 8) - 4), k = y % 6;
-            ctx.fillStyle = y < 1 || y >= filas - 1 ? HEX.Negro : (z === k || z === k - 1) ? (Math.floor(y / 6) % 2 ? HEX.Rosa : HEX.Verde) : HEX.Hueso;
-            ctx.fillRect(x * cel, y * cel, cel + 0.5, cel + 0.5);
-          }
-        }
-        if (tejido < filas) {
-          const y = completas * cel + cel / 2, x = (completas % 2 === 0 ? parcial : 1 - parcial) * W;
-          ctx.fillStyle = HEX.Amarillo; ctx.strokeStyle = HEX.Negro; ctx.lineWidth = 1.5;
-          ctx.beginPath(); ctx.moveTo(x - cel * 2, y); ctx.lineTo(x, y - cel * 0.7); ctx.lineTo(x + cel * 2, y); ctx.lineTo(x, y + cel * 0.7); ctx.closePath(); ctx.fill(); ctx.stroke();
-        }
-      }
-    });
-  }
-
   // 8. Taller de Grabado: estampas de helecho, sol y pingüino que aparecen sobre papel, con tinta que se mezcla.
   const cvGrabado = document.getElementById("cv-grabado");
   if (cvGrabado) {
@@ -798,7 +753,7 @@ footer .enlace-hub{color:var(--ink);font-weight:700;text-decoration:none;border-
         card.classList.remove("oculta");
       } else {
         const lengs = card.dataset.lenguajes || "";
-        card.classList.toggle("oculta", !lengs.includes(lenguaje));
+        card.classList.toggle("oculta", !lengs.includes(lenguaje));  // sin lenguaje (Credencial) solo aparece en «Todos»
       }
     });
   }

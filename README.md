@@ -12,7 +12,7 @@ Las reglas para agentes están en [`AGENTS.md`](AGENTS.md), y el estado y los pe
 index.html            Hub: tarjetas que llevan a cada experiencia (<app>/dist/)
 shared/               Lo común a todas las apps
   somos-tokens.css    Tokens de los 3 lenguajes (data-visual: Pixel · Geométrica · Orgánica)
-  somos-ui.css        Pantalla fija para portadas y Telar
+  somos-ui.css        Pantalla fija para portadas
   somos-fonts.css     Fuentes locales (sin internet)
   somos-icons.css     Subconjunto de Material Symbols
   ui/                 Kit de interfaz por lenguaje (barras fijas, controles), Tutorial, Quiosco y modo juego
@@ -39,11 +39,10 @@ Todas compilan (`npm run build`, verificado el 2026-11-03).
 | [`graffiti/`](graffiti/) | Graffiti y Tags | Pixel | Vigente. Spray con goteo, rodillo, plumón, stencil de 2 capas, stickers y muros; tarjeta PNG. |
 | [`vagon/`](vagon/) | Vagón | Pixel | Vigente. Diseña el carro de metro; «sale a la vía» y pasa por el HUB. |
 | [`audioreactiva/`](audioreactiva/) | Estación Audioreactiva | Geométrica | Vigente. 5 escenas que reaccionan al micrófono, consola de canales y graba un loop. |
-| [`grabado/`](grabado/) | Taller de Grabado | Orgánica | Vigente (elegido sobre Telar). Tacos, tintas que se mezclan y registro corrido. |
+| [`grabado/`](grabado/) | Taller de Grabado | Orgánica | Vigente. Tacos, tintas que se mezclan y registro corrido. |
 | [`credencial/`](credencial/) | Credencial | los tres | Vigente, en el celular. Marco, foto o personaje, timbres por estación, canje con PIN. |
 | [`hub-estacion/`](hub-estacion/) | HUB «Estación» | los tres | Vigente, para la pantalla del stand. Andén Pixel, mezanine Geométrico y plaza Orgánica con las personas y sus creaciones. |
-| [`telar/`](telar/) | Telar | Orgánica | En pausa («en proceso»). |
-| — | Jardín de Papel | Orgánica | Reemplazado por Grabado y Telar. |
+| — | Jardín de Papel | Orgánica | Reemplazado por Grabado. |
 | — | Taller de Píxeles | Pixel | Descartado. Su código vive en la rama `archive/taller-de-pixeles` y ya no está en el hub. |
 
 ## Comandos
@@ -56,7 +55,7 @@ npm run dev:hub
 Por experiencia, después de `npm --prefix <carpeta> install`:
 ```bash
 npm run dev:fotomaton      # también: dev:mosaicos, dev:loops, dev:graffiti, dev:audioreactiva,
-                           # dev:credencial, dev:hub-estacion, dev:telar, dev:grabado, dev:vagon
+                           # dev:credencial, dev:hub-estacion, dev:grabado, dev:vagon
 npm run dev:fotomaton:tablet   # abre la app en la red para probarla desde la tablet
                                # (existe para fotomaton, mosaicos, loops, graffiti y audioreactiva)
 npm run dev:credencial:movil   # la credencial desde el celular

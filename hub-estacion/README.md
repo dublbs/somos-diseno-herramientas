@@ -4,7 +4,7 @@ Pantalla para la **pantalla flip** y los **Mac** del evento. Es el corte de una 
 
 | Nivel | Lenguaje | Qué hay |
 |---|---|---|
-| Plaza (arriba) | Orgánica | Cielo según la hora (10:00 → 20:00), araucarias y plantas de Teatro de Papel, **fajas del Telar** colgadas |
+| Plaza (arriba) | Orgánica | Cielo según la hora (10:00 → 20:00), araucarias y plantas de Teatro de Papel |
 | Mezanine (medio) | Geométrica | Torniquetes, piso de damero y la **pantalla de la Estación Audioreactiva** |
 | Andén (abajo) | Pixel | Letrero pixel y el Metro. Cada 3er tren pasa el **vagón pintado** (easter egg de la experiencia Vagón) |
 
