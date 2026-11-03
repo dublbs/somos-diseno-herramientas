@@ -227,8 +227,8 @@ export function pintarAlbum(ctx: CanvasRenderingContext2D, d: DatosCarta, rec: R
     if (im) pintarTimbre(ctx, im, s, [x + (cw - lado) / 2, y + 8, lado, lado], d.codigo + n, tengo ? 1 : 0.22);
     // El timbre se nombra por lo que lo otorga (plan 005, bloque D); el dibujo sigue siendo el del lenguaje.
     const est = ESTACIONES[i];
-    escribir(ctx, tema.visual, `${n} · ${est.nombre}`, x + cw / 2, y + ch - 32, 9, tema.tinta, s, 'centro', cw - 10);
-    escribir(ctx, tema.visual, tengo ? '¡Conseguido!' : est.como, x + cw / 2, y + ch - 16, 6, tengo ? tema.acento : tema.tinta, s, 'centro', cw - 10);
+    escribir(ctx, tema.visual, est.nombre, x + cw / 2, y + ch - 34, 9, tema.tinta, s, 'centro', cw - 24);
+    escribir(ctx, tema.visual, tengo ? '¡Conseguido!' : est.como, x + cw / 2, y + ch - 17, 6, tengo ? tema.acento : tema.tinta, s, 'centro', cw - 24);
   }
   ctx.restore();
   bordeCarta(ctx, tema.visual, s);

@@ -34,7 +34,7 @@ La interfaz se acerca a la de esas herramientas, y eso la hace más fácil de us
 | Audioreactiva | Motion graphics y VJ · TouchDesigner, Resolume | parámetro ↔ señal | **Derecha**: consola de escenas (como clips) y mapeo (volumen → …, graves → …). **Inferior**: medidores en vivo (12 bandas) y Grabar |
 | Vagón (nueva) | Pixel art e identidad del transporte · Aseprite | grilla, módulo, librea | **Derecha**: biblioteca (modelos, frentes, carros, stickers). **Inferior**: Armar, Lápiz, Balde, Sticker, Tag, Borrar + paleta |
 | Credencial (celular) | Identidad y sistema · plantillas | plantilla, marco, sistema | **Inferior fija**: pasos Marco · Foto · Nombre · Crear |
-| Telar | Textil (en proceso) | trama, motivo a dos tonos | queda en pausa: hoy se confunde con Pixel |
+| Telar | — | eliminado del repo (decisión del equipo, nov 2026) | — |
 
 ## Cómo alimenta cada lenguaje al HUB «Estación»
 - **Pixel → andén:** los vagones que diseña la gente pasan por la vía (easter egg).

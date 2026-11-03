@@ -81,7 +81,7 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
             return (
               <span className="timbre-cae" aria-hidden="true" style={{
                 left: `${((r.x + r.lado / 2) / CARTA.ancho) * 100}%`, top: `${((r.y + r.lado / 2) / CARTA.alto) * 100}%`,
-                width: `${((r.lado + 4) / CARTA.ancho) * 100}%`,
+                width: `${((r.lado * 1.5) / CARTA.ancho) * 100}%`,
               }}>
                 <span className="tinta" />
                 <img src={TIMBRES[tema.visual][poniendo - 1].src} alt="" />

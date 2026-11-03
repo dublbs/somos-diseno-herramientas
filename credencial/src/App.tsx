@@ -5,7 +5,7 @@ import { Sello } from './pages/Sello';
 import { Escanear } from './pages/Escanear';
 import { Foto } from './pages/Foto';
 import { Canje } from './pages/Canje';
-import { miCredencial, remoto } from './lib/store';
+import { miCredencial, remoto, reiniciarTodo } from './lib/store';
 import { temaDe, type Tema } from './temas';
 import type { Cara } from './pixel/render';
 import './styles.css';
@@ -68,6 +68,16 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('hashchange', alCambiar);
   }, []);
 
+  // Reinicio de la demo (solo sin Supabase): dos toques para no borrar por error.
+  const [seguro, setSeguro] = useState(false);
+  useEffect(() => { if (!seguro) return; const t = setTimeout(() => setSeguro(false), 3500); return () => clearTimeout(t); }, [seguro]);
+  const reiniciar = () => {
+    if (!seguro) { setSeguro(true); return; }
+    reiniciarTodo(); setSeguro(false); setTema(temaDe(undefined));
+    try { history.replaceState(null, '', '#/crear'); } catch { /* sin historial */ }
+    setRuta({ vista: 'crear' });
+  };
+
   const ir: Ir = useCallback((hash, extra = {}) => {
     // Dentro de claude.ai (iframe) la ruta vive solo en el estado: el visor no acepta #/rutas.
     if (window.top === window) { try { history.replaceState(null, '', hash); } catch { /* sin historial */ } }
@@ -83,7 +93,17 @@ export const App: React.FC = () => {
         </a>
         <span className="marca">Credencial</span>
         <span className="marca-sub"><span className="solo-ancho">Somos Diseño · </span>{tema.visual}</span>
-        {!remoto && <span className="pill">Demo</span>}
+        {!remoto && (
+          <span className="demo-grupo">
+            {miCredencial() && (
+              <button type="button" className={'pill reiniciar' + (seguro ? ' seguro' : '')} onClick={reiniciar}
+                aria-label={seguro ? 'Confirmar: borrar mi credencial y empezar de nuevo' : 'Reiniciar la demo y empezar de nuevo'}>
+                <span className="material-symbols-outlined" aria-hidden="true">restart_alt</span>{seguro ? '¿Seguro?' : 'Reiniciar'}
+              </button>
+            )}
+            <span className="pill">Demo</span>
+          </span>
+        )}
       </header>
       {ruta.vista === 'crear' && <Crear ir={ir} ponerTema={ponerTema} />}
       {ruta.vista === 'carta' && <Credencial key={ruta.codigo + (ruta.cara || '') + (ruta.timbre || '')} codigo={ruta.codigo} aviso={ruta.aviso} cara={ruta.cara} timbre={ruta.timbre} ir={ir} ponerTema={ponerTema} tema={tema} />}

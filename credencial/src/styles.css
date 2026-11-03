@@ -80,7 +80,9 @@ label.btn { cursor: pointer; }
 .seg-movil button[aria-checked="true"] { background: var(--ink); color: var(--surface); }
 .personajes { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .personaje-opcion { min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto auto; justify-items: center; gap: 2px; padding: 8px 4px; border: 2px solid var(--line); border-radius: var(--r); background: var(--bg); color: var(--ink); cursor: pointer; }
-.personaje-opcion img, .personaje-opcion .img-vacia { width: 100%; height: 100%; min-height: 0; object-fit: contain; }
+.personaje-foto { position: relative; display: block; width: 100%; min-height: 0; overflow: hidden; }
+.personaje-opcion img, .personaje-opcion .img-vacia { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.personaje-opcion .nombre, .personaje-opcion .etq { position: relative; z-index: 1; line-height: 1.15; }
 .personaje-opcion .nombre { font: 800 14px var(--fuente-tit); }
 .personaje-opcion[aria-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent); }
 .foto-paso { flex: 1 1 auto; min-height: 0; display: grid; align-content: center; justify-items: center; gap: 12px; text-align: center; }
@@ -103,7 +105,8 @@ label.btn { cursor: pointer; }
 [data-visual="Pixel"] .timbre-cae img { animation-timing-function: steps(7, end); }
 [data-visual="Orgánica"] .timbre-cae .tinta { border-radius: 50%; }
 @keyframes voltear { 50% { transform: rotateY(90deg) scale(.96); } }
-@keyframes estampar { from { transform: translateY(-120%) scale(3.4) rotate(-24deg); opacity: 0 } 55% { transform: scale(.88) rotate(-2deg); opacity: 1 } 75% { transform: scale(1.06) rotate(-5deg) } to { transform: scale(1) rotate(-4deg); opacity: 1 } }
+/* El timbre baja grande, golpea la credencial y se asienta en el tamaño de su ranura. */
+@keyframes estampar { from { transform: translateY(-120%) scale(3.2) rotate(-24deg); opacity: 0 } 55% { transform: scale(1.1) rotate(-2deg); opacity: 1 } 75% { transform: scale(.6) rotate(-5deg) } to { transform: scale(.68) rotate(-4deg); opacity: 1 } }
 [data-visual="Pixel"] .carta { filter: drop-shadow(6px 6px 0 #000); image-rendering: pixelated; }
 [data-visual="Geométrica"] .carta { filter: drop-shadow(0 0 0 #000); }
 [data-visual="Orgánica"] .carta { filter: drop-shadow(0 18px 22px rgba(0, 0, 0, .35)); }
@@ -133,7 +136,7 @@ label.btn { cursor: pointer; }
 .timbrado {
   position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; overflow: hidden;
   padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
-  background: linear-gradient(rgba(0, 0, 0, .38), rgba(0, 0, 0, .38)), var(--tema-patron) center / var(--tema-tam, 96px) repeat, var(--tema-banda);
+  background: linear-gradient(color-mix(in srgb, var(--tema-banda) 86%, transparent), color-mix(in srgb, var(--tema-banda) 86%, transparent)), var(--tema-patron) center / var(--tema-tam, 96px) repeat, var(--tema-banda);
   animation: aparecer .25s ease-out both;
 }
 .timbrado-tarjeta { position: relative; z-index: 1; width: min(100%, 340px); display: grid; gap: 12px; justify-items: center; text-align: center; background: var(--surface); color: var(--ink); padding: 20px 18px; border: var(--borde); border-radius: var(--r); }
@@ -153,11 +156,11 @@ label.btn { cursor: pointer; }
 .progreso-timbres span { width: 26px; height: 10px; background: var(--chip); border-radius: var(--rb); }
 .progreso-timbres span.lleno { background: var(--accent); outline: 2px solid var(--ink); }
 .progreso-timbres b { margin-left: 6px; font-size: 14px; }
-.lluvia img { position: absolute; top: -90px; left: var(--x); width: 72px; animation: caer 2.6s ease-in var(--d) infinite; }
+.lluvia img { position: absolute; top: -120px; left: var(--x); width: var(--w, 72px); animation: caer var(--t, 2.6s) cubic-bezier(.4, 0, .9, .6) var(--d) infinite; }
 @keyframes aparecer { from { opacity: 0 } }
 @keyframes golpe { from { transform: scale(2.4) rotate(-18deg); opacity: 0 } 60% { transform: scale(.92) rotate(-3deg); opacity: 1 } to { transform: scale(1) rotate(-6deg); opacity: 1 } }
 @keyframes tinta { from { transform: scale(.75); opacity: .9 } to { transform: scale(1.35); opacity: 0 } }
-@keyframes caer { to { transform: translateY(calc(100dvh + 120px)) rotate(var(--g)) } }
+@keyframes caer { from { transform: translateX(0) rotate(0) } 50% { transform: translateX(var(--v, 12px)) rotate(calc(var(--g) / 2)) } to { transform: translateY(calc(100dvh + 160px)) translateX(calc(var(--v, 12px) * -1)) rotate(var(--g)) } }
 @media (prefers-reduced-motion: reduce) {
   .timbrado, .timbre-golpe img { animation: none; }
   .timbre-golpe img { transform: rotate(-6deg); }
@@ -179,3 +182,21 @@ label.btn { cursor: pointer; }
 .canje-sello { margin: 0; padding: 10px 22px; border: 4px solid var(--accent); color: var(--accent); font: 800 32px var(--fuente-tit); transform: rotate(-6deg); text-transform: uppercase; }
 .consentimiento { display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: start; font-size: 13.5px; line-height: 1.35; padding: 0 4px; }
 .consentimiento input { width: 24px; height: 24px; margin: 0; accent-color: var(--accent); }
+
+/* --- Reiniciar la demo (junto a la etiqueta Demo) --- */
+.demo-grupo { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.demo-grupo .pill { margin-left: 0; }
+.pill.reiniciar { display: inline-flex; align-items: center; gap: 4px; min-height: 28px; background: transparent; color: inherit; cursor: pointer; }
+.pill.reiniciar .material-symbols-outlined { font-size: 15px; }
+.pill.reiniciar.seguro { background: #FFC20E; color: #000; border-color: #000; }
+
+/* --- Cámara de la selfie --- */
+.camara { position: fixed; inset: 0; z-index: 30; display: grid; grid-template-rows: minmax(0, 1fr) auto auto; gap: 10px; background: #000; padding: max(12px, env(safe-area-inset-top, 0px)) 12px max(12px, env(safe-area-inset-bottom, 0px)); }
+.camara-visor { position: relative; min-height: 0; display: grid; place-items: center; overflow: hidden; border-radius: var(--r); background: #111; }
+.camara-visor video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.camara-guia { position: absolute; inset: 14% 16%; border: 3px dashed rgba(244, 238, 227, .75); border-radius: 50%; pointer-events: none; }
+.camara-msj { margin: 0; padding: 16px; color: #F4EEE3; text-align: center; max-width: 30ch; }
+.camara-acciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; }
+.camara-acciones .btn:not(.primario) { background: #F4EEE3; color: #000; }
+.camara .aviso-movil { color: #FFC20E; text-align: center; }
+.camara-acciones .disparador { min-height: 56px; }

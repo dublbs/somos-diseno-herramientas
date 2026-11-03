@@ -113,6 +113,16 @@ export function miCredencial(): string | null { try { return localStorage.getIte
 export function guardarMiCredencial(codigo: string) { try { localStorage.setItem('sd:mia', codigo); } catch { /* sin almacenamiento */ } }
 export function olvidarMiCredencial() { try { localStorage.removeItem('sd:mia'); } catch { /* nada */ } }
 
+// Reinicio de la demo: borra en este celular la credencial, su foto, el avatar y las credenciales locales.
+export function reiniciarTodo() {
+  try {
+    Object.keys(localStorage).filter(k => /^sd:(mia|foto:|avatar:|cred:|credenciales)/.test(k)).forEach(k => localStorage.removeItem(k));
+    sessionStorage.clear();
+  } catch { /* sin almacenamiento */ }
+  memoria = {};
+  for (const k of Object.keys(fotosEnMemoria)) delete fotosEnMemoria[k];
+}
+
 // Foto del Fotomatón: en el MVP queda solo en este celular (no se sube).
 const llaveFoto = (codigo: string) => 'sd:foto:' + codigo;
 const fotosEnMemoria: Record<string, string> = {};

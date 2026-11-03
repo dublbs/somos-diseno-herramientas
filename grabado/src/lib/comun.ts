@@ -1,4 +1,4 @@
-// Lo común de los talleres Orgánicos (Telar y Grabado): figuras de Teatro de Papel, paleta,
+// Lo común de los talleres Orgánicos (Grabado): figuras de Teatro de Papel, paleta,
 // carga de imágenes, tarjeta 1080 × 1350 con la franja negra y descarga.
 
 export const HEX = {

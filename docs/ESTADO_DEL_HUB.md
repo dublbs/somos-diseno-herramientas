@@ -20,7 +20,6 @@ Builds verificados (`npm --prefix <app> run build`) y revisión del código:
 | `vagon/` | Completo (~410) | Verde | — | Vagones B y C (Señalética, Traza tu línea): propuestos, sin construir |
 | `audioreactiva/` | Completo (~590) | Verde | — | Prueba de micrófono en la sala |
 | `grabado/` | Completo (~340) | Verde | — | — |
-| `telar/` | Completo (~360), en pausa | Verde | — | En pausa por decisión del equipo |
 | `credencial/` | Completo (~1.340) | Verde | — | Supabase real, imprimir los QR de las estaciones, PIN real del staff. Timbre 4 (Hallazgo 3D) por definir. |
 | `hub-estacion/` | Completo (~1.150) | Verde | — | Elegir los cuerpos de los avatares (`?cuerpos`). Probar en la pantalla flip. |
 
