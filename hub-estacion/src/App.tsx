@@ -60,6 +60,8 @@ export const App: React.FC = () => {
       const e = estacion.current!;
       let texto = '';
       if (ev.tipo === 'llega') { e.llega(ev.persona); texto = `${ev.persona.nombre} llegó a la estación`; }
+      else if (ev.tipo === 'cabeza') { e.cambiarCabeza(ev.codigo, ev.cabeza); return; }
+      else if (ev.tipo === 'vagon') { e.vagonNuevo(); texto = `${ev.autor} mandó su vagón a la Estación`; }
       else {
         const p = e.avatares.find(a => a.p.codigo === ev.codigo)?.p;
         e.timbre(ev.codigo, ev.timbres);

@@ -12,7 +12,9 @@ export interface Persona {
 }
 export type Evento =
   | { tipo: 'llega'; persona: Persona }
-  | { tipo: 'timbre'; codigo: string; timbres: number };
+  | { tipo: 'timbre'; codigo: string; timbres: number }
+  | { tipo: 'vagon'; autor: string }
+  | { tipo: 'cabeza'; codigo: string; cabeza: Persona['cabeza'] };
 
 const NOMBRES = ['Ana', 'Pipe', 'Cata', 'Benja', 'Josefa', 'Tomás', 'Valen', 'Nico', 'Isi', 'Matías', 'Fran', 'Diego', 'Antonia', 'Seba',
   'Coni', 'Joaquín', 'Martina', 'Lucas', 'Emilia', 'Vicente', 'Javi', 'Agus', 'Flo', 'Gaspar', 'Rocío', 'Bruno', 'Amanda', 'Cristóbal',

@@ -4,6 +4,7 @@ import { MarcoVivo } from '../components/Pixel';
 import { useImagenes } from '../lib/imagenes';
 import { Camara } from '../components/Camara';
 import { crear, limpiarNombre, guardarMiCredencial, guardarFoto } from '../lib/store';
+import { cargarImagen, caraDe } from '../lib/foto';
 import { PERSONAJES, TEMAS, MARCO_INICIAL, type IdPersonaje } from '../temas';
 import type { Retrato } from '../pixel/render';
 import type { Ir, PonerTema } from '../App';
@@ -22,6 +23,7 @@ export const Crear: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTem
   const [aviso, setAviso] = useState('');
   const [creando, setCreando] = useState(false);
   const [camara, setCamara] = useState(false);
+  const [enHub, setEnHub] = useState(false); // consentimiento: aparecer con la foto en la pantalla del HUB
 
   useEffect(() => { ponerTema(marco); }, [marco, ponerTema]);
   const srcPersonaje = PERSONAJES.find(p => p.id === personaje)!.src;
@@ -41,7 +43,8 @@ export const Crear: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTem
     setCreando(true);
     try {
       const receta: Retrato = modo === 'foto' ? { retrato: 'foto' } : { retrato: 'personaje', id: personaje };
-      const codigo = await crear({ nombre, receta, marco });
+      const cara = modo === 'foto' && foto && enHub ? caraDe(await cargarImagen(foto)) : undefined;
+      const codigo = await crear({ nombre, receta, marco, cara });
       if (modo === 'foto' && foto) guardarFoto(codigo, foto);
       guardarMiCredencial(codigo);
       ir(`#/c/${codigo}`, { aviso: 'Credencial lista: ya tienes el timbre de Inscripción.', timbre: 1 });
@@ -107,6 +110,12 @@ export const Crear: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTem
                   <button type="button" className={'btn' + (foto ? '' : ' primario')} onClick={() => setCamara(true)}>
                     <span className="material-symbols-outlined" aria-hidden="true">photo_camera</span>{foto ? 'Otra foto' : 'Sacar foto'}
                   </button>
+                  {foto && (
+                    <label className="consentimiento">
+                      <input type="checkbox" checked={enHub} onChange={e => setEnHub(e.target.checked)} />
+                      <span>Quiero aparecer en la pantalla del HUB con mi foto. Si no, aparece mi personaje. Puedes cambiarlo cuando quieras.</span>
+                    </label>
+                  )}
                 </div>
               )}
             </>

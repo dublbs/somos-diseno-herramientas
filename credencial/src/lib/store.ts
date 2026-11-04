@@ -28,9 +28,10 @@ const codigoNuevo = () => 'SD-' + Array.from({ length: 5 }, () => ALFABETO[Math.
 const avisarHub = (codigo: string, nombre: string, receta: Retrato, marco: string, foto?: string) =>
   publicar('credencial', { nombre, lenguaje: marcoListo(marco).visual, personaje: receta.retrato === 'personaje' ? receta.id : 'pixel', foto }, codigo).catch(() => { /* sin red */ });
 
-export async function crear({ nombre, receta, marco }: { nombre: string; receta: Retrato; marco: string }): Promise<string> {
+export async function crear({ nombre, receta, marco, cara }: { nombre: string; receta: Retrato; marco: string; cara?: string }): Promise<string> {
   const codigo = await crearCredencial({ nombre, receta, marco });
-  avisarHub(codigo, limpiarNombre(nombre), receta, marco);
+  avisarHub(codigo, limpiarNombre(nombre), receta, marco, cara); // cara: solo con consentimiento
+  if (cara) { try { localStorage.setItem('sd:avatar:' + codigo, 'foto'); } catch { /* nada */ } }
   publicar('timbre', { sello: 1 }, codigo).catch(() => { /* sin red */ });
   return codigo;
 }

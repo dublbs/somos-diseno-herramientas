@@ -21,7 +21,7 @@ const autor = (codigo: string | null) => (codigo ? nombres.get(codigo) ?? codigo
 
 export async function conectar(alEvento: (e: Evento) => void, existe: (codigo: string) => boolean): Promise<() => void> {
   const aplicar = (e: EventoDatos, inicial = false) => {
-    if (e.tipo === 'vagon') enVivo.vagon = cargar((e as EventoDatos<'vagon'>).datos.png);
+    if (e.tipo === 'vagon') { enVivo.vagon = cargar((e as EventoDatos<'vagon'>).datos.png); if (!inicial) alEvento({ tipo: 'vagon', autor: autor(e.codigo) }); }
     else if (e.tipo === 'mosaico') { enVivo.mosaicos.unshift({ im: cargar((e as EventoDatos<'mosaico'>).datos.png), autor: autor(e.codigo) }); enVivo.mosaicos.length = Math.min(enVivo.mosaicos.length, 12); }
     else if (e.tipo === 'grabado') { enVivo.grabados.unshift(cargar((e as EventoDatos<'grabado'>).datos.png)); enVivo.grabados.length = Math.min(enVivo.grabados.length, 6); }
     else if (e.tipo === 'timbre' && e.codigo) {
@@ -31,10 +31,11 @@ export async function conectar(alEvento: (e: Evento) => void, existe: (codigo: s
       const d = (e as EventoDatos<'credencial'>).datos;
       nombres.set(e.codigo, d.nombre);
       if (d.foto) enVivo.fotos.set(e.codigo, cargar(d.foto)); else enVivo.fotos.delete(e.codigo);
-      if (existe(e.codigo)) return;
+      const cabeza: Persona['cabeza'] = d.foto ? { tipo: 'foto', color: '#2B4BD8', codigo: e.codigo } : { tipo: 'personaje', id: d.personaje as 'pixel' | 'geometrica' | 'organica' };
+      if (existe(e.codigo)) { alEvento({ tipo: 'cabeza', codigo: e.codigo, cabeza }); return; }
       const p: Persona = {
         codigo: e.codigo, nombre: d.nombre, lenguaje: d.lenguaje,
-        cabeza: d.foto ? { tipo: 'foto', color: '#2B4BD8', codigo: e.codigo } : { tipo: 'personaje', id: d.personaje as 'pixel' | 'geometrica' | 'organica' },
+        cabeza,
         timbres: Math.max(1, sellos.get(e.codigo)?.size ?? 1),
       };
       alEvento({ tipo: 'llega', persona: p });

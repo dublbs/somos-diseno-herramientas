@@ -191,9 +191,9 @@ label.btn { cursor: pointer; }
 .pill.reiniciar.seguro { background: #FFC20E; color: #000; border-color: #000; }
 
 /* --- Cámara de la selfie --- */
-.camara { position: fixed; inset: 0; z-index: 30; display: grid; grid-template-rows: minmax(0, 1fr) auto auto; gap: 10px; background: #000; padding: max(12px, env(safe-area-inset-top, 0px)) 12px max(12px, env(safe-area-inset-bottom, 0px)); }
+.camara { position: fixed; inset: 0; max-width: 560px; margin-inline: auto; z-index: 30; display: grid; grid-template-rows: minmax(0, 1fr) auto auto; gap: 10px; background: #000; padding: max(12px, env(safe-area-inset-top, 0px)) 12px max(12px, env(safe-area-inset-bottom, 0px)); }
 .camara-visor { position: relative; min-height: 0; display: grid; place-items: center; overflow: hidden; border-radius: var(--r); background: #111; }
-.camara-visor video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.camara-visor video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
 .camara-guia { position: absolute; inset: 14% 16%; border: 3px dashed rgba(244, 238, 227, .75); border-radius: 50%; pointer-events: none; }
 .camara-msj { margin: 0; padding: 16px; color: #F4EEE3; text-align: center; max-width: 30ch; }
 .camara-acciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; }

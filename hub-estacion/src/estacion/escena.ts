@@ -84,6 +84,7 @@ export class Estacion {
   trenes = 0; // cuántos trenes han pasado (cada 3º es el vagón pintado)
   azar: () => number;
   quieto: boolean;
+  private trenForzado = -1; // el vagón recién diseñado pasa en el próximo tren
 
   constructor(d: Disposicion, gente: Persona[], azar: () => number, quieto: boolean) {
     this.d = d; this.azar = azar; this.quieto = quieto;
@@ -116,11 +117,14 @@ export class Estacion {
     if (timbres >= ACTIVAS.length) this.confeti(a);
   }
 
+  cambiarCabeza(codigo: string, cabeza: Persona['cabeza']) { const a = this.avatares.find(v => v.p.codigo === codigo); if (a) a.p = { ...a.p, cabeza }; }
+  vagonNuevo() { this.trenForzado = Math.floor(this.reloj / PERIODO_TREN) + 1; }
+
   // Estado del tren: x del frente (0 = fuera por la derecha) y si tiene puertas abiertas.
   tren() {
     const ciclo = this.reloj % PERIODO_TREN, n = Math.floor(this.reloj / PERIODO_TREN);
     const largo = this.d.W * 0.78, parado = (this.d.W - largo) / 2;
-    const pintado = n % 3 === 2;
+    const pintado = n % 3 === 2 || n === this.trenForzado;
     if (ciclo < ENTRA) { const t = 1 - Math.pow(1 - ciclo / ENTRA, 3); return { x: this.d.W + 40 + (parado - this.d.W - 40) * t, largo, abierto: false, visible: true, pintado, n }; }
     if (ciclo < ENTRA + DETENIDO) return { x: parado, largo, abierto: true, visible: true, pintado, n };
     if (ciclo < ENTRA + DETENIDO + SALE) { const t = Math.pow((ciclo - ENTRA - DETENIDO) / SALE, 3); return { x: parado - (parado + largo + 60) * t, largo, abierto: false, visible: true, pintado, n }; }
