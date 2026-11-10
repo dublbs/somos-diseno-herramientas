@@ -34,7 +34,8 @@ function guardarLocal(lista: Evento[]) {
 }
 
 // ---------- Supabase (REST) ----------
-const cabeceras = () => ({ apikey: CLAVE!, Authorization: `Bearer ${CLAVE}`, 'Content-Type': 'application/json' });
+// Con las claves nuevas (sb_publishable_…) solo va `apikey`; con las JWT antiguas (eyJ…) también `Authorization`.
+const cabeceras = () => ({ apikey: CLAVE!, ...(CLAVE!.startsWith('eyJ') ? { Authorization: `Bearer ${CLAVE}` } : {}), 'Content-Type': 'application/json' });
 interface Fila { id: number; tipo: Tipo; codigo: string | null; datos: Datos[Tipo]; creado: string }
 const deFila = (f: Fila): Evento => ({ id: String(f.id), tipo: f.tipo, codigo: f.codigo, datos: f.datos, creado: Date.parse(f.creado) });
 
