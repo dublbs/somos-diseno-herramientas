@@ -18,6 +18,7 @@ Hub de experiencias interactivas de Somos Diseño para tablet (horizontal) y pan
 | `audioreactiva/` | Estación Audioreactiva | Geométrica |
 | `grabado/` | Taller de Grabado | Orgánica |
 | `hub-estacion/` | HUB «Estación» (pantalla flip y Mac) | los tres |
+| `admin/` | PC madre: panel del staff (personas, canje, mesas, avisos, configuración). No va en el hub. | — |
 
 Taller de Píxeles (descartado) vive solo en la rama `archive/taller-de-pixeles`.
 
@@ -54,11 +55,12 @@ Las experiencias son **herramientas de diseño con barras fijas** (propuesta `do
 ## Datos compartidos
 - `shared/datos.ts`: lo que las experiencias mandan al HUB (`publicar`) y lo que el HUB escucha (`escuchar`, `recientes`). Local (localStorage + BroadcastChannel) o Supabase por REST si existen `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` (en `.env.local`, nunca en el repo). Guía: `docs/supabase.md`.
 - `shared/juego.ts` y `shared/ui/Juego.tsx`: estaciones de timbres, modo juego en las mesas y PIN del staff (hash local o `VITE_STAFF_PIN_SHA256`).
+- `shared/supabase/juego.sql` (plan 007): staff con Supabase Auth, `pasos` con meta por estación (Portales = 3 afiches), `canjear()` con PIN en el servidor y stock, suscripciones push. `shared/supabase/functions/notificar/` manda los avisos. `admin/` es el panel: **excepción a la regla de pantalla** (es una herramienta de escritorio con scroll).
 
 ## Propiedad de archivos
 | Zona | Dueño |
 |---|---|
-| `index.html`, `shared/` (incluye `shared/marcos.ts`, que usan Fotomatón y Credencial), `docs/`, `AGENTS.md`, assets de Figma | Claude Code |
+| `index.html`, `shared/` (incluye `shared/marcos.ts`, que usan Fotomatón y Credencial), `docs/`, `AGENTS.md`, assets de Figma, `admin/` | Claude Code |
 | `fotomaton/`, `taller-mosaicos/`, `graffiti/`, `credencial/` | Claude Code; Antigravity solo mediante tareas escritas en `docs/tasks/` |
 | `loops/` | La persona del equipo que lo trabaja; los agentes lo editan **solo cuando se pide** |
 

@@ -1,0 +1,83 @@
+/* PC madre · panel del staff. Toma los tokens del sistema (Geométrica: recto, sin sombras) y la paleta Línea azul.
+   Es una herramienta de escritorio: aquí sí hay scroll en las tablas. */
+@import '../../shared/somos-tokens.css';
+@import '../../shared/somos-fonts.css';
+@import '../../shared/somos-icons.css';
+
+:root { --mono: "IBM Plex Mono", ui-monospace, monospace; }
+body { font-size: 15px; }
+h1 { font: 800 28px/1.1 var(--fuente-tit); letter-spacing: -.02em; margin: 0; }
+h2 { font: 700 18px/1.2 var(--fuente-tit); margin: 22px 0 10px; }
+code, pre, .mono { font-family: var(--mono); }
+pre { background: var(--chip); padding: 12px; overflow-x: auto; font-size: 13px; margin: 8px 0; }
+.etq { margin: 0 0 6px; font: 700 12px/1.2 var(--fuente-etq); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.ayuda { margin: 6px 0 0; font-size: 13px; color: var(--muted); line-height: 1.4; }
+.error { color: #E2001A; font-weight: 600; margin: 6px 0 0; }
+.aviso { margin: 0 0 14px; padding: 10px 14px; background: var(--ink); color: var(--bg); font-weight: 600; }
+.vacio { color: var(--muted); padding: 24px; text-align: center; }
+
+/* Estructura: barra lateral fija + contenido con scroll. */
+.panel { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100dvh; }
+.lateral { position: sticky; top: 0; height: 100dvh; display: flex; flex-direction: column; gap: 4px; padding: 20px 14px; background: var(--surface); border-right: 2px solid var(--ink); }
+.marca { margin: 0 8px 18px; font: 800 20px/1.1 var(--fuente-tit); letter-spacing: -.02em; }
+.marca span { display: block; font: 600 12px/1.4 var(--fuente-etq); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.nav { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border: 0; background: transparent; color: var(--ink); font: 600 15px "DM Sans", sans-serif; text-align: left; cursor: pointer; }
+.nav.activa { background: var(--accent); color: var(--on-accent); }
+.nav .material-symbols-outlined { font-size: 20px; }
+.quien { margin-top: auto; display: grid; gap: 8px; padding: 12px 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.quien p { margin: 0; }
+.contenido { padding: 28px 32px 48px; min-width: 0; }
+.centro { min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
+.centro > p, .centro > h1 { max-width: 60ch; }
+
+.cabecera { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
+.buscar { min-width: 280px; }
+.tarjeta { background: var(--surface); border: 2px solid var(--ink); padding: 20px; display: grid; gap: 12px; align-content: start; }
+.entrar { width: min(100%, 380px); }
+.dos { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; align-items: start; }
+.fichas { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.ficha { display: grid; gap: 6px; padding-top: 8px; border-top: 1px solid var(--line); }
+.ficha h2 { margin: 0; font-size: 24px; }
+
+label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
+input, textarea { font: 500 15px "DM Sans", sans-serif; color: var(--ink); background: var(--bg); border: 2px solid var(--ink); padding: 10px 12px; min-height: 44px; width: 100%; }
+textarea { resize: vertical; }
+input.grande { font-size: 22px; font-weight: 600; }
+input:disabled { opacity: .6; }
+input:focus-visible, textarea:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 18px; border: 2px solid var(--ink); background: var(--surface); color: var(--ink); font: 600 15px "DM Sans", sans-serif; cursor: pointer; }
+.btn.primario { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.chico { min-height: 32px; padding: 0 10px; font-size: 13px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn .material-symbols-outlined { font-size: 20px; }
+.texto { border: 0; background: transparent; color: var(--ink); font: inherit; cursor: pointer; padding: 4px 0; display: inline-flex; align-items: center; gap: 6px; }
+.texto .material-symbols-outlined { font-size: 16px; color: var(--muted); }
+.enlinea { display: flex; gap: 6px; align-items: center; }
+.enlinea input { min-height: 32px; padding: 4px 8px; width: 140px; }
+.seg { display: flex; gap: 4px; padding: 4px; background: var(--chip); }
+.seg button { flex: 1; min-height: 40px; border: 0; background: transparent; color: var(--ink); font: 600 14px "DM Sans", sans-serif; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.pill { display: inline-block; padding: 3px 8px; border: 2px solid var(--ink); font: 700 11px "DM Sans", sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+.pill.ok { background: #00A651; border-color: #00A651; color: #000; }
+
+/* Tabla de personas: una fila por credencial, los timbres como botones. */
+.tabla { width: 100%; border-collapse: collapse; background: var(--surface); border: 2px solid var(--ink); }
+.tabla th, .tabla td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.tabla th { font: 700 11px/1.2 var(--fuente-etq); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: var(--chip); }
+.tabla .centro-col { text-align: center; }
+.tabla tr.completa td { background: color-mix(in srgb, #FFC20E 18%, var(--surface)); }
+.tabla tr.canjeada td { background: color-mix(in srgb, #00A651 14%, var(--surface)); }
+.sello { width: 36px; height: 36px; border: 2px dotted var(--ink); background: transparent; color: var(--ink); font: 700 13px var(--mono); cursor: pointer; display: inline-grid; place-items: center; }
+.sello.si { border-style: solid; background: var(--accent); color: var(--on-accent); }
+.sello.apagado { opacity: .4; }
+.sello .material-symbols-outlined { font-size: 18px; }
+
+@media (max-width: 760px) {
+  .panel { grid-template-columns: 1fr; }
+  .lateral { position: static; height: auto; flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 2px solid var(--ink); }
+  .marca { width: 100%; margin-bottom: 8px; }
+  .quien { margin: 0 0 0 auto; border: 0; padding: 0; display: flex; align-items: center; }
+  .contenido { padding: 20px 16px 40px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
