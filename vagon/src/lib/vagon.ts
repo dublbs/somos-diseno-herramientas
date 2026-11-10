@@ -48,11 +48,19 @@ export async function baseDe(src: string): Promise<string[]> {
 export const colorEn = (base: string[], d: Diseno, i: number) => d.pixeles[i] ?? base[i];
 
 // ---------- herramientas ----------
-export function pintar(d: Diseno, col: number, fila: number, color: string | null, tam: number): Diseno {
+// `permite` limita el pincel a algunas celdas (por partes: solo dentro de la pieza que se está pintando).
+export function pintar(d: Diseno, col: number, fila: number, color: string | null, tam: number, permite?: (i: number) => boolean): Diseno {
   const pixeles = d.pixeles.slice();
   const r0 = Math.floor((tam - 1) / 2);
   for (let f = fila - r0; f < fila - r0 + tam; f++) for (let c = col - r0; c < col - r0 + tam; c++)
-    if (f >= 0 && f < FILAS && c >= 0 && c < COLS) pixeles[f * COLS + c] = color;
+    if (f >= 0 && f < FILAS && c >= 0 && c < COLS && (!permite || permite(f * COLS + c))) pixeles[f * COLS + c] = color;
+  return { ...d, pixeles };
+}
+
+// Por partes: pinta la pieza entera con un solo toque.
+export function pintarPieza(d: Diseno, mapa: Int16Array, id: number, color: string): Diseno {
+  const pixeles = d.pixeles.slice();
+  for (let i = 0; i < pixeles.length; i++) if (mapa[i] === id) pixeles[i] = color;
   return { ...d, pixeles };
 }
 
@@ -111,6 +119,34 @@ export function dibujarCarro(ctx: CanvasRenderingContext2D, x0: number, y0: numb
   }
 }
 
+// Bordes entre piezas: finos en todo el carro; la pieza elegida se marca con un borde doble (negro y amarillo)
+// para que se vea sobre cualquier color.
+export function dibujarBordes(ctx: CanvasRenderingContext2D, x0: number, y0: number, cel: number, mapa: Int16Array, elegida: number | null) {
+  const finos = new Path2D(), marcados = new Path2D();
+  for (let f = 0; f < FILAS; f++) for (let c = 0; c < COLS; c++) {
+    const i = f * COLS + c, p = mapa[i];
+    if (c + 1 < COLS && mapa[i + 1] !== p) {
+      const x = Math.round(x0 + (c + 1) * cel) + 0.5, y1 = y0 + f * cel, y2 = y1 + cel;
+      const trazo = p === elegida || mapa[i + 1] === elegida ? marcados : finos;
+      trazo.moveTo(x, y1); trazo.lineTo(x, y2);
+    }
+    if (f + 1 < FILAS && mapa[i + COLS] !== p) {
+      const y = Math.round(y0 + (f + 1) * cel) + 0.5, x1 = x0 + c * cel, x2 = x1 + cel;
+      const trazo = p === elegida || mapa[i + COLS] === elegida ? marcados : finos;
+      trazo.moveTo(x1, y); trazo.lineTo(x2, y);
+    }
+  }
+  ctx.save();
+  ctx.lineCap = 'square';
+  ctx.strokeStyle = 'rgba(0,0,0,.3)'; ctx.lineWidth = 1; ctx.stroke(finos);
+  if (elegida !== null) {
+    const w = Math.max(3, cel * 0.3);
+    ctx.strokeStyle = HEX.Negro; ctx.lineWidth = w; ctx.stroke(marcados);
+    ctx.strokeStyle = HEX.Amarillo; ctx.lineWidth = w * 0.45; ctx.stroke(marcados);
+  }
+  ctx.restore();
+}
+
 // Un tren: el carro diseñado al medio y carros de base a los lados (cuantos pida la persona).
 export function dibujarTren(ctx: CanvasRenderingContext2D, x0: number, y0: number, cel: number, carros: number, base: string[], d: Diseno, stickers: Record<string, HTMLImageElement>) {
   const vacio = disenoVacio(), junta = Math.max(2, cel * 0.8), ancho = COLS * cel;
@@ -145,3 +181,4 @@ export function pngDelCarro(base: string[], d: Diseno, stickers: Record<string, 
   dibujarCarro(c.getContext('2d')!, 0, 0, 10, base, d, stickers);
   return c.toDataURL('image/png');
 }
+
