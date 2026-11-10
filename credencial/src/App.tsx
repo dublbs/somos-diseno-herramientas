@@ -11,11 +11,12 @@ import type { Cara } from './pixel/render';
 import './styles.css';
 
 // Rutas con hash (funcionan en cualquier carpeta o dominio, como el QR del Fotomatón):
-//   #/crear · #/c/SD-XXXXX · #/sello/1..4?t=CODIGO · #/escanear · #/foto · #/canje
+//   #/crear · #/c/SD-XXXXX · #/sello/1..4?t=CODIGO&k=AFICHE · #/escanear · #/foto · #/canje
+//   (k identifica el afiche o la figura cuando una estación necesita varios pasos, como los 3 portales)
 export type Ruta =
   | { vista: 'crear' }
   | { vista: 'carta'; codigo: string; aviso?: string; cara?: Cara; timbre?: number }
-  | { vista: 'sello'; sello: number; token: string }
+  | { vista: 'sello'; sello: number; token: string; clave?: string }
   | { vista: 'escanear' }
   | { vista: 'foto' }
   | { vista: 'canje' };
@@ -25,7 +26,7 @@ export function leerRuta(hash: string): Ruta {
   const p = camino.replace(/\/+$/, '') || '/';
   let m;
   if ((m = p.match(/^\/c\/([A-Za-z0-9-]+)$/))) return { vista: 'carta', codigo: m[1].toUpperCase() };
-  if ((m = p.match(/^\/sello\/(\d+)$/))) return { vista: 'sello', sello: Number(m[1]), token: new URLSearchParams(consulta).get('t') || '' };
+  if ((m = p.match(/^\/sello\/(\d+)$/))) { const q = new URLSearchParams(consulta); return { vista: 'sello', sello: Number(m[1]), token: q.get('t') || '', clave: q.get('k') || undefined }; }
   if (p === '/escanear') return { vista: 'escanear' };
   if (p === '/foto') return { vista: 'foto' };
   if (p === '/canje') return { vista: 'canje' };
@@ -107,7 +108,7 @@ export const App: React.FC = () => {
       </header>
       {ruta.vista === 'crear' && <Crear ir={ir} ponerTema={ponerTema} />}
       {ruta.vista === 'carta' && <Credencial key={ruta.codigo + (ruta.cara || '') + (ruta.timbre || '')} codigo={ruta.codigo} aviso={ruta.aviso} cara={ruta.cara} timbre={ruta.timbre} ir={ir} ponerTema={ponerTema} tema={tema} />}
-      {ruta.vista === 'sello' && <Sello sello={ruta.sello} token={ruta.token} ir={ir} />}
+      {ruta.vista === 'sello' && <Sello sello={ruta.sello} token={ruta.token} clave={ruta.clave} ir={ir} />}
       {ruta.vista === 'escanear' && <Escanear ir={ir} />}
       {ruta.vista === 'foto' && <Foto ir={ir} ponerTema={ponerTema} />}
       {ruta.vista === 'canje' && <Canje ir={ir} ponerTema={ponerTema} />}

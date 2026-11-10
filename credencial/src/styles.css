@@ -92,7 +92,7 @@ label.btn { cursor: pointer; }
 .pie-movil input { min-height: 48px; min-width: 0; padding: 0 12px; border: 2px solid var(--ink); border-radius: var(--rb); background: var(--bg); color: var(--ink); font: 600 16px "DM Sans", sans-serif; text-transform: uppercase; }
 
 /* --- Credencial --- */
-.credencial { grid-template-rows: minmax(0, 1fr) auto auto; }
+.credencial { grid-template-rows: minmax(0, 1fr) auto auto auto; }
 .giro { min-height: 0; display: grid; place-items: center; container-type: size; border: 0; background: none; padding: 0; cursor: pointer; }
 .giro { perspective: 900px; }
 .carta-caja { position: relative; display: block; width: min(100cqw, calc(100cqh * 240 / 384)); aspect-ratio: 240 / 384; }
@@ -200,3 +200,7 @@ label.btn { cursor: pointer; }
 .camara-acciones .btn:not(.primario) { background: #F4EEE3; color: #000; }
 .camara .aviso-movil { color: #FFC20E; text-align: center; }
 .camara-acciones .disparador { min-height: 56px; }
+
+/* Avisos (Web Push): un botón chico sobre el progreso; desaparece al aceptar o bloquear. */
+.avisos { justify-self: center; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1.5px solid var(--ink); border-radius: var(--rb); background: var(--surface); color: var(--ink); font: 600 13px "DM Sans", sans-serif; cursor: pointer; }
+.avisos .material-symbols-outlined { font-size: 18px; }

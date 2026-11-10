@@ -103,3 +103,11 @@ export function miniatura(fuente: HTMLCanvasElement, lado = 200): string {
   const x = c.getContext('2d')!; x.imageSmoothingQuality = 'high'; x.drawImage(fuente, 0, 0, c.width, c.height);
   return c.toDataURL('image/png');
 }
+
+// Sesión de mesa (plan 007): la tablet anota qué código entró en modo juego. Solo con Supabase; nunca bloquea la mesa.
+export async function abrirSesionMesa(mesa: string, app: string, codigo: string): Promise<void> {
+  if (!remoto) return;
+  try {
+    await fetch(`${URL_SB}/rest/v1/sesiones_mesa`, { method: 'POST', headers: { ...cabeceras(), Prefer: 'return=minimal' }, body: JSON.stringify({ mesa, app, codigo }) });
+  } catch { /* sin red */ }
+}

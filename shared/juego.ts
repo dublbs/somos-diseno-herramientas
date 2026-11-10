@@ -1,4 +1,4 @@
-import { publicar, remoto, sellarRemoto } from './datos';
+import { abrirSesionMesa, publicar, remoto, sellarRemoto } from './datos';
 
 // Modo juego de la credencial (plan 005, bloque D): lo común a las mesas (tablets) y a la credencial (celular).
 // Nada secreto vive en el repo: el PIN del staff se guarda como hash en la configuración local de cada equipo
@@ -49,7 +49,20 @@ const LLAVE_JUGADOR = 'sd:jugador';
 export function jugador(): { codigo: string; ganado: boolean } | null {
   try { return JSON.parse(sessionStorage.getItem(LLAVE_JUGADOR) || 'null'); } catch { return null; }
 }
-export function entrarJugador(codigo: string) { try { sessionStorage.setItem(LLAVE_JUGADOR, JSON.stringify({ codigo, ganado: false })); } catch { /* nada */ } }
+export function entrarJugador(codigo: string, app = 'mesa') {
+  try { sessionStorage.setItem(LLAVE_JUGADOR, JSON.stringify({ codigo, ganado: false })); } catch { /* nada */ }
+  abrirSesionMesa(idMesa(), app, codigo);
+}
+// Identificador de esta tablet para el PC madre: 4 letras que se generan una vez y quedan en el equipo.
+export function idMesa(): string {
+  try {
+    const v = localStorage.getItem('sd:mesa');
+    if (v) return v;
+    const n = Array.from({ length: 4 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
+    localStorage.setItem('sd:mesa', n);
+    return n;
+  } catch { return 'MESA'; }
+}
 
 // Las apps llaman a esto al exportar o enviar su creación. Si hay modo juego y una persona con credencial, gana
 // el timbre 2 (una vez por sesión): se publica para el HUB (shared/datos.ts) y se muestra el aviso con el código.

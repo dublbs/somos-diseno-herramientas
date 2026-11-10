@@ -2,17 +2,22 @@ import React, { useEffect, useState } from 'react';
 import { sellar, miCredencial } from '../lib/store';
 import type { Ir } from '../App';
 
-// Página que abre el QR impreso de cada sello: #/sello/2?t=TOKEN
-export const Sello: React.FC<{ sello: number; token: string; ir: Ir }> = ({ sello, token, ir }) => {
+// Página que abre el QR impreso de cada sello: #/sello/2?t=TOKEN (y &k=AFICHE en los portales)
+export const Sello: React.FC<{ sello: number; token: string; clave?: string; ir: Ir }> = ({ sello, token, clave, ir }) => {
   const [estado, setEstado] = useState<{ tipo: 'cargando' | 'sin-credencial' | 'error'; mensaje?: string }>({ tipo: 'cargando' });
 
   useEffect(() => {
     const codigo = miCredencial();
     if (!codigo) { setEstado({ tipo: 'sin-credencial' }); return; }
-    sellar(codigo, sello, token)
-      .then(() => ir(`#/c/${codigo}`, { timbre: sello }))
+    sellar(codigo, sello, token, clave)
+      .then(r => {
+        // Estaciones de varios pasos (Portales): el timbre cae al completar la meta; antes, solo el avance.
+        if (r.nuevo) ir(`#/c/${codigo}`, { timbre: sello });
+        else if (!r.otorgado) ir(`#/c/${codigo}`, { aviso: `${r.pasos} de ${r.meta} para el timbre ${sello}. ¡Sigue buscando!` });
+        else ir(`#/c/${codigo}`, { aviso: 'Ese timbre ya está en tu credencial.' });
+      })
       .catch(e => setEstado({ tipo: 'error', mensaje: (e as Error).message }));
-  }, [sello, token, ir]);
+  }, [sello, token, clave, ir]);
 
   return (
     <main className="pantalla centrada">

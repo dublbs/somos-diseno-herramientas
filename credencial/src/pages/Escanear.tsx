@@ -26,8 +26,11 @@ export const Escanear: React.FC<{ ir: Ir }> = ({ ir }) => {
     if (limpio.length !== 4) { setAviso('El código tiene 4 letras o números.'); return; }
     setEnviando(true); setAviso('');
     try {
-      await sellar(mia, sello, limpio);
-      ir(`#/c/${mia}`, { timbre: sello });
+      // Escribir el código a mano cuenta como un paso sin afiche: sirve cuando la estación tiene meta 1.
+      const r = await sellar(mia, sello, limpio);
+      if (r.nuevo) ir(`#/c/${mia}`, { timbre: sello });
+      else if (!r.otorgado) ir(`#/c/${mia}`, { aviso: `${r.pasos} de ${r.meta} para el timbre ${sello}. Escanea los QR de los afiches.` });
+      else ir(`#/c/${mia}`, { aviso: 'Ese timbre ya está en tu credencial.' });
     } catch (err) {
       setAviso((err as Error).message);
       setEnviando(false);
