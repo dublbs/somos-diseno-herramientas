@@ -206,7 +206,7 @@ label.btn { cursor: pointer; }
 .avisos { justify-self: center; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1.5px solid var(--ink); border-radius: var(--rb); background: var(--surface); color: var(--ink); font: 600 13px "DM Sans", sans-serif; cursor: pointer; }
 .avisos .material-symbols-outlined { font-size: 18px; }
 
-/* --- Vista Juego y cacería de afiches (plan 008) --- */
+/* --- Vista Juego y cacería de afiches (plan 010) --- */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 /* El gesto horizontal es nuestro (deslizar entre credencial y juego); el vertical y el zoom, del navegador. */
 .movil:has(> .credencial), .movil:has(> .juego) { touch-action: pan-y pinch-zoom; }

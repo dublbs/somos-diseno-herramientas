@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-// Lector de QR con la cámara trasera, dentro de la credencial (plan 008).
+// Lector de QR con la cámara trasera, dentro de la credencial (plan 010).
 // Usa BarcodeDetector donde exista (Android/Chrome). Donde no (iPhone), jsQR sobre cuadros del video:
 // se carga solo entonces (import dinámico), así no pesa en la primera carga.
 interface Detector { detect: (fuente: CanvasImageSource) => Promise<{ rawValue: string }[]> }
@@ -72,7 +72,7 @@ export function useLectorQR(alLeer: (texto: string) => void) {
 
 // Lo que importa de un código leído: un afiche de la cacería o un sello de mesa.
 export type Lectura = { tipo: 'afiche'; secreto: string } | { tipo: 'sello'; ruta: string } | { tipo: 'otro' };
-// El sello de la cacería (plan 008 §2) trae solo `SDA:<SECRETO>`; el enlace #/afiche/<SECRETO> también sirve.
+// El sello de la cacería (plan 010 §2) trae solo `SDA:<SECRETO>`; el enlace #/afiche/<SECRETO> también sirve.
 export function interpretar(texto: string): Lectura {
   const s = texto.trim().match(/^SDA:([A-Za-z0-9]{2,12})$/);
   if (s) return { tipo: 'afiche', secreto: s[1].toUpperCase() };

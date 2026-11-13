@@ -4,7 +4,7 @@ import { interpretar, useLectorQR } from '../lib/lector';
 import { nombreAfiche } from '../lib/afiches';
 import type { Ir } from '../App';
 
-// Cámara de la cacería (plan 008): queda abierta mientras la persona busca. Cada afiche nuevo suma sin salir;
+// Cámara de la cacería (plan 010): queda abierta mientras la persona busca. Cada afiche nuevo suma sin salir;
 // al completar la meta, la credencial muestra la ceremonia del timbre 3.
 export const Afiches: React.FC<{ ir: Ir }> = ({ ir }) => {
   const mia = miCredencial();

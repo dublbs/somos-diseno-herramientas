@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-// Gesto horizontal entre la credencial y la vista Juego (plan 008).
+// Gesto horizontal entre la credencial y la vista Juego (plan 010).
 // Dedo hacia la derecha (+1) abre Juego; hacia la izquierda (-1) vuelve. Para invertirlo, cambia este signo.
 export const HACIA_JUEGO: 1 | -1 = 1;
 

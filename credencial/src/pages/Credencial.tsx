@@ -21,7 +21,7 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
   const [recien, setRecien] = useState<number | null>(timbre || null);
   const [poniendo, setPoniendo] = useState(0); // timbre que está cayendo sobre la credencial
   const [volteando, setVolteando] = useState(false);
-  // Deslizar lleva a la vista Juego (plan 008); el toque sigue girando la credencial.
+  // Deslizar lleva a la vista Juego (plan 010); el toque sigue girando la credencial.
   const [entra] = useState(tomarEntrada);
   const { recien: recienDeslizo } = useDeslizar(dir => { if (dir === HACIA_JUEGO) ir('#/juego'); });
   const foto = fotoDe(codigo);

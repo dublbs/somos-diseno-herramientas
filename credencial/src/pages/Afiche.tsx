@@ -3,7 +3,7 @@ import { encontrarAfiche, miCredencial } from '../lib/store';
 import { nombreAfiche } from '../lib/afiches';
 import type { Ir } from '../App';
 
-// Página que abre el QR de un afiche desde la cámara del sistema: #/afiche/SECRETO (plan 008).
+// Página que abre el QR de un afiche desde la cámara del sistema: #/afiche/SECRETO (plan 010).
 export const Afiche: React.FC<{ secreto: string; ir: Ir }> = ({ secreto, ir }) => {
   const [estado, setEstado] = useState<{ tipo: 'cargando' | 'sin-credencial' | 'error'; mensaje?: string }>({ tipo: 'cargando' });
 

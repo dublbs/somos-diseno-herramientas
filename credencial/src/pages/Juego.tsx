@@ -5,7 +5,7 @@ import { AFICHES, aficheDe } from '../lib/afiches';
 import type { DatosCarta } from '../pixel/render';
 import type { Ir, PonerTema } from '../App';
 
-// Vista Juego (plan 008): se llega deslizando desde la credencial. Cacería de afiches (timbre 3) e inventario
+// Vista Juego (plan 010): se llega deslizando desde la credencial. Cacería de afiches (timbre 3) e inventario
 // de creación: lo que la persona crea en cada mesa con su código llega al momento (timbre 2).
 export const EXPERIENCIAS = [
   { app: 'vagon', nombre: 'Vagón', icono: 'train' },

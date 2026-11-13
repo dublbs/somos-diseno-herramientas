@@ -1,4 +1,4 @@
-# Assets · 008 Cacería de afiches
+# Assets · 010 Cacería de afiches
 
 Miniaturas de los afiches para la vista Juego de la credencial. Salen de Figma (archivo `Yo9o3ZG2lyaEGcyxoxs89R`, página «Evento · Imprenta», sección `afiches` `1044:12794`), exportadas el 13 nov 2026 a 200 px de alto en WebP. Son **tentativos**: si el afiche cambia en Figma, se vuelve a exportar.
 
@@ -14,4 +14,4 @@ Miniaturas de los afiches para la vista Juego de la credencial. Salen de Figma (
 El lenguaje de Tejido y Sol se dedujo del arte (semitono geométrico y sol orgánico): confirmar con el equipo.
 
 ## Sellos de la cacería (generados por script)
-No van al repo: dependen del secreto de cada afiche, que vive solo en la base. Se generan con `npm --prefix credencial run sellos:afiches` (`credencial/scripts/sellos-afiches.mjs`) en `credencial/qr/` (ignorada por git), uno por afiche en el estilo de su lenguaje, más la matriz lisa de guía. `generado: true`. Reglas de diseño: plan 008 §2.
+No van al repo: dependen del secreto de cada afiche, que vive solo en la base. Se generan con `npm --prefix credencial run sellos:afiches` (`credencial/scripts/sellos-afiches.mjs`) en `credencial/qr/` (ignorada por git), uno por afiche en el estilo de su lenguaje, más la matriz lisa de guía. `generado: true`. Reglas de diseño: plan 010 §2.

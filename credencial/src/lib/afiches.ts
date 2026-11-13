@@ -1,5 +1,5 @@
-// Los afiches de la cacería (plan 008 §2): tentativos, desde Figma «Evento · Imprenta» › sección «afiches».
-// Las miniaturas y su origen están en docs/plans/008-caceria/assets.manifest.md. El id es público (va en `pasos`);
+// Los afiches de la cacería (plan 010 §2): tentativos, desde Figma «Evento · Imprenta» › sección «afiches».
+// Las miniaturas y su origen están en docs/plans/010-caceria/assets.manifest.md. El id es público (va en `pasos`);
 // el secreto que codifica cada sello vive solo en la base.
 import type { Visual } from '../../../shared/marcos';
 

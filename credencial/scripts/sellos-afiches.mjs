@@ -1,4 +1,4 @@
-// Genera el sello de la cacería de cada afiche (plan 008 §2): una matriz QR 1-H (21 × 21 módulos) con el texto
+// Genera el sello de la cacería de cada afiche (plan 010 §2): una matriz QR 1-H (21 × 21 módulos) con el texto
 // SDA:<SECRETO>, dibujada con el lenguaje del afiche. La lee la cámara de la credencial (BarcodeDetector o jsQR).
 // Reglas probadas: las 3 esquinas guardan su proporción (anillo 7 × 7 y centro 3 × 3), los módulos vecinos se tocan,
 // tinta oscura sobre fondo claro y 3 módulos de margen liso. La matriz no se redibuja a mano: cada punto es dato.

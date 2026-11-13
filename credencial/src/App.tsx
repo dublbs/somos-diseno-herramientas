@@ -15,7 +15,7 @@ import './styles.css';
 
 // Rutas con hash (funcionan en cualquier carpeta o dominio, como el QR del Fotomatón):
 //   #/crear · #/c/SD-XXXXX · #/sello/1..4?t=CODIGO&k=PASO · #/escanear · #/foto · #/canje
-//   #/juego (vista Juego) · #/afiches (cámara de la cacería) · #/afiche/SECRETO (QR de un afiche, plan 008)
+//   #/juego (vista Juego) · #/afiches (cámara de la cacería) · #/afiche/SECRETO (QR de un afiche, plan 010)
 export type Ruta =
   | { vista: 'crear' }
   | { vista: 'carta'; codigo: string; aviso?: string; cara?: Cara; timbre?: number }

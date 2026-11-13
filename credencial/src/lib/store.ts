@@ -93,7 +93,7 @@ export async function sellar(codigo: string, sello: number, token: string, clave
   return { pasos: 1, meta: 1, otorgado: true, nuevo };
 }
 
-// ---------- Cacería de afiches (plan 008) ----------
+// ---------- Cacería de afiches (plan 010) ----------
 // Cada afiche tiene su código secreto (en su QR y escrito bajo él). Con Supabase lo valida encontrar_afiche()
 // (shared/supabase/migraciones/001-afiches.sql) y en `pasos` queda el id del afiche (AF05).
 // En modo demo, el secreto del afiche es su id (AF05; sello SDA:AF05) y los pasos quedan en este celular.
@@ -130,7 +130,7 @@ export async function encontrarAfiche(codigo: string, secreto: string): Promise<
 }
 
 // Lo que muestra la vista Juego: afiches encontrados (en orden), la meta de la cacería y el inventario de
-// creación: lo que la persona hizo en cada mesa con su código, según los eventos que publican las mesas (plan 008 §2b).
+// creación: lo que la persona hizo en cada mesa con su código, según los eventos que publican las mesas (plan 010 §2b).
 export interface Creacion { app: string; png?: string; escena?: string; creado: number }
 export interface ProgresoJuego { afiches: string[]; meta: number; creaciones: Record<string, Creacion> }
 

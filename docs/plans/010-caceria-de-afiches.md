@@ -1,6 +1,8 @@
-# 008 · Cacería de afiches y vista Juego en la credencial
+# 010 · Cacería de afiches y vista Juego en la credencial
 
 Fecha: 13 nov 2026 · Estado: **en construcción** (rama `amaro/caceria-afiches`) · Decide: Amaro (el inventario, acordado con Pipe).
+
+> Se escribió como plan 008; pasó a 010 porque el 008 es la auditoría del Teatro (PR #12). El plan 009 renombra el timbre 3 a «Cacería» y fija los 4 timbres finales.
 
 La credencial es el vehículo del juego: con ella la persona busca los afiches, junta lo que crea en las mesas y canjea el premio. Este plan agrega una **vista Juego** dentro de la credencial y cambia cómo se gana el timbre 3.
 
@@ -27,7 +29,7 @@ Fuera de este plan: la **pelea con el jefe final** (otro plan y otro PR) y el ti
 ## 2. Cacería de afiches (timbre 3)
 **Decidido el 13 nov (Amaro): opción C, «el diseño es el código».** Cada afiche lleva el **sello de la cacería**: una marca dibujada con el lenguaje del afiche que la cámara de la credencial lee. No es un QR impreso aparte; es parte del arte.
 
-- **Afiches:** los 6 tentativos de Figma, página «Evento · Imprenta», sección `afiches` (`1044:12794`). Ver el manifiesto `docs/plans/008-caceria/assets.manifest.md`. Hay que encontrar **3 distintos**; el resto es colección.
+- **Afiches:** los 6 tentativos de Figma, página «Evento · Imprenta», sección `afiches` (`1044:12794`). Ver el manifiesto `docs/plans/010-caceria/assets.manifest.md`. Hay que encontrar **3 distintos**; el resto es colección.
 
   | id | Afiche | Lenguaje | Nodo |
   |---|---|---|---|

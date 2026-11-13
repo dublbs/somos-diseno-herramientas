@@ -1,4 +1,4 @@
--- 001 · Cacería de afiches (plan 008). Va después de schema.sql, eventos.sql y juego.sql.
+-- 001 · Cacería de afiches (plan 010). Va después de schema.sql, eventos.sql y juego.sql.
 -- Idempotente: se puede correr más de una vez. SQL Editor → New query → Run.
 --
 -- Cada afiche tiene su propio código secreto: va dentro del sello de la cacería (SDA:<SECRETO>) y escrito bajo él.
@@ -21,7 +21,7 @@ create table if not exists public.afiches (
 );
 alter table public.afiches enable row level security;
 
--- Los 6 afiches de la cacería (tentativos, Figma «Evento · Imprenta» › sección «afiches»; plan 008 §2).
+-- Los 6 afiches de la cacería (tentativos, Figma «Evento · Imprenta» › sección «afiches»; plan 010 §2).
 -- Para sumar o apagar uno: insert, o update … set activo = false.
 insert into public.afiches (id, nombre, lenguaje) values
   ('AF01', 'Tejido', 'Geométrica'),
