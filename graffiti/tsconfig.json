@@ -23,6 +23,9 @@
       ],
       "react/jsx-runtime": [
         "./node_modules/@types/react/jsx-runtime.d.ts"
+      ],
+      "qrcode": [
+        "./node_modules/@types/qrcode/index.d.ts"
       ]
     }
   },

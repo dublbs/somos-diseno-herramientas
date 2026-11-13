@@ -28,10 +28,3 @@ export function grabarEnVivo(canvas: HTMLCanvasElement, segundos: number, fps: n
   });
 }
 
-export function descargar(blob: Blob, nombre: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = nombre;
-  document.body.append(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
-}

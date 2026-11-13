@@ -41,6 +41,7 @@ Las experiencias son **herramientas de diseño con barras fijas** (propuesta `do
   - herramientas: `BarraHerramientas`, `Paleta`;
   - controles: `Segmentado`, `Deslizador`, `Interruptor`, `BotonAccion`, `Confirmar`;
   - estado: `useHistorial` (deshacer y rehacer).
+  - `shared/ui/Llevatela.tsx`: «Llévatela», la forma de exportar de todas las experiencias (plan 011): vista previa → QR que descarga en el celular (24 h). La app suma `qrcode` a `resolve.dedupe` y a `paths`.
   - `shared/ui/Tutorial.tsx`: `Tutorial` (pantalla previa con 3 pasos, una vez por sesión con `useTutorialVisto`) y `Quiosco` (a los 90 s sin uso avisa 10 s antes y vuelve al inicio borrando lo guardado; `?quiosco=<s>` para probar).
 - Muestra del kit: `docs/kit/muestra.html` (se genera con `python3 scripts/kit-muestra.py`).
 - Para importar el kit, la app agrega `resolve.dedupe: ['react', 'react-dom']` en `vite.config.ts` y `paths` de `react` en `tsconfig.json` (ver `vagon/`).

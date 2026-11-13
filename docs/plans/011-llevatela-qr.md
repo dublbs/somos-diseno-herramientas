@@ -57,8 +57,16 @@ Fecha: 13 nov 2026 · Estado: **aprobado** (Amaro, 13 nov) · Rama `amaro/llevat
 Correr `fotomaton/supabase/migrations/0001_fotomaton.sql` **una vez** y desplegar las funciones `tarjeta` y `limpiar`
 (`supabase functions deploy tarjeta limpiar`), con el cron de `limpiar` cada hora. Sin eso, el QR abre solo en la tablet.
 
-## Verificación
-- [ ] Modo juego sin credencial: se juega y se lleva por QR; no aparece el aviso del timbre.
-- [ ] Cada experiencia abre «Llévatela», genera el QR y la página de descarga muestra su creación con su nombre.
-- [ ] Sin scroll en las 6 resoluciones de tablet con la ventana abierta.
-- [ ] Con Supabase real (después de H1): el QR abre en otro celular.
+## Verificación (13 nov 2026, modo demo)
+- [x] En Graffiti, Mosaicos, Grabado, Audioreactiva y Hora punta (47 casos): con el modo juego encendido aparece «Jugar sin
+  credencial» y entra sin código; exportar abre «Llévatela» con la vista previa; sin credencial no aparece el aviso del
+  timbre; la ventana cabe entera (botones ≥ 44 px) en las 6 resoluciones de tablet; el QR se lee (jsQR) y apunta a
+  `fotomaton/dist/#/f/<uuid>?app=<experiencia>`; esa página muestra la creación con el nombre de la experiencia;
+  «Terminar» vuelve a la herramienta; sin errores.
+- [x] Con credencial: el aviso dice que también llega al inventario y suma su paso al timbre Creación.
+- [x] Las 11 apps compilan (`tsc`) con el kit nuevo.
+- [ ] Con Supabase real (después de H1): el QR abre en otro celular. Sin H1, el QR abre solo en la tablet (respaldo local).
+- [ ] Video de Audioreactiva por QR (el código lo soporta: sube `webm`/`mp4` y la página muestra `<video>`); probarlo en
+  la tablet, porque los loops pesan más.
+- [ ] Teatro de Papel (`loops/`): lo suma Pipe. Al recompilar `loops/dist` con el `shared/` nuevo, su puerta del modo
+  juego también ofrece «Jugar sin credencial».

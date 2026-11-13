@@ -11,7 +11,8 @@ import { dibujarAnden } from './juego/dibujoAnden';
 import { avanzarPared, bajarPaso, girar, moverPar, muralDePared, nuevaPared, soltarPar, tusColores, type Pared } from './juego/pared';
 import { dibujarPared } from './juego/dibujoPared';
 import { dibujarMural, miniaturaMural } from './juego/mural';
-import { crearTarjeta, descargar, type Resumen } from './juego/tarjeta';
+import { crearTarjeta, type Resumen } from './juego/tarjeta';
+import { Llevatela } from '../../shared/ui/Llevatela';
 import '../../shared/ui/somos-kit.css';
 import './styles.css';
 
@@ -77,6 +78,7 @@ export const App: React.FC = () => {
   const [pausa, setPausa] = useState(false);
   const [mejor, setMejor] = useState(leerMejor);
   const [sumado, setSumado] = useState(false);
+  const [llevar, setLlevar] = useState<Blob | null>(null); // «Llévatela» con QR (plan 011)
 
   useEffect(() => { document.documentElement.dataset.visual = 'Pixel'; }, []);
   useEffect(() => {
@@ -242,13 +244,13 @@ export const App: React.FC = () => {
   });
 
   const reiniciar = () => {
-    cruce.current = nuevoCruce(); anden.current = null; pared.current = null; camara.current = 0;
+    cruce.current = nuevoCruce(); anden.current = null; pared.current = null; camara.current = 0; setLlevar(null);
     setEtapa('cruce'); setPausa(false); setPuntos(0); setResumen(null); setSumado(false); setMotivo('');
     setInv({ latas: [], tiros: 0, piezas: 0, pintadas: 0 });
   };
   const llevarTarjeta = async () => {
     if (!resumen) return;
-    descargar(await crearTarjeta(resumen, img.current.personaje), 'hora-punta-somos-diseno.png');
+    setLlevar(await crearTarjeta(resumen, img.current.personaje));
   };
 
   if (!visto) return (
@@ -372,7 +374,7 @@ export const App: React.FC = () => {
                 <p className="k-etq">{plural(resumen.filas, 'fila')} · {plural(resumen.latas.length, 'lata')}{resumen.nivel >= 2 ? ` · ${plural(resumen.arrastrados, 'Gris', 'Grises')} · ${plural(resumen.piezas.length, 'pieza')}` : ''}{resumen.nivel === 3 ? ` · ${plural(resumen.borradas, 'pintada', 'pintadas')}` : ''}</p>
                 {sumado && <p className="k-ayuda">Si juegas con tu credencial, tu mural llega a su inventario y suma al timbre Creación.</p>}
                 <div className="acciones">
-                  <BotonAccion icono="download" texto="Llévate tu tarjeta" onClick={llevarTarjeta} />
+                  <BotonAccion icono="ios_share" texto="Llévate tu tarjeta" onClick={llevarTarjeta} />
                   <BotonAccion icono="restart_alt" texto="Otra vez" primario onClick={reiniciar} />
                 </div>
               </div>
@@ -380,6 +382,7 @@ export const App: React.FC = () => {
           )}
         </div>
       </PantallaHerramienta>
+      {llevar && <Llevatela blob={llevar} app="juego" titulo="Tu mural está listo" conCredencial={!!jugador()?.codigo && sumado} alCerrar={() => setLlevar(null)} />}
       <Quiosco app="juego" alReiniciar={reiniciar} />
     </>
   );
