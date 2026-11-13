@@ -56,7 +56,8 @@ Fuera de este plan: la **pelea con el jefe final** (otro plan y otro PR) y el ti
 **Decidido el 13 nov (Amaro, acordado con Pipe):** lo que la persona crea en una mesa con su código llega a su inventario **al momento**, sin recargar.
 - La credencial escucha la tabla `eventos` con **Supabase Realtime** (ya publicada en `juego.sql`), filtrando por su código. Cada creación aparece en su casilla con una animación de «¡Nuevo!». En modo demo escucha los eventos locales del mismo navegador.
 - **Con miniatura** (las mesas ya mandan la imagen con el código): Vagón, Mosaicos y Grabado. Audioreactiva muestra el nombre de la escena.
-- **Solo la casilla, sin miniatura:** Graffiti, Fotomatón y Teatro hoy solo avisan el timbre. Para que también llegue la imagen hay que sumar el tipo en `eventos` (migración nueva) y que cada mesa la publique: Graffiti va en un PR siguiente; Teatro (`loops/`) solo si su responsable lo pide; Fotomatón **no** manda su imagen al inventario (es la cara de la persona).
+- **Graffiti:** la credencial ya reconoce el tipo `graffiti`; la miniatura llega cuando se mergee el PR `amaro/inventario-graffiti` (migración `002-eventos-graffiti.sql` y la mesa que publica su imagen). Hasta entonces, solo la casilla.
+- **Solo la casilla, sin miniatura:** Fotomatón y Teatro. Teatro (`loops/`) solo si su responsable lo pide (Pipe tiene abierto el plan del Teatro); Fotomatón **no** manda su imagen al inventario (es la cara de la persona).
 - La regla del timbre 2 no cambia: una creación basta.
 
 ## 3. Datos

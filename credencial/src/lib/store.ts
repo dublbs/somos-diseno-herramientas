@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { normalizar } from '../../../shared/pixelfont';
 import { SELLOS, normalizarRetrato, type DatosCarta, type Retrato } from '../pixel/render';
 import { ESTACIONES, verificarPin } from '../../../shared/juego';
-import { escuchar, publicar, recientes, type Evento } from '../../../shared/datos';
+import { escuchar, publicar, recientes, type Evento, type Tipo } from '../../../shared/datos';
 import { marcoListo } from '../../../shared/marcos';
 import { aficheDe } from './afiches';
 
@@ -135,8 +135,9 @@ export interface Creacion { app: string; png?: string; escena?: string; creado: 
 export interface ProgresoJuego { afiches: string[]; meta: number; creaciones: Record<string, Creacion> }
 
 // Cada evento de una mesa con el código de la persona dice en qué experiencia creó algo (y, si la hay, su miniatura).
-const TIPOS_CREACION = ['timbre', 'vagon', 'mosaico', 'grabado', 'audio'] as const;
-const APP_DE: Record<string, string> = { vagon: 'vagon', mosaico: 'mosaicos', grabado: 'grabado', audio: 'audioreactiva' };
+// 'graffiti' lo acepta la migración 002 (PR amaro/inventario-graffiti); mientras no exista, simplemente no hay filas.
+const TIPOS_CREACION: readonly string[] = ['timbre', 'vagon', 'mosaico', 'grabado', 'audio', 'graffiti'];
+const APP_DE: Record<string, string> = { vagon: 'vagon', mosaico: 'mosaicos', grabado: 'grabado', audio: 'audioreactiva', graffiti: 'graffiti' };
 type FilaEvento = { tipo: string; datos: Record<string, unknown>; creado: number };
 export function creacionDe(e: FilaEvento): Creacion | null {
   const d = e.datos || {};
@@ -169,7 +170,7 @@ export async function progresoJuego(codigo: string): Promise<ProgresoJuego> {
     return { afiches: filas.map(p => p.clave), meta, creaciones: juntar(ev) };
   }
   const c = leer()[codigo];
-  const locales: Evento[] = (await Promise.all(TIPOS_CREACION.map(t => recientes(t, 200) as Promise<Evento[]>))).flat();
+  const locales: Evento[] = (await Promise.all(TIPOS_CREACION.map(t => recientes(t as Tipo, 200) as Promise<Evento[]>))).flat();
   return { afiches: [...(c?.pasos?.[AFICHE_SELLO] ?? [])], meta: META_DEMO, creaciones: juntar(locales.filter(e => e.codigo === codigo) as unknown as FilaEvento[]) };
 }
 
