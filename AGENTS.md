@@ -72,8 +72,28 @@ Las experiencias son **herramientas de diseño con barras fijas** (propuesta `do
 - No commitear `.env`, claves de Supabase ni `node_modules`. No reescribir historia.
 - Respetar `prefers-reduced-motion` y objetivos táctiles de al menos 44–48 px.
 
-## Flujo con dos herramientas (opcional)
-Hoy Claude Code ejecuta de punta a punta. Si se reparte trabajo con Antigravity:
+## Trabajo en paralelo (Pipe, Amaro y sus agentes)
+Desde nov 2026 dos personas iteran la plataforma, cada una con su propio agente de IA, sobre este mismo repo. Estas reglas valen para cualquier agente y mandan sobre «Propiedad de archivos» cuando choquen.
+
+1. **El repo es la fuente de la verdad.** Lo conversado en un chat no existe hasta que está escrito aquí. Si un cambio toca una regla del juego, una pantalla o una decisión de `docs/plans/`, primero se escribe en un plan (nuevo o el existente) y después se construye. Las decisiones vigentes no se reabren por iniciativa del agente: si el humano pide algo que choca con un plan, el agente lo dice antes de tocar código.
+2. **Una rama y un PR por cambio. Nada directo a `main`.** Rama `<persona>/<tema>` (ej. `amaro/portales-camara`, `pipe/hub-realtime`). El otro humano revisa y mergea; el merge lo aprieta una persona, no un agente.
+3. **Avisar qué se toma.** Al empezar algo, abrir el PR como borrador (draft) con una línea de qué se va a tocar. Ese PR es el aviso: antes de empezar, revisar los PR abiertos para no tomar lo mismo.
+4. **Archivos compartidos con cuidado.** `shared/`, `AGENTS.md`, `docs/plans/`, `shared/supabase/` y `credencial/src/lib/store.ts` los usan todas las apps. Cambios ahí: chicos, en su propio PR y explicados en la descripción.
+5. **La base de datos ya está en producción** (proyecto `somos-diseno`, ver abajo). No editar lo que ya se corrió para cambiar su comportamiento: un cambio nuevo va en un archivo nuevo `shared/supabase/migraciones/NNN-tema.sql`, idempotente (`if not exists`, `create or replace`, `drop … if exists`). Quien lo corre en el SQL Editor lo anota en el PR («corrido en somos-diseno el dd/mm»).
+6. **`dist/` al final.** Se recompila solo la app tocada y justo antes de pedir el merge (`npm --prefix <app> run build`), para no chocar en archivos generados. Si hay conflicto en `dist/`, se resuelve recompilando, nunca a mano.
+7. **Secretos fuera.** Ni claves privadas, ni tokens de los sellos, ni contraseñas en el repo, en PRs ni en mensajes de commit. La clave publishable de Supabase sí puede ir en `.env.local` (y termina en `dist/`, es pública por diseño).
+8. **Cerrar con estado.** Cada PR termina diciendo qué quedó probado, qué no y qué falta. Si cambia el estado general, se actualiza la sección «Estado en vivo».
+
+## Estado en vivo (actualizar al mergear)
+- **Sitio**: GitHub Pages publica `main` (los `dist/` versionados): `https://dublbs.github.io/somos-diseno-herramientas/`. Tarda 1–2 min después de cada merge.
+  - Credencial (celular): `…/credencial/dist/` · PC madre (staff): `…/admin/dist/` · HUB: `…/hub-estacion/dist/`
+- **Supabase**: proyecto `somos-diseno`, ref `opvwftwvfdhhrqwpjvlx`, org de dublbs, plan Free. Corridos: `credencial/supabase/schema.sql`, `shared/supabase/eventos.sql`, `shared/supabase/juego.sql` (incluida la sección 10, cuentas del staff). Función `notificar` desplegada.
+- **Staff**: cada persona crea su cuenta en el PC madre («Crear cuenta»); la primera fue admin y las demás las aprueba un admin en Configuración. Hoy: Pipe (admin) y Amaro (admin).
+- **Pendiente**: secretos VAPID en la función (los avisos push no se envían hasta entonces) y `VITE_VAPID_PUBLIC_KEY` en `credencial/.env.local`; PIN del canje y stock del premio (se configuran en el PC madre); Portales con cámara y marco (plan 004); retos por mesa; arte del prompt 006; HUB con Realtime.
+- **Tokens de los sellos**: están en la tabla `sellos_def` (no en el repo). Se consultan en el SQL Editor: `select id, nombre, meta, token from sellos_def order by id;`
+
+## Flujo con dos herramientas (opcional, anterior)
+Antes de nov 2026 Claude Code ejecutaba de punta a punta. Si se reparte trabajo con Antigravity:
 1. **Claude Code**: idea → plan (`docs/plans/NNN-*.md`) → tareas atómicas (`docs/tasks/NNN-*.md`) con assets resueltos.
 2. **Antigravity**: ejecuta las tareas en orden, un commit por tarea.
 3. **Claude Code**: revisa el diff, corre builds y la verificación de pantalla, reabre lo que falle.
