@@ -22,7 +22,7 @@ Fuera de este plan: la **pelea con el jefe final** (otro plan y otro PR) y el ti
 - Contenido:
   1. **Cacería de afiches**: «n de 3», las 3 ranuras con los afiches encontrados (nombre del marco y lenguaje) y el botón **Buscar afiches** (abre la cámara). Si encontraste más de 3, se cuenta «+n».
   2. **Inventario de creación**: una casilla por experiencia que entrega el timbre 2 (Vagón, Graffiti, Mosaicos, Audioreactiva, Teatro, Grabado, Fotomatón), con su ícono. Se llena al crear algo en esa mesa con tu código. Debajo, si el timbre 2 ya está.
-  3. **Escribir un código**: lleva a «Timbrar» (`#/escanear`) para los códigos de las mesas.
+  3. **Código**: lleva a «Timbrar» (`#/escanear`) para los códigos de las mesas. «Timbrar» usa el mismo lector y también reconoce afiches.
 
 ## 2. Cacería de afiches (timbre 3)
 - **Afiches:** los 15 de la sede, uno por marco (plan 004: 5 por lenguaje). El `id` del afiche es el id del marco (`GM01`…`PM06`); de ahí salen su nombre y su lenguaje en la credencial.
@@ -65,9 +65,12 @@ afiches   id text pk (= id del marco) · nombre · lenguaje · sello (3) · secr
 - Probar la lectura de un afiche impreso con la luz de la sede, en un iPhone y en un Android.
 - Copy de la estación 3 en `shared/juego.ts` («Escanea los afiches de los portales AR» → «Encuentra 3 afiches en la sede»): va en un PR chico de `shared/`.
 
-## 6. Verificación
-- [ ] `npm --prefix credencial run build` en verde.
-- [ ] Migración probada en Postgres local: afiche válido suma paso, repetido no suma, secreto falso da `afiche_invalido`, al tercero se otorga el timbre 3, `pasos` guarda el id y no el secreto.
-- [ ] Sin scroll en 390 × 844, 412 × 915 y 360 × 740: credencial, Juego y cámara.
-- [ ] Modo demo: crear → deslizar a Juego → `#/afiche/PM02`, `GM01`, `OM05` → ceremonia del timbre 3 → inventario con un evento local de una mesa.
-- [ ] Deslizar no gira la credencial y tocar sigue girándola.
+## 6. Verificación (13 nov 2026)
+- [x] `npm --prefix credencial run build` en verde.
+- [x] Migración probada en Postgres 16 local sobre los tres SQL base, corrida dos veces: afiche válido suma paso, repetido no suma (`repetido: true`), secreto falso o afiche apagado dan `afiche_invalido`, al tercero se otorga el timbre 3, `pasos` guarda el id y nunca el secreto.
+- [x] Sin scroll, controles a la vista y toques ≥ 44 px en 390 × 844, 412 × 915 y 360 × 740: credencial, Juego, cámara de la cacería y Timbrar (estación 2 y 3).
+- [x] Modo demo con Playwright: deslizar a Juego → la cámara (falsa, con el QR de un afiche) lo lee con **jsQR** → códigos a mano (nuevo, repetido, falso) → al tercero, ceremonia del timbre 3 → enlace `#/afiche/PM02` suma el cuarto («3 de 3 +1») → el inventario muestra solo los recursos de esta credencial.
+- [x] Deslizar no gira la credencial, tocar sigue girándola y deslizar hacia el lado contrario no navega.
+- [ ] Con Supabase real (`somos-diseno`): falta correr la migración y probarlo en un iPhone y un Android con un afiche impreso.
+
+Arreglo encontrado al verificar: en modo demo, a 360 px la barra superior («Reiniciar» + «Demo») ensanchaba toda la pantalla (también en `main`). Ahora la columna no crece y «Reiniciar» queda solo con su ícono en pantallas angostas.
