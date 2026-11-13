@@ -22,7 +22,7 @@ export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string
   }, []);
 
   if (staff) return <PanelStaff app={app} alSalir={() => { setConfig(leerConfig()); setStaff(false); history.replaceState(null, '', location.pathname); }} />;
-  if (config.modoJuego && !codigo) return <Desbloqueo titulo={titulo} alEntrar={c => { entrarJugador(c); setCodigo(c); }} alStaff={() => setStaff(true)} />;
+  if (config.modoJuego && !codigo) return <Desbloqueo titulo={titulo} alEntrar={c => { entrarJugador(c, app); setCodigo(c); }} alStaff={() => setStaff(true)} />;
   return (<>
     {children}
     {ganado && (

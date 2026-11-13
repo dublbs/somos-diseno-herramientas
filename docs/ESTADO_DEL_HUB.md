@@ -2,6 +2,9 @@
 
 > Actualizado: 2026-11-03 · Rama: `rescate/estado-actual` (igual a `claude/ecstatic-lovelace-xjgq6d` + esta documentación) · PR hacia `main` pendiente de merge
 
+## Estado de ejecución (2026-11-10)
+**Plan 007 (rama `claude/backend-y-pc-madre`):** backend del juego en `shared/supabase/juego.sql` (staff, pasos con meta, canje con stock y PIN en el servidor, suscripciones push, Realtime), Edge Function `notificar`, PWA con avisos en la credencial, sesiones de mesa y la app `admin/` (PC madre). SQL probado en Postgres local; la función y el push real quedan por probar con el proyecto de Supabase del evento. Detalle en [`plans/007-backend-y-pc-madre.md`](plans/007-backend-y-pc-madre.md).
+
 ## Estado de ejecución (2026-11-03)
 **Por qué `main` se veía desactualizado.** `origin/main` quedó en el merge del PR #3 (28-oct). Todo el trabajo posterior (48 commits) estaba en la rama `claude/ecstatic-lovelace-xjgq6d`: subido a GitHub, pero nunca fusionado.
 - Esa rama contiene todo `main` y también las ramas `teatro-de-papel`, `viewport-tablet-fit` y `archive/taller-de-pixeles`.

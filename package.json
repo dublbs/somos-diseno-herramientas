@@ -21,6 +21,7 @@
     "dev:audioreactiva:tablet": "npm --prefix audioreactiva run dev:tablet",
     "dev:grabado": "npm --prefix grabado run dev",
     "dev:vagon": "npm --prefix vagon run dev",
+    "dev:admin": "npm --prefix admin run dev",
     "build:fotomaton": "npm --prefix fotomaton run build",
     "build:mosaicos": "npm --prefix taller-mosaicos run build",
     "build:loops": "npm --prefix loops run build",
@@ -30,7 +31,8 @@
     "build:audioreactiva": "npm --prefix audioreactiva run build",
     "build:grabado": "npm --prefix grabado run build",
     "build:vagon": "npm --prefix vagon run build",
-    "build": "npm run build:fotomaton && npm run build:mosaicos && npm run build:loops && npm run build:graffiti && npm run build:credencial && npm run build:hub-estacion && npm run build:audioreactiva && npm run build:grabado && npm run build:vagon",
+    "build:admin": "npm --prefix admin run build",
+    "build": "npm run build:fotomaton && npm run build:mosaicos && npm run build:loops && npm run build:graffiti && npm run build:credencial && npm run build:hub-estacion && npm run build:audioreactiva && npm run build:grabado && npm run build:vagon && npm run build:admin",
     "build:all": "npm run build"
   },
   "devDependencies": {

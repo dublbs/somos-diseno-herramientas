@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { canjear, miCredencial, obtener } from '../lib/store';
-import { completa, pinDeDemo, verificarPin } from '../../../shared/juego';
+import { canjear, miCredencial, obtener, remoto } from '../lib/store';
+import { completa, pinDeDemo } from '../../../shared/juego';
 import type { DatosCarta } from '../pixel/render';
 import type { Ir, PonerTema } from '../App';
 
 // Canje del premio: con la credencial completa, la persona muestra esta pantalla y el staff escribe su PIN.
+// Con Supabase el PIN, el stock y el límite diario los valida el servidor; el staff también puede canjear desde el PC madre.
 export const Canje: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTema }) => {
   const codigo = miCredencial();
   const [datos, setDatos] = useState<DatosCarta | null>(null);
@@ -28,8 +29,7 @@ export const Canje: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTem
   const validar = async (e: React.FormEvent) => {
     e.preventDefault();
     setEnviando(true); setAviso('');
-    if (!(await verificarPin(pin))) { setAviso('PIN incorrecto. Este paso lo hace el equipo de Somos Diseño: pídele que lo escriba.'); setEnviando(false); return; }
-    try { await canjear(datos.codigo); setDatos({ ...datos, canjeado: true }); }
+    try { await canjear(datos.codigo, pin); setDatos({ ...datos, canjeado: true }); }
     catch (err) { setAviso((err as Error).message); }
     setEnviando(false);
   };
@@ -51,7 +51,7 @@ export const Canje: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTem
           <p>Muestra esta pantalla al equipo de Somos Diseño. Pídele que escriba su PIN para entregarte tu premio.</p>
           <div className="pie-movil">
             <input type="password" inputMode="numeric" autoComplete="off" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 8))}
-              placeholder={pinDeDemo() ? 'PIN (demo 0000)' : 'PIN del staff'} aria-label="PIN del staff" />
+              placeholder={!remoto && pinDeDemo() ? 'PIN (demo 0000)' : 'PIN del staff'} aria-label="PIN del staff" />
             <button className="btn primario" disabled={enviando || pin.length < 4}>{enviando ? 'Validando…' : 'Validar'}</button>
           </div>
           {aviso && <p className="aviso-movil" role="alert">{aviso}</p>}

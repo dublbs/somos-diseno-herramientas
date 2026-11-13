@@ -7,6 +7,7 @@ import { cartaEnLienzo, aBlob, ranuraTimbre, CARTA, type Cara, type DatosCarta }
 import { TIMBRES, type Tema } from '../temas';
 import type { Ir, PonerTema } from '../App';
 import { ACTIVAS, completa as estaCompleta } from '../../../shared/juego';
+import { activarAvisos, enIphoneSinInstalar, estadoAvisos, type EstadoAvisos } from '../lib/push';
 
 const quieto = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 const VACIA: DatosCarta = { nombre: '', codigo: '', receta: { retrato: 'personaje', id: 'pixel' }, marco: 'PM05', sellos: [] };
@@ -21,6 +22,14 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
   const [volteando, setVolteando] = useState(false);
   const foto = fotoDe(codigo);
   const recursos = useRecursos((datos || VACIA).receta, foto, tema);
+  // Avisos del evento en el celular (solo con Supabase y clave VAPID).
+  const [avisos, setAvisos] = useState<EstadoAvisos>('no-disponible');
+  useEffect(() => { estadoAvisos().then(setAvisos); }, []);
+  const pedirAvisos = async () => {
+    if (enIphoneSinInstalar()) { setEstado('En iPhone: comparte → «Agregar a inicio» y abre la app desde ahí para recibir avisos.'); return; }
+    try { const e = await activarAvisos(codigo); setAvisos(e); setEstado(e === 'activos' ? 'Listo: te avisaremos lo que pase en el evento.' : e === 'bloqueados' ? 'Los avisos están bloqueados en el navegador.' : ''); }
+    catch (e) { setEstado((e as Error).message); }
+  };
 
   const cargar = useCallback(() => obtener(codigo).then(d => { setDatos(d); ponerTema(d.marco); }).catch(e => setError((e as Error).message)), [codigo, ponerTema]);
   useEffect(() => { cargar(); if (!miCredencial()) guardarMiCredencial(codigo); }, [cargar, codigo]);
@@ -90,6 +99,11 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
           })()}
         </span>
       </button>
+      {avisos === 'pedir' && (
+        <button type="button" className="avisos" onClick={pedirAvisos}>
+          <span className="material-symbols-outlined" aria-hidden="true">auto_awesome</span>Recibir avisos del evento
+        </button>
+      )}
       <p className="progreso" role="status">
         {estado || (datos.canjeado ? 'Premio canjeado. ¡Gracias por jugar!' : llena ? '¡Credencial completa! Canjea tu premio con el equipo.' : `${completos} de ${ACTIVAS.length} timbres · toca para ${lado === 'frente' ? 'ver el álbum' : 'volver'}`)}
       </p>

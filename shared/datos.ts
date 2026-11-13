@@ -34,7 +34,8 @@ function guardarLocal(lista: Evento[]) {
 }
 
 // ---------- Supabase (REST) ----------
-const cabeceras = () => ({ apikey: CLAVE!, Authorization: `Bearer ${CLAVE}`, 'Content-Type': 'application/json' });
+// Con las claves nuevas (sb_publishable_…) solo va `apikey`; con las JWT antiguas (eyJ…) también `Authorization`.
+const cabeceras = () => ({ apikey: CLAVE!, ...(CLAVE!.startsWith('eyJ') ? { Authorization: `Bearer ${CLAVE}` } : {}), 'Content-Type': 'application/json' });
 interface Fila { id: number; tipo: Tipo; codigo: string | null; datos: Datos[Tipo]; creado: string }
 const deFila = (f: Fila): Evento => ({ id: String(f.id), tipo: f.tipo, codigo: f.codigo, datos: f.datos, creado: Date.parse(f.creado) });
 
@@ -102,4 +103,12 @@ export function miniatura(fuente: HTMLCanvasElement, lado = 200): string {
   c.width = Math.max(1, Math.round(fuente.width * k)); c.height = Math.max(1, Math.round(fuente.height * k));
   const x = c.getContext('2d')!; x.imageSmoothingQuality = 'high'; x.drawImage(fuente, 0, 0, c.width, c.height);
   return c.toDataURL('image/png');
+}
+
+// Sesión de mesa (plan 007): la tablet anota qué código entró en modo juego. Solo con Supabase; nunca bloquea la mesa.
+export async function abrirSesionMesa(mesa: string, app: string, codigo: string): Promise<void> {
+  if (!remoto) return;
+  try {
+    await fetch(`${URL_SB}/rest/v1/sesiones_mesa`, { method: 'POST', headers: { ...cabeceras(), Prefer: 'return=minimal' }, body: JSON.stringify({ mesa, app, codigo }) });
+  } catch { /* sin red */ }
 }

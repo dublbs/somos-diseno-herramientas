@@ -19,7 +19,7 @@ shared/               Lo común a todas las apps
   marcos.ts           Los 15 marcos de Figma (Fotomatón y Credencial)
   datos.ts            Lo que las apps mandan al HUB (local o Supabase)
   juego.ts            Estaciones de timbres y PIN del staff
-  supabase/           SQL de la capa de datos
+  supabase/           SQL de la capa de datos y del juego (juego.sql) · functions/notificar (Web Push)
 <app>/                Una app Vite independiente por experiencia (React 18.3.1 · TypeScript 7.0.2 · Vite 8.3.5)
   src/  public/figma/ dist/
 docs/                 Estado, planes (docs/plans/NNN-*), tareas (docs/tasks/), kit y guía de Supabase
@@ -42,6 +42,7 @@ Todas compilan (`npm run build`, verificado el 2026-11-03).
 | [`grabado/`](grabado/) | Taller de Grabado | Orgánica | Vigente. Tacos, tintas que se mezclan y registro corrido. |
 | [`credencial/`](credencial/) | Credencial | los tres | Vigente, en el celular. Marco, foto o personaje, timbres por estación, canje con PIN. |
 | [`hub-estacion/`](hub-estacion/) | HUB «Estación» | los tres | Vigente, para la pantalla del stand. Andén Pixel, mezanine Geométrico y plaza Orgánica con las personas y sus creaciones. |
+| [`admin/`](admin/) | PC madre | — | Vigente, para el PC del evento (no está en el hub). Login del staff, personas y timbres, canje con stock, mesas, avisos push y configuración. Necesita Supabase. |
 | — | Jardín de Papel | Orgánica | Reemplazado por Grabado. |
 | — | Taller de Píxeles | Pixel | Descartado. Su código vive en la rama `archive/taller-de-pixeles` y ya no está en el hub. |
 
@@ -55,7 +56,7 @@ npm run dev:hub
 Por experiencia, después de `npm --prefix <carpeta> install`:
 ```bash
 npm run dev:fotomaton      # también: dev:mosaicos, dev:loops, dev:graffiti, dev:audioreactiva,
-                           # dev:credencial, dev:hub-estacion, dev:grabado, dev:vagon
+                           # dev:credencial, dev:hub-estacion, dev:grabado, dev:vagon, dev:admin
 npm run dev:fotomaton:tablet   # abre la app en la red para probarla desde la tablet
                                # (existe para fotomaton, mosaicos, loops, graffiti y audioreactiva)
 npm run dev:credencial:movil   # la credencial desde el celular
@@ -65,7 +66,8 @@ npm run build:graffiti         # compilar una sola app (build:<app>)
 ## Datos y secretos
 - Sin variables de entorno, todo funciona **en modo local**: cada equipo guarda en su navegador.
 - Con Supabase, el HUB recibe en vivo lo de todas las mesas. Guía en [`docs/supabase.md`](docs/supabase.md).
-- Las claves van en `.env.local` dentro de cada app (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` y, opcional, `VITE_STAFF_PIN_SHA256`). **Nunca en git.**
+- Las claves van en `.env.local` dentro de cada app (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` y, opcional, `VITE_STAFF_PIN_SHA256`; la credencial suma `VITE_VAPID_PUBLIC_KEY` para los avisos). **Nunca en git.**
+- El juego completo (staff, pasos por estación, canje con stock, avisos push, PC madre) está en [`docs/plans/007-backend-y-pc-madre.md`](docs/plans/007-backend-y-pc-madre.md).
 - El PIN del staff se configura en cada mesa con `?staff`. Sin PIN definido, el de demo es `0000`.
 
 ## Flujo de trabajo: local y nube con GitHub
