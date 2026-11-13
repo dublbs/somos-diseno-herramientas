@@ -5,7 +5,9 @@ import { readFileSync, readdirSync, mkdirSync, writeFileSync } from 'node:fs';
 
 const assets = 'dist/assets/';
 const archivos = readdirSync(assets);
-const js = archivos.find(f => f.endsWith('.js'));
+// El lector jsQR va en su propio archivo (import dinámico): aquí solo se incrusta el principal. En el Artifact,
+// sin jsQR, la cámara de la cacería ofrece escribir el código del afiche.
+const js = archivos.find(f => f.startsWith('index-') && f.endsWith('.js'));
 const css = archivos.find(f => f.endsWith('.css'));
 const estilos = readFileSync(assets + css, 'utf8').replace(/url\(\.\/([^)]+\.woff2)\)/g, (_, f) =>
   `url(data:font/woff2;base64,${readFileSync(assets + f).toString('base64')})`);

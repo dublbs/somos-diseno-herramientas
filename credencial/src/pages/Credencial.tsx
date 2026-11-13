@@ -8,6 +8,7 @@ import { TIMBRES, type Tema } from '../temas';
 import type { Ir, PonerTema } from '../App';
 import { ACTIVAS, completa as estaCompleta } from '../../../shared/juego';
 import { activarAvisos, enIphoneSinInstalar, estadoAvisos, type EstadoAvisos } from '../lib/push';
+import { HACIA_JUEGO, tomarEntrada, useDeslizar } from '../lib/deslizar';
 
 const quieto = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 const VACIA: DatosCarta = { nombre: '', codigo: '', receta: { retrato: 'personaje', id: 'pixel' }, marco: 'PM05', sellos: [] };
@@ -20,6 +21,9 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
   const [recien, setRecien] = useState<number | null>(timbre || null);
   const [poniendo, setPoniendo] = useState(0); // timbre que está cayendo sobre la credencial
   const [volteando, setVolteando] = useState(false);
+  // Deslizar lleva a la vista Juego (plan 008); el toque sigue girando la credencial.
+  const [entra] = useState(tomarEntrada);
+  const { recien: recienDeslizo } = useDeslizar(dir => { if (dir === HACIA_JUEGO) ir('#/juego'); });
   const foto = fotoDe(codigo);
   const recursos = useRecursos((datos || VACIA).receta, foto, tema);
   // Avisos del evento en el celular (solo con Supabase y clave VAPID).
@@ -43,7 +47,7 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
   }, [recien]);
   // Girar con una media vuelta: a los 90° cambia la cara.
   const girar = () => {
-    if (volteando) return;
+    if (volteando || recienDeslizo.current) return;
     if (quieto()) { setLado(l => (l === 'frente' ? 'album' : 'frente')); return; }
     setVolteando(true);
     setTimeout(() => setLado(l => (l === 'frente' ? 'album' : 'frente')), 220);
@@ -80,7 +84,7 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
   };
 
   return (
-    <main className="pantalla credencial">
+    <main className={'pantalla credencial' + (entra ? ` entra-${entra}` : '')}>
       <button type="button" className="giro" onClick={girar}
         aria-label={`Girar credencial. Ahora: ${lado === 'frente' ? 'credencial' : 'álbum de timbres'}`}>
         <span className={'carta-caja' + (volteando ? ' volteando' : '')}>
@@ -108,15 +112,15 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
         {estado || (datos.canjeado ? 'Premio canjeado. ¡Gracias por jugar!' : llena ? '¡Credencial completa! Canjea tu premio con el equipo.' : `${completos} de ${ACTIVAS.length} timbres · toca para ${lado === 'frente' ? 'ver el álbum' : 'volver'}`)}
       </p>
       <div className="acciones-movil">
-        {llena ? (
+        {llena && (
           <button type="button" className="btn primario" onClick={() => ir('#/canje')}>
             <span className="material-symbols-outlined" aria-hidden="true">approval</span>{datos.canjeado ? 'Canjeado' : 'Canjear'}
           </button>
-        ) : (
-          <button type="button" className="btn primario" onClick={() => ir('#/escanear')}>
-            <span className="material-symbols-outlined" aria-hidden="true">highlight_alt</span>Timbrar
-          </button>
         )}
+        {/* La vista Juego también se abre deslizando; este botón es la alternativa sin gesto. */}
+        <button type="button" className={'btn' + (llena ? '' : ' primario')} onClick={() => ir('#/juego')}>
+          <span className="material-symbols-outlined" aria-hidden="true">auto_awesome</span>Jugar
+        </button>
         <button type="button" className="btn" onClick={descargar}>
           <span className="material-symbols-outlined" aria-hidden="true">download</span>Guardar
         </button>

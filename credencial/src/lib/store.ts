@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import { normalizar } from '../../../shared/pixelfont';
 import { SELLOS, normalizarRetrato, type DatosCarta, type Retrato } from '../pixel/render';
 import { ESTACIONES, verificarPin } from '../../../shared/juego';
-import { publicar } from '../../../shared/datos';
-import { marcoListo } from '../../../shared/marcos';
+import { publicar, recientes } from '../../../shared/datos';
+import { marcoListo, MARCOS } from '../../../shared/marcos';
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const clave = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -16,7 +16,8 @@ export const limpiarNombre = (n: string) => normalizar(n).replace(/\s+/g, ' ').t
 
 // ---------- modo demo (localStorage, con respaldo en memoria) ----------
 const LLAVE = 'sd:credenciales';
-type Db = Record<string, DatosCarta & { creada: string }>;
+// pasos: en modo demo, los afiches encontrados por estación (con Supabase viven en la tabla `pasos`).
+type Db = Record<string, DatosCarta & { creada: string; pasos?: Record<number, string[]> }>;
 let memoria: Db = {};
 const leer = (): Db => { try { return JSON.parse(localStorage.getItem(LLAVE) || 'null') || memoria; } catch { return memoria; } };
 const escribir = (db: Db) => { memoria = db; try { localStorage.setItem(LLAVE, JSON.stringify(db)); } catch { /* queda en memoria */ } };
@@ -89,6 +90,67 @@ export async function sellar(codigo: string, sello: number, token: string, clave
   if (nuevo) { c.sellos = [...c.sellos, sello].sort(); publicar('timbre', { sello }, codigo).catch(() => { /* sin red */ }); }
   escribir(db);
   return { pasos: 1, meta: 1, otorgado: true, nuevo };
+}
+
+// ---------- Cacería de afiches (plan 008) ----------
+// Cada afiche tiene su código secreto (en su QR y escrito bajo él). Con Supabase lo valida encontrar_afiche()
+// (shared/supabase/migraciones/001-afiches.sql) y en `pasos` queda el id del afiche (el del marco: PM02).
+// En modo demo, el código del afiche es su id y los pasos quedan en este celular.
+export const AFICHE_SELLO = 3;
+const META_DEMO = 3;
+export interface ResultadoAfiche extends ResultadoSello { afiche: string; repetido: boolean }
+
+export async function encontrarAfiche(codigo: string, secreto: string): Promise<ResultadoAfiche> {
+  const limpio = secreto.trim().toUpperCase();
+  if (sb) {
+    const { data, error } = await sb.rpc('encontrar_afiche', { p_codigo: codigo, p_secreto: limpio });
+    if (error) {
+      if (error.message.includes('afiche_invalido')) throw new Error('Ese código no es de un afiche de la cacería.');
+      if (error.message.includes('credencial_no_existe')) throw new Error('No encontramos tu credencial.');
+      if (/encontrar_afiche|function/i.test(error.message)) throw new Error('La cacería de afiches todavía no está abierta.');
+      throw new Error(error.message);
+    }
+    const r = data as { pasos: number; meta: number; sello_otorgado: boolean; nuevo: boolean; afiche: string; repetido: boolean };
+    if (r.nuevo) publicar('timbre', { sello: AFICHE_SELLO }, codigo).catch(() => { /* sin red */ });
+    return { pasos: r.pasos, meta: r.meta, otorgado: r.sello_otorgado, nuevo: r.nuevo, afiche: r.afiche, repetido: r.repetido };
+  }
+  if (!MARCOS.some(m => m.id === limpio)) throw new Error('Ese código no es de un afiche de la cacería.');
+  const db = leer();
+  const c = db[codigo];
+  if (!c) throw new Error('No encontramos tu credencial.');
+  const vistos = c.pasos?.[AFICHE_SELLO] ?? [];
+  const repetido = vistos.includes(limpio);
+  const pasos = repetido ? vistos : [...vistos, limpio];
+  c.pasos = { ...c.pasos, [AFICHE_SELLO]: pasos };
+  const nuevo = pasos.length >= META_DEMO && !c.sellos.includes(AFICHE_SELLO);
+  if (nuevo) { c.sellos = [...c.sellos, AFICHE_SELLO].sort(); publicar('timbre', { sello: AFICHE_SELLO }, codigo).catch(() => { /* sin red */ }); }
+  escribir(db);
+  return { pasos: pasos.length, meta: META_DEMO, otorgado: c.sellos.includes(AFICHE_SELLO), nuevo, afiche: limpio, repetido };
+}
+
+// Lo que muestra la vista Juego: afiches encontrados (en orden), la meta de la cacería y el inventario de
+// creación (las experiencias donde esta credencial ganó el timbre 2, según los eventos que publican las mesas).
+export interface ProgresoJuego { afiches: string[]; meta: number; recursos: string[] }
+const recursosDe = (eventos: { datos: { sello?: number; app?: string } }[]) =>
+  [...new Set(eventos.filter(e => e.datos?.sello === 2 && typeof e.datos.app === 'string').map(e => e.datos.app as string))];
+
+export async function progresoJuego(codigo: string): Promise<ProgresoJuego> {
+  if (sb) {
+    const [pasos, metas, eventos] = await Promise.all([
+      sb.from('credenciales').select('pasos(sello,clave,creado)').eq('codigo', codigo).maybeSingle(),
+      sb.rpc('metas'),
+      sb.from('eventos').select('datos').eq('tipo', 'timbre').eq('codigo', codigo).limit(200),
+    ]);
+    const filas = ((pasos.data?.pasos as { sello: number; clave: string; creado: string }[] | undefined) ?? [])
+      .filter(p => p.sello === AFICHE_SELLO && p.clave !== 'unico')
+      .sort((a, b) => a.creado.localeCompare(b.creado));
+    // Sin la migración 001 todavía, metas() no existe: la cacería pide 3 (plan 004).
+    const meta = (metas.data as { id: number; meta: number }[] | null)?.find(m => m.id === AFICHE_SELLO)?.meta ?? META_DEMO;
+    return { afiches: filas.map(p => p.clave), meta, recursos: recursosDe((eventos.data ?? []) as { datos: { sello?: number; app?: string } }[]) };
+  }
+  const c = leer()[codigo];
+  const locales = (await recientes('timbre', 500)).filter(e => e.codigo === codigo);
+  return { afiches: [...(c?.pasos?.[AFICHE_SELLO] ?? [])], meta: META_DEMO, recursos: recursosDe(locales) };
 }
 
 // Canje del premio con la credencial completa. Con Supabase, el PIN del staff, el stock y el límite diario

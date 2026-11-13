@@ -5,21 +5,27 @@ import { Sello } from './pages/Sello';
 import { Escanear } from './pages/Escanear';
 import { Foto } from './pages/Foto';
 import { Canje } from './pages/Canje';
+import { Juego } from './pages/Juego';
+import { Afiches } from './pages/Afiches';
+import { Afiche } from './pages/Afiche';
 import { miCredencial, remoto, reiniciarTodo } from './lib/store';
 import { temaDe, type Tema } from './temas';
 import type { Cara } from './pixel/render';
 import './styles.css';
 
 // Rutas con hash (funcionan en cualquier carpeta o dominio, como el QR del Fotomatón):
-//   #/crear · #/c/SD-XXXXX · #/sello/1..4?t=CODIGO&k=AFICHE · #/escanear · #/foto · #/canje
-//   (k identifica el afiche o la figura cuando una estación necesita varios pasos, como los 3 portales)
+//   #/crear · #/c/SD-XXXXX · #/sello/1..4?t=CODIGO&k=PASO · #/escanear · #/foto · #/canje
+//   #/juego (vista Juego) · #/afiches (cámara de la cacería) · #/afiche/SECRETO (QR de un afiche, plan 008)
 export type Ruta =
   | { vista: 'crear' }
   | { vista: 'carta'; codigo: string; aviso?: string; cara?: Cara; timbre?: number }
   | { vista: 'sello'; sello: number; token: string; clave?: string }
   | { vista: 'escanear' }
   | { vista: 'foto' }
-  | { vista: 'canje' };
+  | { vista: 'canje' }
+  | { vista: 'juego'; codigo: string; aviso?: string }
+  | { vista: 'afiches' }
+  | { vista: 'afiche'; secreto: string };
 
 export function leerRuta(hash: string): Ruta {
   const [camino, consulta = ''] = hash.replace(/^#/, '').split('?');
@@ -27,11 +33,15 @@ export function leerRuta(hash: string): Ruta {
   let m;
   if ((m = p.match(/^\/c\/([A-Za-z0-9-]+)$/))) return { vista: 'carta', codigo: m[1].toUpperCase() };
   if ((m = p.match(/^\/sello\/(\d+)$/))) { const q = new URLSearchParams(consulta); return { vista: 'sello', sello: Number(m[1]), token: q.get('t') || '', clave: q.get('k') || undefined }; }
+  if ((m = p.match(/^\/afiche\/([A-Za-z0-9]+)$/))) return { vista: 'afiche', secreto: m[1].toUpperCase() };
   if (p === '/escanear') return { vista: 'escanear' };
   if (p === '/foto') return { vista: 'foto' };
   if (p === '/canje') return { vista: 'canje' };
   if (p === '/crear') return { vista: 'crear' };
   const mia = miCredencial();
+  // La vista Juego y la cámara de la cacería existen solo con una credencial creada.
+  if (p === '/juego') return mia ? { vista: 'juego', codigo: mia } : { vista: 'crear' };
+  if (p === '/afiches') return mia ? { vista: 'afiches' } : { vista: 'crear' };
   return mia ? { vista: 'carta', codigo: mia } : { vista: 'crear' };
 }
 
@@ -83,7 +93,7 @@ export const App: React.FC = () => {
     // Dentro de claude.ai (iframe) la ruta vive solo en el estado: el visor no acepta #/rutas.
     if (window.top === window) { try { history.replaceState(null, '', hash); } catch { /* sin historial */ } }
     const r = leerRuta(hash);
-    setRuta(r.vista === 'carta' ? { ...r, ...extra } : r);
+    setRuta(r.vista === 'carta' ? { ...r, ...extra } : r.vista === 'juego' ? { ...r, aviso: extra.aviso } : r);
   }, []);
 
   return (
@@ -112,6 +122,9 @@ export const App: React.FC = () => {
       {ruta.vista === 'escanear' && <Escanear ir={ir} />}
       {ruta.vista === 'foto' && <Foto ir={ir} ponerTema={ponerTema} />}
       {ruta.vista === 'canje' && <Canje ir={ir} ponerTema={ponerTema} />}
+      {ruta.vista === 'juego' && <Juego key={ruta.aviso || ''} codigo={ruta.codigo} aviso={ruta.aviso} ir={ir} ponerTema={ponerTema} />}
+      {ruta.vista === 'afiches' && <Afiches ir={ir} />}
+      {ruta.vista === 'afiche' && <Afiche secreto={ruta.secreto} ir={ir} />}
     </div>
   );
 };
