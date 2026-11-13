@@ -15,7 +15,7 @@ Sprites pixel definidos en código, en `juego-pixel/src/juego/sprites.ts`, con l
 |---|---|---|---|
 | `AUTO` | 16 × 8 (2 celdas) | carrocería de la paleta (amarillo, verde, lapislázuli, rosa, morado), ventanas celeste | Tráfico de la calle |
 | `MICRO` | 24 × 8 (3 celdas) | hueso, franja azul, ventanas celeste | Tráfico de la calle |
-| `GRIS` | 8 × 8 | grises `#8F8F8A` `#6B6B66`, ojos | (sin uso desde los niveles; queda para el jefe) |
+| `GRIS` | 8 × 8 | grises `#8F8F8A` `#6B6B66`, ojos | Los Grises que caen en la pared (nivel 3) |
 | `GRIS_LADO` | 8 × 8 | grises, ojos mirando de lado | Los Grises del andén (nivel 2) |
 | `LATA` | 8 × 8 | el color de la pintura, tapa gris claro | Latas del nivel 1, munición, mural |
 | `PIEZAS` (corazón, estrella, rayo, gota) | 7 × 7 | el color con que se atrapó al Gris | Piezas del nivel 2 y del mural |
@@ -26,4 +26,5 @@ Sprites pixel definidos en código, en `juego-pixel/src/juego/sprites.ts`, con l
 | `SENAL` | 8 × 8 | amarillo que parpadea | Aviso del metro |
 | Texturas del cruce | por celda | vereda `#CFC6B8`, plaza `#5DAA6E`, calle `#3D3A36`, vías `#77726A`, entrada del metro azul con borde amarillo y letrero «METRO» | Suelo de cada fila (`juego-pixel/src/juego/dibujoCruce.ts`) |
 | Andén | 16 × 12 celdas | pared de azulejos hueso, franja azul, letrero «ANDÉN», vigas lapislázuli con remaches celeste, andén gris con borde amarillo | Nivel 2 (`juego-pixel/src/juego/dibujoAnden.ts`) |
-| Mural | 4 × 3 casillas | pared de ladrillo hueso, azulejos negros con las piezas y latas | Pantalla final, tarjeta e inventario (`juego-pixel/src/juego/mural.ts`) |
+| Pared (nivel 3) | 8 × 10 celdas | ladrillo hueso, lo borrado se pinta del color del grupo, barra de tiempo amarilla, columna «SIGUE» | Nivel 3 y mural (`juego-pixel/src/juego/dibujoPared.ts`) |
+| Mural | 4 × 3 casillas o la pared del nivel 3 | pared de ladrillo hueso, azulejos negros con las piezas y latas | Pantalla final, tarjeta e inventario (`juego-pixel/src/juego/mural.ts`) |

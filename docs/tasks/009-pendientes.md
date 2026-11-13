@@ -61,8 +61,8 @@ en vivo, Graffiti v2 y el Fotomatón conectado.
 ## P1 · Código (agentes)
 
 ### T1 · Juego Pixel MVP (reemplaza al Vagón) · Grupo A · ✅ **hecha** (PR #18, «Hora punta»; falta probar en la tablet real)
-- **13 nov, por niveles:** nivel 1 (cruce, juntas latas), nivel 2 (andén, juntas piezas) y tu mural al inventario.
-  Falta decidir el **nivel 3** (propuesta en `docs/plans/009-juego-pixel.md`) y correr la migración `005`.
+- **13 nov, por niveles:** nivel 1 (cruce, juntas latas), nivel 2 (andén, juntas piezas), nivel 3 (la pared, mecánica
+  de Puyo: pintas tu mural) y tu mural al inventario. Falta correr la migración `005` y probar en la tablet.
 - Zona: carpeta nueva `juego-pixel/` (nombre definitivo a elegir), con el stack y el kit de siempre (`shared/ui/`).
 - Qué: juego **original** en lenguaje Pixel que combina avanzar por carriles esquivando el tráfico en un recorrido sin
   fin y atrapar a los perseguidores en una bola que se empuja para despejar el camino. Solo las mecánicas: personajes,

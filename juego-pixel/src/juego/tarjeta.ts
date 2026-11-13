@@ -1,8 +1,8 @@
-import { NOMBRE_PINTURA, type Pieza } from './comun';
-import { dibujarMural } from './mural';
+import { NOMBRE_PINTURA } from './comun';
+import { dibujarMural, type Mural } from './mural';
 
 // Lo que deja una partida: el puntaje y lo que juntaste en cada nivel.
-export interface Resumen { puntos: number; filas: number; latas: string[]; bolas: number; arrastrados: number; piezas: Pieza[]; nivel: 1 | 2; limpio: boolean }
+export interface Resumen extends Mural { puntos: number; filas: number; bolas: number; arrastrados: number; nivel: 1 | 2 | 3; limpio: boolean; borradas: number; cadena: number }
 
 // Tarjeta 1080 × 1350 con la franja negra común: tu mural, el personaje y el puntaje.
 export async function crearTarjeta(r: Resumen, personaje: HTMLImageElement | null): Promise<Blob> {
@@ -20,18 +20,18 @@ export async function crearTarjeta(r: Resumen, personaje: HTMLImageElement | nul
   x.fillStyle = '#F4EEE3'; x.fillRect(140, 56, 800, 96);
   x.fillStyle = '#000'; x.font = '700 60px "Silkscreen", monospace'; x.fillText('MI MURAL', 540, 128);
   x.fillStyle = '#000'; x.fillRect(120 + 14, 190 + 14, 840, 630);
-  dibujarMural(x, 120, 190, 840, r.piezas, r.latas);
+  dibujarMural(x, 120, 190, 840, r);
   if (personaje) x.drawImage(personaje, 40, 700, 240, 240);
 
   x.fillStyle = 'rgba(244,238,227,0.9)'; x.fillRect(300, 860, 720, 190);
   x.strokeStyle = '#000'; x.lineWidth = 6; x.strokeRect(300, 860, 720, 190);
-  x.fillStyle = '#2B4BD8'; x.font = '700 104px "Silkscreen", monospace'; x.textAlign = 'left'; x.fillText(String(r.puntos), 330, 960);
+  x.fillStyle = '#2B4BD8'; x.font = `700 ${String(r.puntos).length > 2 ? 76 : 104}px "Silkscreen", monospace`; x.textAlign = 'left'; x.fillText(String(r.puntos), 330, 960);
   x.fillStyle = '#000'; x.font = '700 30px "Silkscreen", monospace'; x.fillText('PUNTOS', 330, 1010);
   x.textAlign = 'right'; x.font = '600 30px "DM Sans", sans-serif';
   const colores = [...new Set(r.latas)].map(k => NOMBRE_PINTURA[k]).filter(Boolean);
   const pl = (n: number, uno: string, varios = uno + 's') => `${n} ${n === 1 ? uno : varios}`;
   x.fillText(`${pl(r.filas, 'fila')} · ${pl(r.latas.length, 'lata')}`, 990, 920);
-  x.fillText(r.nivel === 2 ? `${pl(r.arrastrados, 'Gris', 'Grises')} · ${pl(r.piezas.length, 'pieza')}` : 'Llegaste a la calle', 990, 964);
+  x.fillText(r.nivel === 3 ? `${pl(r.borradas, 'pintada', 'pintadas')}${r.cadena > 1 ? ` · ×${r.cadena}` : ''}` : r.nivel === 2 ? `${pl(r.arrastrados, 'Gris', 'Grises')} · ${pl(r.piezas.length, 'pieza')}` : 'Llegaste a la calle', 990, 964);
   x.fillText(colores.length ? colores.slice(0, 3).join(', ') + (colores.length > 3 ? '…' : '') : 'Sin color', 990, 1008);
 
   x.fillStyle = '#000'; x.fillRect(0, 1080, 1080, 270);
