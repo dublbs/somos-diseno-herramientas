@@ -99,6 +99,8 @@ Método para lo demás: el mismo de la auditoría del Teatro. Por cada experienc
 - **D2 · El juego Pixel cuenta** como una de las 4 experiencias.
 - **D3 · HUB:** los trenes siguen llegando y partiendo del andén, sin rayados.
 - **D4 · Arte del juego:** se genera aquí con acabado medio; después se lleva a Figma.
-- **D5 · Plan B del Secreto:** pendiente de confirmar quién muestra el sello secreto.
+- **D5 · Plan B del Secreto:** el sello secreto lo muestra **el staff** (impreso en tarjetas). Se decide el 17 nov.
+- **D8 · Fotomatón:** se conecta a Supabase; si el proyecto no tiene su bucket y su función, la tarjeta queda en la tablet.
+- Tareas pendientes en orden de importancia: [`docs/tasks/009-pendientes.md`](../tasks/009-pendientes.md).
 - **D6 · Refinamiento:** auditoría hecha por Claude Code, más el feedback directo de §3.
 - **D7 · Numeración:** la cacería pasa a ser el plan **010** (PR #11); el 008 queda para el Teatro (PR #12).
