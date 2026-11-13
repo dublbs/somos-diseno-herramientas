@@ -207,7 +207,7 @@ export const App: React.FC = () => {
     try { setTarjeta(await crearTarjeta(muro, dibujo.current)); otorgarCreacion('graffiti'); enviarAlInventario(); }
     catch { setAviso('No se pudo crear la tarjeta. Inténtalo de nuevo.'); }
   };
-  // Con una persona jugando en la mesa, la miniatura del muro llega al inventario de su credencial (plan 008 §2b).
+  // Con una persona jugando en la mesa, la miniatura del muro llega al inventario de su credencial (plan 010 §2b).
   // Sin código no se manda nada: el HUB no muestra graffiti.
   const enviarAlInventario = () => {
     const codigo = jugador()?.codigo;

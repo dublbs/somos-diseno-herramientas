@@ -1,4 +1,4 @@
--- 002 · Graffiti publica su creación (plan 008 §2b, inventario de creación). Va después de 001-afiches.sql.
+-- 002 · Graffiti publica su creación (plan 010 §2b, inventario de creación). Va después de 001-afiches.sql.
 -- Idempotente: se puede correr más de una vez. SQL Editor → New query → Run.
 --
 -- `eventos.tipo` (shared/supabase/eventos.sql) solo aceptaba credencial, timbre, vagon, grabado, mosaico y audio.
