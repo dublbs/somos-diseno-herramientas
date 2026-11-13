@@ -99,7 +99,7 @@ export const App: React.FC = () => {
             {miCredencial() && (
               <button type="button" className={'pill reiniciar' + (seguro ? ' seguro' : '')} onClick={reiniciar}
                 aria-label={seguro ? 'Confirmar: borrar mi credencial y empezar de nuevo' : 'Reiniciar la demo y empezar de nuevo'}>
-                <span className="material-symbols-outlined" aria-hidden="true">restart_alt</span>{seguro ? '¿Seguro?' : 'Reiniciar'}
+                <span className="material-symbols-outlined" aria-hidden="true">restart_alt</span>{seguro ? '¿Seguro?' : <span className="solo-ancho">Reiniciar</span>}
               </button>
             )}
             <span className="pill">Demo</span>
