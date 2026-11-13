@@ -33,12 +33,16 @@ src/
 
 ## Flujo
 
-1. Portada → Abrir la cámara / Subir una foto
+Desde el 13 nov 2026 (plan 009) funciona como las demás experiencias: tutorial del kit, herramienta con barras fijas,
+«Llévatela» encima del editor y, en modo juego, la tarjeta llega al inventario de la credencial.
+
+1. Tutorial del kit (una vez por sesión; el quiosco lo vuelve a mostrar) → Abrir la cámara / Subir una foto
 2. Cámara en vivo con la trama y el marco ya aplicados, cuenta 3-2-1, flash
 3. «Revelando tu trama…» (mínimo 1,8 s, mientras se afina la detección de cara)
 4. Editor: lenguaje, marco, trama, tinta
-5. **Nuevo — Llévatela:** se genera la tarjeta, se sube y aparece un QR grande. El celular abre `/f/:id`,
-   ve la imagen y la descarga o comparte. Botón «Terminar» vuelve a la portada y limpia todo.
+5. **Llévatela** (ventana sobre el editor): aviso de las 24 h → se sube la tarjeta y aparece un QR grande. El celular abre
+   `/f/:id`, ve la imagen y la descarga o comparte. Con una persona jugando, después de aceptar el aviso la miniatura
+   llega también a su credencial (evento `foto`, se borra a las 24 h). «Terminar» vuelve a la cámara y limpia todo.
 
 ## Reglas que ya están decididas (no cambiar sin preguntar)
 

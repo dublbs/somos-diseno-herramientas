@@ -139,10 +139,10 @@ export interface ProgresoJuego { afiches: string[]; meta: number; creaciones: Re
 const META_CREACION = 4;
 
 // Cada evento de una mesa con el código de la persona dice en qué experiencia creó algo (y, si la hay, su miniatura).
-// 'graffiti' lo acepta la migración 002 (PR amaro/inventario-graffiti); mientras no exista, simplemente no hay filas.
-const TIPOS_CREACION: readonly string[] = ['timbre', 'vagon', 'mosaico', 'grabado', 'audio', 'graffiti'];
+// 'graffiti' y 'foto' los aceptan las migraciones 002 y 004; mientras no existan, simplemente no hay filas.
+const TIPOS_CREACION: readonly string[] = ['timbre', 'vagon', 'mosaico', 'grabado', 'audio', 'graffiti', 'foto'];
 // El Vagón ya no es una experiencia (plan 009): sus eventos no van al inventario.
-const APP_DE: Record<string, string> = { mosaico: 'mosaicos', grabado: 'grabado', audio: 'audioreactiva', graffiti: 'graffiti' };
+const APP_DE: Record<string, string> = { mosaico: 'mosaicos', grabado: 'grabado', audio: 'audioreactiva', graffiti: 'graffiti', foto: 'fotomaton' };
 type FilaEvento = { tipo: string; datos: Record<string, unknown>; creado: number };
 export function creacionDe(e: FilaEvento): Creacion | null {
   const d = e.datos || {};
