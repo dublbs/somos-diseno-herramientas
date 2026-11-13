@@ -1,8 +1,8 @@
 -- 001 · Cacería de afiches (plan 008). Va después de schema.sql, eventos.sql y juego.sql.
 -- Idempotente: se puede correr más de una vez. SQL Editor → New query → Run.
 --
--- Cada afiche tiene su propio código secreto (va en su QR y escrito bajo él). Así nadie puede inventar afiches
--- con el token de la estación 3. En `pasos` queda el id público del afiche (el del marco: PM02), nunca el secreto.
+-- Cada afiche tiene su propio código secreto: va dentro del sello de la cacería (SDA:<SECRETO>) y escrito bajo él.
+-- Así nadie puede inventar afiches. En `pasos` queda el id público del afiche (el del marco: PM02), nunca el secreto.
 
 -- 1. Afiches. Sin políticas: el celular no puede leer los secretos (igual que sellos_def.token).
 create or replace function public.codigo_aleatorio(n int) returns text language sql volatile as $$
@@ -21,24 +21,15 @@ create table if not exists public.afiches (
 );
 alter table public.afiches enable row level security;
 
--- Los 15 afiches de la sede: uno por marco (plan 004, 5 por lenguaje), con el nombre del marco en Figma (shared/marcos-figma.ts).
+-- Los 6 afiches de la cacería (tentativos, Figma «Evento · Imprenta» › sección «afiches»; plan 008 §2).
 -- Para sumar o apagar uno: insert, o update … set activo = false.
 insert into public.afiches (id, nombre, lenguaje) values
-  ('GM01', 'Bandas de damero', 'Geométrica'),
-  ('GM02', 'Estallido', 'Geométrica'),
-  ('GM04', 'Panel escalonado', 'Geométrica'),
-  ('GM05', 'Túnel', 'Geométrica'),
-  ('GM06', 'Diamante', 'Geométrica'),
-  ('OM01', 'Bandas', 'Orgánica'),
-  ('OM02', 'Estallido', 'Orgánica'),
-  ('OM04', 'Panel escalonado', 'Orgánica'),
-  ('OM05', 'Túnel', 'Orgánica'),
-  ('OM06', 'Diamante', 'Orgánica'),
-  ('PM01', 'Pizarra', 'Pixel'),
-  ('PM02', 'Vinilo', 'Pixel'),
-  ('PM04', 'Ventana', 'Pixel'),
-  ('PM05', 'Metro', 'Pixel'),
-  ('PM06', 'Señal', 'Pixel')
+  ('AF01', 'Tejido', 'Geométrica'),
+  ('AF02', 'Ven a ver', 'Geométrica'),
+  ('AF03', 'Sol', 'Orgánica'),
+  ('AF04', 'Ven a crear', 'Orgánica'),
+  ('AF05', 'Metro', 'Pixel'),
+  ('AF06', 'Ven a jugar', 'Pixel')
 on conflict (id) do nothing;
 
 -- 2. encontrar_afiche(): el celular manda el secreto que leyó; se anota el paso con el id del afiche.
@@ -66,9 +57,5 @@ $$;
 revoke all on function public.metas() from public;
 grant execute on function public.metas() to anon, authenticated;
 
--- 4. Para imprimir (no se guarda en el repo):
---   select id, nombre, secreto from public.afiches order by id;
-
--- 5. OPCIONAL: si ya se imprimió el QR genérico de la estación 3 (#/sello/3?t=…), con su token se podían
---    inventar afiches. Rotarlo lo invalida. No es idempotente: correr solo una vez, a mano.
--- update public.sellos_def set token = public.codigo_aleatorio(4) where id = 3;
+-- 4. Para generar los sellos (no se guarda en el repo; ver credencial/scripts/sellos-afiches.mjs):
+--   select string_agg(id || ':' || secreto || ':' || lenguaje, ',' order by id) from public.afiches where activo;
