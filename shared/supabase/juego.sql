@@ -252,3 +252,55 @@ begin
 end $$;
 
 -- 9. El borrado a las 24 h (eventos.sql) arrastra pasos, canjes y suscripciones por cascade.
+
+-- ============================================================
+-- 10. Cuentas del staff desde el PC madre (sin entrar a Supabase).
+--     La primera cuenta que se registra queda como admin; las demás quedan pendientes hasta que un admin las apruebe.
+-- ============================================================
+create or replace function public.staff_primera_cuenta() returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (select 1 from staff) then
+    insert into staff (user_id, nombre, rol) values (new.id, coalesce(nullif(new.raw_user_meta_data->>'nombre', ''), split_part(new.email, '@', 1)), 'admin');
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists staff_primera_cuenta on auth.users;
+create trigger staff_primera_cuenta after insert on auth.users for each row execute function public.staff_primera_cuenta();
+
+-- Los admins ven a todo el staff (para la lista de Configuración).
+drop policy if exists "admin ve staff" on public.staff;
+create policy "admin ve staff" on public.staff for select to authenticated using (public.es_admin());
+
+-- Cuentas registradas que todavía no son staff (solo admin).
+create or replace function public.cuentas_pendientes()
+returns table (user_id uuid, email text, nombre text, creado timestamptz) language sql stable security definer set search_path = public as $$
+  select u.id, u.email::text, coalesce(u.raw_user_meta_data->>'nombre', '')::text, u.created_at
+  from auth.users u where public.es_admin() and not exists (select 1 from staff s where s.user_id = u.id)
+  order by u.created_at desc;
+$$;
+revoke all on function public.cuentas_pendientes() from public;
+grant execute on function public.cuentas_pendientes() to authenticated;
+
+create or replace function public.aprobar_staff(p_user uuid, p_nombre text, p_rol text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.es_admin() then raise exception 'solo_admin'; end if;
+  if p_rol not in ('admin', 'mesa') then raise exception 'rol_invalido'; end if;
+  insert into staff (user_id, nombre, rol) values (p_user, coalesce(nullif(trim(p_nombre), ''), 'Staff'), p_rol)
+  on conflict (user_id) do update set nombre = excluded.nombre, rol = excluded.rol;
+end;
+$$;
+revoke all on function public.aprobar_staff(uuid, text, text) from public;
+grant execute on function public.aprobar_staff(uuid, text, text) to authenticated;
+
+create or replace function public.quitar_staff(p_user uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.es_admin() then raise exception 'solo_admin'; end if;
+  if p_user = auth.uid() then raise exception 'no_a_si_mismo'; end if;
+  delete from staff where user_id = p_user;
+end;
+$$;
+revoke all on function public.quitar_staff(uuid) from public;
+grant execute on function public.quitar_staff(uuid) to authenticated;

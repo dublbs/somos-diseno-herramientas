@@ -6,7 +6,7 @@ Panel del staff para el PC del evento (plan 007). No aparece en el hub: se abre 
 - **Canje**: buscar un código y entregar el premio; stock y límite diario (solo admin los cambia).
 - **Mesas**: qué credencial entró en modo juego en cada tablet.
 - **Avisos**: mandar una notificación a todos los celulares suscritos o a una credencial; historial.
-- **Configuración**: PIN del canje (se guarda como hash en `config`) y cómo crear cuentas del staff.
+- **Configuración**: PIN del canje (se guarda como hash en `config`) y cuentas del staff: cada persona crea la suya en la pantalla de entrada («Crear cuenta»); la **primera queda como admin** y las siguientes esperan que un admin las apruebe aquí.
 
 Necesita `admin/.env.local` con `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`, y los SQL corridos en orden (`docs/supabase.md`). Sin eso muestra las instrucciones.
 
@@ -17,3 +17,5 @@ npm --prefix admin run build   # → admin/dist
 ```
 
 Roles: `admin` edita todo; `mesa` da timbres, canjea y manda avisos, pero no cambia el premio ni el PIN. Lo decide la base (`shared/supabase/juego.sql`), no la interfaz.
+
+Para que «Crear cuenta» entre al tiro, en Supabase → Authentication → Sign In / Providers debe estar **apagado** «Confirm email» (si no, cada cuenta espera un correo de confirmación).
