@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { otorgarCreacion } from '../../shared/juego';
+import { jugador, otorgarCreacion } from '../../shared/juego';
+import { miniatura, publicar } from '../../shared/datos';
 import { BOQUILLAS, GOTEO, MAX_HISTORIAL, MUROS, PALETA, SECADO, SPRAY_CONTINUO_MS, STICKERS, COLS, FILAS, type NivelGoteo } from './data/config';
 import { PLANTILLAS } from './data/stencils';
 import { cargar } from './lib/imagenes';
@@ -203,8 +204,18 @@ export const App: React.FC = () => {
 
   const vaciar = () => { guardarHistorial(); chorros.current = []; carga.current.fill(0); dibujo.current = nuevoDibujo(); redibujar(); };
   const exportar = async () => {
-    try { setTarjeta(await crearTarjeta(muro, dibujo.current)); otorgarCreacion('graffiti'); }
+    try { setTarjeta(await crearTarjeta(muro, dibujo.current)); otorgarCreacion('graffiti'); enviarAlInventario(); }
     catch { setAviso('No se pudo crear la tarjeta. Inténtalo de nuevo.'); }
+  };
+  // Con una persona jugando en la mesa, la miniatura del muro llega al inventario de su credencial (plan 010 §2b).
+  // Sin código no se manda nada: el HUB no muestra graffiti.
+  const enviarAlInventario = () => {
+    const codigo = jugador()?.codigo;
+    if (!codigo) return;
+    const c = document.createElement('canvas');
+    c.width = c.height = 240;
+    dibujarMuro(c.getContext('2d')!, 240, muro, dibujo.current);
+    publicar('graffiti', { png: miniatura(c, 160) }, codigo).catch(() => { /* sin red: queda el timbre */ });
   };
 
   const dibujar = useCallback((ctx: CanvasRenderingContext2D, lado: number) => {
