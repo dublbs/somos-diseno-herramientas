@@ -70,9 +70,12 @@ export function useLectorQR(alLeer: (texto: string) => void) {
   return { video, estado };
 }
 
-// Lo que importa de un QR leído: un afiche de la cacería o un sello de mesa (los dos son enlaces a esta app).
+// Lo que importa de un código leído: un afiche de la cacería o un sello de mesa.
 export type Lectura = { tipo: 'afiche'; secreto: string } | { tipo: 'sello'; ruta: string } | { tipo: 'otro' };
+// El sello de la cacería (plan 008 §2) trae solo `SDA:<SECRETO>`; el enlace #/afiche/<SECRETO> también sirve.
 export function interpretar(texto: string): Lectura {
+  const s = texto.trim().match(/^SDA:([A-Za-z0-9]{2,12})$/);
+  if (s) return { tipo: 'afiche', secreto: s[1].toUpperCase() };
   const a = texto.match(/#\/afiche\/([A-Za-z0-9]+)/);
   if (a) return { tipo: 'afiche', secreto: a[1].toUpperCase() };
   const i = texto.indexOf('#/sello/');

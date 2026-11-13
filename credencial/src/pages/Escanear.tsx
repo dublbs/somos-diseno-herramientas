@@ -26,7 +26,7 @@ export const Escanear: React.FC<{ ir: Ir }> = ({ ir }) => {
     const mia = miCredencial();
     if (!mia) { ir('#/crear'); return; }
     const limpio = codigo.trim().toUpperCase();
-    if (esAfiche ? limpio.length < 4 : limpio.length !== 4) { setAviso(esAfiche ? 'Escribe el código que está bajo el QR del afiche.' : 'El código tiene 4 letras o números.'); return; }
+    if (esAfiche ? limpio.length < 4 : limpio.length !== 4) { setAviso(esAfiche ? 'Escribe el código que está bajo el sello del afiche.' : 'El código tiene 4 letras o números.'); return; }
     setEnviando(true); setAviso('');
     try {
       if (esAfiche) {

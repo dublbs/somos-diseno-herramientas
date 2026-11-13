@@ -9,7 +9,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "qr:sellos": "node scripts/qr-sellos.mjs",
-    "qr:afiches": "node scripts/qr-afiches.mjs",
+    "sellos:afiches": "node scripts/sellos-afiches.mjs",
     "artifact": "node scripts/artifact.mjs",
     "limpiar:figma": "node scripts/limpiar-figma.mjs"
   },

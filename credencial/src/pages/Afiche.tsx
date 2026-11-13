@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { encontrarAfiche, miCredencial } from '../lib/store';
-import { nombreAfiche } from './Juego';
+import { nombreAfiche } from '../lib/afiches';
 import type { Ir } from '../App';
 
 // Página que abre el QR de un afiche desde la cámara del sistema: #/afiche/SECRETO (plan 008).

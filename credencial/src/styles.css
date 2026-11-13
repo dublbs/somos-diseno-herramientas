@@ -230,17 +230,24 @@ label.btn { cursor: pointer; }
 .panel-juego .ayuda b { color: var(--ink); font-family: "IBM Plex Mono", monospace; }
 .caceria { grid-template-rows: auto minmax(0, 1fr) auto auto; }
 .ranuras-afiche { min-height: 0; margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; container-type: size; }
-.ranuras-afiche li { position: relative; width: min(100%, 100cqh); aspect-ratio: 1; place-self: center; display: grid; place-items: center; border: 2px dashed var(--line); border-radius: var(--rb); background: var(--bg); color: var(--muted); overflow: hidden; }
+.ranuras-afiche li { position: relative; width: min(100%, 75cqh); aspect-ratio: 3 / 4; place-self: center; display: grid; place-items: center; border: 2px dashed var(--line); border-radius: var(--rb); background: var(--bg); color: var(--muted); overflow: hidden; }
 .ranuras-afiche li .material-symbols-outlined { font-size: 28px; opacity: .55; }
 .ranuras-afiche li.lleno { border: 2px solid var(--ink); }
 [data-visual="Orgánica"] .ranuras-afiche li { border-radius: 50%; }
-.afiche-mini { width: 100%; height: 100%; display: block; }
-[data-visual="Pixel"] .afiche-mini { image-rendering: pixelated; }
+.ranuras-afiche li img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.ranuras-afiche li > b { font: 700 13px "IBM Plex Mono", monospace; color: var(--ink); }
 .recursos { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .recursos li { min-height: 50px; min-width: 0; display: grid; place-items: center; align-content: center; gap: 2px; padding: 4px 2px; border: 2px dashed var(--line); border-radius: var(--rb); color: var(--muted); font: 600 11px/1.1 "DM Sans", sans-serif; text-align: center; }
 .recursos li > span:not(.material-symbols-outlined) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .recursos li.lleno { border: 2px solid var(--ink); background: var(--accent); color: var(--on-accent); }
 [data-visual="Pixel"] .recursos li { font: 400 9px/1.1 "Silkscreen", monospace; }
+.recursos li.con-imagen { position: relative; overflow: hidden; padding: 0; align-content: end; background: var(--ink); }
+.recursos li.con-imagen img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.recursos li.con-imagen > span:not(.sr-only) { position: relative; width: 100%; padding: 2px; background: var(--accent); color: var(--on-accent); }
+/* Lo que acaba de llegar desde una mesa */
+.recursos li.nuevo { animation: llega .9s cubic-bezier(.2, .9, .3, 1.3) both; outline: 3px solid var(--accent); outline-offset: 2px; }
+@keyframes llega { from { transform: scale(.6) rotate(-6deg); opacity: 0 } 60% { transform: scale(1.12) rotate(2deg); opacity: 1 } }
+[data-visual="Pixel"] .recursos li.nuevo { animation-timing-function: steps(5, end); }
 
 /* Cámara de la cacería: el conteo arriba y el aviso de cada afiche abajo, sobre el video. */
 .afiches .visor-cuenta { position: absolute; top: 10px; left: 10px; padding: 4px 10px; background: var(--surface); color: var(--ink); border: var(--borde); border-radius: var(--rb); font-size: 15px; }
@@ -252,5 +259,5 @@ label.btn { cursor: pointer; }
   .recursos li { min-height: 44px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .entra-izquierda, .entra-derecha, .visor-aviso { animation: none; }
+  .entra-izquierda, .entra-derecha, .visor-aviso, .recursos li.nuevo { animation: none; }
 }

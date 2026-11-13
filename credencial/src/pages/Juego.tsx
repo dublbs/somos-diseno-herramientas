@@ -1,13 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { MarcoVivo } from '../components/Pixel';
-import { obtener, progresoJuego, remoto, type ProgresoJuego } from '../lib/store';
+import { escucharCreaciones, obtener, progresoJuego, remoto, sumarCreacion, type ProgresoJuego } from '../lib/store';
 import { HACIA_JUEGO, tomarEntrada, useDeslizar } from '../lib/deslizar';
-import { MARCOS } from '../../../shared/marcos';
+import { AFICHES, aficheDe } from '../lib/afiches';
 import type { DatosCarta } from '../pixel/render';
 import type { Ir, PonerTema } from '../App';
 
 // Vista Juego (plan 008): se llega deslizando desde la credencial. Cacería de afiches (timbre 3) e inventario
-// de creación (las mesas donde la persona creó algo con su código, timbre 2).
+// de creación: lo que la persona crea en cada mesa con su código llega al momento (timbre 2).
 export const EXPERIENCIAS = [
   { app: 'vagon', nombre: 'Vagón', icono: 'train' },
   { app: 'graffiti', nombre: 'Graffiti', icono: 'format_paint' },
@@ -17,17 +16,14 @@ export const EXPERIENCIAS = [
   { app: 'grabado', nombre: 'Grabado', icono: 'texture' },
   { app: 'fotomaton', nombre: 'Fotomatón', icono: 'photo_camera' },
 ];
-
-export const nombreAfiche = (id: string) => {
-  const m = MARCOS.find(x => x.id === id);
-  return m ? `${m.name} · ${m.visual}` : `Afiche ${id}`;
-};
+const nombreExperiencia = (app: string) => EXPERIENCIAS.find(x => x.app === app)?.nombre ?? 'creación';
 
 export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema: PonerTema }> = ({ codigo, aviso, ir, ponerTema }) => {
   const [datos, setDatos] = useState<DatosCarta | null>(null);
   const [progreso, setProgreso] = useState<ProgresoJuego | null>(null);
   const [estado, setEstado] = useState(aviso || '');
   const [error, setError] = useState('');
+  const [nuevo, setNuevo] = useState(''); // la casilla que acaba de llenarse
   const [entra] = useState(tomarEntrada);
   useDeslizar(dir => { if (dir === -HACIA_JUEGO) ir(`#/c/${codigo}`); });
 
@@ -35,9 +31,18 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
     .then(([d, p]) => { setDatos(d); setProgreso(p); ponerTema(d.marco); })
     .catch(e => setError((e as Error).message)), [codigo, ponerTema]);
   useEffect(() => { cargar(); }, [cargar]);
-  // Con Supabase se refresca solo: lo que una mesa entrega aparece sin recargar.
-  useEffect(() => { if (!remoto) return; const id = setInterval(cargar, 8000); return () => clearInterval(id); }, [cargar]);
+  // Lo que se crea en una mesa llega al momento (Realtime); la credencial se vuelve a leer para ver si cayó el timbre 2.
+  useEffect(() => escucharCreaciones(codigo, c => {
+    setProgreso(p => (p ? { ...p, creaciones: sumarCreacion(p.creaciones, c) } : p));
+    setNuevo(c.app);
+    setEstado(`¡Llegó tu ${nombreExperiencia(c.app)} al inventario!`);
+    navigator.vibrate?.([50, 30, 50]);
+    obtener(codigo).then(setDatos).catch(() => { /* se reintenta con el respaldo */ });
+  }), [codigo]);
+  // Respaldo por si se corta la conexión en vivo: con Supabase, se relee cada 20 s.
+  useEffect(() => { if (!remoto) return; const id = setInterval(cargar, 20000); return () => clearInterval(id); }, [cargar]);
   useEffect(() => { if (!estado) return; const t = setTimeout(() => setEstado(''), 4000); return () => clearTimeout(t); }, [estado]);
+  useEffect(() => { if (!nuevo) return; const t = setTimeout(() => setNuevo(''), 2600); return () => clearTimeout(t); }, [nuevo]);
 
   if (error) {
     return (
@@ -50,10 +55,10 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
   }
   if (!datos || !progreso) return <main className="pantalla centrada"><p>Cargando el juego…</p></main>;
 
-  const { afiches, meta, recursos } = progreso;
+  const { afiches, meta, creaciones } = progreso;
   const encontrados = afiches.length, conTimbre3 = datos.sellos.includes(3), conTimbre2 = datos.sellos.includes(2);
   const extra = Math.max(0, encontrados - meta);
-  const tengo = new Set(recursos);
+  const llenas = EXPERIENCIAS.filter(x => creaciones[x.app]).length;
 
   return (
     <main className={'pantalla juego' + (entra ? ` entra-${entra}` : '')}>
@@ -63,22 +68,24 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
           <b className="cuenta">{Math.min(encontrados, meta)} de {meta}{extra > 0 && <small> +{extra}</small>}</b>
         </header>
         <ol className="ranuras-afiche" aria-label="Afiches encontrados">
-          {Array.from({ length: meta }, (_, i) => afiches[i]).map((id, i) => (
-            <li key={i} className={id ? 'lleno' : ''}>
-              {id ? (
-                <>
-                  <MarcoVivo marco={id} retrato={null} modo="personaje" animado={false} className="afiche-mini" />
-                  <span className="sr-only">{nombreAfiche(id)}</span>
-                </>
-              ) : (
-                <span className="material-symbols-outlined" aria-hidden="true">wallpaper</span>
-              )}
-              {!id && <span className="sr-only">Afiche {i + 1}: por encontrar</span>}
-            </li>
-          ))}
+          {Array.from({ length: meta }, (_, i) => afiches[i]).map((id, i) => {
+            const a = id ? aficheDe(id) : undefined;
+            return (
+              <li key={i} className={id ? 'lleno' : ''}>
+                {a ? <img src={a.img} alt={`Afiche ${a.nombre}`} /> : id ? <b>{id}</b> : (
+                  <>
+                    <span className="material-symbols-outlined" aria-hidden="true">wallpaper</span>
+                    <span className="sr-only">Afiche {i + 1}: por encontrar</span>
+                  </>
+                )}
+              </li>
+            );
+          })}
         </ol>
         <p className="ayuda">
-          {conTimbre3 ? '¡Timbre de Portales listo! Puedes seguir coleccionando afiches.' : 'Busca los afiches con QR por la sede y escanéalos con la cámara.'}
+          {conTimbre3
+            ? `¡Timbre de Portales listo! Colección: ${encontrados} de ${AFICHES.length} afiches.`
+            : 'Busca los afiches con el sello de la cacería por la sede y apúntales con la cámara.'}
         </p>
         <button type="button" className="btn primario" onClick={() => ir('#/afiches')}>
           <span className="material-symbols-outlined" aria-hidden="true">photo_camera</span>Buscar afiches
@@ -88,18 +95,21 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
       <section className="panel-juego inventario" aria-labelledby="titulo-inventario">
         <header>
           <h2 id="titulo-inventario">Inventario de creación</h2>
-          <b className="cuenta">{conTimbre2 ? 'Timbre listo' : `${tengo.size} de ${EXPERIENCIAS.length}`}</b>
+          <b className="cuenta">{conTimbre2 ? 'Timbre listo' : `${llenas} de ${EXPERIENCIAS.length}`}</b>
         </header>
         <ul className="recursos">
-          {EXPERIENCIAS.map(x => (
-            <li key={x.app} className={tengo.has(x.app) ? 'lleno' : ''}>
-              <span className="material-symbols-outlined" aria-hidden="true">{x.icono}</span>
-              <span>{x.nombre}</span>
-              <span className="sr-only">{tengo.has(x.app) ? ': lo tienes' : ': por crear'}</span>
-            </li>
-          ))}
+          {EXPERIENCIAS.map(x => {
+            const c = creaciones[x.app];
+            return (
+              <li key={x.app} className={(c ? 'lleno' : '') + (c?.png ? ' con-imagen' : '') + (nuevo === x.app ? ' nuevo' : '')}>
+                {c?.png ? <img src={c.png} alt="" /> : <span className="material-symbols-outlined" aria-hidden="true">{x.icono}</span>}
+                <span>{x.nombre}</span>
+                <span className="sr-only">{c ? `: lo creaste${c.escena ? ` (${c.escena})` : ''}` : ': por crear'}</span>
+              </li>
+            );
+          })}
         </ul>
-        <p className="ayuda">Crea algo en una mesa y dale tu código <b>{codigo}</b>.</p>
+        <p className="ayuda">Crea algo en una mesa y dale tu código <b>{codigo}</b>: llega aquí al momento.</p>
       </section>
 
       <p className="progreso" role="status">{estado || 'Desliza a la izquierda para volver.'}</p>

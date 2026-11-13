@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { encontrarAfiche, miCredencial, progresoJuego } from '../lib/store';
 import { interpretar, useLectorQR } from '../lib/lector';
-import { nombreAfiche } from './Juego';
+import { nombreAfiche } from '../lib/afiches';
 import type { Ir } from '../App';
 
 // Cámara de la cacería (plan 008): queda abierta mientras la persona busca. Cada afiche nuevo suma sin salir;
@@ -39,20 +39,20 @@ export const Afiches: React.FC<{ ir: Ir }> = ({ ir }) => {
     const l = interpretar(texto);
     if (l.tipo === 'afiche') probar(l.secreto);
     else if (l.tipo === 'sello') ir(l.ruta);
-    else setAviso({ texto: 'Ese QR no es de un afiche de la cacería.', tipo: 'info' });
+    else setAviso({ texto: 'Ese código no es de un afiche de la cacería.', tipo: 'info' });
   });
 
   const escrito = (e: React.FormEvent) => {
     e.preventDefault();
     const limpio = codigo.trim().toUpperCase();
-    if (limpio.length < 4) { setAviso({ texto: 'Escribe el código que está bajo el QR del afiche.', tipo: 'error' }); return; }
+    if (limpio.length < 4) { setAviso({ texto: 'Escribe el código que está bajo el sello del afiche.', tipo: 'error' }); return; }
     probar(limpio);
   };
 
-  const mensaje = estado === 'buscando' ? 'Apunta al QR del afiche' :
+  const mensaje = estado === 'buscando' ? 'Ponte de frente al sello del afiche' :
     estado === 'iniciando' ? 'Abriendo la cámara…' :
     estado === 'sin-camara' ? 'No pudimos abrir la cámara. Revisa el permiso del navegador o escribe el código.' :
-    'No pudimos cargar el lector. Escribe el código que está bajo el QR.';
+    'No pudimos cargar el lector. Escribe el código que está bajo el sello.';
 
   return (
     <main className="pantalla escanear afiches">
