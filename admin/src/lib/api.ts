@@ -34,7 +34,11 @@ export const salir = () => exigir().auth.signOut();
 export const sesionActual = async () => (await exigir().auth.getSession()).data.session;
 export const alCambiarSesion = (f: (s: Session | null) => void) => exigir().auth.onAuthStateChange((_, s) => f(s)).data.subscription;
 export async function quienSoy(): Promise<Staff | null> {
-  const { data } = await exigir().from('staff').select('user_id, nombre, rol').maybeSingle();
+  // Filtrado por el propio id: un admin ve a todo el equipo, y sin el filtro la consulta devolvería varias filas.
+  const { data: u } = await exigir().auth.getUser();
+  if (!u.user) return null;
+  const { data, error: e } = await exigir().from('staff').select('user_id, nombre, rol').eq('user_id', u.user.id).maybeSingle();
+  error(e);
   return (data as Staff | null) ?? null;
 }
 
