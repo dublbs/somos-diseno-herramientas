@@ -17,7 +17,7 @@ en vivo, Graffiti v2 y el Fotomatón conectado.
 ## Grupos que pueden ir en paralelo
 | Grupo | Tareas | Zona |
 |---|---|---|
-| A · Juego Pixel | T1 → T2 | `juego-pixel/` (nueva), después `index.html` y `hub-estacion/` |
+| A · Juego Pixel | ~~T1~~ (PR #18) → T2 | `index.html` y `hub-estacion/` |
 | B · Grabado | T3 | `grabado/` |
 | C · Audioreactiva | T4 | `audioreactiva/` |
 | D · Auditoría Fotomatón y Mosaicos | T5 | `fotomaton/`, `taller-mosaicos/` |
@@ -60,7 +60,7 @@ en vivo, Graffiti v2 y el Fotomatón conectado.
 
 ## P1 · Código (agentes)
 
-### T1 · Juego Pixel MVP (reemplaza al Vagón) · Grupo A · **14 y 15 nov**
+### T1 · Juego Pixel MVP (reemplaza al Vagón) · Grupo A · ✅ **hecha** (PR #18, «Hora punta»; falta probar en la tablet real)
 - Zona: carpeta nueva `juego-pixel/` (nombre definitivo a elegir), con el stack y el kit de siempre (`shared/ui/`).
 - Qué: juego **original** en lenguaje Pixel que combina avanzar por carriles esquivando el tráfico en un recorrido sin
   fin y atrapar a los perseguidores en una bola que se empuja para despejar el camino. Solo las mecánicas: personajes,
