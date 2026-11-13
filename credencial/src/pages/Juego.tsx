@@ -8,7 +8,7 @@ import type { Ir, PonerTema } from '../App';
 // Vista Juego (plan 010): se llega deslizando desde la credencial. Cacería de afiches (timbre 3) e inventario
 // de creación: lo que la persona crea en cada mesa con su código llega al momento (timbre 2).
 export const EXPERIENCIAS = [
-  { app: 'vagon', nombre: 'Vagón', icono: 'train' },
+  { app: 'juego', nombre: 'Juego Pixel', icono: 'route' }, // reemplaza al Vagón (plan 009 §2)
   { app: 'graffiti', nombre: 'Graffiti', icono: 'format_paint' },
   { app: 'mosaicos', nombre: 'Mosaicos', icono: 'grid_view' },
   { app: 'audioreactiva', nombre: 'Audio', icono: 'graphic_eq' },
@@ -55,7 +55,7 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
   }
   if (!datos || !progreso) return <main className="pantalla centrada"><p>Cargando el juego…</p></main>;
 
-  const { afiches, meta, creaciones } = progreso;
+  const { afiches, meta, creaciones, creacion } = progreso;
   const encontrados = afiches.length, conTimbre3 = datos.sellos.includes(3), conTimbre2 = datos.sellos.includes(2);
   const extra = Math.max(0, encontrados - meta);
   const llenas = EXPERIENCIAS.filter(x => creaciones[x.app]).length;
@@ -95,7 +95,7 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
       <section className="panel-juego inventario" aria-labelledby="titulo-inventario">
         <header>
           <h2 id="titulo-inventario">Inventario de creación</h2>
-          <b className="cuenta">{conTimbre2 ? 'Timbre listo' : `${llenas} de ${EXPERIENCIAS.length}`}</b>
+          <b className="cuenta">{conTimbre2 ? 'Timbre listo' : `${Math.min(Math.max(creacion.pasos, llenas), creacion.meta)} de ${creacion.meta}`}</b>
         </header>
         <ul className="recursos">
           {EXPERIENCIAS.map(x => {
@@ -109,7 +109,7 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
             );
           })}
         </ul>
-        <p className="ayuda">Crea algo en una mesa y dale tu código <b>{codigo}</b>: llega aquí al momento.</p>
+        <p className="ayuda">Crea en {creacion.meta} experiencias distintas con tu código <b>{codigo}</b>: cada una llega aquí al momento.</p>
       </section>
 
       <p className="progreso" role="status">{estado || 'Desliza a la izquierda para volver.'}</p>

@@ -21,7 +21,7 @@ export const Afiches: React.FC<{ ir: Ir }> = ({ ir }) => {
     ocupado.current = true;
     try {
       const r = await encontrarAfiche(mia, secreto);
-      if (r.nuevo) { ir(`#/c/${mia}`, { timbre: 3 }); return; }
+      if (r.nuevo) { ir(`#/c/${mia}`, { timbre: r.sello }); return; }
       setCuenta({ n: r.pasos, meta: r.meta });
       setCodigo('');
       navigator.vibrate?.(r.repetido ? 40 : [60, 40, 60]);
