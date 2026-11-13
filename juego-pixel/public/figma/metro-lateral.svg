@@ -1,0 +1,111 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Pixel &#194;&#183; Sistema">
+<g id="Pixel / FA08 &#194;&#183; Metro / L&#195;&#173;nea 1 &#194;&#183; lateral (patr&#195;&#179;n)" clip-path="url(#clip0_294_54606)">
+<g id="Celda 1">
+<g id="Fondo">
+<rect id="Celda" width="120" height="120" fill="#F4EEE3"/>
+</g>
+<g id="Figura">
+<g id="color negro">
+<path d="M100 120H80V40H100V120Z" fill="black"/>
+<path d="M120 120H110V20H120V120Z" fill="black"/>
+<path d="M40 110H0V40H40V110Z" fill="black"/>
+</g>
+<path id="color celeste" d="M120 10H0V0H120V10Z" fill="#7FC8F8"/>
+<g id="color hueso">
+<path d="M60 120H0V110H40V40H0V10H120V20H60V120Z" fill="#F4EEE3"/>
+<path d="M110 120H100V40H80V120H70V30H110V120Z" fill="#F4EEE3"/>
+</g>
+<path id="color morado" d="M70 120H60V20H110V30H70V120Z" fill="#7A2E8E"/>
+</g>
+</g>
+<g id="Celda 2">
+<g id="Fondo_2">
+<rect id="Celda_2" x="120" width="120" height="120" fill="#F4EEE3"/>
+</g>
+<g id="Figura_2">
+<g id="color negro_2">
+<path d="M130 120H120V20H130V120Z" fill="black"/>
+<path d="M160 120H140V40H160V120Z" fill="black"/>
+<path d="M240 110H200V40H240V110Z" fill="black"/>
+</g>
+<path id="color celeste_2" d="M240 10H120V0H240V10Z" fill="#7FC8F8"/>
+<g id="color hueso_2">
+<path d="M170 120H160V40H140V120H130V30H170V120Z" fill="#F4EEE3"/>
+<path d="M240 120H180V20H120V10H240V40H200V110H240V120Z" fill="#F4EEE3"/>
+</g>
+<path id="color morado_2" d="M180 120H170V30H130V20H180V120Z" fill="#7A2E8E"/>
+</g>
+</g>
+<g id="Celda 3">
+<g id="Fondo_3">
+<rect id="Celda_3" y="120" width="120" height="120" fill="#F4EEE3"/>
+</g>
+<g id="Figura_3">
+<g id="color rojo inacap">
+<path d="M100 180H30V170H0V150H120V170H100V180Z" fill="#E2001A"/>
+<path d="M120 140H0V130H120V140Z" fill="#E2001A"/>
+</g>
+<g id="color negro_3">
+<path d="M120 150H110V140H120V150Z" fill="black"/>
+<path d="M100 130H80V120H100V130Z" fill="black"/>
+<path d="M120 130H110V120H120V130Z" fill="black"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M120 240H0V200H110V170H120V240ZM20 210V230H50V210H20Z" fill="black"/>
+</g>
+<g id="color hueso_3">
+<path d="M60 200H0V170H30V180H60V200Z" fill="#F4EEE3"/>
+<path d="M110 200H70V180H100V170H110V200Z" fill="#F4EEE3"/>
+<path d="M60 150H0V140H60V150Z" fill="#F4EEE3"/>
+<path d="M110 150H70V140H110V150Z" fill="#F4EEE3"/>
+<path d="M60 130H0V120H60V130Z" fill="#F4EEE3"/>
+<path d="M80 130H70V120H80V130Z" fill="#F4EEE3"/>
+<path d="M110 130H100V120H110V130Z" fill="#F4EEE3"/>
+</g>
+<g id="color morado_3">
+<path d="M50 230H20V210H50V230Z" fill="#7A2E8E"/>
+<path d="M70 200H60V180H70V200Z" fill="#7A2E8E"/>
+<path d="M70 150H60V140H70V150Z" fill="#7A2E8E"/>
+<path d="M70 130H60V120H70V130Z" fill="#7A2E8E"/>
+</g>
+</g>
+</g>
+<g id="Celda 4">
+<g id="Fondo_4">
+<rect id="Celda_4" x="120" y="120" width="120" height="120" fill="#F4EEE3"/>
+</g>
+<g id="Figura_4">
+<g id="color rojo inacap_2">
+<path d="M220 180H140V170H120V150H240V170H220V180Z" fill="#E2001A"/>
+<path d="M240 140H120V130H240V140Z" fill="#E2001A"/>
+</g>
+<g id="color negro_4">
+<path d="M130 150H120V140H130V150Z" fill="black"/>
+<path d="M160 130H140V120H160V130Z" fill="black"/>
+<path d="M130 130H120V120H130V130Z" fill="black"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M240 240H120V170H130V200H240V240ZM190 210V230H220V210H190Z" fill="black"/>
+</g>
+<g id="color hueso_4">
+<path d="M170 200H130V170H140V180H170V200Z" fill="#F4EEE3"/>
+<path d="M240 200H180V180H220V170H240V200Z" fill="#F4EEE3"/>
+<path d="M170 150H130V140H170V150Z" fill="#F4EEE3"/>
+<path d="M240 150H180V140H240V150Z" fill="#F4EEE3"/>
+<path d="M140 130H130V120H140V130Z" fill="#F4EEE3"/>
+<path d="M170 130H160V120H170V130Z" fill="#F4EEE3"/>
+<path d="M240 130H180V120H240V130Z" fill="#F4EEE3"/>
+</g>
+<g id="color morado_4">
+<path d="M220 230H190V210H220V230Z" fill="#7A2E8E"/>
+<path d="M180 200H170V180H180V200Z" fill="#7A2E8E"/>
+<path d="M180 150H170V140H180V150Z" fill="#7A2E8E"/>
+<path d="M180 130H170V120H180V130Z" fill="#7A2E8E"/>
+</g>
+</g>
+</g>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_294_54606">
+<rect width="240" height="240" fill="white"/>
+</clipPath>
+</defs>
+</svg>

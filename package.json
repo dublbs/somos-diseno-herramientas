@@ -13,6 +13,7 @@
     "dev:loops": "npm --prefix loops run dev",
     "dev:loops:tablet": "npm --prefix loops run dev:tablet",
     "dev:graffiti": "npm --prefix graffiti run dev",
+    "dev:juego-pixel": "npm --prefix juego-pixel run dev",
     "dev:graffiti:tablet": "npm --prefix graffiti run dev:tablet",
     "dev:credencial": "npm --prefix credencial run dev",
     "dev:credencial:movil": "npm --prefix credencial run dev:movil",
@@ -26,13 +27,14 @@
     "build:mosaicos": "npm --prefix taller-mosaicos run build",
     "build:loops": "npm --prefix loops run build",
     "build:graffiti": "npm --prefix graffiti run build",
+    "build:juego-pixel": "npm --prefix juego-pixel run build",
     "build:credencial": "npm --prefix credencial run build",
     "build:hub-estacion": "npm --prefix hub-estacion run build",
     "build:audioreactiva": "npm --prefix audioreactiva run build",
     "build:grabado": "npm --prefix grabado run build",
     "build:vagon": "npm --prefix vagon run build",
     "build:admin": "npm --prefix admin run build",
-    "build": "npm run build:fotomaton && npm run build:mosaicos && npm run build:loops && npm run build:graffiti && npm run build:credencial && npm run build:hub-estacion && npm run build:audioreactiva && npm run build:grabado && npm run build:vagon && npm run build:admin",
+    "build": "npm run build:fotomaton && npm run build:mosaicos && npm run build:loops && npm run build:graffiti && npm run build:credencial && npm run build:hub-estacion && npm run build:audioreactiva && npm run build:grabado && npm run build:vagon && npm run build:juego-pixel && npm run build:admin",
     "build:all": "npm run build"
   },
   "devDependencies": {
