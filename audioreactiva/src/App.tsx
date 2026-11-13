@@ -6,7 +6,8 @@ import { CANALES, ESCENAS, estadoInicial, mezclar, type Canal } from './escenas/
 import { BarraSuperior, BotonAccion, Deslizador, Interruptor, PantallaHerramienta, Seccion, Segmentado } from '../../shared/ui/Kit';
 import { Quiosco, Tutorial } from '../../shared/ui/Tutorial';
 import '../../shared/ui/somos-kit.css';
-import { descargar, grabarEnVivo, puedeGrabar } from './lib/archivos';
+import { grabarEnVivo, puedeGrabar } from './lib/archivos';
+import { Llevatela } from '../../shared/ui/Llevatela';
 import './styles.css';
 
 const QUIETO = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
@@ -18,6 +19,7 @@ export const App: React.FC = () => {
   const [empezado, setEmpezado] = useState(false);
   const [fuente, setFuente] = useState<Fuente | null>(null);
   const [aviso, setAviso] = useState('');
+  const [llevar, setLlevar] = useState<Blob | null>(null); // «Llévatela» con QR (plan 011)
   const [escenaId, setEscenaId] = useState(ESCENAS[0].id);
   const [mudos, setMudos] = useState<Set<Canal>>(new Set());
   const [sensibilidad, setSensibilidad] = useState(1);
@@ -75,12 +77,12 @@ export const App: React.FC = () => {
 
   const elegirEscena = (id: string) => { setEscenaId(id); vivo.current.estado = estadoInicial(); };
 
-  const png = () => lienzo.current!.toBlob(b => b && descargar(b, `audioreactiva-${escenaId}.png`), 'image/png');
+  const png = () => lienzo.current!.toBlob(b => b && setLlevar(b), 'image/png');
   const grabar = async () => {
     setGrabando(0.001);
     try {
-      const { blob, ext } = await grabarEnVivo(lienzo.current!, SEG_LOOP, 25, setGrabando);
-      descargar(blob, `audioreactiva-${escenaId}.${ext}`);
+      const { blob } = await grabarEnVivo(lienzo.current!, SEG_LOOP, 25, setGrabando);
+      setLlevar(blob);
       publicar('audio', { escena: escenaId }, jugador()?.codigo ?? null).catch(() => { /* sin red */ });
       otorgarCreacion('audioreactiva');
     } catch (e) { setAviso((e as Error).message); }
@@ -108,7 +110,7 @@ export const App: React.FC = () => {
       anchoLateral={320}
       superior={
         <BarraSuperior titulo="Estación Audioreactiva" bajada={`${escena.nombre} · ${escena.base} · ${fuente === 'microfono' ? 'micrófono' : 'música de demo'}`}>
-          <BotonAccion icono="image" texto="PNG" etiqueta="Descargar un cuadro en PNG" onClick={png} disabled={!!grabando} />
+          <BotonAccion icono="image" texto="PNG" etiqueta="Llevarte un cuadro como imagen" onClick={png} disabled={!!grabando} />
           <BotonAccion icono="movie" primario onClick={grabar} disabled={!!grabando || !puedeGrabar()}
             texto={grabando ? `Grabando… ${Math.round(grabando * 100)} %` : `Grabar ${SEG_LOOP} s`} />
         </BarraSuperior>
@@ -167,6 +169,7 @@ export const App: React.FC = () => {
         </div>
       </div>
     </PantallaHerramienta>
+    {llevar && <Llevatela blob={llevar} app="audioreactiva" titulo={llevar.type.startsWith('video/') ? 'Tu loop está listo' : 'Tu cuadro está listo'} conCredencial={!!jugador()?.codigo} alCerrar={() => setLlevar(null)} />}
     <Quiosco app="audioreactiva" alReiniciar={() => location.reload()} />
   </>);
 };

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { CODIGO, EVENTO_TIMBRE, entrarJugador, guardarConfig, hashPin, jugador, leerConfig, normalizarCodigo, pinDeDemo, verificarPin, type ConfigMesa, type DetalleCreacion } from '../juego';
+import { CODIGO, EVENTO_TIMBRE, entrarJugador, entrarSinCredencial, sinCredencial, guardarConfig, hashPin, jugador, leerConfig, normalizarCodigo, pinDeDemo, verificarPin, type ConfigMesa, type DetalleCreacion } from '../juego';
 import { BotonAccion, Interruptor } from './Kit';
 
-// Modo juego en las mesas: la tablet pide el código de la credencial, otorga el timbre 2 al exportar y el staff
+// Modo juego en las mesas: la tablet pide el código de la credencial (o se juega sin ella, plan 011), otorga el timbre 2 al exportar y el staff
 // la configura con su PIN (?staff en la URL). Envuelve la experiencia completa.
 
 const Icono: React.FC<{ nombre: string }> = ({ nombre }) => <span className="material-symbols-outlined" aria-hidden="true">{nombre}</span>;
@@ -11,6 +11,7 @@ const esStaff = () => new URLSearchParams(location.search).has('staff');
 export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string; children: React.ReactNode }> = ({ app, titulo, visual, children }) => {
   const [config, setConfig] = useState<ConfigMesa>(leerConfig);
   const [codigo, setCodigo] = useState(() => jugador()?.codigo ?? null);
+  const [libre, setLibre] = useState(sinCredencial);
   const [ganado, setGanado] = useState<DetalleCreacion | null>(null);
   const [staff, setStaff] = useState(esStaff);
 
@@ -22,7 +23,7 @@ export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string
   }, []);
 
   if (staff) return <PanelStaff app={app} alSalir={() => { setConfig(leerConfig()); setStaff(false); history.replaceState(null, '', location.pathname); }} />;
-  if (config.modoJuego && !codigo) return <Desbloqueo titulo={titulo} alEntrar={c => { entrarJugador(c, app); setCodigo(c); }} alStaff={() => setStaff(true)} />;
+  if (config.modoJuego && !codigo && !libre) return <Desbloqueo titulo={titulo} alEntrar={c => { entrarJugador(c, app); setCodigo(c); }} alSinCredencial={() => { entrarSinCredencial(); setLibre(true); }} alStaff={() => setStaff(true)} />;
   return (<>
     {children}
     {ganado && (
@@ -47,7 +48,7 @@ export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string
   </>);
 };
 
-const Desbloqueo: React.FC<{ titulo: string; alEntrar: (codigo: string) => void; alStaff: () => void }> = ({ titulo, alEntrar, alStaff }) => {
+const Desbloqueo: React.FC<{ titulo: string; alEntrar: (codigo: string) => void; alSinCredencial: () => void; alStaff: () => void }> = ({ titulo, alEntrar, alSinCredencial, alStaff }) => {
   const [valor, setValor] = useState('SD-');
   const [error, setError] = useState('');
   const entrar = (e: React.FormEvent) => {
@@ -69,10 +70,11 @@ const Desbloqueo: React.FC<{ titulo: string; alEntrar: (codigo: string) => void;
           {error && <p id="codigo-error" className="k-ayuda k-juego-error" role="alert">{error}</p>}
           <div className="k-tutorial-acciones">
             <button type="submit" className="k-btn k-primario"><Icono nombre="check" />Entrar</button>
+            <BotonAccion icono="play_arrow" texto="Jugar sin credencial" onClick={alSinCredencial} />
             <BotonAccion icono="tune" texto="Staff" onClick={alStaff} />
           </div>
         </form>
-        <p className="k-ayuda">Al terminar y exportar tu creación ganas el timbre Creación. ¿No tienes credencial? Créala en tu celular desde el QR de la entrada.</p>
+        <p className="k-ayuda">Con tu credencial, lo que crees suma al timbre Creación y llega a tu inventario. Sin credencial igual juegas y te llevas tu creación con un QR; los timbres solo suman con credencial. ¿Quieres una? Créala en tu celular desde el QR de la entrada.</p>
       </main>
     </div>
   );

@@ -21,7 +21,7 @@ export type Tipo = keyof Datos;
 export interface Evento<T extends Tipo = Tipo> { id: string; tipo: T; codigo: string | null; datos: Datos[T]; creado: number }
 
 const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env ?? {};
-const URL_SB = env.VITE_SUPABASE_URL, CLAVE = env.VITE_SUPABASE_ANON_KEY;
+export const URL_SB = env.VITE_SUPABASE_URL, CLAVE = env.VITE_SUPABASE_ANON_KEY;
 export const remoto = Boolean(URL_SB && CLAVE);
 
 // ---------- local ----------
@@ -38,7 +38,7 @@ function guardarLocal(lista: Evento[]) {
 
 // ---------- Supabase (REST) ----------
 // Con las claves nuevas (sb_publishable_…) solo va `apikey`; con las JWT antiguas (eyJ…) también `Authorization`.
-const cabeceras = () => ({ apikey: CLAVE!, ...(CLAVE!.startsWith('eyJ') ? { Authorization: `Bearer ${CLAVE}` } : {}), 'Content-Type': 'application/json' });
+export const cabeceras = () => ({ apikey: CLAVE!, ...(CLAVE!.startsWith('eyJ') ? { Authorization: `Bearer ${CLAVE}` } : {}), 'Content-Type': 'application/json' });
 interface Fila { id: number; tipo: Tipo; codigo: string | null; datos: Datos[Tipo]; creado: string }
 const deFila = (f: Fila): Evento => ({ id: String(f.id), tipo: f.tipo, codigo: f.codigo, datos: f.datos, creado: Date.parse(f.creado) });
 
