@@ -26,8 +26,8 @@ select id, nombre, token from public.sellos_def order by id;
 ```
 
 ## 2b. Staff, PIN y avisos (plan 007)
-- **Cuentas del staff**: Authentication → Users → Add user (correo y contraseña). Después, en SQL Editor:
-  `insert into staff (user_id, nombre, rol) values ('<uuid>', 'Nombre', 'admin');` (`admin` edita todo; `mesa` da timbres, canjea y manda avisos).
+- **Cuentas del staff**: se crean desde el PC madre («Crear cuenta» en la pantalla de entrada). La primera cuenta queda como admin; las demás las aprueba un admin en Configuración (`admin` edita todo; `mesa` da timbres, canjea y manda avisos). Para que entren al tiro, apaga «Confirm email» en Authentication → Sign In / Providers.
+- **Proyecto del evento (nov 2026)**: `somos-diseno`, ref `opvwftwvfdhhrqwpjvlx`, en la org de dublbs. Los tres SQL y la función `notificar` ya están corridos; faltan los secretos VAPID.
 - **PIN del canje**: se guarda desde el PC madre (Configuración). Con Supabase, el PIN lo valida el servidor; `VITE_STAFF_PIN_SHA256` sigue sirviendo para la configuración de las tablets.
 - **Avisos (Web Push)**: genera las claves una vez con `npx web-push generate-vapid-keys`. La pública va en `credencial/.env.local` como `VITE_VAPID_PUBLIC_KEY`; las dos y el contacto van como secretos de la función:
   `supabase secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=... VAPID_SUBJECT=mailto:correo@del.equipo` y `supabase functions deploy notificar --workdir shared`.

@@ -24,6 +24,12 @@ export async function entrar(email: string, password: string): Promise<Session> 
   error(e);
   return data.session!;
 }
+// Crear cuenta desde el panel: la primera queda como admin (trigger en juego.sql); las demás esperan aprobación.
+export async function registrarse(email: string, password: string, nombre: string): Promise<{ sesion: boolean }> {
+  const { data, error: e } = await exigir().auth.signUp({ email, password, options: { data: { nombre: nombre.trim() } } });
+  error(e);
+  return { sesion: Boolean(data.session) };
+}
 export const salir = () => exigir().auth.signOut();
 export const sesionActual = async () => (await exigir().auth.getSession()).data.session;
 export const alCambiarSesion = (f: (s: Session | null) => void) => exigir().auth.onAuthStateChange((_, s) => f(s)).data.subscription;
@@ -115,6 +121,25 @@ export async function guardarPin(pin: string) {
 export async function hayPin(): Promise<boolean> {
   const { data } = await exigir().from('config').select('clave').eq('clave', 'pin_staff_sha256').maybeSingle();
   return Boolean(data);
+}
+
+// ---------- cuentas del staff (solo admin) ----------
+export interface Pendiente { user_id: string; email: string; nombre: string; creado: string }
+export async function pendientes(): Promise<Pendiente[]> {
+  const { data, error: e } = await exigir().rpc('cuentas_pendientes');
+  error(e);
+  return (data as Pendiente[]) ?? [];
+}
+export async function listaStaff(): Promise<Staff[]> {
+  const { data, error: e } = await exigir().from('staff').select('user_id, nombre, rol').order('creado');
+  error(e);
+  return (data as Staff[]) ?? [];
+}
+export async function aprobar(user_id: string, nombre: string, rol: 'admin' | 'mesa') {
+  error((await exigir().rpc('aprobar_staff', { p_user: user_id, p_nombre: nombre, p_rol: rol })).error);
+}
+export async function quitar(user_id: string) {
+  error((await exigir().rpc('quitar_staff', { p_user: user_id })).error);
 }
 
 // ---------- en vivo ----------
