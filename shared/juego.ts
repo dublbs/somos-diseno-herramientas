@@ -6,11 +6,12 @@ import { abrirSesionMesa, publicar, remoto, sellarRemoto } from './datos';
 // de demo es 0000 y la interfaz lo dice.
 
 // Las 4 estaciones de timbres: qué otorga cada una. La 4 queda apagada hasta que se decida el hallazgo 3D.
+// `como` se lee en el álbum de la credencial (texto chico): frases cortas, en segunda persona (plan 010).
 export interface Estacion { n: number; nombre: string; como: string; activa: boolean }
 export const ESTACIONES: Estacion[] = [
   { n: 1, nombre: 'Inscripción', como: 'Al crear tu credencial', activa: true },
-  { n: 2, nombre: 'Creación', como: 'Crea algo en una mesa y mándalo al HUB', activa: true },
-  { n: 3, nombre: 'Portales', como: 'Escanea los afiches de los portales AR', activa: true },
+  { n: 2, nombre: 'Creación', como: 'Crea algo en una mesa', activa: true },
+  { n: 3, nombre: 'Portales', como: 'Encuentra 3 afiches', activa: true },
   { n: 4, nombre: 'Hallazgo 3D', como: 'Muy pronto', activa: false },
 ];
 export const ACTIVAS = ESTACIONES.filter(e => e.activa).map(e => e.n);

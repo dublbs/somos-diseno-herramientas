@@ -1,66 +1,49 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { sellar, miCredencial } from '../lib/store';
+import React, { useState } from 'react';
+import { sellar, miCredencial, encontrarAfiche, AFICHE_SELLO } from '../lib/store';
+import { interpretar, useLectorQR } from '../lib/lector';
 import { SELLOS } from '../pixel/render';
 import { ESTACIONES } from '../../../shared/juego';
 import type { Ir } from '../App';
 
-// Lector de QR con la API nativa BarcodeDetector (Chrome/Android). Si el navegador no la tiene,
-// se explica cómo usar la cámara del teléfono: el QR del sello es un enlace y abre esta misma app.
-// Siempre queda el código corto impreso bajo cada QR (sirve en iPhone y dentro de claude.ai).
-interface Detector { detect: (fuente: CanvasImageSource) => Promise<{ rawValue: string }[]> }
-declare global { interface Window { BarcodeDetector?: new (opciones: { formats: string[] }) => Detector } }
-
+// Timbrar: lee el QR de un sello o de un afiche con la cámara (BarcodeDetector o jsQR, ver lib/lector.ts),
+// o se escribe el código que está bajo el QR. En la estación 3 (Portales) el código es el del afiche.
 export const Escanear: React.FC<{ ir: Ir }> = ({ ir }) => {
-  const video = useRef<HTMLVideoElement>(null);
-  const [estado, setEstado] = useState<'iniciando' | 'buscando' | 'sin-soporte' | 'sin-camara'>('iniciando');
   const [sello, setSello] = useState(2);
   const [codigo, setCodigo] = useState('');
   const [aviso, setAviso] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const esAfiche = sello === AFICHE_SELLO;
+
+  const { video, estado } = useLectorQR(texto => {
+    const l = interpretar(texto);
+    if (l.tipo === 'sello') ir(l.ruta);
+    else if (l.tipo === 'afiche') ir(`#/afiche/${l.secreto}`);
+    else setAviso('Ese QR no es de un timbre ni de un afiche.');
+  });
 
   const sellarConCodigo = async (e: React.FormEvent) => {
     e.preventDefault();
     const mia = miCredencial();
     if (!mia) { ir('#/crear'); return; }
     const limpio = codigo.trim().toUpperCase();
-    if (limpio.length !== 4) { setAviso('El código tiene 4 letras o números.'); return; }
+    if (esAfiche ? limpio.length < 4 : limpio.length !== 4) { setAviso(esAfiche ? 'Escribe el código que está bajo el sello del afiche.' : 'El código tiene 4 letras o números.'); return; }
     setEnviando(true); setAviso('');
     try {
-      // Escribir el código a mano cuenta como un paso sin afiche: sirve cuando la estación tiene meta 1.
+      if (esAfiche) {
+        const r = await encontrarAfiche(mia, limpio);
+        if (r.nuevo) ir(`#/c/${mia}`, { timbre: AFICHE_SELLO });
+        else ir('#/juego', { aviso: r.repetido ? 'Ya tenías ese afiche.' : `¡Afiche encontrado! ${r.pasos} de ${r.meta}` });
+        return;
+      }
       const r = await sellar(mia, sello, limpio);
       if (r.nuevo) ir(`#/c/${mia}`, { timbre: sello });
-      else if (!r.otorgado) ir(`#/c/${mia}`, { aviso: `${r.pasos} de ${r.meta} para el timbre ${sello}. Escanea los QR de los afiches.` });
+      else if (!r.otorgado) ir(`#/c/${mia}`, { aviso: `${r.pasos} de ${r.meta} para el timbre ${sello}.` });
       else ir(`#/c/${mia}`, { aviso: 'Ese timbre ya está en tu credencial.' });
     } catch (err) {
       setAviso((err as Error).message);
       setEnviando(false);
     }
   };
-
-  useEffect(() => {
-    if (!window.BarcodeDetector) { setEstado('sin-soporte'); return; }
-    const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
-    let flujo: MediaStream | null = null, vivo = true, temporizador = 0;
-    navigator.mediaDevices?.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
-      .then(s => {
-        flujo = s;
-        if (!vivo || !video.current) return;
-        video.current.srcObject = s;
-        setEstado('buscando');
-        const mirar = async () => {
-          if (!vivo || !video.current) return;
-          try {
-            const [r] = await detector.detect(video.current);
-            const i = r?.rawValue.indexOf('#/sello/') ?? -1;
-            if (r && i >= 0) { ir(r.rawValue.slice(i)); return; }
-          } catch { /* cuadro sin datos */ }
-          temporizador = window.setTimeout(mirar, 250);
-        };
-        mirar();
-      })
-      .catch(() => setEstado('sin-camara'));
-    return () => { vivo = false; clearTimeout(temporizador); flujo?.getTracks().forEach(t => t.stop()); };
-  }, [ir]);
 
   return (
     <main className="pantalla escanear">
@@ -78,7 +61,7 @@ export const Escanear: React.FC<{ ir: Ir }> = ({ ir }) => {
         {estado === 'buscando' ? 'Apunta al QR del timbre' :
          estado === 'iniciando' ? 'Abriendo la cámara…' :
          estado === 'sin-camara' ? 'No pudimos abrir la cámara. Revisa el permiso del navegador.' :
-         'Apunta la cámara de tu teléfono al QR del timbre, o elige la estación y escribe el código que está bajo el QR.'}
+         'No pudimos cargar el lector. Elige la estación y escribe el código que está bajo el QR.'}
       </p>
       <form className="codigo-sello" onSubmit={sellarConCodigo}>
         <div className="seg-movil cuatro" role="radiogroup" aria-label="Número de estación">
@@ -88,14 +71,14 @@ export const Escanear: React.FC<{ ir: Ir }> = ({ ir }) => {
         </div>
         <p className="estacion-elegida"><b>{ESTACIONES[sello - 1].nombre}</b> · {ESTACIONES[sello - 1].como}</p>
         <div className="pie-movil">
-          <input id="codigo-sello" value={codigo} onChange={e => setCodigo(e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 4))}
-            autoComplete="off" autoCapitalize="characters" placeholder="Código" aria-label="Código del timbre" />
+          <input id="codigo-sello" value={codigo} onChange={e => setCodigo(e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, esAfiche ? 6 : 4))}
+            autoComplete="off" autoCapitalize="characters" placeholder={esAfiche ? 'Código del afiche' : 'Código'} aria-label={esAfiche ? 'Código del afiche' : 'Código del timbre'} />
           <button className="btn primario" disabled={enviando}>{enviando ? 'Timbrando…' : 'Timbrar'}</button>
         </div>
         {aviso && <p className="aviso-movil" role="alert">{aviso}</p>}
       </form>
       <div className="acciones-movil">
-        <button type="button" className="btn" onClick={() => ir('#/')}>Volver a mi credencial</button>
+        <button type="button" className="btn" onClick={() => ir('#/juego')}>Volver al juego</button>
       </div>
     </main>
   );
