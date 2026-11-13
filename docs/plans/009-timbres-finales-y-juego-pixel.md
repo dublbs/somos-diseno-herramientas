@@ -7,19 +7,19 @@ El juego de la credencial queda con sus 4 timbres definitivos, el Vagón se reem
 ## 0. Qué cambia respecto de planes anteriores
 | Antes | Ahora | Dónde estaba |
 |---|---|---|
-| Timbre 2 «Creación»: **una** creación en una mesa | Crear en **4 experiencias distintas**, aunque sean en la misma mesa (§1) | Plan 005 bloque D, plan 008 §2b |
-| Timbre 3 «Portales» | Se llama **«Cacería»**: encuentra 3 afiches en la sede (mecánica del plan 008, sin cambios) | Plan 004 §8, plan 008 |
+| Timbre 2 «Creación»: **una** creación en una mesa | Crear en **4 experiencias distintas**, aunque sean en la misma mesa (§1) | Plan 005 bloque D, plan 010 §2b |
+| Timbre 3 «Portales» | Se llama **«Cacería»**: encuentra 3 afiches en la sede (mecánica del plan 010, sin cambios) | Plan 004 §8, plan 010 |
 | Timbre 4 «Hallazgo 3D», apagado | **«Secreto»**: la pelea con el jefe final (Inacapino). Si la producción no llega, se reemplaza **ese mismo día** por una actividad simple (plan B, §1) | Plan 004 §8, plan 005 |
 | Pixel → **Vagón** (pintas un carro que pasa por el andén del HUB) | **Juego Pixel** original que mezcla mecánicas de Snow Bros y Crossy Road (§2). El Vagón sale del hub; en el HUB los trenes siguen llegando y partiendo, **sin rayados** | Plan 004 §8, plan 005 |
 | Canje: credencial completa = timbres 1, 2 y 3 | Completa = **1, 2, 3 y 4** | `canjear()` en `shared/supabase/juego.sql` |
-| Orden: jefe final después del plan 008 | **Primero** la ronda de refinamiento (§3), después el jefe | — |
+| Orden: jefe final después del plan 010 | **Primero** la ronda de refinamiento (§3), después el jefe | — |
 
 ## 1. Los 4 timbres
 | # | Nombre | En el álbum («cómo») | Regla | Cómo se otorga |
 |---|---|---|---|---|
 | 1 | Inscripción | Al crear tu credencial | Crear la credencial | Igual que hoy (trigger en `credenciales`) |
 | 2 | Creación | Crea en 4 experiencias | **4 experiencias distintas** (pueden ser en la misma mesa) | Cada experiencia anota un **paso** con su nombre al exportar; `sellos_def.meta = 4` |
-| 3 | Cacería | Encuentra 3 afiches | 3 afiches distintos | Sello de la cacería (plan 008) |
+| 3 | Cacería | Encuentra 3 afiches | 3 afiches distintos | Sello de la cacería (plan 010) |
 | 4 | Secreto | ??? (se revela al ganarlo) | Vencer al jefe final | Lo define el plan del jefe. Plan B abajo |
 
 **Timbre 2 con meta 4 (técnico).** Hoy cada mesa timbra con la firma vieja de `sellar()` (paso `'unico'`), una vez por sesión. Pasa a:
@@ -30,7 +30,7 @@ El juego de la credencial queda con sus 4 timbres definitivos, el Vagón se reem
 - La vista Juego de la credencial muestra «n de 4» en el inventario, y la casilla del Vagón pasa a ser la del juego Pixel.
 - Sin Supabase (plan B sin red), la mesa sigue mostrando el código de la estación 2 para escribirlo a mano: cuenta como **un** paso.
 
-**Plan B del Secreto (listo para usar sin código nuevo).** Si el jefe no está a tiempo, el timbre 4 se gana con un **sello secreto**: un solo sello de la cacería (mismo sistema del plan 008) asignado al timbre 4. Puede llevarlo Inacapino disfrazado, un staff o aparecer en la pantalla del HUB a cierta hora. La tabla `afiches` ya tiene la columna `sello`: basta con `insert into afiches (id, nombre, lenguaje, sello) values ('SECRETO', 'Secreto', 'Pixel', 4);` y generar su sello.
+**Plan B del Secreto (listo para usar sin código nuevo).** Si el jefe no está a tiempo, el timbre 4 se gana con un **sello secreto**: un solo sello de la cacería (mismo sistema del plan 010) asignado al timbre 4. Puede llevarlo Inacapino disfrazado, un staff o aparecer en la pantalla del HUB a cierta hora. La tabla `afiches` ya tiene la columna `sello`: basta con `insert into afiches (id, nombre, lenguaje, sello) values ('SECRETO', 'Secreto', 'Pixel', 4);` y generar su sello.
 
 ## 2. Juego Pixel (reemplaza al Vagón)
 - **Qué es:** un juego **original** en lenguaje Pixel que combina dos mecánicas:
