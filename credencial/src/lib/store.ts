@@ -99,7 +99,8 @@ export async function sellar(codigo: string, sello: number, token: string, clave
 // En modo demo, el secreto del afiche es su id (AF05; sello SDA:AF05) y los pasos quedan en este celular.
 export const AFICHE_SELLO = 3;
 const META_DEMO = 3;
-export interface ResultadoAfiche extends ResultadoSello { afiche: string; repetido: boolean }
+// sello: el timbre del afiche (3 en la cacería; 4 si es el sello secreto del plan B, plan 009).
+export interface ResultadoAfiche extends ResultadoSello { afiche: string; repetido: boolean; sello: number }
 
 export async function encontrarAfiche(codigo: string, secreto: string): Promise<ResultadoAfiche> {
   const limpio = secreto.trim().toUpperCase();
@@ -111,9 +112,10 @@ export async function encontrarAfiche(codigo: string, secreto: string): Promise<
       if (/encontrar_afiche|function/i.test(error.message)) throw new Error('La cacería de afiches todavía no está abierta.');
       throw new Error(error.message);
     }
-    const r = data as { pasos: number; meta: number; sello_otorgado: boolean; nuevo: boolean; afiche: string; repetido: boolean };
-    if (r.nuevo) publicar('timbre', { sello: AFICHE_SELLO }, codigo).catch(() => { /* sin red */ });
-    return { pasos: r.pasos, meta: r.meta, otorgado: r.sello_otorgado, nuevo: r.nuevo, afiche: r.afiche, repetido: r.repetido };
+    const r = data as { pasos: number; meta: number; sello_otorgado: boolean; nuevo: boolean; afiche: string; repetido: boolean; sello?: number };
+    const sello = r.sello ?? AFICHE_SELLO;
+    if (r.nuevo) publicar('timbre', { sello }, codigo).catch(() => { /* sin red */ });
+    return { pasos: r.pasos, meta: r.meta, otorgado: r.sello_otorgado, nuevo: r.nuevo, afiche: r.afiche, repetido: r.repetido, sello };
   }
   if (!aficheDe(limpio)) throw new Error('Ese código no es de un afiche de la cacería.');
   const db = leer();
@@ -126,18 +128,21 @@ export async function encontrarAfiche(codigo: string, secreto: string): Promise<
   const nuevo = pasos.length >= META_DEMO && !c.sellos.includes(AFICHE_SELLO);
   if (nuevo) { c.sellos = [...c.sellos, AFICHE_SELLO].sort(); publicar('timbre', { sello: AFICHE_SELLO }, codigo).catch(() => { /* sin red */ }); }
   escribir(db);
-  return { pasos: pasos.length, meta: META_DEMO, otorgado: c.sellos.includes(AFICHE_SELLO), nuevo, afiche: limpio, repetido };
+  return { pasos: pasos.length, meta: META_DEMO, otorgado: c.sellos.includes(AFICHE_SELLO), nuevo, afiche: limpio, repetido, sello: AFICHE_SELLO };
 }
 
 // Lo que muestra la vista Juego: afiches encontrados (en orden), la meta de la cacería y el inventario de
 // creación: lo que la persona hizo en cada mesa con su código, según los eventos que publican las mesas (plan 010 §2b).
 export interface Creacion { app: string; png?: string; escena?: string; creado: number }
-export interface ProgresoJuego { afiches: string[]; meta: number; creaciones: Record<string, Creacion> }
+// creacion: experiencias distintas que ya sumaron al timbre 2 (plan 009: 4 distintas).
+export interface ProgresoJuego { afiches: string[]; meta: number; creaciones: Record<string, Creacion>; creacion: { pasos: number; meta: number } }
+const META_CREACION = 4;
 
 // Cada evento de una mesa con el código de la persona dice en qué experiencia creó algo (y, si la hay, su miniatura).
 // 'graffiti' lo acepta la migración 002 (PR amaro/inventario-graffiti); mientras no exista, simplemente no hay filas.
 const TIPOS_CREACION: readonly string[] = ['timbre', 'vagon', 'mosaico', 'grabado', 'audio', 'graffiti'];
-const APP_DE: Record<string, string> = { vagon: 'vagon', mosaico: 'mosaicos', grabado: 'grabado', audio: 'audioreactiva', graffiti: 'graffiti' };
+// El Vagón ya no es una experiencia (plan 009): sus eventos no van al inventario.
+const APP_DE: Record<string, string> = { mosaico: 'mosaicos', grabado: 'grabado', audio: 'audioreactiva', graffiti: 'graffiti' };
 type FilaEvento = { tipo: string; datos: Record<string, unknown>; creado: number };
 export function creacionDe(e: FilaEvento): Creacion | null {
   const d = e.datos || {};
@@ -161,17 +166,21 @@ export async function progresoJuego(codigo: string): Promise<ProgresoJuego> {
       sb.rpc('metas'),
       sb.from('eventos').select('tipo,datos,creado').in('tipo', TIPOS_CREACION).eq('codigo', codigo).order('creado', { ascending: false }).limit(100),
     ]);
-    const filas = ((pasos.data?.pasos as { sello: number; clave: string; creado: string }[] | undefined) ?? [])
+    const todos = (pasos.data?.pasos as { sello: number; clave: string; creado: string }[] | undefined) ?? [];
+    const filas = todos
       .filter(p => p.sello === AFICHE_SELLO && p.clave !== 'unico')
       .sort((a, b) => a.creado.localeCompare(b.creado));
     // Sin la migración 001 todavía, metas() no existe: la cacería pide 3 (plan 004).
-    const meta = (metas.data as { id: number; meta: number }[] | null)?.find(m => m.id === AFICHE_SELLO)?.meta ?? META_DEMO;
+    const lista = metas.data as { id: number; meta: number }[] | null;
+    const meta = lista?.find(m => m.id === AFICHE_SELLO)?.meta ?? META_DEMO;
+    const metaCreacion = lista?.find(m => m.id === 2)?.meta ?? META_CREACION;
     const ev = ((eventos.data ?? []) as { tipo: string; datos: Record<string, unknown>; creado: string }[]).map(e => ({ ...e, creado: Date.parse(e.creado) }));
-    return { afiches: filas.map(p => p.clave), meta, creaciones: juntar(ev) };
+    return { afiches: filas.map(p => p.clave), meta, creaciones: juntar(ev), creacion: { pasos: todos.filter(p => p.sello === 2).length, meta: metaCreacion } };
   }
   const c = leer()[codigo];
   const locales: Evento[] = (await Promise.all(TIPOS_CREACION.map(t => recientes(t as Tipo, 200) as Promise<Evento[]>))).flat();
-  return { afiches: [...(c?.pasos?.[AFICHE_SELLO] ?? [])], meta: META_DEMO, creaciones: juntar(locales.filter(e => e.codigo === codigo) as unknown as FilaEvento[]) };
+  const creaciones = juntar(locales.filter(e => e.codigo === codigo) as unknown as FilaEvento[]);
+  return { afiches: [...(c?.pasos?.[AFICHE_SELLO] ?? [])], meta: META_DEMO, creaciones, creacion: { pasos: Object.keys(creaciones).length, meta: META_CREACION } };
 }
 
 // Lo que la persona crea en una mesa llega al momento: Supabase Realtime sobre `eventos` filtrado por su código

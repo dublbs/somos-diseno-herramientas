@@ -12,7 +12,8 @@ export const Escanear: React.FC<{ ir: Ir }> = ({ ir }) => {
   const [codigo, setCodigo] = useState('');
   const [aviso, setAviso] = useState('');
   const [enviando, setEnviando] = useState(false);
-  const esAfiche = sello === AFICHE_SELLO;
+  // La cacería (3) y el sello secreto (4, plan B del plan 009) se timbran con el código del sello.
+  const esAfiche = sello === AFICHE_SELLO || sello === 4;
 
   const { video, estado } = useLectorQR(texto => {
     const l = interpretar(texto);
@@ -31,7 +32,7 @@ export const Escanear: React.FC<{ ir: Ir }> = ({ ir }) => {
     try {
       if (esAfiche) {
         const r = await encontrarAfiche(mia, limpio);
-        if (r.nuevo) ir(`#/c/${mia}`, { timbre: AFICHE_SELLO });
+        if (r.nuevo) ir(`#/c/${mia}`, { timbre: r.sello });
         else ir('#/juego', { aviso: r.repetido ? 'Ya tenías ese afiche.' : `¡Afiche encontrado! ${r.pasos} de ${r.meta}` });
         return;
       }

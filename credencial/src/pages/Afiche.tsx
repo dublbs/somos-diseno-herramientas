@@ -12,7 +12,7 @@ export const Afiche: React.FC<{ secreto: string; ir: Ir }> = ({ secreto, ir }) =
     if (!codigo) { setEstado({ tipo: 'sin-credencial' }); return; }
     encontrarAfiche(codigo, secreto)
       .then(r => {
-        if (r.nuevo) ir(`#/c/${codigo}`, { timbre: 3 });
+        if (r.nuevo) ir(`#/c/${codigo}`, { timbre: r.sello });
         else ir('#/juego', { aviso: r.repetido ? `Ya tenías el afiche ${nombreAfiche(r.afiche)}.` : `¡Afiche encontrado! ${r.pasos} de ${r.meta}` });
       })
       .catch(e => setEstado({ tipo: 'error', mensaje: (e as Error).message }));
