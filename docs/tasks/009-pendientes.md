@@ -30,11 +30,12 @@ en vivo, Graffiti v2 y el Fotomatón conectado.
 
 ### H1 · Correr las migraciones en `somos-diseno` · **hoy**
 - En el SQL Editor, **en este orden**: `shared/supabase/migraciones/001-afiches.sql`, `002-eventos-graffiti.sql`,
-  `003-timbres-finales.sql`. Cada una se puede correr dos veces sin daño.
+  `003-timbres-finales.sql` y `004-eventos-foto.sql`. Cada una se puede correr dos veces sin daño.
 - Anotar en `shared/supabase/migraciones/README.md` (PR #10) quién y cuándo.
-- Fotomatón (para que su QR funcione en otros celulares): correr `fotomaton/supabase/migrations/0001_fotomaton.sql` y
-  desplegar las funciones `tarjeta` y `limpiar` (`supabase functions deploy`). Sin esto el Fotomatón igual funciona: la
-  tarjeta queda en la tablet.
+- Después: `004-eventos-foto.sql` (el Fotomatón manda su tarjeta al inventario).
+- Fotomatón (para que su QR funcione en otros celulares): correr `fotomaton/supabase/migrations/0001_fotomaton.sql` **una
+  sola vez** (crea políticas sin `drop … if exists`: una segunda corrida da error, sin daño) y desplegar las funciones
+  `tarjeta` y `limpiar` (`supabase functions deploy`). Sin esto el Fotomatón igual funciona: la tarjeta queda en la tablet.
 - Aceptación: `select id, nombre, meta from sellos_def order by id;` muestra Inscripción 1, Creación 4, Cacería 3, Secreto 1.
 
 ### H2 · Sellos de los afiches e impresión · **14 nov**
@@ -103,7 +104,8 @@ en vivo, Graffiti v2 y el Fotomatón conectado.
 - Zona: `fotomaton/`, `taller-mosaicos/`.
 - Auditoría como la del Teatro (PR #12): 6 resoluciones, cada herramienta, exportar, modo juego, inventario. Arreglar lo
   grave; lo demás queda anotado en `docs/plans/009-refinamiento/`.
-- Fotomatón: confirmar que con Supabase entrega el paso de Creación y que, sin el bucket, la tarjeta queda en la tablet.
+- Fotomatón: ya funciona como el resto (tutorial del kit, «Llévatela» encima, tarjeta al inventario; PR del 13 nov).
+  Falta confirmar con Supabase real el paso de Creación y que, sin el bucket, la tarjeta queda en la tablet.
 
 ### T6 · Auditoría del PC madre y del HUB · Grupo E (después de T2) · **16 y 17 nov**
 - Zona: `admin/`, `hub-estacion/`.
