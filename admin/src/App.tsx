@@ -29,7 +29,7 @@ function useAviso(): [string, (m: string) => void] {
 
 export const App: React.FC = () => {
   const [sesion, setSesion] = useState<Session | null | undefined>(undefined);
-  const [staff, setStaff] = useState<api.Staff | null>(null);
+  const [staff, setStaff] = useState<api.Staff | null | undefined>(undefined);
   const [vista, setVista] = useState<Vista>('personas');
 
   useEffect(() => {
@@ -38,12 +38,22 @@ export const App: React.FC = () => {
     const sub = api.alCambiarSesion(setSesion);
     return () => sub.unsubscribe();
   }, []);
-  useEffect(() => { if (sesion) api.quienSoy().then(setStaff); else setStaff(null); }, [sesion]);
+  useEffect(() => { if (sesion) { setStaff(undefined); api.quienSoy().then(setStaff); } else setStaff(undefined); }, [sesion]);
 
   if (!api.configurado) return <SinSupabase />;
   if (sesion === undefined) return <main className="centro"><p>Abriendo…</p></main>;
   if (!sesion) return <Entrar />;
-  if (staff === null) return <main className="centro"><p>Comprobando tu cuenta…</p></main>;
+  if (staff === undefined) return <main className="centro"><p>Comprobando tu cuenta…</p></main>;
+  if (staff === null) return (
+    <main className="centro">
+      <div className="tarjeta entrar">
+        <p className="etq">Somos Diseño</p>
+        <h1>Cuenta pendiente</h1>
+        <p className="ayuda">Tu cuenta ({sesion.user.email}) existe, pero todavía no está en el equipo. Pídele a un admin que la apruebe en <b>Configuración → Cuentas del staff</b> y vuelve a entrar.</p>
+        <button type="button" className="btn" onClick={() => api.salir()}>Salir</button>
+      </div>
+    </main>
+  );
 
   return (
     <div className="panel">
@@ -79,25 +89,43 @@ const SinSupabase: React.FC = () => (
 );
 
 const Entrar: React.FC = () => {
+  const [modo, setModo] = useState<'entrar' | 'crear'>('entrar');
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
+  const [nombre, setNombre] = useState('');
   const [error, setError] = useState('');
+  const [aviso, setAviso] = useState('');
   const [enviando, setEnviando] = useState(false);
-  const entrar = async (e: React.FormEvent) => {
-    e.preventDefault(); setEnviando(true); setError('');
-    try { await api.entrar(email.trim(), pass); } catch (err) { setError((err as Error).message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos.' : (err as Error).message); }
+  const enviar = async (e: React.FormEvent) => {
+    e.preventDefault(); setEnviando(true); setError(''); setAviso('');
+    try {
+      if (modo === 'entrar') await api.entrar(email.trim(), pass);
+      else {
+        const r = await api.registrarse(email.trim(), pass, nombre);
+        if (!r.sesion) setAviso('Cuenta creada. Revisa tu correo para confirmarla y luego entra.');
+      }
+    } catch (err) {
+      const m = (err as Error).message;
+      setError(m === 'Invalid login credentials' ? 'Correo o contraseña incorrectos.' : m.includes('already registered') ? 'Ese correo ya tiene cuenta: entra con él.' : m.includes('at least 6') ? 'La contraseña necesita al menos 6 caracteres.' : m);
+    }
     setEnviando(false);
   };
   return (
     <main className="centro">
-      <form className="tarjeta entrar" onSubmit={entrar}>
+      <form className="tarjeta entrar" onSubmit={enviar}>
         <p className="etq">Somos Diseño</p>
         <h1>PC madre</h1>
+        <div className="seg" role="radiogroup" aria-label="Entrar o crear cuenta">
+          <button type="button" aria-pressed={modo === 'entrar'} onClick={() => setModo('entrar')}>Entrar</button>
+          <button type="button" aria-pressed={modo === 'crear'} onClick={() => setModo('crear')}>Crear cuenta</button>
+        </div>
+        {modo === 'crear' && <label>Tu nombre<input value={nombre} maxLength={30} required onChange={e => setNombre(e.target.value)} /></label>}
         <label>Correo<input type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} required /></label>
-        <label>Contraseña<input type="password" autoComplete="current-password" value={pass} onChange={e => setPass(e.target.value)} required /></label>
+        <label>Contraseña<input type="password" autoComplete={modo === 'crear' ? 'new-password' : 'current-password'} minLength={6} value={pass} onChange={e => setPass(e.target.value)} required /></label>
         {error && <p className="error" role="alert">{error}</p>}
-        <button className="btn primario" disabled={enviando}>{enviando ? 'Entrando…' : 'Entrar'}</button>
-        <p className="ayuda">Las cuentas del staff se crean en Supabase (Authentication → Users) y se agregan a la tabla <code>staff</code>.</p>
+        {aviso && <p className="aviso" role="status">{aviso}</p>}
+        <button className="btn primario" disabled={enviando}>{enviando ? 'Un momento…' : modo === 'entrar' ? 'Entrar' : 'Crear cuenta'}</button>
+        <p className="ayuda">{modo === 'crear' ? 'La primera cuenta del proyecto queda como admin. Las siguientes esperan que un admin las apruebe en Configuración.' : 'Si es tu primera vez, crea una cuenta.'}</p>
       </form>
     </main>
   );
@@ -344,13 +372,52 @@ const Config: React.FC<{ staff: api.Staff }> = ({ staff }) => {
           {staff.rol === 'admin' ? <button className="btn primario" disabled={pin.length < 4}>Guardar PIN</button> : <p className="ayuda">Solo un admin puede cambiarlo.</p>}
           <p className="ayuda">Si las tablets usan <code>VITE_STAFF_PIN_SHA256</code>, ponles el mismo PIN para que el equipo recuerde uno solo.</p>
         </form>
-        <div className="tarjeta">
-          <p className="etq">Cuentas del staff</p>
-          <p className="ayuda">Se crean en Supabase: <b>Authentication → Users → Add user</b> (correo y contraseña), y después en <b>SQL Editor</b>:</p>
-          <pre className="mono">{`insert into staff (user_id, nombre, rol)\nvalues ('<uuid del usuario>', 'Nombre', 'admin'); -- o 'mesa'`}</pre>
-          <p className="ayuda"><b>admin</b> edita todo; <b>mesa</b> da timbres, canjea y manda avisos, pero no cambia el premio ni el PIN.</p>
-        </div>
+        <Cuentas staff={staff} />
       </div>
     </section>
+  );
+};
+
+// Cuentas del staff: aprobar las que se registraron desde la pantalla de entrada y ver quién es quién.
+const Cuentas: React.FC<{ staff: api.Staff }> = ({ staff }) => {
+  const [pend, setPend] = useState<api.Pendiente[]>([]);
+  const [lista, setLista] = useState<api.Staff[]>([]);
+  const [roles, setRoles] = useState<Record<string, 'admin' | 'mesa'>>({});
+  const [aviso, setAviso] = useAviso();
+  const cargar = useCallback(() => { if (staff.rol !== 'admin') return; Promise.all([api.pendientes(), api.listaStaff()]).then(([p, l]) => { setPend(p); setLista(l); }).catch(e => setAviso((e as Error).message)); }, [staff.rol, setAviso]);
+  useEffect(() => { cargar(); const id = setInterval(cargar, 15000); return () => clearInterval(id); }, [cargar]);
+  if (staff.rol !== 'admin') return <div className="tarjeta"><p className="etq">Cuentas del staff</p><p className="ayuda">Solo un admin aprueba cuentas. Pídele a quien creó la primera.</p></div>;
+  const aprobar = async (p: api.Pendiente) => { try { await api.aprobar(p.user_id, p.nombre || p.email.split('@')[0], roles[p.user_id] ?? 'mesa'); setAviso(`${p.email} ya es del equipo.`); cargar(); } catch (e) { setAviso((e as Error).message); } };
+  const quitar = async (s: api.Staff) => { if (!confirm(`¿Sacar a ${s.nombre} del equipo?`)) return; try { await api.quitar(s.user_id); cargar(); } catch (e) { setAviso((e as Error).message); } };
+  return (
+    <div className="tarjeta">
+      <p className="etq">Cuentas del staff</p>
+      {aviso && <p className="aviso" role="status">{aviso}</p>}
+      <p className="ayuda">Cada persona crea su cuenta en la pantalla de entrada («Crear cuenta»). Aquí la apruebas: <b>admin</b> edita todo; <b>mesa</b> da timbres, canjea y manda avisos.</p>
+      {pend.length > 0 && (
+        <table className="tabla">
+          <thead><tr><th>Pendiente</th><th>Rol</th><th></th></tr></thead>
+          <tbody>{pend.map(p => (
+            <tr key={p.user_id}>
+              <td><b>{p.nombre || p.email.split('@')[0]}</b><br /><span className="ayuda mono">{p.email}</span></td>
+              <td>
+                <div className="seg" role="radiogroup" aria-label="Rol">
+                  <button type="button" aria-pressed={(roles[p.user_id] ?? 'mesa') === 'mesa'} onClick={() => setRoles({ ...roles, [p.user_id]: 'mesa' })}>mesa</button>
+                  <button type="button" aria-pressed={roles[p.user_id] === 'admin'} onClick={() => setRoles({ ...roles, [p.user_id]: 'admin' })}>admin</button>
+                </div>
+              </td>
+              <td><button type="button" className="btn chico primario" onClick={() => aprobar(p)}>Aprobar</button></td>
+            </tr>
+          ))}</tbody>
+        </table>
+      )}
+      {!pend.length && <p className="ayuda">No hay cuentas esperando aprobación.</p>}
+      <table className="tabla">
+        <thead><tr><th>Equipo</th><th>Rol</th><th></th></tr></thead>
+        <tbody>{lista.map(s => (
+          <tr key={s.user_id}><td>{s.nombre}{s.user_id === staff.user_id ? ' (tú)' : ''}</td><td className="mono">{s.rol}</td><td>{s.user_id !== staff.user_id && <button type="button" className="btn chico" onClick={() => quitar(s)} aria-label={`Sacar a ${s.nombre}`}><Icono n="delete" /></button>}</td></tr>
+        ))}</tbody>
+      </table>
+    </div>
   );
 };
