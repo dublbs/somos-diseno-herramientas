@@ -59,7 +59,8 @@ Fuera de este plan: la **pelea con el jefe final** (otro plan y otro PR) y el ti
 - La credencial escucha la tabla `eventos` con **Supabase Realtime** (ya publicada en `juego.sql`), filtrando por su código. Cada creación aparece en su casilla con una animación de «¡Nuevo!». En modo demo escucha los eventos locales del mismo navegador.
 - **Con miniatura** (las mesas ya mandan la imagen con el código): Vagón, Mosaicos y Grabado. Audioreactiva muestra el nombre de la escena.
 - **Graffiti:** la credencial ya reconoce el tipo `graffiti`; la miniatura llega cuando se mergee el PR `amaro/inventario-graffiti` (migración `002-eventos-graffiti.sql` y la mesa que publica su imagen). Hasta entonces, solo la casilla.
-- **Solo la casilla, sin miniatura:** Fotomatón y Teatro. Teatro (`loops/`) solo si su responsable lo pide (Pipe tiene abierto el plan del Teatro); Fotomatón **no** manda su imagen al inventario (es la cara de la persona).
+- **Fotomatón:** manda su tarjeta (migración `004-eventos-foto.sql`), solo con el código y después de que la persona acepta el aviso de las 24 h (plan 009, D8).
+- **Solo la casilla, sin miniatura:** Teatro (`loops/`), si su responsable lo pide (Pipe tiene abierto el plan del Teatro).
 - La regla del timbre 2 no cambia: una creación basta.
 
 ## 3. Datos

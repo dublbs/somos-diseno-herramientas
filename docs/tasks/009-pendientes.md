@@ -17,7 +17,7 @@ en vivo, Graffiti v2 y el Fotomatón conectado.
 ## Grupos que pueden ir en paralelo
 | Grupo | Tareas | Zona |
 |---|---|---|
-| A · Juego Pixel | T1 → T2 | `juego-pixel/` (nueva), después `index.html` y `hub-estacion/` |
+| A · Juego Pixel | ~~T1~~ (PR #18) → T2 | `index.html` y `hub-estacion/` |
 | B · Grabado | T3 | `grabado/` |
 | C · Audioreactiva | T4 | `audioreactiva/` |
 | D · Auditoría Fotomatón y Mosaicos | T5 | `fotomaton/`, `taller-mosaicos/` |
@@ -30,11 +30,11 @@ en vivo, Graffiti v2 y el Fotomatón conectado.
 
 ### H1 · Correr las migraciones en `somos-diseno` · **hoy**
 - En el SQL Editor, **en este orden**: `shared/supabase/migraciones/001-afiches.sql`, `002-eventos-graffiti.sql`,
-  `003-timbres-finales.sql`. Cada una se puede correr dos veces sin daño.
+  `003-timbres-finales.sql`, `004-eventos-foto.sql` y `005-eventos-juego.sql` (el mural de «Hora punta» al inventario). Cada una se puede correr dos veces sin daño.
 - Anotar en `shared/supabase/migraciones/README.md` (PR #10) quién y cuándo.
-- Fotomatón (para que su QR funcione en otros celulares): correr `fotomaton/supabase/migrations/0001_fotomaton.sql` y
-  desplegar las funciones `tarjeta` y `limpiar` (`supabase functions deploy`). Sin esto el Fotomatón igual funciona: la
-  tarjeta queda en la tablet.
+- Fotomatón (para que su QR funcione en otros celulares): correr `fotomaton/supabase/migrations/0001_fotomaton.sql` **una
+  sola vez** (crea políticas sin `drop … if exists`: una segunda corrida da error, sin daño) y desplegar las funciones
+  `tarjeta` y `limpiar` (`supabase functions deploy`). Sin esto el Fotomatón igual funciona: la tarjeta queda en la tablet.
 - Aceptación: `select id, nombre, meta from sellos_def order by id;` muestra Inscripción 1, Creación 4, Cacería 3, Secreto 1.
 
 ### H2 · Sellos de los afiches e impresión · **14 nov**
@@ -60,7 +60,9 @@ en vivo, Graffiti v2 y el Fotomatón conectado.
 
 ## P1 · Código (agentes)
 
-### T1 · Juego Pixel MVP (reemplaza al Vagón) · Grupo A · **14 y 15 nov**
+### T1 · Juego Pixel MVP (reemplaza al Vagón) · Grupo A · ✅ **hecha** (PR #18, «Hora punta»; falta probar en la tablet real)
+- **13 nov, por niveles:** nivel 1 (cruce, juntas latas), nivel 2 (andén, juntas piezas), nivel 3 (la pared, mecánica
+  de Puyo: pintas tu mural) y tu mural al inventario. Falta correr la migración `005` y probar en la tablet.
 - Zona: carpeta nueva `juego-pixel/` (nombre definitivo a elegir), con el stack y el kit de siempre (`shared/ui/`).
 - Qué: juego **original** en lenguaje Pixel que combina avanzar por carriles esquivando el tráfico en un recorrido sin
   fin y atrapar a los perseguidores en una bola que se empuja para despejar el camino. Solo las mecánicas: personajes,
@@ -103,7 +105,8 @@ en vivo, Graffiti v2 y el Fotomatón conectado.
 - Zona: `fotomaton/`, `taller-mosaicos/`.
 - Auditoría como la del Teatro (PR #12): 6 resoluciones, cada herramienta, exportar, modo juego, inventario. Arreglar lo
   grave; lo demás queda anotado en `docs/plans/009-refinamiento/`.
-- Fotomatón: confirmar que con Supabase entrega el paso de Creación y que, sin el bucket, la tarjeta queda en la tablet.
+- Fotomatón: ya funciona como el resto (tutorial del kit, «Llévatela» encima, tarjeta al inventario; PR del 13 nov).
+  Falta confirmar con Supabase real el paso de Creación y que, sin el bucket, la tarjeta queda en la tablet.
 
 ### T6 · Auditoría del PC madre y del HUB · Grupo E (después de T2) · **16 y 17 nov**
 - Zona: `admin/`, `hub-estacion/`.
