@@ -13,6 +13,7 @@ export interface Datos {
   grabado: { png: string };
   mosaico: { png: string };
   audio: { escena: string };
+  graffiti: { png: string }; // miniatura de lo pintado; solo con el código de la persona (inventario de la credencial)
 }
 export type Tipo = keyof Datos;
 export interface Evento<T extends Tipo = Tipo> { id: string; tipo: T; codigo: string | null; datos: Datos[T]; creado: number }
