@@ -1,20 +1,34 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { otorgarCreacion } from '../../shared/juego';
+import { jugador, otorgarCreacion } from '../../shared/juego';
+import { publicar } from '../../shared/datos';
 import { BarraSuperior, BotonAccion, PantallaHerramienta, Seccion } from '../../shared/ui/Kit';
 import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
-import { avanzar, lanzar, mover, nuevoEstado, TEXTO_FIN, type Estado, type Fin } from './juego/motor';
-import { dibujar, type Imagenes } from './juego/dibujo';
-import { crearTarjeta, descargar } from './juego/tarjeta';
+import { avanzarCruce, META, mover, nuevoCruce, type Cruce } from './juego/cruce';
+import { avanzarAnden, bajar, lanzarA, nuevoAnden, saltar, type Anden } from './juego/anden';
+import { HUESO, NOMBRE_PINTURA, TIROS_POR_LATA } from './juego/comun';
+import { dibujarCruce, type Imagenes } from './juego/dibujoCruce';
+import { dibujarAnden } from './juego/dibujoAnden';
+import { dibujarMural, miniaturaMural } from './juego/mural';
+import { crearTarjeta, descargar, type Resumen } from './juego/tarjeta';
 import '../../shared/ui/somos-kit.css';
 import './styles.css';
 
-// «Hora punta» (plan docs/plans/009-juego-pixel.md): juego Pixel que reemplaza al Vagón.
+// «Hora punta» (plan docs/plans/009-juego-pixel.md): juego Pixel por niveles que reemplaza al Vagón.
+// Nivel 1, El cruce: juntas latas de pintura. Nivel 2, El andén: con esa pintura atrapas Grises y juntas piezas.
+// Lo que te llevas es tu mural (tarjeta e inventario de la credencial).
 const TITULO = 'Hora punta';
 const MIN_PUNTOS_CREACION = 5;
+type Etapa = 'cruce' | 'paso' | 'anden' | 'fin';
+type Accion = 'arriba' | 'abajo' | 'izq' | 'der' | 'lanzar';
+
 const quieto = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 const cargarImagen = (ruta: string) => new Promise<HTMLImageElement | null>(res => {
   const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = `${import.meta.env.BASE_URL}figma/${ruta}`;
 });
+// `?nivel=2` parte en el andén con 3 latas (para probar y para mostrarlo sin cruzar primero), como `?quiosco=` del kit.
+const NIVEL_2 = new URLSearchParams(location.search).get('nivel') === '2';
+const LATAS_PRUEBA = ['#FF8FB1', '#FFC20E', '#7FC8F8'];
+const plural = (n: number, uno: string, varios = uno + 's') => `${n} ${n === 1 ? uno : varios}`;
 const leerMejor = () => { try { return Number(sessionStorage.getItem('sd:juego:mejor')) || 0; } catch { return 0; } };
 
 // Flecha pixel para los controles (no hay íconos de flechas en el subconjunto de Material Symbols).
@@ -23,18 +37,40 @@ const Flecha: React.FC<{ giro: number }> = ({ giro }) => (
     <path fill="currentColor" d="M3 0h2v1h1v1h1v1h1v2h-3v3h-2v-3h-3v-2h1v-1h1v-1h1z" />
   </svg>
 );
+const Lata: React.FC<{ color: string; tam?: number }> = ({ color, tam = 18 }) => (
+  <svg viewBox="0 0 8 8" width={tam} height={tam} aria-hidden="true" shapeRendering="crispEdges">
+    <path fill="#000" d="M1 0h6v1h1v6h-1v1h-6v-1h-1v-6h1z" /><path fill="#B9B9B3" d="M1 1h6v1h-6zM1 6h6v1h-6z" />
+    <path fill={color} d="M1 2h6v4h-6z" /><path fill="#fff" d="M2 3h1v2h-1z" />
+  </svg>
+);
+
+// Mural en un canvas chico (pantalla final y barra derecha).
+const MuralVivo: React.FC<{ r: Resumen; ancho: number }> = ({ r, ancho }) => {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const c = ref.current; if (!c) return;
+    const d = Math.min(window.devicePixelRatio || 1, 2);
+    c.width = ancho * d; c.height = ancho * 0.75 * d;
+    dibujarMural(c.getContext('2d')!, 0, 0, ancho * d, r.piezas, r.latas);
+  }, [r, ancho]);
+  return <canvas ref={ref} className="mural" style={{ width: ancho, height: ancho * 0.75 }} role="img"
+    aria-label={`Tu mural: ${plural(r.piezas.length, 'pieza')} y ${plural(r.latas.length, 'lata')}`} />;
+};
 
 export const App: React.FC = () => {
   const [visto, marcarVisto] = useTutorialVisto('juego');
   const lienzo = useRef<HTMLCanvasElement>(null);
-  const estado = useRef<Estado>(nuevoEstado());
+  const cruce = useRef<Cruce>(Object.assign(nuevoCruce(), NIVEL_2 ? { latas: LATAS_PRUEBA } : {}));
+  const anden = useRef<Anden | null>(NIVEL_2 ? nuevoAnden(LATAS_PRUEBA) : null);
   const camara = useRef(0);
   const img = useRef<Imagenes>({ personaje: null, metro: null });
+  const [etapa, setEtapa] = useState<Etapa>(NIVEL_2 ? 'anden' : 'cruce');
   const [puntos, setPuntos] = useState(0);
-  const [fin, setFin] = useState<Fin>(null);
+  const [resumen, setResumen] = useState<Resumen | null>(null);
+  const [inv, setInv] = useState({ latas: [] as string[], tiros: 0, piezas: 0 });
+  const [motivo, setMotivo] = useState('');
   const [pausa, setPausa] = useState(false);
   const [mejor, setMejor] = useState(leerMejor);
-  const [tarjeta, setTarjeta] = useState<string | null>(null);
   const [sumado, setSumado] = useState(false);
 
   useEffect(() => { document.documentElement.dataset.visual = 'Pixel'; }, []);
@@ -42,33 +78,74 @@ export const App: React.FC = () => {
     Promise.all([cargarImagen('personaje.svg'), cargarImagen('metro-lateral.svg')]).then(([personaje, metro]) => { img.current = { personaje, metro }; });
   }, []);
 
-  const terminar = useCallback((e: Estado) => {
-    setFin(e.fin);
-    setMejor(m => { const n = Math.max(m, e.puntos); try { sessionStorage.setItem('sd:juego:mejor', String(n)); } catch { /* nada */ } return n; });
-    // Una partida con puntaje cuenta como una de las 4 experiencias del timbre Creación (plan 009).
-    if (e.puntos >= MIN_PUNTOS_CREACION) { otorgarCreacion('juego'); setSumado(true); }
+  const resumir = useCallback((): Resumen => {
+    const c = cruce.current, a = anden.current;
+    return {
+      puntos: c.puntos + (a?.puntos ?? 0), filas: c.maxY, latas: c.latas, bolas: a?.bolas ?? 0, arrastrados: a?.arrastrados ?? 0,
+      piezas: a?.juntadas ?? [], nivel: a ? 2 : 1, limpio: !!a?.limpio,
+    };
   }, []);
 
-  // Bucle del juego: avanza la lógica y dibuja; la cámara se desliza suave hacia la fila del jugador.
+  // Fin de la partida: puntaje, timbre Creación y, con una persona jugando, su mural al inventario de la credencial.
+  const terminar = useCallback((texto: string) => {
+    const r = resumir();
+    setMotivo(texto); setResumen(r); setEtapa('fin');
+    setMejor(m => { const n = Math.max(m, r.puntos); try { sessionStorage.setItem('sd:juego:mejor', String(n)); } catch { /* nada */ } return n; });
+    if (r.puntos < MIN_PUNTOS_CREACION) return;
+    otorgarCreacion('juego'); setSumado(true);
+    const codigo = jugador()?.codigo;
+    if (codigo) publicar('juego', { png: miniaturaMural(r.piezas, r.latas) }, codigo).catch(() => { /* sin red: queda el timbre */ });
+  }, [resumir]);
+
+  const bajarAlAnden = () => {
+    anden.current = nuevoAnden(cruce.current.latas);
+    setEtapa('anden'); setPausa(false);
+  };
+
+  // Bucle del juego: avanza el nivel que toca y lo dibuja.
   useEffect(() => {
     if (!visto) return;
-    let vivo = true, previo = performance.now(), ultimoPuntaje = -1;
+    let vivo = true, previo = performance.now(), ultimo = '';
     const cuadro = (t: number) => {
       if (!vivo) return;
-      const c = lienzo.current, e = estado.current, dt = t - previo;
+      const c = lienzo.current, dt = t - previo;
       previo = t;
-      if (!pausa && !e.fin) {
-        avanzar(e, dt);
-        if (e.fin) terminar(e);
+      const ctx = c && c.width ? c.getContext('2d')! : null;
+      const a = anden.current;
+      if (a && (etapa === 'anden' || etapa === 'fin')) {
+        if (!pausa && etapa === 'anden') {
+          avanzarAnden(a, dt);
+          if (a.fin) terminar('¡Un Gris te borró!');
+          else if (a.limpio) terminar('¡Limpiaste el andén!');
+        }
+        if (ctx) dibujarAnden(ctx, c!.width, c!.height, a, img.current, t);
+      } else {
+        const e = cruce.current;
+        if (!pausa && etapa === 'cruce') {
+          avanzarCruce(e, dt);
+          if (e.fin) terminar(e.fin === 'atropellado' ? '¡Te atropellaron!' : e.fin === 'tren' ? '¡Pasó el metro!' : 'Se te pasó la hora punta');
+        }
+        camara.current += (e.camara - camara.current) * (quieto() ? 1 : Math.min(1, dt / 120));
+        if (ctx) dibujarCruce(ctx, c!.width, c!.height, e, camara.current, img.current, t);
       }
-      camara.current += (e.camara - camara.current) * (quieto() ? 1 : Math.min(1, dt / 120));
-      if (c && c.width) dibujar(c.getContext('2d')!, c.width, c.height, e, camara.current, img.current, t);
-      if (e.puntos !== ultimoPuntaje) { ultimoPuntaje = e.puntos; setPuntos(e.puntos); }
+      const total = cruce.current.puntos + (a?.puntos ?? 0);
+      const firma = `${total}|${cruce.current.latas.length}|${a?.municion.length ?? -1}|${a?.juntadas.length ?? 0}`;
+      if (firma !== ultimo) {
+        ultimo = firma; setPuntos(total);
+        setInv({ latas: [...cruce.current.latas], tiros: a ? a.municion.length : cruce.current.latas.length * TIROS_POR_LATA, piezas: a?.juntadas.length ?? 0 });
+      }
       requestAnimationFrame(cuadro);
     };
     requestAnimationFrame(cuadro);
     return () => { vivo = false; };
-  }, [visto, pausa, terminar]);
+  }, [visto, pausa, etapa, terminar]);
+
+  // Al llegar a la entrada del metro termina el nivel 1.
+  useEffect(() => {
+    if (etapa !== 'cruce') return;
+    const t = setInterval(() => { if (cruce.current.llego) setEtapa('paso'); }, 100);
+    return () => clearInterval(t);
+  }, [etapa]);
 
   // El canvas toma la resolución de su caja (hasta 2× en pantallas densas).
   useEffect(() => {
@@ -82,62 +159,88 @@ export const App: React.FC = () => {
     return () => ro.disconnect();
   }, [visto]);
 
-  const accion = useCallback((a: 'arriba' | 'abajo' | 'izq' | 'der' | 'lanzar') => {
-    const e = estado.current;
-    if (pausa || e.fin) return;
-    if (a === 'lanzar') lanzar(e);
-    else mover(e, a === 'izq' ? -1 : a === 'der' ? 1 : 0, a === 'arriba' ? 1 : a === 'abajo' ? -1 : 0);
-    if (e.fin) terminar(e);
-  }, [pausa, terminar]);
+  // Apretar y soltar: en el nivel 1 cada toque es un paso; en el nivel 2 ◀ ▶ se mantienen para caminar.
+  const apretar = useCallback((x: Accion) => {
+    if (pausa) return;
+    if (etapa === 'cruce') {
+      const e = cruce.current;
+      if (x === 'lanzar') return;
+      mover(e, x === 'izq' ? -1 : x === 'der' ? 1 : 0, x === 'arriba' ? 1 : x === 'abajo' ? -1 : 0);
+      if (e.fin) terminar(e.fin === 'atropellado' ? '¡Te atropellaron!' : '¡Pasó el metro!');
+    } else if (etapa === 'anden' && anden.current) {
+      const a = anden.current;
+      if (x === 'izq') a.teclas.izq = true;
+      else if (x === 'der') a.teclas.der = true;
+      else if (x === 'arriba') saltar(a);
+      else if (x === 'abajo') bajar(a);
+      else lanzarA(a);
+    }
+  }, [pausa, etapa, terminar]);
+  const soltar = useCallback((x: Accion) => {
+    const a = anden.current;
+    if (a && x === 'izq') a.teclas.izq = false;
+    if (a && x === 'der') a.teclas.der = false;
+  }, []);
 
   // Teclado (para probar en el computador): flechas o WASD y espacio.
   useEffect(() => {
-    const tecla = (ev: KeyboardEvent) => {
-      const m: Record<string, 'arriba' | 'abajo' | 'izq' | 'der' | 'lanzar'> = { ArrowUp: 'arriba', w: 'arriba', ArrowDown: 'abajo', s: 'abajo', ArrowLeft: 'izq', a: 'izq', ArrowRight: 'der', d: 'der', ' ': 'lanzar' };
-      const a = m[ev.key];
-      if (a) { ev.preventDefault(); accion(a); }
-    };
-    window.addEventListener('keydown', tecla);
-    return () => window.removeEventListener('keydown', tecla);
-  }, [accion]);
+    const m: Record<string, Accion> = { ArrowUp: 'arriba', w: 'arriba', ArrowDown: 'abajo', s: 'abajo', ArrowLeft: 'izq', a: 'izq', ArrowRight: 'der', d: 'der', ' ': 'lanzar' };
+    const baja = (ev: KeyboardEvent) => { const x = m[ev.key]; if (!x) return; ev.preventDefault(); if (ev.repeat && etapa === 'anden') return; apretar(x); };
+    const sube = (ev: KeyboardEvent) => { const x = m[ev.key]; if (x) soltar(x); };
+    window.addEventListener('keydown', baja); window.addEventListener('keyup', sube);
+    return () => { window.removeEventListener('keydown', baja); window.removeEventListener('keyup', sube); };
+  }, [apretar, soltar, etapa]);
 
-  // En el lienzo: tocar avanza; deslizar mueve hacia ese lado.
+  // En el lienzo. Nivel 1: tocar avanza; deslizar mueve hacia ese lado. Nivel 2: tocar salta; deslizar hacia abajo baja.
   const toque = useRef<{ x: number; y: number } | null>(null);
   const alBajar = (ev: React.PointerEvent) => { toque.current = { x: ev.clientX, y: ev.clientY }; };
   const alSoltar = (ev: React.PointerEvent) => {
     const t = toque.current; toque.current = null;
     if (!t) return;
     const dx = ev.clientX - t.x, dy = ev.clientY - t.y;
-    if (Math.hypot(dx, dy) < 24) accion('arriba');
-    else if (Math.abs(dx) > Math.abs(dy)) accion(dx > 0 ? 'der' : 'izq');
-    else accion(dy < 0 ? 'arriba' : 'abajo');
+    if (etapa === 'anden') { apretar(dy > 40 && Math.abs(dy) > Math.abs(dx) ? 'abajo' : 'arriba'); return; }
+    if (Math.hypot(dx, dy) < 24) apretar('arriba');
+    else if (Math.abs(dx) > Math.abs(dy)) apretar(dx > 0 ? 'der' : 'izq');
+    else apretar(dy < 0 ? 'arriba' : 'abajo');
   };
 
-  const reiniciar = () => { estado.current = nuevoEstado(); camara.current = 0; setFin(null); setPausa(false); setPuntos(0); setTarjeta(null); setSumado(false); };
+  // Botón de control: responde al apretar (no al soltar) y suelta al levantar el dedo o salirse del botón.
+  const control = (x: Accion) => ({
+    onPointerDown: (ev: React.PointerEvent) => { ev.preventDefault(); apretar(x); },
+    onPointerUp: () => soltar(x), onPointerLeave: () => soltar(x), onPointerCancel: () => soltar(x),
+    onClick: (ev: React.MouseEvent) => { if (ev.detail === 0) { apretar(x); soltar(x); } }, // teclado (Enter o espacio)
+    onContextMenu: (ev: React.MouseEvent) => ev.preventDefault(),
+  });
+
+  const reiniciar = () => {
+    cruce.current = nuevoCruce(); anden.current = null; camara.current = 0;
+    setEtapa('cruce'); setPausa(false); setPuntos(0); setResumen(null); setSumado(false); setMotivo('');
+    setInv({ latas: [], tiros: 0, piezas: 0 });
+  };
   const llevarTarjeta = async () => {
-    const blob = await crearTarjeta(estado.current, img.current.personaje);
-    setTarjeta(URL.createObjectURL(blob));
-    descargar(blob, 'hora-punta-somos-diseno.png');
+    if (!resumen) return;
+    descargar(await crearTarjeta(resumen, img.current.personaje), 'hora-punta-somos-diseno.png');
   };
 
   if (!visto) return (
     <Tutorial etiqueta="Pixel · juego" titulo={TITULO}
       pasos={[
-        { icono: 'route', texto: 'Cruza la ciudad fila por fila: esquiva autos, micros y el metro.' },
-        { icono: 'format_paint', texto: 'Lanza pintura a los Grises: con 3 golpes quedan en una bola.' },
-        { icono: 'swap_horiz', texto: 'Empuja la bola para llevarte a los otros Grises. ¡No te quedes quieto!' },
+        { icono: 'route', texto: 'Nivel 1: cruza la ciudad hasta el metro y junta latas de pintura.' },
+        { icono: 'format_paint', texto: 'Nivel 2: en el andén, encierra a los Grises en bolas de pintura y empújalas.' },
+        { icono: 'palette', texto: 'Cada Gris suelta una pieza: con ellas armas tu mural y te lo llevas.' },
       ]}
       acciones={[{ texto: 'Jugar', icono: 'play_arrow', alTocar: marcarVisto }]} />
   );
 
-  const e = estado.current;
+  const enAnden = etapa === 'anden' || (etapa === 'fin' && resumen?.nivel === 2);
+  const proxima = anden.current?.municion[0] ?? HUESO;
   return (
     <>
       <PantallaHerramienta
         anchoLateral={250}
         superior={
-          <BarraSuperior titulo={TITULO} bajada="Cruza la ciudad y devuélvele el color">
-            <BotonAccion icono={pausa ? 'play_arrow' : 'pause'} texto={pausa ? 'Seguir' : 'Pausa'} onClick={() => setPausa(p => !p)} disabled={!!fin} />
+          <BarraSuperior titulo={TITULO} bajada={enAnden ? 'Nivel 2 · El andén' : 'Nivel 1 · El cruce'}>
+            <BotonAccion icono={pausa ? 'play_arrow' : 'pause'} texto={pausa ? 'Seguir' : 'Pausa'} onClick={() => setPausa(p => !p)} disabled={etapa === 'fin' || etapa === 'paso'} />
             <BotonAccion icono="restart_alt" texto="Otra vez" onClick={reiniciar} />
           </BarraSuperior>
         }
@@ -146,39 +249,71 @@ export const App: React.FC = () => {
             <p className="puntaje" aria-live="polite">{puntos}</p>
             <p className="k-etq">Mejor de la sesión: {Math.max(mejor, puntos)}</p>
           </Seccion>
+          <Seccion titulo="Lo que llevas">
+            <div className="latas" aria-label={`${inv.latas.length} latas de pintura`}>
+              {inv.latas.length ? inv.latas.slice(-12).map((c, i) => <Lata key={i} color={c} />) : <span className="k-etq">Sin latas todavía</span>}
+            </div>
+            <p className="k-etq">
+              {enAnden ? `${plural(inv.tiros, 'tiro')} de color · ${plural(inv.piezas, 'pieza')}` : `${plural(inv.latas.length, 'lata')} = ${plural(inv.tiros, 'tiro')} para el nivel 2`}
+            </p>
+          </Seccion>
           <Seccion titulo="Cómo se juega" crece>
-            <ul className="reglas">
-              <li><b>Avanza</b> fila por fila: cada fila nueva es un punto.</li>
-              <li><b>Lanza pintura</b> a los Grises: 3 golpes y quedan en una bola (+2).</li>
-              <li><b>Empuja la bola</b> caminando hacia ella: se lleva a los Grises (+5, ×2, ×3…).</li>
-              <li>Si te quedas quieto, se te pasa la hora punta.</li>
-            </ul>
+            {enAnden ? (
+              <ul className="reglas">
+                <li><b>◀ ▶</b> caminar, <b>▲</b> saltar, <b>▼</b> bajar.</li>
+                <li><b>Lanza pintura</b>: 3 golpes de color y el Gris queda en una bola. Sin latas, la pintura hueso necesita 5.</li>
+                <li><b>Camina contra la bola</b> y rueda: se lleva a los Grises.</li>
+                <li>Cada Gris suelta una <b>pieza</b> de tu mural: ve a buscarla. Tienes 3 vidas.</li>
+              </ul>
+            ) : (
+              <ul className="reglas">
+                <li><b>Avanza</b> fila por fila hasta el metro ({META} filas).</li>
+                <li><b>Junta latas</b>: cada una son {TIROS_POR_LATA} tiros de color en el nivel 2.</li>
+                <li>Esquiva autos, micros y el metro. No te quedes quieto.</li>
+              </ul>
+            )}
           </Seccion>
         </>}
         inferior={
           <div className="controles" role="group" aria-label="Controles">
-            <button type="button" className="k-btn control" aria-label="Izquierda" onClick={() => accion('izq')}><Flecha giro={-90} /></button>
-            <button type="button" className="k-btn control" aria-label="Avanzar" onClick={() => accion('arriba')}><Flecha giro={0} /></button>
-            <button type="button" className="k-btn control" aria-label="Retroceder" onClick={() => accion('abajo')}><Flecha giro={180} /></button>
-            <button type="button" className="k-btn control" aria-label="Derecha" onClick={() => accion('der')}><Flecha giro={90} /></button>
-            <button type="button" className="k-btn k-primario lanzar" onClick={() => accion('lanzar')}>
-              <span className="material-symbols-outlined" aria-hidden="true">format_paint</span>Lanzar pintura
+            <button type="button" className="k-btn control" aria-label="Izquierda" {...control('izq')}><Flecha giro={-90} /></button>
+            <button type="button" className="k-btn control" aria-label={enAnden ? 'Saltar' : 'Avanzar'} {...control('arriba')}><Flecha giro={0} /></button>
+            <button type="button" className="k-btn control" aria-label={enAnden ? 'Bajar' : 'Retroceder'} {...control('abajo')}><Flecha giro={180} /></button>
+            <button type="button" className="k-btn control" aria-label="Derecha" {...control('der')}><Flecha giro={90} /></button>
+            <button type="button" className="k-btn k-primario lanzar" disabled={etapa !== 'anden'} {...control('lanzar')}>
+              <Lata color={etapa === 'anden' ? proxima : HUESO} tam={20} />
+              {etapa === 'anden' ? `Lanzar ${NOMBRE_PINTURA[proxima]?.toLowerCase() ?? 'pintura'}` : 'Lanzar (nivel 2)'}
             </button>
           </div>
         }
       >
         <div className="tablero">
-          <canvas ref={lienzo} className="juego" role="img" aria-label={`${TITULO}: tablero de juego. Puntaje ${puntos}.`}
+          <canvas ref={lienzo} className="juego" role="img" aria-label={`${TITULO}: ${enAnden ? 'el andén' : 'el cruce'}. Puntaje ${puntos}.`}
             onPointerDown={alBajar} onPointerUp={alSoltar} onPointerCancel={() => { toque.current = null; }} />
-          {pausa && !fin && <div className="capa"><div className="k-panel caja"><h2>Pausa</h2><BotonAccion icono="play_arrow" texto="Seguir" primario onClick={() => setPausa(false)} /></div></div>}
-          {fin && (
+          {pausa && etapa !== 'fin' && <div className="capa"><div className="k-panel caja"><h2>Pausa</h2><BotonAccion icono="play_arrow" texto="Seguir" primario onClick={() => setPausa(false)} /></div></div>}
+          {etapa === 'paso' && (
+            <div className="capa" role="dialog" aria-modal="true" aria-labelledby="paso-t">
+              <div className="k-panel caja">
+                <h2 id="paso-t">¡Llegaste al metro!</h2>
+                <div className="latas grande">{inv.latas.length ? inv.latas.map((c, i) => <Lata key={i} color={c} tam={26} />) : null}</div>
+                <p className="k-ayuda">
+                  {inv.latas.length
+                    ? `Juntaste ${inv.latas.length} ${inv.latas.length === 1 ? 'lata' : 'latas'}: ${inv.tiros} tiros de color. `
+                    : 'No juntaste latas: vas a tirar pintura hueso, que necesita 5 golpes. '}
+                  Abajo, los Grises tienen tomado el andén.
+                </p>
+                <BotonAccion icono="stairs" texto="Bajar al andén" primario onClick={bajarAlAnden} />
+              </div>
+            </div>
+          )}
+          {etapa === 'fin' && resumen && (
             <div className="capa" role="dialog" aria-modal="true" aria-labelledby="fin-t">
               <div className="k-panel caja">
-                <h2 id="fin-t">{TEXTO_FIN[fin]}</h2>
-                <p className="puntaje">{e.puntos}</p>
-                <p className="k-etq">{e.maxY} filas · {e.bolas} bolas · {e.arrastrados} Grises</p>
-                {sumado && <p className="k-ayuda">Si estás jugando con tu credencial, esta partida suma al timbre Creación.</p>}
-                {tarjeta && <img className="tarjeta-mini" src={tarjeta} alt={`Tarjeta de Hora punta con ${e.puntos} puntos`} />}
+                <h2 id="fin-t">{motivo}</h2>
+                <MuralVivo r={resumen} ancho={200} />
+                <p className="k-etq">Tu mural · {resumen.puntos} puntos</p>
+                <p className="k-etq">{plural(resumen.filas, 'fila')} · {plural(resumen.latas.length, 'lata')}{resumen.nivel === 2 ? ` · ${plural(resumen.arrastrados, 'Gris', 'Grises')} · ${plural(resumen.piezas.length, 'pieza')}` : ''}</p>
+                {sumado && <p className="k-ayuda">Si juegas con tu credencial, tu mural llega a su inventario y suma al timbre Creación.</p>}
                 <div className="acciones">
                   <BotonAccion icono="download" texto="Llévate tu tarjeta" onClick={llevarTarjeta} />
                   <BotonAccion icono="restart_alt" texto="Otra vez" primario onClick={reiniciar} />

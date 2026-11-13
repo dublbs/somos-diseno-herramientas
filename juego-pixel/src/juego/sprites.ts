@@ -134,3 +134,67 @@ export function sprite(ctx: CanvasRenderingContext2D, filas: string[], x: number
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(c, Math.round(x), Math.round(y), Math.round(ancho), Math.round(alto));
 }
+
+// Lata de pintura (vista de frente): 'B' es el color de la pintura.
+export const LATA = S([
+  '.kkkkkk.',
+  'kssssssk',
+  'kBBBBBBk',
+  'kBwBBBBk',
+  'kBwBBBBk',
+  'kBBBBBBk',
+  'kssssssk',
+  '.kkkkkk.',
+]);
+
+// Gris de lado (nivel 2): el mismo Gris, caminando. Mira a la derecha.
+export const GRIS_LADO = S([
+  '..kkkk..',
+  '.kggggk.',
+  'kgggwkwk',
+  'kgggwkwk',
+  'kggggggk',
+  'kgGggGgk',
+  '.kgkkgk.',
+  '.kk..kk.',
+]);
+
+// Piezas del mural (7 × 7): formas pixel en el color con que se atrapó al Gris ('B').
+export const PIEZAS: Record<'corazon' | 'estrella' | 'rayo' | 'gota', string[]> = {
+  corazon: S([
+    '.kk.kk.',
+    'kBBkBBk',
+    'kBwBBBk',
+    'kBBBBBk',
+    '.kBBBk.',
+    '..kBk..',
+    '...k...',
+  ]),
+  estrella: S([
+    '...k...',
+    '..kBk..',
+    'kkkBkkk',
+    'kBBwBBk',
+    '.kBBBk.',
+    'kBk.kBk',
+    'kk...kk',
+  ]),
+  rayo: S([
+    '...kkk.',
+    '..kBBk.',
+    '.kBwk..',
+    'kBBBBBk',
+    '..kBBk.',
+    '.kBk...',
+    '.kk....',
+  ]),
+  gota: S([
+    '...k...',
+    '..kBk..',
+    '.kBBBk.',
+    'kBwBBBk',
+    'kBwBBBk',
+    'kBBBBBk',
+    '.kkkkk.',
+  ]),
+};

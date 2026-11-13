@@ -1,7 +1,7 @@
-import { ANCHO, QUIETO_AVISO, VISIBLES, fila, type Estado } from './motor';
-import { ARBOL, AUTO, BANCA, BASURERO, BOLA, GRIS, MICRO, SENAL, sprite } from './sprites';
+import { ANCHO, QUIETO_AVISO, VISIBLES, fila, type Cruce } from './cruce';
+import { ARBOL, AUTO, BANCA, BASURERO, LATA, MICRO, SENAL, sprite } from './sprites';
 
-// Dibuja «Hora punta» en un canvas de ancho × alto px. `camara` es la fila de abajo (con decimales: se desliza suave).
+// Dibuja el nivel 1 (El cruce) en un canvas de ancho × alto px. `camara` es la fila de abajo (con decimales: se desliza suave).
 // Las imágenes de Figma (personaje y lateral del metro) llegan ya cargadas.
 export interface Imagenes { personaje: HTMLImageElement | null; metro: HTMLImageElement | null }
 
@@ -13,7 +13,7 @@ const TONOS = {
   fuera: 'rgba(0,0,0,0.45)',
 };
 
-export function dibujar(ctx: CanvasRenderingContext2D, ancho: number, alto: number, e: Estado, camara: number, img: Imagenes, ahora: number) {
+export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto: number, e: Cruce, camara: number, img: Imagenes, ahora: number) {
   const c = Math.floor(Math.min(ancho / ANCHO, alto / VISIBLES));
   const x0 = Math.round((ancho - ANCHO * c) / 2);
   const filaY = (y: number) => alto - (y - camara + 1) * c; // borde superior de la fila y
@@ -26,6 +26,14 @@ export function dibujar(ctx: CanvasRenderingContext2D, ancho: number, alto: numb
     const f = fila(e, y);
     if (!f) continue;
     const top = filaY(y);
+    if (f.tipo === 'estacion') {
+      // Entrada del metro: baldosa azul con franja amarilla de borde y la letra M.
+      ctx.fillStyle = '#0062B8'; ctx.fillRect(0, top, ancho, c + 1);
+      ctx.fillStyle = '#2B4BD8';
+      for (let x = 0; x < ancho; x += c) ctx.fillRect(x, top, Math.max(1, c / 16), c);
+      if (fila(e, y - 1)?.tipo !== 'estacion') { ctx.fillStyle = '#FFC20E'; ctx.fillRect(0, top + c - c / 8, ancho, c / 8); }
+      continue;
+    }
     if (f.tipo === 'vereda' || f.tipo === 'plaza') {
       ctx.fillStyle = f.tipo === 'vereda' ? TONOS.vereda : TONOS.plaza;
       ctx.fillRect(0, top, ancho, c + 1);
@@ -60,31 +68,13 @@ export function dibujar(ctx: CanvasRenderingContext2D, ancho: number, alto: numb
     if (!f) continue;
     const top = filaY(y);
     for (const [x, o] of f.obstaculos) sprite(ctx, o === 'arbol' ? ARBOL : o === 'banca' ? BANCA : BASURERO, x0 + x * c, top, c, c);
+    const brilla = Math.sin(ahora / 180 + y) * c * 0.04;
+    for (const [x, color] of f.latas) sprite(ctx, LATA, x0 + x * c + c * 0.22, top + c * 0.2 + brilla, c * 0.56, c * 0.56, color);
     for (const v of f.vehiculos) sprite(ctx, v.tipo === 'micro' ? MICRO : AUTO, x0 + v.x * c, top + c * 0.1, v.largo * c, c * 0.8, v.color, f.dir < 0);
     if (f.tipo === 'metro') {
       const parpadea = f.tren && !f.tren.activo && Math.floor(ahora / 160) % 2 === 0;
       sprite(ctx, SENAL, x0 - c, top, c, c, parpadea ? '#FFC20E' : '#4A453E');
       if (f.tren?.activo && img.metro) for (let k = 0; k < 3; k++) ctx.drawImage(img.metro, x0 + (f.tren.x + k * 3.34) * c, top, c * 3.34, c);
-    }
-  }
-
-  // Disparos de pintura, Grises y bolas.
-  for (const s of e.disparos) {
-    const paso = s.recorrido + 1, px = x0 + (s.x + s.dx * paso) * c, py = filaY(s.y + s.dy * paso);
-    ctx.fillStyle = '#000'; ctx.fillRect(px + c * 0.3, py + c * 0.3, c * 0.4, c * 0.4);
-    ctx.fillStyle = s.color; ctx.fillRect(px + c * 0.35, py + c * 0.35, c * 0.3, c * 0.3);
-  }
-  for (const g of e.grises) {
-    const px = x0 + g.x * c, py = filaY(g.y);
-    if (g.bola || g.rueda) {
-      const avisa = !g.rueda && g.libreEn < 1500 && Math.floor(ahora / 120) % 2 === 0;
-      sprite(ctx, BOLA, px + c * 0.05, py + c * 0.05, c * 0.9, c * 0.9, avisa ? '#8F8F8A' : g.color);
-      continue;
-    }
-    const tiembla = Math.sin(ahora / 90 + g.id) * c * 0.03;
-    sprite(ctx, GRIS, px + c * 0.1 + tiembla, py + c * 0.1, c * 0.8, c * 0.8);
-    for (let k = 0; k < g.golpes; k++) { // manchas de pintura de cada golpe
-      ctx.fillStyle = g.color; ctx.fillRect(px + c * (0.2 + k * 0.25), py + c * (0.55 - k * 0.12), c * 0.22, c * 0.18);
     }
   }
 
@@ -98,6 +88,16 @@ export function dibujar(ctx: CanvasRenderingContext2D, ancho: number, alto: numb
   ctx.fillStyle = TONOS.fuera; ctx.fillRect(0, 0, x0, alto); ctx.fillRect(x0 + ANCHO * c, 0, ancho - x0 - ANCHO * c, alto);
   ctx.fillStyle = '#000'; ctx.fillRect(x0 - 2, 0, 2, alto); ctx.fillRect(x0 + ANCHO * c, 0, 2, alto);
 
+  // Letrero de la entrada del metro.
+  const yMeta = [...e.filas.keys()].find(k => fila(e, k)?.tipo === 'estacion' && fila(e, k - 1)?.tipo !== 'estacion');
+  if (yMeta !== undefined) {
+    const top = filaY(yMeta + 1), w = c * 5;
+    ctx.fillStyle = '#000'; ctx.fillRect(ancho / 2 - w / 2 + 4, top + 4, w, c * 0.8);
+    ctx.fillStyle = '#F4EEE3'; ctx.fillRect(ancho / 2 - w / 2, top, w, c * 0.8);
+    ctx.font = `700 ${Math.round(c * 0.42)}px "Silkscreen", monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#0062B8'; ctx.fillText('METRO', ancho / 2, top + c * 0.42);
+  }
+
   // Puntos que suben y aviso de quedarse quieto.
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (const a of e.avisos) {
@@ -106,7 +106,7 @@ export function dibujar(ctx: CanvasRenderingContext2D, ancho: number, alto: numb
     ctx.fillStyle = '#000'; ctx.fillText(a.texto, x0 + (a.x + 0.5) * c + 2, yy + 2);
     ctx.fillStyle = '#FFC20E'; ctx.fillText(a.texto, x0 + (a.x + 0.5) * c, yy);
   }
-  if (!e.fin && e.quieto > QUIETO_AVISO && Math.floor(ahora / 250) % 2 === 0) {
+  if (!e.fin && !e.llego && e.quieto > QUIETO_AVISO && Math.floor(ahora / 250) % 2 === 0) {
     ctx.font = `700 ${Math.round(c * 0.5)}px "Silkscreen", monospace`;
     ctx.fillStyle = '#000'; ctx.fillText('¡Muévete!', ancho / 2 + 3, c * 0.8 + 3);
     ctx.fillStyle = '#FF8FB1'; ctx.fillText('¡Muévete!', ancho / 2, c * 0.8);

@@ -6,7 +6,7 @@
 .material-symbols-outlined { font-size: 20px; vertical-align: middle; }
 .tablero { position: relative; width: 100%; height: 100%; min-height: 0; }
 .juego { display: block; width: 100%; height: 100%; touch-action: none; image-rendering: pixelated; border: 3px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); background: #1E1C19; cursor: pointer; }
-.puntaje { margin: 0; font: 700 56px/1 "Silkscreen", monospace; color: var(--accent, #2B4BD8); }
+.puntaje { margin: 0; font: 700 44px/1 "Silkscreen", monospace; color: var(--accent, #2B4BD8); }
 .reglas { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: 14px; line-height: 1.35; }
 .controles { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .controles .control { min-width: 64px; min-height: 56px; display: grid; place-items: center; }
@@ -17,3 +17,7 @@
 .caja .acciones { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 .tarjeta-mini { height: min(28vh, 220px); width: auto; border: 2px solid var(--ink); }
 @media (prefers-reduced-motion: reduce) { .juego { transition: none; } }
+.latas { display: flex; flex-wrap: wrap; gap: 3px; min-height: 18px; }
+.latas.grande { justify-content: center; max-width: 320px; gap: 4px; }
+.mural { display: block; border: 2px solid var(--ink); image-rendering: pixelated; }
+.controles .lanzar svg { margin-right: 6px; vertical-align: middle; }
