@@ -32,7 +32,7 @@ en vivo, Graffiti v2 y el Fotomatón conectado.
 - En el SQL Editor, **en este orden**: `shared/supabase/migraciones/001-afiches.sql`, `002-eventos-graffiti.sql`,
   `003-timbres-finales.sql`, `004-eventos-foto.sql` y `005-eventos-juego.sql` (el mural de «Hora punta» al inventario). Cada una se puede correr dos veces sin daño.
 - Anotar en `shared/supabase/migraciones/README.md` (PR #10) quién y cuándo.
-- Fotomatón (para que su QR funcione en otros celulares): correr `fotomaton/supabase/migrations/0001_fotomaton.sql` **una
+- Fotomatón **y el QR de todas las experiencias** (plan 011; para que el QR abra en otros celulares): correr `fotomaton/supabase/migrations/0001_fotomaton.sql` **una
   sola vez** (crea políticas sin `drop … if exists`: una segunda corrida da error, sin daño) y desplegar las funciones
   `tarjeta` y `limpiar` (`supabase functions deploy`). Sin esto el Fotomatón igual funciona: la tarjeta queda en la tablet.
 - Aceptación: `select id, nombre, meta from sellos_def order by id;` muestra Inscripción 1, Creación 4, Cacería 3, Secreto 1.
