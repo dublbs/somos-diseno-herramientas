@@ -13,4 +13,4 @@ export const AFICHES: Afiche[] = [
   { id: 'AF06', nombre: 'Ven a jugar', lenguaje: 'Pixel', img: './figma/afiches/af06.webp' },
 ];
 export const aficheDe = (id: string) => AFICHES.find(a => a.id === id);
-export const nombreAfiche = (id: string) => aficheDe(id)?.nombre ?? `Afiche ${id}`;
+export const nombreAfiche = (id: string) => aficheDe(id)?.nombre ?? (id === 'SECRETO' ? 'Secreto' : `Afiche ${id}`);
