@@ -13,6 +13,7 @@ export interface Datos {
   grabado: { png: string };
   mosaico: { png: string };
   audio: { escena: string };
+  graffiti: { png: string }; // miniatura de lo pintado; solo con el código de la persona (inventario de la credencial)
 }
 export type Tipo = keyof Datos;
 export interface Evento<T extends Tipo = Tipo> { id: string; tipo: T; codigo: string | null; datos: Datos[T]; creado: number }
@@ -89,12 +90,19 @@ export function escuchar(alEvento: (e: Evento) => void, cadaMs = 4000): () => vo
 
 // Con Supabase, la mesa timbra directo la credencial (función sellar() de credencial/supabase/schema.sql).
 // El código de la estación lo escribe el staff en la configuración de la mesa: no viaja en los eventos.
-export async function sellarRemoto(codigo: string, sello: number, token: string): Promise<boolean> {
-  if (!remoto) return false;
+// `clave` identifica el paso (la experiencia, en el timbre 2): sellar() cuenta los pasos distintos hasta la meta.
+// Devuelve el avance ({pasos, meta, otorgado}) o null si no hay Supabase o falló (queda timbrar a mano).
+export interface Avance { pasos: number; meta: number; otorgado: boolean }
+export async function sellarRemoto(codigo: string, sello: number, token: string, clave?: string): Promise<Avance | null> {
+  if (!remoto) return null;
   try {
-    const r = await fetch(`${URL_SB}/rest/v1/rpc/sellar`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({ p_codigo: codigo, p_sello: sello, p_token: token }) });
-    return r.ok;
-  } catch { return false; }
+    const cuerpo = clave ? { p_codigo: codigo, p_sello: sello, p_token: token, p_clave: clave } : { p_codigo: codigo, p_sello: sello, p_token: token };
+    const r = await fetch(`${URL_SB}/rest/v1/rpc/sellar`, { method: 'POST', headers: cabeceras(), body: JSON.stringify(cuerpo) });
+    if (!r.ok) return null;
+    const d = await r.json();
+    // La firma vieja (sin clave) devuelve true; la nueva, el avance.
+    return d && typeof d === 'object' ? { pasos: d.pasos, meta: d.meta, otorgado: !!d.sello_otorgado } : { pasos: 1, meta: 1, otorgado: true };
+  } catch { return null; }
 }
 
 // Miniatura PNG de un lienzo (lo que viaja al HUB; nunca la imagen grande).

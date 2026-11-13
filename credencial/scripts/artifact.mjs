@@ -5,13 +5,15 @@ import { readFileSync, readdirSync, mkdirSync, writeFileSync } from 'node:fs';
 
 const assets = 'dist/assets/';
 const archivos = readdirSync(assets);
-const js = archivos.find(f => f.endsWith('.js'));
+// El lector jsQR va en su propio archivo (import dinámico): aquí solo se incrusta el principal. En el Artifact,
+// sin jsQR, la cámara de la cacería ofrece escribir el código del afiche.
+const js = archivos.find(f => f.startsWith('index-') && f.endsWith('.js'));
 const css = archivos.find(f => f.endsWith('.css'));
 const estilos = readFileSync(assets + css, 'utf8').replace(/url\(\.\/([^)]+\.woff2)\)/g, (_, f) =>
   `url(data:font/woff2;base64,${readFileSync(assets + f).toString('base64')})`);
-// Los SVG de Figma (personajes, timbres y patrones) van como data URI: el visor no sirve archivos sueltos.
+// Los SVG y las miniaturas de Figma (personajes, timbres, patrones y afiches) van como data URI: el visor no sirve archivos sueltos.
 const codigo = readFileSync(assets + js, 'utf8')
-  .replace(/\.\/figma\/([a-z0-9-]+\.svg)/g, (_, f) => `data:image/svg+xml;base64,${readFileSync('dist/figma/' + f).toString('base64')}`)
+  .replace(/\.\/figma\/([a-z0-9/-]+\.(svg|webp|png))/g, (_, f, ext) => `data:${ext === 'svg' ? 'image/svg+xml' : 'image/' + ext};base64,${readFileSync('dist/figma/' + f).toString('base64')}`)
   .replace(/<\/script/gi, '<\\/script');
 
 // El visor de claude.ai pone el esqueleto (doctype, head, body): aquí va solo el contenido.

@@ -6,17 +6,19 @@
    controles vienen del kit (shared/ui/somos-kit.css); aquí solo el muro y las miniaturas. */
 .material-symbols-outlined { font-size: 20px; vertical-align: middle; }
 
-/* Muro cuadrado que entra entero en el lienzo */
+/* La pared horizontal (2:1) entra entera en el lienzo */
 .muro-fit { width: 100%; height: 100%; min-height: 0; container-type: size; display: grid; place-items: center; }
-.muro { display: block; width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); touch-action: none; cursor: crosshair; image-rendering: pixelated; border: 3px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); background: #D9CDB7; }
+.muro { display: block; width: min(100cqw - 12px, (100cqh - 12px) * 2); aspect-ratio: 2 / 1; height: auto; touch-action: none; cursor: crosshair; image-rendering: pixelated; border: 3px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); background: #D9CDB7; }
 .muro.herr-stencil { cursor: move; }
 .muro.herr-sticker { cursor: copy; }
 
 .k-seg button .punto { display: inline-block; width: calc(var(--n) * 4px + 2px); height: calc(var(--n) * 4px + 2px); background: currentColor; margin-right: 6px; vertical-align: middle; }
-.muros, .plantillas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.muros { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.plantillas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .stickers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .miniatura.k-color { width: auto; height: auto; aspect-ratio: 1; padding: 4px; background: var(--bg); }
 .miniatura img { width: 100%; height: 100%; display: block; object-fit: contain; image-rendering: pixelated; }
+.muros .miniatura { aspect-ratio: 2 / 1; }
 .muros .miniatura img { object-fit: cover; }
 .stencil-puesto { display: grid; gap: 8px; }
 @media (max-width: 1100px) and (min-aspect-ratio: 1/1) { .k-bajada { display: none; } .k-herr { min-width: 60px; padding: 4px 6px; } .k-color { width: 40px; height: 40px; } }
@@ -31,3 +33,9 @@
 
 /* Vertical: la barra de opciones tiene siempre el mismo alto, así el muro no salta al cambiar de herramienta. */
 @media (orientation: portrait) and (min-width: 600px) { .k-lateral { min-height: 352px; } }
+
+/* Vista previa del pincel (plan 009 §3: como la lista de pinceles de Photoshop) */
+.previa-pincel { margin: 0; display: grid; gap: 6px; }
+.previa-pincel canvas { width: 100%; aspect-ratio: 144 / 68; display: block; image-rendering: pixelated; background: #F4EEE3; border: 2px solid var(--ink); }
+.previa-pincel figcaption { display: flex; flex-wrap: wrap; gap: 4px; }
+.previa-pincel figcaption span { font: 400 9px/1 "Silkscreen", monospace; padding: 4px 6px; background: var(--chip, #E5DCCB); color: var(--ink); }
