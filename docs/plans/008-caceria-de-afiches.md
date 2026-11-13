@@ -7,11 +7,11 @@ La credencial es el vehículo del juego: con ella la persona busca los afiches, 
 ## 0. Qué cambia respecto de planes anteriores
 | Antes | Ahora | Dónde estaba |
 |---|---|---|
-| Timbre 3 «Portales AR»: al escanear el afiche se abre un portal con el mundo animado y hay que atrapar una figura | **Se simplifica: escanear el afiche y listo.** Sin portal ni figura que atrapar. 3 afiches distintos = timbre 3. | Plan 004 §8, plan 007 §3 |
-| El QR del afiche era `#/sello/3?t=<token>&k=<afiche>`: con el token de la estación cualquiera podía inventar `k` | Cada afiche tiene **su propio código secreto**: `#/afiche/<SECRETO>`. El token de la estación 3 deja de imprimirse. | Plan 007 §3 |
+| Timbre 3 «Portales AR»: 15 afiches (uno por marco); al escanear se abre un portal y hay que atrapar una figura | **Se simplifica: leer el sello del afiche y listo.** Sin portal ni figura. Los afiches son los 6 de Figma; 3 distintos = timbre 3. | Plan 004 §8, plan 007 §3 |
+| El QR del afiche era `#/sello/3?t=<token>&k=<afiche>`: con el token de la estación cualquiera podía inventar `k` | Cada afiche tiene **su propio código secreto**, dentro del **sello de la cacería** que es parte del arte (`SDA:<SECRETO>`, §2). El QR de la estación 3 no se imprime. | Plan 007 §3 |
 | En iPhone el QR se leía con la cámara del sistema (abre Safari, que no ve la credencial instalada en la pantalla de inicio) | La cámara vive **dentro de la credencial** y lee el QR con `BarcodeDetector` o, si no existe (iPhone), con **jsQR** (aprobado, solo en `credencial/`). | Plan 003 |
 | La credencial: frente ↔ álbum con un toque | Además, **vista Juego** al deslizar (ver §1). | Plan 003 |
-| El timbre 2 «Creación» se gana con una creación en una mesa | **Sigue igual.** Se suma el **inventario**: cada experiencia donde creaste algo queda guardada como recurso. | Plan 005 bloque D |
+| El timbre 2 «Creación» se gana con una creación en una mesa | **Sigue igual.** Se suma el **inventario**: lo que creas en cada mesa llega al momento (§2b). | Plan 005 bloque D |
 
 Fuera de este plan: la **pelea con el jefe final** (otro plan y otro PR) y el timbre 4.
 
@@ -20,32 +20,58 @@ Fuera de este plan: la **pelea con el jefe final** (otro plan y otro PR) y el ti
 - Alternativa sin gesto (accesibilidad y para quien no lo descubra): el botón **Jugar** de la credencial y **Mi credencial** en la vista Juego.
 - Solo existe con una credencial creada. Ruta `#/juego`. Sin scroll en 390 × 844, 412 × 915 y 360 × 740, como el resto de la credencial. Con «reducir movimiento» no hay deslizamiento animado.
 - Contenido:
-  1. **Cacería de afiches**: «n de 3», las 3 ranuras con los afiches encontrados (nombre del marco y lenguaje) y el botón **Buscar afiches** (abre la cámara). Si encontraste más de 3, se cuenta «+n».
+  1. **Cacería de afiches**: «n de 3», las 3 ranuras con la miniatura de los afiches encontrados y el botón **Buscar afiches** (abre la cámara). Si encontraste más de 3, se cuenta «+n».
   2. **Inventario de creación**: una casilla por experiencia que entrega el timbre 2 (Vagón, Graffiti, Mosaicos, Audioreactiva, Teatro, Grabado, Fotomatón), con su ícono. Se llena al crear algo en esa mesa con tu código. Debajo, si el timbre 2 ya está.
   3. **Código**: lleva a «Timbrar» (`#/escanear`) para los códigos de las mesas. «Timbrar» usa el mismo lector y también reconoce afiches.
 
 ## 2. Cacería de afiches (timbre 3)
-- **Afiches:** los 15 de la sede, uno por marco (plan 004: 5 por lenguaje). El `id` del afiche es el id del marco (`GM01`…`PM06`); de ahí salen su nombre y su lenguaje en la credencial.
-- **QR:** `…/credencial/dist/#/afiche/<SECRETO>`. Bajo el QR va el mismo `SECRETO` (6 letras o números) para escribirlo si la cámara no lee.
-- **Cámara (`#/afiches`):** se queda abierta mientras buscas. Al leer un afiche nuevo avisa «¡Afiche encontrado! 2 de 3» sin salir; al tercero lleva a la credencial con la ceremonia del timbre. Un afiche repetido avisa «Ya tenías este afiche». Un QR de mesa (`#/sello/…`) se atiende como siempre.
-- **Si alguien abre el enlace con la cámara del sistema** (`#/afiche/<SECRETO>` fuera de la app), funciona igual si ese navegador tiene la credencial.
-- **Lector:** `BarcodeDetector` donde exista (Android/Chrome); si no, `jsqr@1.4.0` cargado solo cuando hace falta (import dinámico, no pesa en la primera carga).
+**Decidido el 13 nov (Amaro): opción C, «el diseño es el código».** Cada afiche lleva el **sello de la cacería**: una marca dibujada con el lenguaje del afiche que la cámara de la credencial lee. No es un QR impreso aparte; es parte del arte.
+
+- **Afiches:** los 6 tentativos de Figma, página «Evento · Imprenta», sección `afiches` (`1044:12794`). Ver el manifiesto `docs/plans/008-caceria/assets.manifest.md`. Hay que encontrar **3 distintos**; el resto es colección.
+
+  | id | Afiche | Lenguaje | Nodo |
+  |---|---|---|---|
+  | `AF01` | Tejido | Geométrica | `1046:12810` |
+  | `AF02` | Ven a ver | Geométrica | `1191:222770` |
+  | `AF03` | Sol | Orgánica | `1046:16048` |
+  | `AF04` | Ven a crear | Orgánica | `1191:222479` |
+  | `AF05` | Metro | Pixel | `1046:17722` |
+  | `AF06` | Ven a jugar | Pixel | `1191:217482` |
+
+  Son tentativos: si cambian, se cambia la siembra de la migración antes de correrla (o con `insert`/`update activo` después).
+- **Qué codifica el sello:** el texto `SDA:<SECRETO>` (6 letras o números, guardado solo en la base). La cámara lo lee y la base lo valida, así que no se pueden inventar afiches. Bajo el sello va el mismo `SECRETO` escrito, para quien no pueda usar la cámara.
+- **Cómo se lee:** por dentro el sello es una matriz QR versión 1 con corrección alta (21 × 21 módulos, aguanta ~30 % de daño), así que lo lee el mismo lector ya aprobado: `BarcodeDetector` donde exista y `jsqr@1.4.0` en iPhone. Se eligió así porque el evento es el 19 nov: un detector propio de marcas sería más libre en lo visual pero mucho más riesgoso.
+- **Reglas de diseño del sello** (probadas con jsQR: de frente, a 90 px, inclinado 25°, girado 30°, desenfocado y con poca luz):
+  1. La matriz la genera el script `npm --prefix credencial run sellos:afiches` a partir del secreto: **no se redibuja a mano** (cada punto es dato).
+  2. Las 3 esquinas guardan su proporción: anillo de 7 × 7 módulos y centro de 3 × 3. Se pueden redondear, pero el centro no puede ser un rombo ni un círculo chico (con rombo no se lee nunca).
+  3. **Los módulos vecinos se tocan.** Cada lenguaje tiene su forma: Pixel, cuadrado lleno; Geométrica, octágono (cuadrado con esquinas cortadas); Orgánica, punto de semitono que se toca con sus vecinos. Rombos chicos, puntos chicos o una retícula con aire no se leen al inclinar el afiche.
+  4. Tinta oscura sobre fondo claro y liso, con un margen de 3 módulos sin dibujo alrededor. No invertir (claro sobre oscuro).
+  5. Tamaño impreso: al menos 10 cm de lado, a la altura de los ojos.
+  6. Alrededor, libre: el marco del «sello de la cacería», el número «n / 6» y el texto del afiche (la nota de Figma del 10 nov pide una marca común a los afiches del juego).
+- **Límite conocido:** igual que un QR común, no se lee muy inclinado (40°) ni inclinado y girado a la vez. La pantalla de la cámara pide «ponte de frente al sello».
+- **Cámara (`#/afiches`):** se queda abierta mientras buscas. Un afiche nuevo avisa «¡Afiche encontrado! 2 de 3» sin salir; al tercero, ceremonia del timbre. Un repetido avisa «Ya tenías este afiche». Un QR de mesa (`#/sello/…`) se atiende como siempre. El enlace `#/afiche/<SECRETO>` sigue funcionando.
+- **El QR genérico de la estación 3 nunca se imprimió:** no hace falta rotar su token (se quita ese bloque de la migración).
+
+## 2b. Inventario de creación: al instante
+**Decidido el 13 nov (Amaro, acordado con Pipe):** lo que la persona crea en una mesa con su código llega a su inventario **al momento**, sin recargar.
+- La credencial escucha la tabla `eventos` con **Supabase Realtime** (ya publicada en `juego.sql`), filtrando por su código. Cada creación aparece en su casilla con una animación de «¡Nuevo!». En modo demo escucha los eventos locales del mismo navegador.
+- **Con miniatura** (las mesas ya mandan la imagen con el código): Vagón, Mosaicos y Grabado. Audioreactiva muestra el nombre de la escena.
+- **Solo la casilla, sin miniatura:** Graffiti, Fotomatón y Teatro hoy solo avisan el timbre. Para que también llegue la imagen hay que sumar el tipo en `eventos` (migración nueva) y que cada mesa la publique: Graffiti va en un PR siguiente; Teatro (`loops/`) solo si su responsable lo pide; Fotomatón **no** manda su imagen al inventario (es la cara de la persona).
+- La regla del timbre 2 no cambia: una creación basta.
 
 ## 3. Datos
 **Migración `shared/supabase/migraciones/001-afiches.sql`** (nueva, idempotente; no edita lo ya corrido):
 ```
-afiches   id text pk (= id del marco) · nombre · lenguaje · sello (3) · secreto (6, único, aleatorio) · activo
+afiches   id text pk (AF01…) · nombre · lenguaje · sello (3) · secreto (6, único, aleatorio) · activo
 ```
 - `afiches` sin políticas: el celular no puede leer los secretos (igual que `sellos_def.token`).
-- `encontrar_afiche(p_codigo, p_secreto)`: busca el afiche activo por su secreto y llama a `sellar(codigo, sello, token, id_del_afiche)`. En `pasos` queda el **id** público (`PM02`), nunca el secreto. Devuelve lo mismo que `sellar()` más `afiche`.
+- `encontrar_afiche(p_codigo, p_secreto)`: busca el afiche activo por su secreto y llama a `sellar(codigo, sello, token, id_del_afiche)`. En `pasos` queda el **id** público (`AF05`), nunca el secreto. Devuelve lo mismo que `sellar()` más `afiche` y `repetido`.
 - `metas()`: id y meta de cada estación (sin el token), para que la credencial muestre «n de 3».
-- Siembra los 15 afiches con secretos aleatorios. Para imprimir: `select id, nombre, secreto from afiches order by id;` (los secretos nunca van al repo).
-- **Opcional, comentado:** rotar el token de la estación 3 si ya se imprimió su QR genérico (con él se podían inventar afiches).
+- Siembra los 6 afiches con secretos aleatorios. Para generar los sellos: `select string_agg(id || ':' || secreto || ':' || lenguaje, ',' order by id) from afiches where activo;` (los secretos nunca van al repo).
 
-**Inventario:** se lee de `eventos` (tipo `timbre`, `datos.app`, `codigo`), que las mesas ya publican al otorgar el timbre 2 (`shared/juego.ts`, `otorgarCreacion`). No cambia nada en las tablets ni en `shared/`. En modo demo se lee de los eventos locales del mismo navegador.
-- Si el equipo decide que el timbre 2 pida **varios** recursos (p. ej. 3 mesas distintas), eso se hace con `pasos`: las mesas mandan `p_clave = app` y se sube `sellos_def.meta` del sello 2. Es otro PR (toca `shared/` y obliga a recompilar las apps de las mesas).
+**Inventario:** se lee de `eventos` con el código de la persona (`timbre` con `datos.app`, `vagon`, `mosaico`, `grabado`, `audio`) y se escucha en vivo (§2b).
 
-**Modo demo** (sin Supabase): el código del afiche es su id (`#/afiche/PM02`) y los pasos quedan en el celular. Meta de demo: 3 afiches.
+**Modo demo** (sin Supabase): el secreto de cada afiche es su id (`AF05`, sello `SDA:AF05`) y los pasos quedan en el celular. Meta de demo: 3 afiches.
 
 ## 4. Archivos
 | Archivo | Cambio |
@@ -54,16 +80,17 @@ afiches   id text pk (= id del marco) · nombre · lenguaje · sello (3) · secr
 | `credencial/package.json` | `jsqr` |
 | `credencial/src/lib/lector.ts` | lector de QR: `BarcodeDetector` → jsQR |
 | `credencial/src/lib/deslizar.ts` | gesto horizontal (umbral, sin robar el toque que gira la credencial) |
-| `credencial/src/lib/store.ts` | `encontrarAfiche`, `progresoJuego` (afiches, metas, inventario), pasos en modo demo |
+| `credencial/src/lib/store.ts` | `encontrarAfiche`, `progresoJuego` (afiches, metas, inventario), `escucharCreaciones` (Realtime), pasos en modo demo |
 | `credencial/src/pages/Juego.tsx`, `Afiches.tsx`, `Afiche.tsx` | vista Juego, cámara de la cacería y enlace directo |
 | `credencial/src/pages/Credencial.tsx`, `Escanear.tsx`, `App.tsx`, `styles.css` | rutas, gesto, botón Jugar, lector común, código de afiche a mano |
-| `credencial/scripts/qr-afiches.mjs` | QR imprimibles de los afiches (`AFICHES=PM01:SECRETO,…`) |
+| `credencial/scripts/sellos-afiches.mjs` | sellos de la cacería en el estilo de cada lenguaje (`AFICHES=AF01:SECRETO:Geométrica,…`) |
+| `credencial/src/lib/afiches.ts`, `credencial/public/figma/afiches/` | catálogo de los 6 afiches con su miniatura de Figma |
 
 ## 5. Pendiente fuera del código
 - Correr `001-afiches.sql` en `somos-diseno` y anotarlo en el PR y en `shared/supabase/migraciones/README.md`.
-- Sacar los secretos, generar los QR (`npm --prefix credencial run qr:afiches`) e imprimir los 15 afiches.
-- Probar la lectura de un afiche impreso con la luz de la sede, en un iPhone y en un Android.
-- Copy de la estación 3 en `shared/juego.ts` («Escanea los afiches de los portales AR» → «Encuentra 3 afiches en la sede»): va en un PR chico de `shared/`.
+- Con los secretos, generar los sellos (`npm --prefix credencial run sellos:afiches`) y ponerlos en los 6 afiches en Figma siguiendo las reglas de §2.
+- Imprimir uno de prueba y leerlo con un iPhone y un Android con la luz de la sede **antes** de imprimir todos (plan 003).
+- Definir dónde va cada afiche (plano de la sede).
 
 ## 6. Verificación (13 nov 2026)
 - [x] `npm --prefix credencial run build` en verde.
