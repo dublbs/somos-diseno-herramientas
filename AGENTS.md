@@ -85,12 +85,23 @@ Desde nov 2026 dos personas iteran la plataforma, cada una con su propio agente 
 8. **Cerrar con estado.** Cada PR termina diciendo qué quedó probado, qué no y qué falta. Si cambia el estado general, se actualiza la sección «Estado en vivo».
 
 ## Estado en vivo (actualizar al mergear)
+- **Evento:** 19 nov 2026. Prueba general: 18 nov (`docs/tasks/009-pendientes.md`, H5).
 - **Sitio**: GitHub Pages publica `main` (los `dist/` versionados): `https://dublbs.github.io/somos-diseno-herramientas/`. Tarda 1–2 min después de cada merge.
   - Credencial (celular): `…/credencial/dist/` · PC madre (staff): `…/admin/dist/` · HUB: `…/hub-estacion/dist/`
-- **Supabase**: proyecto `somos-diseno`, ref `opvwftwvfdhhrqwpjvlx`, org de dublbs, plan Free. Corridos: `credencial/supabase/schema.sql`, `shared/supabase/eventos.sql`, `shared/supabase/juego.sql` (incluida la sección 10, cuentas del staff). Función `notificar` desplegada.
+- **Decisiones vigentes (planes 009–011, Amaro, 13 nov; el equipo se alinea a ellas):**
+  - **Timbres:** 1 Inscripción · 2 Creación (4 experiencias distintas) · 3 Cacería (3 afiches) · 4 Secreto (jefe final o plan B). El canje pide los 4.
+  - **Hora punta reemplaza al Vagón.**
+  - **La credencial es opcional para jugar** («Jugar sin credencial»).
+  - **«Llévatela» con QR** en todas las experiencias.
+- **Supabase**: proyecto `somos-diseno`, ref `opvwftwvfdhhrqwpjvlx`, org de dublbs, plan Free. Qué está corrido y cuándo: `shared/supabase/migraciones/README.md`. Funciones: `notificar`, `tarjeta`, `limpiar`. Crons: `somos-borrar-24h` y `fotomaton-limpiar`.
 - **Staff**: cada persona crea su cuenta en el PC madre («Crear cuenta»); la primera fue admin y las demás las aprueba un admin en Configuración. Hoy: Pipe (admin) y Amaro (admin).
-- **Pendiente**: secretos VAPID en la función (los avisos push no se envían hasta entonces) y `VITE_VAPID_PUBLIC_KEY` en `credencial/.env.local`; PIN del canje y stock del premio (se configuran en el PC madre); Portales con cámara y marco (plan 004); retos por mesa; arte del prompt 006; HUB con Realtime.
-- **Tokens de los sellos**: están en la tabla `sellos_def` (no en el repo). Se consultan en el SQL Editor: `select id, nombre, meta, token from sellos_def order by id;`
+- **Pendiente (personas):**
+  - sellos de los afiches impresos y probados (H2);
+  - plan B del Secreto (H3);
+  - PIN del canje y stock del premio en el PC madre (hoy stock 1, límite 1, sin PIN);
+  - secretos VAPID si se quieren avisos push.
+- **Pendiente (código):** `docs/tasks/009-pendientes.md` (Amaro) y `docs/tasks/008-teatro.md` (Teatro, Pipe).
+- **Secretos de sellos y afiches**: están en `sellos_def` y `afiches` (no en el repo). Se consultan en el SQL Editor.
 
 ## Flujo con dos herramientas (opcional, anterior)
 Antes de nov 2026 Claude Code ejecutaba de punta a punta. Si se reparte trabajo con Antigravity:
