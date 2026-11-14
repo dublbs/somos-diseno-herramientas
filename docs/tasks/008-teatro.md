@@ -4,6 +4,14 @@ Plan: [`docs/plans/008-teatro-auditoria.md`](../plans/008-teatro-auditoria.md). 
 
 ## Fase 0 · Medir
 
+## T-000 · Recompilar el Teatro con el `shared/` nuevo (después de mergear #17–#21)
+- Archivo: `loops/dist/` (solo build).
+- Cambio: `npm --prefix loops ci && npm --prefix loops run build` sobre `main`, ya con la cadena de Amaro mergeada. Así el Teatro anota su paso del timbre Creación (`p_clave = 'teatro'`) y tiene «Jugar sin credencial».
+- No tocar: `loops/src/`.
+- Verificar: en modo juego, exportar en el Teatro con una credencial de prueba; en el PC madre, la persona suma 1 en «creaciones».
+- Aceptación: el Teatro cuenta como una de las 4 experiencias.
+- [ ] Hecha
+
 ## T-001 · Duración real del video y diagnóstico
 - Archivo: `src/lib/grabarLoop.ts` (~40-59), `src/components/EscenarioOrganico.tsx` (`grabar`, ~332), `src/components/ModalExportar.tsx`.
 - Cambio: al terminar la grabación, leer la duración real del video (cargar el blob en un `<video>` oculto; si `duration` es `Infinity`, saltar a `currentTime = 1e7` y leerla en `timeupdate`). Si difiere más de 10 % de la esperada, el modal avisa «El video salió más lento de lo esperado. Prueba con menos piezas o sin borde.» y ofrece «Grabar de nuevo». Con `?diag` en la URL, mostrar además los ms promedio por cuadro y la duración real.
@@ -41,29 +49,18 @@ Plan: [`docs/plans/008-teatro-auditoria.md`](../plans/008-teatro-auditoria.md). 
 - Aceptación: la tarjeta cumple las reglas de color 1 y 2 de la dirección y se ve de la misma familia que la del Fotomatón.
 - [ ] Hecha
 
-## T-005 · Modal del resultado
-- Archivo: `src/components/ModalExportar.tsx`, `src/styles.css` (bloque «Modal Exportar»).
-- Cambio:
-  - Títulos: «Tu loop está listo» (video) o «Tu tarjeta está lista» (PNG).
-  - Fuera la jerga técnica y los emojis: los botones usan íconos Material.
-  - Mayúsculas de oración: «Descargar video», «Descargar tarjeta».
-  - Tocar afuera ya no cierra (solo la ✕ y la tecla Esc).
-  - Si existe T-006, el botón principal es «Llévatelo al celular».
-- No tocar: la lógica de descarga.
-- Verificar: abrir el modal con PNG y con video en 1024×768 y 768×1024.
-- Aceptación: textos según la voz del proyecto (cercana, directa, sin jerga); tocar el fondo no cierra el modal.
+## T-005 · Modal del resultado → absorbida por T-006
+El modal propio se reemplaza por «Llévatela» (plan 011), que ya resuelve los textos, no se cierra a medio subir y tiene su propio estilo. Si queda algo del modal (por ejemplo, la descarga directa en la tablet para el staff), se arregla dentro de T-006.
 - [ ] Hecha
 
-## T-006 · Llévatelo: QR al celular (depende de D2)
-- Archivos: `shared/supabase/migraciones/001-resultados.sql` (nuevo), `shared/supabase/functions/resultado/` (nuevo), `shared/lib/llevatela.ts` (nuevo, a partir de `fotomaton/src/lib/publicar.ts`), `loops/src/components/ModalExportar.tsx`.
+## T-006 · «Llévatelo» con QR (plan 011, después de mergear #20)
+- Archivo: `loops/src/App.tsx`, `loops/src/components/EscenarioOrganico.tsx` (`exportar`, `grabar`, barra superior), `loops/src/components/ModalExportar.tsx` (se borra), `loops/vite.config.ts` y `loops/tsconfig.json` (`qrcode` en `resolve.dedupe` y `paths`, como indica `AGENTS.md`).
 - Cambio:
-  - **Base:** un bucket privado `resultados` y una tabla `resultados (id, app, ruta, tipo, expira)` con borrado a las 24 h (pg_cron, como `eventos.sql`).
-  - **Función** `resultado`: entrega una URL firmada corta, igual que `fotomaton/supabase/functions/tarjeta`.
-  - **Teatro:** sube el video y la tarjeta, muestra el QR grande con el aviso de 24 h y, sin servidor, el mismo modo de prueba que el Fotomatón.
-  - **Mismo patrón que `fotomaton/src/components/PasoQR.tsx`:** aviso de privacidad → subir → QR.
-- No tocar: el Fotomatón; migrarlo a `resultados` es otra tarea.
-- Verificar: correr la migración en `somos-diseno` (anotarlo en el README de migraciones), desplegar la función y escanear el QR con un celular.
-- Aceptación: el celular descarga el video y la tarjeta; a las 24 h el enlace ya no responde.
+  - **Barra superior:** «Tarjeta» y «Grabar loop» pasan a un solo «Llévatelo». Graba el video (con la tarjeta como respaldo si el navegador no graba) y abre `<Llevatela blob app="teatro" titulo="Tu loop está listo" conCredencial={…} />`.
+  - **Inventario:** la página de descarga ya reconoce `?app=teatro`. Si el equipo quiere que el Teatro también mande su miniatura al inventario de la credencial, hace falta una migración nueva que sume `'teatro'` a `eventos_tipo_check` (como `002`, `004` y `005`); se decide en el PR.
+- No tocar: `shared/ui/Llevatela.tsx` (es de todas las experiencias; si hace falta un cambio, va en su propio PR).
+- Verificar: generar el QR en la tablet y abrirlo en un iPhone y en un Android.
+- Aceptación: el celular descarga el video del loop; a las 24 h se borra (el cron `fotomaton-limpiar` ya corre cada hora).
 - [ ] Hecha
 
 ## Fase 2 · Interfaz
@@ -116,6 +113,8 @@ Plan: [`docs/plans/008-teatro-auditoria.md`](../plans/008-teatro-auditoria.md). 
 ## T-011 · Botones con texto
 - Archivo: `src/components/EscenarioOrganico.tsx` (bloque `.transformar`, `BarraSuperior`), `src/styles.css`.
 - Cambio:
+  - **Play (H19):** el botón «Reproducir el loop» de la línea de tiempo llega a 44 × 44 como mínimo.
+  - **Ayuda (H20):** la ayuda de la barra superior no se corta en 1180 × 820 ni en 1280 × 720 (más corta, o en la barra derecha).
   - **Propiedades:** etiqueta corta bajo cada ícono: Agrandar, Achicar, Voltear, Invertir, Al frente, Al fondo, Duplicar, Quitar.
   - **Vertical:** «Sorpréndeme» y «Tarjeta» conservan su texto, si cabe sin desbordar; si no cabe, el texto va bajo el ícono.
 - Verificar: las 6 resoluciones con una pieza elegida que camine (aparece «Invertir»).
