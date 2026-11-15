@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { otorgarCreacion } from '../../shared/juego';
+import { jugador, otorgarCreacion } from '../../shared/juego';
+import { miniatura, publicar } from '../../shared/datos';
 import { MARCOS, porId, type Visual } from './data/marcos';
 import { TINTAS } from './data/tintas';
 import { Carrete, Lateral } from './components/Barras';
 import { BotonAccion } from '../../shared/ui/Kit';
-import { Quiosco } from '../../shared/ui/Tutorial';
+import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
 import '../../shared/ui/somos-kit.css';
 import { Camara } from './components/Camara';
 import { Editor, type FotoEditable } from './components/Editor';
 import { PasoQR } from './components/PasoQR';
-import { Portada } from './components/Portada';
 import { useRetardo } from './hooks/useRetardo';
 import { cargarCara, detectarCara } from './lib/cara';
 import { exportarTarjeta, nombreArchivo } from './lib/tarjeta';
@@ -17,12 +17,14 @@ import { componer, leerArchivo } from './lib/trama';
 import { demoDe, useDemosListas } from './lib/demo';
 
 const REVELADO_MIN = 1800, RETARDO_MARCO = 1500;
-type Paso = 'inicio' | 'camara' | 'editar' | 'qr';
+// Como las demás experiencias (plan 009): tutorial del kit una vez por sesión y después la herramienta.
+type Paso = 'camara' | 'editar' | 'qr';
 // Hub de experiencias: por defecto dos carpetas arriba (fotomaton/dist/ → Experiencias/).
 const HUB_URL = (import.meta.env.VITE_HUB_URL as string | undefined) ?? '../../';
 
 export function App() {
-  const [paso, setPaso] = useState<Paso>('inicio');
+  const [visto, marcarVisto] = useTutorialVisto('fotomaton');
+  const [paso, setPaso] = useState<Paso>('camara');
   const [visual, setVisual] = useState<Visual>('Pixel'), [marcoId, setMarcoId] = useState('PM05');
   const [celda, setCelda] = useState(2.5), [tinta, setTinta] = useState('cmyk');
   const [foto, setFoto] = useState<FotoEditable | null>(null), [aviso, setAviso] = useState('');
@@ -64,7 +66,7 @@ export function App() {
     const f = e.target.files?.[0]; e.target.value = ''; if (!f) return;
     revelar(); setFoto(null); setPaso('editar');
     try { setFoto({ c: await leerArchivo(f), cara: null }); }
-    catch { setRevelando(false); setPaso('inicio'); setAviso('No pudimos abrir esa imagen.'); }
+    catch { setRevelando(false); setPaso('camara'); setAviso('No pudimos abrir esa imagen.'); }
   };
 
   const hacerTarjeta = () => exportarTarjeta(marcoMostrado, foto!.c, celda, TINTAS[tinta], foto!.cara);
@@ -85,10 +87,22 @@ export function App() {
     catch { setAviso('No pudimos preparar la tarjeta.'); } finally { setOcupado(false); }
   };
 
-  // Terminar: vuelve a la portada y limpia todo lo de la persona anterior.
+  // Terminar: vuelve a la cámara y limpia todo lo de la persona anterior.
   const terminar = () => {
     setFoto(null); setTarjeta(null); setRevelando(false);
-    setCelda(2.5); setTinta('cmyk'); setPaso('inicio');
+    setCelda(2.5); setTinta('cmyk'); setPaso('camara');
+  };
+
+  // Con una persona jugando, su tarjeta llega al inventario de su credencial, como lo que se crea en las otras mesas.
+  // Solo después de que acepta el aviso y toca «Generar QR»: es cuando la tarjeta sale de la tablet (fotomaton/CLAUDE.md).
+  const enviarAlInventario = async (blob: Blob) => {
+    const codigo = jugador()?.codigo;
+    if (!codigo) return;
+    try {
+      const bm = await createImageBitmap(blob), c = document.createElement('canvas');
+      c.width = bm.width; c.height = bm.height; c.getContext('2d')!.drawImage(bm, 0, 0);
+      await publicar('foto', { png: miniatura(c, 160) }, codigo);
+    } catch { /* sin red: queda el timbre */ }
   };
 
   const destino = porId(marcoId), textoCambio = destino.visual + ' · ' + destino.name;
@@ -96,10 +110,26 @@ export function App() {
   const carrete = <Carrete visual={visual} elegirVisual={elegirVisual} marcoId={marcoId} setMarcoId={setMarcoId} miniaturas={miniaturas} />;
   const inicio = <BotonAccion icono="restart_alt" texto="Inicio" onClick={terminar} />;
   const input = <input ref={archivo} type="file" accept="image/*" capture="user" style={{ display: 'none' }} onChange={alArchivo} />;
-  const avisoEl = <>{aviso ? <div className="aviso" role="status">{aviso}</div> : null}<Quiosco app="fotomaton" activo={paso !== 'inicio'} alReiniciar={terminar} /></>;
+  const avisoEl = <>{aviso ? <div className="aviso" role="status">{aviso}</div> : null}<Quiosco app="fotomaton" /></>;
 
-  // Cámara y edición son la herramienta (barras fijas del kit); portada y QR son pantallas de paso.
-  if (paso === 'camara' || paso === 'editar') return (
+  if (!visto) return (
+    <>
+      {input}
+      <Tutorial etiqueta="Los tres lenguajes · imagen e identidad" titulo="Fotomatón" volver={HUB_URL}
+        pasos={[
+          { icono: 'photo_camera', texto: 'Sácate una foto: la cámara ya muestra el efecto y el marco.' },
+          { icono: 'palette', texto: 'Elige lenguaje, marco, trama y tinta.' },
+          { icono: 'ios_share', texto: 'Llévatela al celular con un QR. Queda 24 horas y después se borra.' },
+        ]}
+        acciones={[
+          { texto: 'Abrir la cámara', icono: 'photo_camera', alTocar: () => { marcarVisto(); setPaso('camara'); } },
+          { texto: 'Subir una foto', icono: 'image', alTocar: () => { marcarVisto(); subir(); } },
+        ]} />
+    </>
+  );
+
+  // Cámara y edición son la herramienta (barras fijas del kit); «Llévatela» se abre encima, como exportar en las otras mesas.
+  return (
     <>
       {input}
       {paso === 'camara' ? (
@@ -111,33 +141,15 @@ export function App() {
           textoCambio={textoCambio} ocupado={ocupado} alGuardar={guardar} alLlevatela={llevatela} alOtra={() => setPaso('camara')}
           volver={HUB_URL} acciones={inicio} lateral={lateral} carrete={carrete} />
       )}
-      {avisoEl}
-    </>
-  );
-
-  return (
-    <div className="app-pantalla">
-      {input}
-      <header className="barra-superior">
-        <div className="lado-izq">
-          <a className="volver" href={HUB_URL} aria-label="Volver a las experiencias">
-            <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
-            Experiencias
-          </a>
-          <div className="barra-info">
-            <h1>Fotomatón</h1>
-            <p className="bajada-corta">Tu foto con el efecto y el marco de cada lenguaje</p>
+      {paso === 'qr' && tarjeta && (
+        <div className="k-quiosco" role="dialog" aria-modal="true" aria-labelledby="qr-t">
+          <div className="k-panel caja-qr">
+            <PasoQR blob={tarjeta} marco={marcoMostrado} tinta={tinta} conCredencial={!!jugador()?.codigo}
+              alSubida={() => enviarAlInventario(tarjeta)} alTerminar={terminar} alVolver={() => setPaso('editar')} />
           </div>
         </div>
-        {paso !== 'inicio' ? <button className="btn btn-inicio" onClick={terminar}>Inicio</button> : null}
-      </header>
-      {paso === 'inicio' && <Portada alCamara={() => setPaso('camara')} alSubir={subir} />}
-      {paso === 'qr' && tarjeta && (
-        <main className="cuerpo-pantalla cuerpo-qr">
-          <PasoQR blob={tarjeta} marco={marcoMostrado} tinta={tinta} alTerminar={terminar} alVolver={() => setPaso('editar')} />
-        </main>
       )}
       {avisoEl}
-    </div>
+    </>
   );
 }

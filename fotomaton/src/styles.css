@@ -75,3 +75,11 @@ video.oculto{position:absolute;width:1px;height:1px;opacity:0;pointer-events:non
 .cuerpo-qr{grid-template-columns:minmax(0,1fr)!important;place-items:center}
 .qr-caja{width:min(100%,420px,46dvh)}
 @media (max-height:740px){.qr-wrap{gap:12px}.qr-wrap h2{font-size:28px}}
+
+/* «Llévatela» se abre encima del editor, con el panel del kit (plan 009: como exportar en las otras mesas). */
+.caja-qr { width: min(100%, 460px); max-height: calc(100dvh - 32px); overflow: hidden; padding: 22px; background: var(--surface); color: var(--ink); }
+.caja-qr .qr-wrap { gap: 12px; }
+.caja-qr .qr-wrap h2 { font-size: clamp(22px, 3vw, 30px); }
+.caja-qr .qr-caja { width: min(100%, 300px, 42dvh); padding: 12px; }
+.caja-qr .k-ayuda { margin: 0; text-align: center; }
+.acciones-qr { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
