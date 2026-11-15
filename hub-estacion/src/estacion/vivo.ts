@@ -2,7 +2,7 @@ import { escuchar, recientes, type Evento as EventoDatos } from '../../../shared
 import type { Evento, Persona } from './fuente';
 
 // El HUB en vivo: lo que llega por la capa de datos (shared/datos.ts) desde las experiencias y las credenciales.
-//   Pixel → el vagón de la gente pasa por el andén · Geométrica → paneles MetroArte con los mosaicos
+//   Pixel → los trenes pasan por el andén, sin rayados (plan 009, D3) · Geométrica → paneles MetroArte con los mosaicos
 //   Orgánica → banderines con los grabados · y las personas con sus timbres.
 // Las imágenes se guardan ya cargadas para que la escena solo las dibuje.
 
@@ -10,7 +10,6 @@ const cargar = (src: string) => { const im = new Image(); im.src = src; return i
 export const listaImagen = (im: HTMLImageElement | null | undefined): im is HTMLImageElement => !!im && im.complete && im.naturalWidth > 0;
 
 export const enVivo = {
-  vagon: null as HTMLImageElement | null,
   mosaicos: [] as { im: HTMLImageElement; autor: string }[], // el más nuevo primero
   grabados: [] as HTMLImageElement[],
   fotos: new Map<string, HTMLImageElement>(), // codigo → miniatura de la cara (solo con consentimiento)
@@ -21,8 +20,7 @@ const autor = (codigo: string | null) => (codigo ? nombres.get(codigo) ?? codigo
 
 export async function conectar(alEvento: (e: Evento) => void, existe: (codigo: string) => boolean): Promise<() => void> {
   const aplicar = (e: EventoDatos, inicial = false) => {
-    if (e.tipo === 'vagon') enVivo.vagon = cargar((e as EventoDatos<'vagon'>).datos.png);
-    else if (e.tipo === 'mosaico') { enVivo.mosaicos.unshift({ im: cargar((e as EventoDatos<'mosaico'>).datos.png), autor: autor(e.codigo) }); enVivo.mosaicos.length = Math.min(enVivo.mosaicos.length, 12); }
+    if (e.tipo === 'mosaico') { enVivo.mosaicos.unshift({ im: cargar((e as EventoDatos<'mosaico'>).datos.png), autor: autor(e.codigo) }); enVivo.mosaicos.length = Math.min(enVivo.mosaicos.length, 12); }
     else if (e.tipo === 'grabado') { enVivo.grabados.unshift(cargar((e as EventoDatos<'grabado'>).datos.png)); enVivo.grabados.length = Math.min(enVivo.grabados.length, 6); }
     else if (e.tipo === 'timbre' && e.codigo) {
       const s = sellos.get(e.codigo) ?? new Set<number>(); s.add((e as EventoDatos<'timbre'>).datos.sello); sellos.set(e.codigo, s);
@@ -41,8 +39,8 @@ export async function conectar(alEvento: (e: Evento) => void, existe: (codigo: s
     }
   };
   // Lo que ya pasó (del más viejo al más nuevo), y después lo que vaya llegando.
-  const [cred, tim, vag, mos, gra] = await Promise.all([recientes('credencial', 60), recientes('timbre', 200), recientes('vagon', 1), recientes('mosaico', 12), recientes('grabado', 6)]);
-  [...tim, ...vag, ...mos, ...gra].reverse().forEach(e => aplicar(e, true));
+  const [cred, tim, mos, gra] = await Promise.all([recientes('credencial', 60), recientes('timbre', 200), recientes('mosaico', 12), recientes('grabado', 6)]);
+  [...tim, ...mos, ...gra].reverse().forEach(e => aplicar(e, true));
   [...cred].reverse().forEach(e => aplicar(e));
   return escuchar(e => aplicar(e));
 }

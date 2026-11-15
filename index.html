@@ -144,19 +144,19 @@ footer .enlace-hub{color:var(--ink);font-weight:700;text-decoration:none;border-
         </div>
       </li>
 
-      <!-- 4b. VAGÓN -->
-      <li class="tarjeta" data-lenguajes="pixel" id="exp-vagon">
+      <!-- 4b. HORA PUNTA (juego Pixel; reemplaza al Vagón, plan 009) -->
+      <li class="tarjeta" data-lenguajes="pixel" id="exp-juego">
         <div class="miniatura">
-          <canvas id="cv-vagon" aria-hidden="true"></canvas>
+          <canvas id="cv-juego" aria-hidden="true"></canvas>
           <span class="etiqueta">Pixel</span>
           <span class="badge-estado">Nuevo</span>
         </div>
         <div class="cuerpo">
-          <h2>Vagón</h2>
-          <p>Diseña tu carro de metro pixel a pixel: elige el modelo, pinta, rellena, pega stickers y pon tu tag. Después sale a la vía y pasa por la Estación.</p>
+          <h2>Hora punta</h2>
+          <p>Un juego en tres niveles: cruza la ciudad juntando latas de pintura, atrapa a los Grises en el andén y pinta la pared de la estación. Esa pared es tu mural y te lo llevas.</p>
         </div>
         <div class="tarjeta-acciones">
-          <a class="btn primario btn-entrar" href="vagon/dist/" id="link-vagon" aria-label="Entrar al Vagón">Entrar <span aria-hidden="true">→</span></a>
+          <a class="btn primario btn-entrar" href="juego-pixel/dist/" id="link-juego" aria-label="Entrar a Hora punta">Entrar <span aria-hidden="true">→</span></a>
         </div>
       </li>
 
@@ -649,25 +649,41 @@ footer .enlace-hub{color:var(--ink);font-weight:700;text-decoration:none;border-
     });
   }
 
-  // 4b. Vagón: el lateral del metro de Figma (Línea 1) que pasa por la vía, con algunos pixeles pintados encima.
-  const cvVagon = document.getElementById("cv-vagon");
-  if (cvVagon) {
-    const ctx = cvVagon.getContext("2d");
-    const modulo = new Image(); modulo.src = "vagon/dist/figma/metro/linea1-lateral.svg";
-    const pintados = [[6, 6, HEX.Amarillo], [7, 6, HEX.Amarillo], [8, 7, HEX.Amarillo], [9, 7, HEX.Amarillo], [10, 6, HEX.Rosa], [11, 6, HEX.Rosa], [12, 7, HEX.Rosa], [30, 5, HEX.Verde], [31, 5, HEX.Verde], [31, 6, HEX.Verde], [32, 6, HEX.Verde]];
+  // 4b. Hora punta: el personaje cruza la calle fila por fila entre autos, con latas de pintura en el camino.
+  const cvJuego = document.getElementById("cv-juego");
+  if (cvJuego) {
+    const ctx = cvJuego.getContext("2d");
+    const pj = new Image(); pj.src = "juego-pixel/dist/figma/personaje.svg";
+    const FILAS = [["vereda"], ["calle", 1, 0.9, HEX.Amarillo], ["calle", -1, 1.3, HEX.Verde], ["vereda"], ["calle", 1, 1.1, HEX.Rosa], ["vereda"]];
+    const LATAS = [[3, 0, HEX.Rosa], [9, 3, HEX.Celeste], [6, 5, HEX.Amarillo]];
     miniaturas.push({
-      cv: cvVagon, ctx,
+      cv: cvJuego, ctx,
       draw: t => {
-        const { width: W, height: H } = cvVagon, via = H * 0.84, alto = H * 0.62, cel = alto / 24;
-        ctx.fillStyle = HEX.Hueso; ctx.fillRect(0, 0, W, H);
-        ctx.fillStyle = HEX.Morado; ctx.fillRect(0, H * 0.08, W, H * 0.06);
-        ctx.fillStyle = HEX.Amarillo; ctx.fillRect(0, via - 4, W, 3);
-        ctx.fillStyle = "#2A2A2A"; ctx.fillRect(0, via, W, H - via);
-        if (!modulo.complete || !modulo.naturalWidth) return;
-        const largo = alto * 6, x = W - ((quieto ? 0.4 : (t / 9000) % 1) * (W + largo));
+        const { width: W, height: H } = cvJuego, c = H / FILAS.length, cols = Math.ceil(W / c), ms = quieto ? 1200 : t;
         ctx.imageSmoothingEnabled = false;
-        for (let k = 0; k < 6; k++) ctx.drawImage(modulo, x + k * alto, via - alto - 2, alto, alto);
-        for (const [c, f, color] of pintados) { ctx.fillStyle = color; ctx.fillRect(x + alto * 2 + c * cel, via - alto - 2 + f * cel, cel, cel); }
+        FILAS.forEach(([tipo, dir, vel, color], k) => {
+          const y = H - (k + 1) * c;
+          ctx.fillStyle = tipo === "calle" ? "#3D3A36" : "#CFC6B8"; ctx.fillRect(0, y, W, c + 1);
+          if (tipo === "vereda") { ctx.fillStyle = "#B8AE9E"; for (let x = 0; x < cols; x++) ctx.fillRect(x * c, y, 2, c); }
+          else {
+            ctx.fillStyle = HEX.Hueso; for (let x = 0; x < W; x += c) ctx.fillRect(x + c * 0.2, y + c * 0.47, c * 0.4, c * 0.06);
+            for (let a = 0; a < 3; a++) { // autos vistos desde arriba
+              const largo = c * 1.8, recorrido = W + largo, x = ((ms / 1000 * vel * c * dir + a * recorrido / 3) % recorrido + recorrido) % recorrido - largo;
+              ctx.fillStyle = "#000"; ctx.fillRect(x, y + c * 0.12, largo, c * 0.76);
+              ctx.fillStyle = color; ctx.fillRect(x + 2, y + c * 0.12 + 2, largo - 4, c * 0.76 - 4);
+              ctx.fillStyle = HEX.Celeste; ctx.fillRect(x + largo * (dir > 0 ? 0.62 : 0.18), y + c * 0.25, largo * 0.18, c * 0.5);
+            }
+          }
+        });
+        for (const [x, f, color] of LATAS) { // latas de pintura
+          const px = x * c + c * 0.3, py = H - (f + 1) * c + c * 0.25, l = c * 0.45;
+          ctx.fillStyle = "#000"; ctx.fillRect(px - 2, py - 2, l + 4, l * 1.2 + 4);
+          ctx.fillStyle = color; ctx.fillRect(px, py + l * 0.2, l, l * 0.8); ctx.fillStyle = "#B9B9B3"; ctx.fillRect(px, py, l, l * 0.2);
+        }
+        if (pj.complete && pj.naturalWidth) { // salta una fila cada 0,6 s y vuelve a partir
+          const paso = Math.floor(ms / 600) % FILAS.length, sube = quieto ? 0 : Math.sin(((ms % 600) / 600) * Math.PI) * c * 0.25;
+          ctx.drawImage(pj, Math.floor(cols / 2) * c, H - (paso + 1) * c - sube, c, c);
+        }
       }
     });
   }

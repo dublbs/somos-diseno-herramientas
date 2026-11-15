@@ -81,6 +81,8 @@ en vivo, Graffiti v2 y el Fotomatón conectado.
   descarga y, en modo juego, suma «n de 4».
 
 ### T2 · El Vagón sale del hub · Grupo A (después de T1) · **15 nov**
+- **15 nov, hecha** (PR `amaro/hub-hora-punta`): el hub muestra Hora punta en lugar del Vagón y los trenes del HUB pasan
+  sin rayados. La carpeta `vagon/` sigue en el repo; archivarla en `archive/vagon` queda para quien mergea.
 - Zona: `index.html`, `hub-estacion/src/estacion/vivo.ts`, `README.md`, `AGENTS.md`.
 - La tarjeta del Vagón del hub pasa a ser la del juego Pixel. El Vagón se archiva en la rama `archive/vagon`.
 - HUB: los trenes siguen llegando y partiendo **sin rayados** (no dibujar el PNG de los eventos `vagon`).
