@@ -32,7 +32,7 @@ en vivo, Graffiti v2 y el Fotomatón conectado.
 - En el SQL Editor, **en este orden**: `shared/supabase/migraciones/001-afiches.sql`, `002-eventos-graffiti.sql`,
   `003-timbres-finales.sql`, `004-eventos-foto.sql` y `005-eventos-juego.sql` (el mural de «Hora punta» al inventario). Cada una se puede correr dos veces sin daño.
 - Anotar en `shared/supabase/migraciones/README.md` (PR #10) quién y cuándo.
-- Fotomatón (para que su QR funcione en otros celulares): correr `fotomaton/supabase/migrations/0001_fotomaton.sql` **una
+- Fotomatón **y el QR de todas las experiencias** (plan 011; para que el QR abra en otros celulares): correr `fotomaton/supabase/migrations/0001_fotomaton.sql` **una
   sola vez** (crea políticas sin `drop … if exists`: una segunda corrida da error, sin daño) y desplegar las funciones
   `tarjeta` y `limpiar` (`supabase functions deploy`). Sin esto el Fotomatón igual funciona: la tarjeta queda en la tablet.
 - Aceptación: `select id, nombre, meta from sellos_def order by id;` muestra Inscripción 1, Creación 4, Cacería 3, Secreto 1.
@@ -86,19 +86,28 @@ en vivo, Graffiti v2 y el Fotomatón conectado.
 - HUB: los trenes siguen llegando y partiendo **sin rayados** (no dibujar el PNG de los eventos `vagon`).
 - Aceptación: el hub no enlaza al Vagón; el HUB anima trenes limpios.
 
+### T2b · Arreglos rápidos de la auditoría · **antes del 17 nov** (medio día, sin decisiones de diseño)
+- Fuente: [`docs/plans/009-refinamiento/README.md`](../plans/009-refinamiento/README.md) (prioridad 1).
+- Zona: `graffiti/`, `taller-mosaicos/`, `grabado/`, `audioreactiva/`, `fotomaton/` (una rama, un commit por app).
+- Toques ≥ 44 px (Mosaicos M1/M7, Graffiti G-1); ayuda corta en la barra superior (Graffiti G-2); botón de exportar con el
+  mismo nombre e ícono en todas (X3); Grabado G1 (tamaños que cortan su texto) y G2 (tacos que casi no se ven);
+  Audioreactiva A1 (texto que se sale); Fotomatón F1 (disparador con ícono y texto).
+- Aceptación: la medición automática de la auditoría sin toques bajo 44 px ni textos cortados, en las 6 tablets.
+
 ### T3 · Grabado con capas · Grupo B · **15 y 16 nov**
 - Zona: `grabado/`.
 - Capas (como un software de diseño): crear, subir, bajar, ocultar y elegir la capa activa; el orden de las capas es la
   prioridad con que se ven. Papel **color hueso** (máximo 2 opciones). Revisar las combinaciones de tinta (plan 009 §3).
-- Antes, auditar la experiencia (6 resoluciones, cada herramienta, exportar, modo juego) y anotar hallazgos en
-  `docs/plans/009-refinamiento/grabado.md`.
+- Auditoría hecha: [`docs/plans/009-refinamiento/grabado.md`](../plans/009-refinamiento/grabado.md) (propuesta de
+  panel de capas en P1–P4).
 - Aceptación: una persona entiende las capas sin explicación (tutorial de 3 pasos lo enseña); sin scroll; exporta.
 
 ### T4 · Audioreactiva que reacciona de verdad · Grupo C · **15 y 16 nov**
 - Zona: `audioreactiva/`.
 - Medir cada escena con micrófono (voz, aplausos, música) y ajustar sensibilidad, suavizado y qué banda mueve qué.
   Las escenas que casi no responden se corrigen o se quitan.
-- Hallazgos en `docs/plans/009-refinamiento/audioreactiva.md`.
+- Auditoría hecha (UI): [`docs/plans/009-refinamiento/audioreactiva.md`](../plans/009-refinamiento/audioreactiva.md); falta
+  la medición con micrófono (P1–P2).
 - Aceptación: con música ambiente en la sala, todas las escenas se mueven visiblemente con el ritmo.
 
 ### T5 · Auditoría y arreglos de Fotomatón y Mosaicos · Grupo D · **16 nov**
