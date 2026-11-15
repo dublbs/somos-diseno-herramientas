@@ -14,6 +14,8 @@ export interface Datos {
   mosaico: { png: string };
   audio: { escena: string };
   graffiti: { png: string }; // miniatura de lo pintado; solo con el código de la persona (inventario de la credencial)
+  foto: { png: string }; // miniatura de la tarjeta del Fotomatón; solo con el código y después de «Generar QR»
+  juego: { png: string }; // miniatura del mural de «Hora punta» (juego Pixel); solo con el código de la persona
 }
 export type Tipo = keyof Datos;
 export interface Evento<T extends Tipo = Tipo> { id: string; tipo: T; codigo: string | null; datos: Datos[T]; creado: number }
