@@ -162,7 +162,7 @@ const Personas: React.FC<{ staff: api.Staff }> = ({ staff }) => {
       </header>
       {aviso && <p className="aviso" role="status">{aviso}</p>}
       <table className="tabla">
-        <thead><tr><th>Código</th><th>Nombre</th><th>Lenguaje</th>{ESTACIONES.map(e => <th key={e.n} className="centro-col" title={e.nombre}>{e.n}</th>)}<th>Portales</th><th>Avisos</th><th>Canje</th><th>Hora</th><th></th></tr></thead>
+        <thead><tr><th>Código</th><th>Nombre</th><th>Lenguaje</th>{ESTACIONES.map(e => <th key={e.n} className="centro-col" title={e.nombre}>{e.n}</th>)}<th title="Experiencias distintas (timbre 2)">Creación</th><th title="Afiches encontrados (timbre 3)">Cacería</th><th>Avisos</th><th>Canje</th><th>Hora</th><th></th></tr></thead>
         <tbody>
           {lista.map(p => (
             <tr key={p.id} className={p.canjeado ? 'canjeada' : completa(p.sellos) ? 'completa' : ''}>
@@ -187,6 +187,7 @@ const Personas: React.FC<{ staff: api.Staff }> = ({ staff }) => {
                   </button>
                 </td>
               ))}
+              <td className="mono">{p.creaciones ?? '–'}/4</td>
               <td className="mono">{p.portales}/3</td>
               <td className="mono">{p.avisos ? 'sí' : '—'}</td>
               <td>{p.canjeado ? <span className="pill ok">Canjeado</span> : completa(p.sellos) ? <span className="pill">Lista</span> : <span className="mono">{p.sellos.filter(n => ACTIVAS.includes(n)).length}/{ACTIVAS.length}</span>}</td>
@@ -194,7 +195,7 @@ const Personas: React.FC<{ staff: api.Staff }> = ({ staff }) => {
               <td>{staff.rol === 'admin' && <button type="button" className="btn chico" onClick={() => borrar(p)} title="Borrar credencial" aria-label="Borrar credencial"><Icono n="delete" /></button>}</td>
             </tr>
           ))}
-          {!lista.length && <tr><td colSpan={12} className="vacio">Todavía no hay credenciales{busqueda ? ' con esa búsqueda' : ''}.</td></tr>}
+          {!lista.length && <tr><td colSpan={13} className="vacio">Todavía no hay credenciales{busqueda ? ' con esa búsqueda' : ''}.</td></tr>}
         </tbody>
       </table>
     </section>
@@ -241,7 +242,7 @@ const CanjePanel: React.FC<{ staff: api.Staff }> = ({ staff }) => {
             <div className="ficha">
               <p className="mono">{persona.codigo}</p>
               <h2>{persona.nombre}</h2>
-              <p>{marcoListo(persona.marco).visual} · timbres {persona.sellos.filter(n => ACTIVAS.includes(n)).length}/{ACTIVAS.length} · portales {persona.portales}/3</p>
+              <p>{marcoListo(persona.marco).visual} · timbres {persona.sellos.filter(n => ACTIVAS.includes(n)).length}/{ACTIVAS.length} · creación {persona.creaciones ?? '–'}/4 · cacería {persona.portales}/3</p>
               {persona.canjeado ? <p className="pill ok">Ya canjeado</p>
                 : !completa(persona.sellos) ? <p className="pill">Incompleta: faltan {ESTACIONES.filter(e => e.activa && !persona.sellos.includes(e.n)).map(e => e.nombre).join(', ')}</p>
                 : <button type="button" className="btn primario" disabled={ocupado} onClick={canjear}><Icono n="approval" />Entregar premio</button>}

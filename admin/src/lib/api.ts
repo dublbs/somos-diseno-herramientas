@@ -9,7 +9,7 @@ export const configurado = Boolean(url && clave);
 export const sb = configurado ? createClient(url!, clave!) : null;
 
 export interface Staff { user_id: string; nombre: string; rol: 'admin' | 'mesa' }
-export interface Persona { id: string; codigo: string; nombre: string; marco: string; creada: string; canjeado: boolean; sellos: number[]; portales: number; avisos: number }
+export interface Persona { id: string; codigo: string; nombre: string; marco: string; creada: string; canjeado: boolean; sellos: number[]; portales: number; avisos: number; creaciones?: number } // creaciones: migración 003 (plan 009)
 export interface Sesion { id: number; mesa: string; app: string; codigo: string; inicio: string }
 export interface Premio { nombre: string; stock: number; limite_diario: number }
 export interface Notificacion { id: number; titulo: string; cuerpo: string; url: string | null; codigo: string | null; enviadas: number; fallidas: number; creado: string }

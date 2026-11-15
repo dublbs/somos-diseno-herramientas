@@ -5,17 +5,19 @@ Estado: **completo**. Los SVG de Figma se descargaron el 2026-10-28 (archivo `Yo
 Todos los SVG son pixel art con `shape-rendering` nítido: dibujarlos en canvas con `imageSmoothingEnabled = false`. Colores de la paleta Línea azul salvo los muros generados (neutros) y los contornos `#171717`/`#1E1E1E`.
 
 ## Muros (fondos)
+Plan 009 §3 (13 nov 2026): la pared pasa a ser **horizontal 2:1** (160 × 80 celdas) y quedan 4 muros: ladrillo, hormigón, cortina metálica y vagón de metro. Se generan con `python3 graffiti/scripts/generar-muros.py`.
+
 | Archivo | Tamaño | Colores | Origen | Uso |
 |---|---|---|---|---|
-| `muros/ladrillo.svg` | 480×480 | beiges `#B5A68A`…`#E8DFCC` | generado (`graffiti/scripts/generar-muros.py`) | Muro por defecto |
-| `muros/hormigon.svg` | 480×480 | grises `#7C7C77`…`#C4C4BE` | generado (mismo script) | Muro |
-| `muros/persiana.svg` | 240×240 | `#0062B8` `#7FC8F8` | Figma `510:1177` P05 · Persiana | Muro |
-| `muros/damero.svg` | 240×240 | `#0062B8` `#7FC8F8` | Figma `510:1162` P01 · Damero | Muro |
-| `muros/damero-spray.svg` | 240×240 | `#0062B8` `#FFC20E` | Figma `510:1182` P06 · Damero inclinado (spray) | Muro |
-| `muros/trazos-rodillo.svg` | 240×240 | `#00A651` `#FFC20E` `#F4EEE3` | Figma `510:1200` P12 · Trazos de rodillo | Muro |
-| `muros/chorreos.svg` | 240×240 | `#0062B8` `#7FC8F8` `#FF8FB1` | Figma `510:1196` P10 · Chorreos de pintura | Muro (referencia del goteo) |
-
-Recomendación de UI: ofrecer 4 muros (ladrillo, hormigón, persiana, damero) y dejar los otros tres como extras si sobra tiempo. Los de 240×240 se escalan a 1080×1080 (×4,5) con suavizado apagado.
+| `muros/ladrillo.svg` | 960×480 (160×80 celdas) | beiges `#B5A68A`…`#E8DFCC` | generado (`graffiti/scripts/generar-muros.py`) | Muro por defecto |
+| `muros/hormigon.svg` | 960×480 (160×80 celdas) | grises `#7C7C77`…`#C4C4BE` | generado (mismo script) | Muro |
+| `muros/cortina.svg` | 1080×540 | `#8FCCF7` `#F4EEE3` `#0063BF` `#000000` | Figma `906:8320` «Láminas» de la cortina metálica (libreta Pixel, portada «cortina completa»), recortada a 2:1 por el script | Muro |
+| `muros/vagon.svg` | 960×480 | los de la Línea 1 | Figma `522:2179` Línea 1 · lateral (`vagon/public/figma/metro/linea1-lateral.svg`) repetido dos veces por el script | Muro |
+| `muros/persiana.svg` | 240×240 | `#0062B8` `#7FC8F8` | Figma `510:1177` P05 · Persiana | Ya no se ofrece (plan 009) |
+| `muros/damero.svg` | 240×240 | `#0062B8` `#7FC8F8` | Figma `510:1162` P01 · Damero | Ya no se ofrece (plan 009) |
+| `muros/damero-spray.svg` | 240×240 | `#0062B8` `#FFC20E` | Figma `510:1182` P06 · Damero inclinado (spray) | Sin usar |
+| `muros/trazos-rodillo.svg` | 240×240 | `#00A651` `#FFC20E` `#F4EEE3` | Figma `510:1200` P12 · Trazos de rodillo | Referencia de la textura del rodillo |
+| `muros/chorreos.svg` | 240×240 | `#0062B8` `#7FC8F8` `#FF8FB1` | Figma `510:1196` P10 · Chorreos de pintura | Referencia del goteo |
 
 ## Stickers (stencils para estampar), todos 240×240, con troquel blanco
 | Archivo | Colores | Figma |

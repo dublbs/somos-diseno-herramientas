@@ -13,7 +13,7 @@ const dentro = (x: number, y: number) => x >= 0 && y >= 0 && x < COLS && y < FIL
 // Stencil puesto sobre el muro: plantilla, capa (1 base, 2 detalle), esquina superior izquierda y celdas del muro
 // por celda de la plantilla. La placa de cartón tiene un margen alrededor de la figura.
 export interface Puesta { id: string; capa: 1 | 2; x: number; y: number; escala: number }
-export const MARGEN_PLACA = 2;
+export const MARGEN_PLACA = 7; // el cartón es generoso, como una placa de verdad: el spray no se pasa por el borde
 // Máscara por celda del muro: TAPADO (cartón), BORDE (junto a un hueco: llega un poco de pintura), HUECO, LIBRE (fuera de la placa).
 export const TAPADO = 0, BORDE = 1, HUECO = 2, LIBRE = 3;
 export type Mascara = Uint8Array | null;
@@ -49,44 +49,64 @@ export function mascaraDe(p: Puesta | null): Mascara {
 // Probabilidad de que la pintura llegue a la celda según la plantilla.
 const paso = (mascara: Mascara, i: number) => !mascara ? 1 : mascara[i] === HUECO || mascara[i] === LIBRE ? 1 : mascara[i] === BORDE ? 0.12 : 0;
 
-// Spray: pinta las celdas dentro del radio con probabilidad mayor al centro (trazo con borde irregular).
-// `carga` (opcional) acumula cuánta pintura recibe cada celda: de ahí nacen los chorros.
+// Los tres pinceles (plan 009 §3, como los pinceles de Photoshop): cada uno deja una marca propia.
+// · Spray: gotitas al azar con distribución gaussiana (denso al centro, difuso al borde) y algo de rocío suelto
+//   más lejos. Se acumula: pasar varias veces tapa más. `carga` cuenta la pintura por celda: de ahí nacen los chorros.
+// · Plumón: borde duro y parejo, cubre de una (el tag). La tinta se acumula al apoyar y al levantar (ver App).
+// · Rodillo: franja ancha con vetas, perpendicular al avance, que se va quedando sin pintura a lo largo del trazo.
+const gauss = (): [number, number] => {
+  const u = Math.random() || 1e-6, v = Math.random();
+  const r = Math.sqrt(-2 * Math.log(u));
+  return [r * Math.cos(2 * Math.PI * v), r * Math.sin(2 * Math.PI * v)];
+};
+
 export function rociar(d: Dibujo, cx: number, cy: number, radio: number, color: number, mascara: Mascara, carga?: Float32Array) {
-  const r = radio + 0.5;
-  for (let dy = -radio; dy <= radio; dy++) for (let dx = -radio; dx <= radio; dx++) {
-    const x = cx + dx, y = cy + dy, dist = Math.hypot(dx, dy);
-    if (!dentro(x, y) || dist > r) continue;
+  const sigma = radio / 2, n = Math.round(radio * radio * 1.5) + 4;
+  for (let k = 0; k < n; k++) {
+    const [gx, gy] = gauss();
+    const x = Math.round(cx + gx * sigma), y = Math.round(cy + gy * sigma);
+    if (!dentro(x, y)) continue;
     const i = y * COLS + x;
-    if (Math.random() > (0.9 - 0.4 * (dist / r)) * paso(mascara, i)) continue;
+    if (Math.random() > paso(mascara, i)) continue;
     d.pintura[i] = color;
     if (carga) carga[i] += 1;
   }
+  // Rocío: unas pocas gotitas sueltas fuera del trazo, como el aerosol de verdad.
+  for (let k = 0; k < Math.ceil(radio / 2); k++) {
+    const [gx, gy] = gauss();
+    const x = Math.round(cx + gx * radio * 1.1), y = Math.round(cy + gy * radio * 1.1);
+    if (dentro(x, y) && Math.random() < 0.5 * paso(mascara, y * COLS + x)) d.pintura[y * COLS + x] = color;
+  }
 }
 
-// Plumón: trazo parejo y nítido, sin pulverizado (el tag).
+// Plumón: disco lleno de borde duro.
 export function plumon(d: Dibujo, cx: number, cy: number, radio: number, color: number, mascara: Mascara) {
-  const r = radio - 1;
-  for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
-    const x = cx + dx, y = cy + dy;
-    if (!dentro(x, y) || Math.hypot(dx, dy) > r + 0.5) continue;
+  const r = radio + 0.5, n = Math.ceil(r);
+  for (let dy = -n; dy <= n; dy++) for (let dx = -n; dx <= n; dx++) {
+    const x = Math.round(cx) + dx, y = Math.round(cy) + dy;
+    if (!dentro(x, y) || Math.hypot(x - cx, y - cy) > r) continue;
     const i = y * COLS + x;
     if (!mascara || mascara[i] === HUECO || mascara[i] === LIBRE) d.pintura[i] = color;
   }
 }
 
-// Rodillo: una franja ancha perpendicular al avance (ux, uy es el eje del rodillo). La textura P12 deja vetas
-// a lo largo del recorrido (s = distancia recorrida); una segunda pasada las va tapando.
-export function rodillo(d: Dibujo, cx: number, cy: number, ux: number, uy: number, s: number, mitad: number, color: number, mascara: Mascara) {
+// Rodillo: una franja ancha perpendicular al avance (ux, uy es el eje del rodillo). La textura P12 deja vetas a lo
+// largo del recorrido (s = distancia recorrida) y los extremos quedan irregulares. `tinta` (1 → 0,3) baja a medida
+// que el rodillo avanza: se va quedando sin pintura y hay que levantarlo y volver a pasar.
+export function rodillo(d: Dibujo, cx: number, cy: number, ux: number, uy: number, s: number, mitad: number, color: number, mascara: Mascara, tinta = 1) {
   const fila = TEXTURA_RODILLO[((Math.round(s) % 24) + 24) % 24];
   for (let t = -mitad; t <= mitad; t += 0.5) {
     const x = Math.round(cx + ux * t), y = Math.round(cy + uy * t);
     if (!dentro(x, y)) continue;
     const i = y * COLS + x;
-    const veta = fila[(Math.round(t) + mitad) % 24] === '0';
-    if (Math.random() > (veta ? 0.18 : 0.97) * paso(mascara, i)) continue;
+    const veta = fila[(((Math.round(t) + mitad) % 24) + 24) % 24] === '0';
+    const borde = Math.abs(t) > mitad - 1.5 ? 0.55 : 1;
+    // Con poca tinta el rodillo «se seca»: la pintura queda en franjas y las vetas se marcan más.
+    if (Math.random() > (veta ? 0.1 * tinta : 0.97 * Math.pow(tinta, 0.6)) * borde * paso(mascara, i)) continue;
     d.pintura[i] = color;
   }
 }
+export const tintaRodillo = (s: number) => Math.max(0.3, 1 - s / 260);
 
 export function borrar(d: Dibujo, cx: number, cy: number, radio: number) {
   for (let dy = -radio; dy <= radio; dy++) for (let dx = -radio; dx <= radio; dx++) {

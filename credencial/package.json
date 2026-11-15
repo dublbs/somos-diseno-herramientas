@@ -9,13 +9,15 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "qr:sellos": "node scripts/qr-sellos.mjs",
+    "sellos:afiches": "node scripts/sellos-afiches.mjs",
     "artifact": "node scripts/artifact.mjs",
     "limpiar:figma": "node scripts/limpiar-figma.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "@supabase/supabase-js": "^2.118.0"
+    "@supabase/supabase-js": "^2.118.0",
+    "jsqr": "^1.4.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.31",

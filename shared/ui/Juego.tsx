@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CODIGO, EVENTO_TIMBRE, entrarJugador, guardarConfig, hashPin, jugador, leerConfig, normalizarCodigo, pinDeDemo, verificarPin, type ConfigMesa } from '../juego';
+import { CODIGO, EVENTO_TIMBRE, entrarJugador, guardarConfig, hashPin, jugador, leerConfig, normalizarCodigo, pinDeDemo, verificarPin, type ConfigMesa, type DetalleCreacion } from '../juego';
 import { BotonAccion, Interruptor } from './Kit';
 
 // Modo juego en las mesas: la tablet pide el código de la credencial, otorga el timbre 2 al exportar y el staff
@@ -11,12 +11,12 @@ const esStaff = () => new URLSearchParams(location.search).has('staff');
 export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string; children: React.ReactNode }> = ({ app, titulo, visual, children }) => {
   const [config, setConfig] = useState<ConfigMesa>(leerConfig);
   const [codigo, setCodigo] = useState(() => jugador()?.codigo ?? null);
-  const [ganado, setGanado] = useState<{ codigo: string; directo: boolean } | null>(null);
+  const [ganado, setGanado] = useState<DetalleCreacion | null>(null);
   const [staff, setStaff] = useState(esStaff);
 
   useEffect(() => { if (!document.documentElement.dataset.visual) document.documentElement.dataset.visual = visual; }, [visual]);
   useEffect(() => {
-    const alGanar = (e: Event) => setGanado((e as CustomEvent<{ codigo: string; directo: boolean }>).detail);
+    const alGanar = (e: Event) => setGanado((e as CustomEvent<DetalleCreacion>).detail);
     window.addEventListener(EVENTO_TIMBRE, alGanar);
     return () => window.removeEventListener(EVENTO_TIMBRE, alGanar);
   }, []);
@@ -29,11 +29,15 @@ export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string
       <div className="k-quiosco" role="dialog" aria-modal="true" aria-labelledby="timbre-t">
         <div className="k-panel k-quiosco-caja">
           <p className="k-quiosco-cuenta" aria-hidden="true"><Icono nombre="approval" /></p>
-          <h2 id="timbre-t">¡Ganaste el timbre Creación!</h2>
-          {ganado.directo ? (
-            <p>Tu creación va al HUB y el timbre ya está en tu credencial ({ganado.codigo}).</p>
-          ) : (<>
-            <p>Tu creación va al HUB. En tu credencial ({ganado.codigo}) toca <b>Timbrar</b>, elige la estación <b>2</b> y escribe el código:</p>
+          {ganado.avance?.otorgado ? (<>
+            <h2 id="timbre-t">¡Ganaste el timbre Creación!</h2>
+            <p>Ya está en tu credencial ({ganado.codigo}).</p>
+          </>) : ganado.avance ? (<>
+            <h2 id="timbre-t">¡Creación guardada!</h2>
+            <p>Ya está en el inventario de tu credencial ({ganado.codigo}). Llevas <b>{ganado.avance.pasos} de {ganado.avance.meta}</b> experiencias para el timbre Creación: sigue creando en otras.</p>
+          </>) : (<>
+            <h2 id="timbre-t">¡Creación lista!</h2>
+            <p>En tu credencial ({ganado.codigo}) toca <b>Timbrar</b>, elige la estación <b>2</b> y escribe el código:</p>
             <p className="k-juego-token">{config.token2}</p>
           </>)}
           <button type="button" className="k-btn k-primario" onClick={() => setGanado(null)}><Icono nombre="check" />Listo</button>

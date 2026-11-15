@@ -14,14 +14,21 @@ const enlaceTarjeta = (id: string) => `${location.origin}${location.pathname}#/f
 
 // Sube solo la tarjeta final (la foto original nunca sale del dispositivo).
 // El id lo genera el cliente (uuid aleatorio): sirve de ruta en el bucket y de enlace del QR.
+// Si Supabase no tiene todavía el bucket y la tabla del Fotomatón (fotomaton/supabase/migrations/0001_fotomaton.sql),
+// la tarjeta queda en este equipo como en el modo de prueba: la experiencia nunca se cae en el evento (plan 009).
 export async function publicarTarjeta(blob: Blob, marco: string, tinta: string): Promise<{ id: string; enlace: string }> {
   const id = crypto.randomUUID();
   if (!supabase) { await guardarLocal(id, blob, marco, tinta); return { id, enlace: enlaceTarjeta(id) }; }
-  const ruta = `${id}.png`;
-  const sube = await supabase.storage.from('fotomaton').upload(ruta, blob, { contentType: 'image/png', upsert: false });
-  if (sube.error) throw sube.error;
-  const fila = await supabase.from('fotomaton').insert({ id, ruta, marco, tinta });
-  if (fila.error) throw fila.error;
+  try {
+    const ruta = `${id}.png`;
+    const sube = await supabase.storage.from('fotomaton').upload(ruta, blob, { contentType: 'image/png', upsert: false });
+    if (sube.error) throw sube.error;
+    const fila = await supabase.from('fotomaton').insert({ id, ruta, marco, tinta });
+    if (fila.error) throw fila.error;
+  } catch (e) {
+    console.warn('Fotomatón: no se pudo subir la tarjeta; queda en este equipo.', e);
+    await guardarLocal(id, blob, marco, tinta);
+  }
   return { id, enlace: enlaceTarjeta(id) };
 }
 
@@ -30,7 +37,7 @@ export async function publicarTarjeta(blob: Blob, marco: string, tinta: string):
 export async function obtenerTarjeta(id: string): Promise<{ url: string; expira: string } | null> {
   if (!supabase) return leerLocal(id);
   const { data, error } = await supabase.functions.invoke('tarjeta', { body: { id } });
-  if (error || !data?.url) return null;
+  if (error || !data?.url) return leerLocal(id); // la tarjeta pudo quedar en este equipo (ver publicarTarjeta)
   return { url: data.url as string, expira: data.expira as string };
 }
 

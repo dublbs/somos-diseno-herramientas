@@ -76,6 +76,25 @@ function escribir(ctx: CanvasRenderingContext2D, visual: Visual, texto: string, 
   return w;
 }
 
+// Parte un texto en líneas que caben en maxAncho (a lo más maxLineas; si sobra, la última se achica al dibujarla).
+function partirLineas(ctx: CanvasRenderingContext2D, visual: Visual, texto: string, alto: number, s: number, maxAncho: number, maxLineas = 2): string[] {
+  const t = visual === 'Geométrica' ? texto.toUpperCase() : texto;
+  const ancho = (x: string) => {
+    if (visual === 'Pixel') return anchoPixel(x, Math.max(1, Math.round(alto / 7)));
+    ctx.font = `${visual === 'Geométrica' ? 800 : 700} ${alto * 1.38 * s}px "Bricolage Grotesque", system-ui, sans-serif`;
+    return ctx.measureText(x).width / s;
+  };
+  const lineas: string[] = [];
+  let actual = '';
+  for (const palabra of t.split(/\s+/).filter(Boolean)) {
+    const prueba = actual ? actual + ' ' + palabra : palabra;
+    if (!actual || ancho(prueba) <= maxAncho || lineas.length === maxLineas - 1) actual = prueba;
+    else { lineas.push(actual); actual = palabra; }
+  }
+  if (actual) lineas.push(actual);
+  return lineas;
+}
+
 function hash(str: string) {
   let h = 2166136261;
   for (const ch of str) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
@@ -226,9 +245,13 @@ export function pintarAlbum(ctx: CanvasRenderingContext2D, d: DatosCarta, rec: R
     const lado = Math.min(cw - 20, ch - 46);
     if (im) pintarTimbre(ctx, im, s, [x + (cw - lado) / 2, y + 8, lado, lado], d.codigo + n, tengo ? 1 : 0.22);
     // El timbre se nombra por lo que lo otorga (plan 005, bloque D); el dibujo sigue siendo el del lenguaje.
-    const est = ESTACIONES[i];
-    escribir(ctx, tema.visual, est.nombre, x + cw / 2, y + ch - 34, 9, tema.tinta, s, 'centro', cw - 24);
-    escribir(ctx, tema.visual, tengo ? '¡Conseguido!' : est.como, x + cw / 2, y + ch - 17, 6, tengo ? tema.acento : tema.tinta, s, 'centro', cw - 24);
+    // Cómo se consigue: hasta 2 líneas (en Pixel la letra no se puede achicar más, así que el texto salta de línea).
+    const est = ESTACIONES[i], interlinea = 9;
+    const lineas = partirLineas(ctx, tema.visual, tengo ? '¡Conseguido!' : est.como, 6, s, cw - 16);
+    // El nombre queda a la misma altura en toda la fila; una sola línea se centra en el espacio de dos.
+    const tope = y + ch - 13 - interlinea, base = tope + (2 - lineas.length) * interlinea / 2;
+    escribir(ctx, tema.visual, est.nombre, x + cw / 2, tope - 17, 9, tema.tinta, s, 'centro', cw - 16);
+    lineas.forEach((l, k) => escribir(ctx, tema.visual, l, x + cw / 2, base + k * interlinea, 6, tengo ? tema.acento : tema.tinta, s, 'centro', cw - 16));
   }
   ctx.restore();
   bordeCarta(ctx, tema.visual, s);
