@@ -14,7 +14,8 @@ Hub de experiencias interactivas de Somos Diseño para tablet (horizontal) y pan
 | `loops/` | Teatro de Papel | Orgánica |
 | `graffiti/` | Graffiti y Tags | Pixel |
 | `credencial/` | Credencial (celular, mobile-first) | los tres (marcos) |
-| `vagon/` | Vagón (diseña tu carro de metro) | Pixel |
+| `juego-pixel/` | Hora punta (juego en 3 niveles; reemplaza al Vagón en el hub, plan 009) | Pixel |
+| `vagon/` | Vagón (fuera del hub desde el 15 nov; queda en el repo) | Pixel |
 | `audioreactiva/` | Estación Audioreactiva | Geométrica |
 | `grabado/` | Taller de Grabado | Orgánica |
 | `hub-estacion/` | HUB «Estación» (pantalla flip y Mac) | los tres |

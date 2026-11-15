@@ -19,7 +19,6 @@ const SRC = {
   personaje: { pixel: './figma/personajes/personaje-pixel.svg', geometrica: './figma/personajes/personaje-geometrica.svg', organica: './figma/personajes/personaje-organica.svg' },
   araucaria: './figma/plaza/araucaria.svg', sol: './figma/plaza/sol.svg', helecho: './figma/plaza/helecho.svg', flor: './figma/plaza/flor-propia.svg', quisco: './figma/plaza/quisco.svg',
   vagon: ['./figma/vagon/personaje.svg', './figma/vagon/spray.svg', './figma/vagon/tarro-pintura.svg', './figma/vagon/plumon.svg', './figma/vagon/senal-rodillo.svg', './figma/vagon/zapatilla.svg'],
-  tag: './figma/vagon/tag-ejemplo.svg',
   // Metro de Figma (Pixel · FA08): lateral del carro como módulo que se repite (240 × 240).
   metro: { l1: './figma/metro/linea1-lateral.svg', l4: './figma/metro/linea4-lateral.svg' },
 };
@@ -81,7 +80,7 @@ export class Estacion {
   avatares: Avatar[] = [];
   particulas: Particula[] = [];
   reloj = 0;
-  trenes = 0; // cuántos trenes han pasado (cada 3º es el vagón pintado)
+  trenes = 0; // cuántos trenes han pasado
   azar: () => number;
   quieto: boolean;
 
@@ -120,11 +119,10 @@ export class Estacion {
   tren() {
     const ciclo = this.reloj % PERIODO_TREN, n = Math.floor(this.reloj / PERIODO_TREN);
     const largo = this.d.W * 0.78, parado = (this.d.W - largo) / 2;
-    const pintado = n % 3 === 2;
-    if (ciclo < ENTRA) { const t = 1 - Math.pow(1 - ciclo / ENTRA, 3); return { x: this.d.W + 40 + (parado - this.d.W - 40) * t, largo, abierto: false, visible: true, pintado, n }; }
-    if (ciclo < ENTRA + DETENIDO) return { x: parado, largo, abierto: true, visible: true, pintado, n };
-    if (ciclo < ENTRA + DETENIDO + SALE) { const t = Math.pow((ciclo - ENTRA - DETENIDO) / SALE, 3); return { x: parado - (parado + largo + 60) * t, largo, abierto: false, visible: true, pintado, n }; }
-    return { x: 0, largo, abierto: false, visible: false, pintado, n };
+    if (ciclo < ENTRA) { const t = 1 - Math.pow(1 - ciclo / ENTRA, 3); return { x: this.d.W + 40 + (parado - this.d.W - 40) * t, largo, abierto: false, visible: true, n }; }
+    if (ciclo < ENTRA + DETENIDO) return { x: parado, largo, abierto: true, visible: true, n };
+    if (ciclo < ENTRA + DETENIDO + SALE) { const t = Math.pow((ciclo - ENTRA - DETENIDO) / SALE, 3); return { x: parado - (parado + largo + 60) * t, largo, abierto: false, visible: true, n }; }
+    return { x: 0, largo, abierto: false, visible: false, n };
   }
 
   private confeti(a: Avatar) {
@@ -512,7 +510,6 @@ export class Estacion {
     const modulo = imagen(t.n % 2 ? SRC.metro.l4 : SRC.metro.l1);
     for (let v = 0; v < vagones; v++) {
       const x = t.x + v * lv, w = lv - junta;
-      const pintado = t.pintado && v === 1;
       ctx.save(); ctx.beginPath();
       // el primer carro tiene la trompa redondeada hacia donde va (izquierda)
       if (v === 0) ctx.roundRect(x, y, w, alto, [alto * 0.35, 0, 0, alto * 0.1]); else ctx.rect(x, y, w, alto);
@@ -523,37 +520,10 @@ export class Estacion {
         ctx.fillStyle = 'rgba(0,0,0,.82)';
         for (let k = 0; k * alto < w; k++) ctx.fillRect(x + k * alto + alto * 0.29, y + alto * 0.12, alto * 0.42, alto * 0.68);
       }
-      if (pintado) this.vagonPintado(ctx, x, y, w, alto, t.n);
       ctx.restore();
       if (v === 0) { ctx.fillStyle = C.Celeste; ctx.fillRect(x + alto * 0.06, y + alto * 0.2, alto * 0.16, alto * 0.22); }
       ctx.fillStyle = C.Negro; ctx.fillRect(x + w, y + alto * 0.25, junta, alto * 0.55);
     }
-  }
-
-  // Easter egg: el vagón pintado por la gente en la experiencia Vagón (de prueba: stickers y tags de Graffiti).
-  private vagonPintado(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, n: number) {
-    const { u } = this.d;
-    // Si alguien diseñó un vagón en este equipo (experiencia Vagón), pasa ese; si no, uno de prueba.
-    const propio = vagonDeLaGente();
-    if (propio) {
-      ctx.save(); ctx.imageSmoothingEnabled = false;
-      const cw = h * 2; for (let k = 0; k * cw < w; k++) ctx.drawImage(propio, x + k * cw, y, cw, h);
-      ctx.restore();
-      ctx.fillStyle = C.Negro; ctx.fillRect(x + w - 150 * u, y + h - 40 * u, 150 * u, 22 * u);
-      this.textoPixel(ctx, 'TU VAGON', x + w - 142 * u, y + h - 35 * u, Math.max(1, Math.round(2 * u)), C.Amarillo);
-      return;
-    }
-    const tag = imagen(SRC.tag);
-    if (tag) { const th = h * 0.38, tw = th / (tag.naturalHeight / tag.naturalWidth || 0.5); ctx.drawImage(raster(tag, tw, th), x + w * 0.04, y + h * 0.42); }
-    for (let k = 0; k < 4; k++) {
-      const src = SRC.vagon[(n + k) % SRC.vagon.length], im = imagen(src);
-      if (!im) continue;
-      const lado = h * 0.34, sx = x + w * (0.06 + k * 0.23), sy = y + h * (k % 2 ? 0.1 : 0.38);
-      ctx.save(); ctx.translate(sx + lado / 2, sy + lado / 2); ctx.rotate(((k * 37) % 20 - 10) * Math.PI / 180);
-      ctx.drawImage(raster(im, lado, lado), -lado / 2, -lado / 2); ctx.restore();
-    }
-    ctx.fillStyle = C.Negro; ctx.fillRect(x + w - 120 * u, y + h - 40 * u, 120 * u, 22 * u);
-    this.textoPixel(ctx, 'VAGON ' + (n + 1), x + w - 112 * u, y + h - 35 * u, Math.max(1, Math.round(2 * u)), C.Amarillo);
   }
 
   private avatar(ctx: CanvasRenderingContext2D, a: Avatar, [x, y]: [number, number]) {
@@ -645,7 +615,6 @@ export class Estacion {
 }
 
 // El vagón que diseñó la gente en la experiencia Vagón: el último que salió a la vía (llega por shared/datos.ts).
-const vagonDeLaGente = (): HTMLImageElement | null => (listaImagen(enVivo.vagon) ? enVivo.vagon : null);
 
 // Silueta de un taco entintada en un color (para los banderines de grabado).
 const tintas = new Map<string, HTMLCanvasElement>();
@@ -697,5 +666,5 @@ function mosaico(semilla: number, lado: number): HTMLCanvasElement {
 
 // Precarga de todos los SVG que usa la escena.
 export const TODAS_LAS_IMAGENES = [
-  ...Object.values(SRC.personaje), SRC.araucaria, SRC.sol, SRC.helecho, SRC.flor, SRC.quisco, ...SRC.vagon, SRC.tag, SRC.metro.l1, SRC.metro.l4,
+  ...Object.values(SRC.personaje), SRC.araucaria, SRC.sol, SRC.helecho, SRC.flor, SRC.quisco, ...SRC.vagon, SRC.metro.l1, SRC.metro.l4,
 ];

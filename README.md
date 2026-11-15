@@ -37,7 +37,8 @@ Todas compilan (`npm run build`, verificado el 2026-11-03).
 | [`taller-mosaicos/`](taller-mosaicos/) | Taller de Mosaicos | Geométrica | Vigente. Módulos, paletas, multiplicar (repetir, simetría), formatos; deshacer y rehacer. |
 | [`loops/`](loops/) | Teatro de Papel | Orgánica | Vigente. Escenarios, piezas animadas, línea de tiempo con keyframes A→B; video o PNG. *Lo edita la persona del equipo que lo trabaja.* |
 | [`graffiti/`](graffiti/) | Graffiti y Tags | Pixel | Vigente. Spray con goteo, rodillo, plumón, stencil de 2 capas, stickers y muros; tarjeta PNG. |
-| [`vagon/`](vagon/) | Vagón | Pixel | Vigente. Diseña el carro de metro; «sale a la vía» y pasa por el HUB. |
+| [`juego-pixel/`](juego-pixel/) | Hora punta | Pixel | Vigente. Juego en 3 niveles (cruce, andén y pared); tu mural va a la tarjeta, al QR y al inventario. |
+| [`vagon/`](vagon/) | Vagón | Pixel | Fuera del hub desde el 15 nov (lo reemplaza Hora punta). Los trenes del HUB pasan sin rayados. |
 | [`audioreactiva/`](audioreactiva/) | Estación Audioreactiva | Geométrica | Vigente. 5 escenas que reaccionan al micrófono, consola de canales y graba un loop. |
 | [`grabado/`](grabado/) | Taller de Grabado | Orgánica | Vigente. Tacos, tintas que se mezclan y registro corrido. |
 | [`credencial/`](credencial/) | Credencial | los tres | Vigente, en el celular. Marco, foto o personaje, timbres por estación, canje con PIN. |
