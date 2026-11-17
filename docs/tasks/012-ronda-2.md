@@ -18,7 +18,7 @@ Plan: [`docs/plans/012-ui-de-herramienta-y-ronda-2.md`](../plans/012-ui-de-herra
 | 1 | **A1** Grabado · **A3** Graffiti · y A2 y A5 migran su pantalla al marco v2 | rama de A0 |
 | 2 | Integración: una rama unida con todos los `dist/` recompilados y un solo PR a `main` | — |
 
-Teatro (`loops/`) lo toma Amaro: ningún agente lo toca. Mosaicos (antes A4) lo hace A0 como experiencia de referencia.
+Teatro (`loops/`) lo hace A8, autorizado por Amaro el 17 nov. Mosaicos (antes A4) lo hace A0 como experiencia de referencia.
 
 ## Guía común para agentes
 - **Rama:** `amaro/<tema>` desde la base indicada. Commits convencionales en español, con las líneas de atribución que
@@ -100,8 +100,11 @@ Teatro (`loops/`) lo toma Amaro: ningún agente lo toca. Mosaicos (antes A4) lo 
 - Migración `006-timbre-flyer.sql` (nombre del timbre y `sellar_flyer`). Sin editar las anteriores.
 - Aceptación: recorrido completo en 390 × 844, 412 × 915 y 360 × 740 hasta el canje.
 
-## A8 · Teatro: optimizar recursos · zona `loops/` · **lo toma Amaro (D5)**
-- Medir peso y tiempo de carga; optimizar SVG y carga diferida. Sin cambiar el comportamiento.
+## A8 · Teatro de Papel · zona `loops/` · autorizado por Amaro (17 nov)
+- Feedback del plan 012 §4 «Teatro de Papel»: estado de carga, textos que se salen, alas de las aves, panel derecho con
+  scroll, voltear sí y duplicar/copiar/pegar no, tamaños relativos al escenario, 3 estados por animal, huemul y guanaco,
+  reemplazar la flor, selector de color, optimizar.
+- Leer antes el plan 008 de Pipe (`origin/pipe/plan-teatro`) y no contradecirlo sin anotarlo.
 
 ## A9 · Integración y revisión · sin zona propia
 - Revisa cada PR contra el plan, corre los builds y la medición de pantalla de la auditoría, y prueba el recorrido

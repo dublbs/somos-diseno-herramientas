@@ -90,8 +90,24 @@ Nombre del timbre: deja de ser «Secreto»; propuesta **«Flyer»**.
 - **Fuera el nivel 3.** Queda cruce → andén → **jefe: el Inacapín Pixel**.
 - **Controles a ambos lados**, como Minecraft Pocket Edition: moverse a la izquierda, acciones a la derecha.
 
-### Teatro de Papel
-- **Optimizar los recursos** (peso y carga). Es de Pipe: se coordina con su plan 008.
+### Teatro de Papel (feedback de Amaro del 17 nov; autorizado a un agente)
+- **Estado de carga** al abrir: hoy se demora y no avisa.
+- **Textos que se salen** de sus tarjetas.
+- **Alas de las aves:** recuperar el buen movimiento que tenía la paloma (ya no está) para el cóndor.
+- **Panel derecho con scroll.**
+- Dejar **voltear**; quitar **duplicar** y **copiar y pegar** (rompen la experiencia).
+- **Tamaños relativos al escenario:** mínimo y máximo de cada pieza calculados según el escenario (hoy el cóndor es
+  gigante), para que se puedan armar escenas bonitas.
+- **Todos los animales con al menos 3 estados** (hoy el huemul no tiene, como sí el pudú).
+- **Huemul:** refinarlo; se ve enojado. **Guanaco:** mejorarlo y darle sus 3 animaciones.
+- **Flor:** descartarla y reemplazarla por otra pieza.
+- **Selector de color** para algunas piezas (el pez no se distingue del mar).
+- Bosque, Mar y Cordillera están bien. La exportación del loop ya mejoró.
+- **Optimizar** los recursos y la experiencia en general. Se coordina con el plan 008 de Pipe (PR #12).
+
+### Marcos de exportación (todas)
+- Hay que trabajar el marco de exportación (la tarjeta 1080 × 1350) de todas las experiencias. Por ahora, **listarlos**
+  para llevarlos a Figma: [`012-ui-herramientas/marcos-de-exportacion.md`](012-ui-herramientas/marcos-de-exportacion.md).
 
 ## 5. Reglas que no cambian
 Stack y dependencias, `loops/` solo cuando se pide, arte de Figma o generado con manifiesto, toques ≥ 44–48 px,
@@ -116,7 +132,7 @@ Es **mucho más que lo que cabe antes del 19 nov** (hoy es 17). Estimación con 
 - **D2 · Timbre 4:** **A, «Tu flyer»**, con **E (sello del staff)** de respaldo. Detalle en §8.
 - **D3 · Música:** los 5 estilos **se generan aquí** con Web Audio (sin archivos ni dependencias).
 - **D4 · Arte:** se genera aquí, **con el mejor acabado posible** (manifiesto con `generado: true`).
-- **D5 · Teatro:** lo toma Amaro. Ningún agente toca `loops/`.
+- **D5 · Teatro:** autorizado a un agente (Amaro, 17 nov), con su feedback de §4. Se coordina con el plan 008 de Pipe.
 - **D6 · Regla de pantalla:** scroll **solo en las barras laterales** (el panel derecho; en vertical, ese mismo panel
   abajo). La página, el lienzo y la barra de herramientas no tienen scroll.
 
