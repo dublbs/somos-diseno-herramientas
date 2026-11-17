@@ -328,23 +328,25 @@ export const BarritaSeleccion: React.FC<{ acciones: AccionBarrita[]; onConfirmar
 
 // ---------------------------------------------------------------- estado: deshacer y rehacer
 // Como useHistorial del kit anterior (40 pasos) y además `anular()`: vuelve al paso anterior sin dejarlo para rehacer
-// (para descartar el trazo que empezó un dedo cuando resulta ser un gesto de 2 o 3 dedos).
+// (para descartar el trazo que empezó un dedo cuando resulta ser un gesto de 2 o 3 dedos); también devuelve lo que
+// ese paso había sacado de «rehacer».
 export function useHistorial<T>(inicial: T | (() => T), limite = 40) {
   const [estado, setEstado] = useState<T>(inicial);
   const actual = useRef(estado);
   const atras = useRef<T[]>([]), adelante = useRef<T[]>([]);
+  const borrado = useRef<T[]>([]); // lo que el último paso sacó de «rehacer», por si se anula
   const poner = (n: T) => { actual.current = n; setEstado(n); };
   const cambiar = (nuevo: T | ((v: T) => T), guardar = true) => {
     const v = actual.current;
     const n = typeof nuevo === 'function' ? (nuevo as (v: T) => T)(v) : nuevo;
     if (n === v) return;
-    if (guardar) { atras.current = [...atras.current.slice(-(limite - 1)), v]; adelante.current = []; }
+    if (guardar) { atras.current = [...atras.current.slice(-(limite - 1)), v]; borrado.current = adelante.current; adelante.current = []; }
     poner(n);
   };
   const deshacer = () => { const p = atras.current.pop(); if (p === undefined) return; adelante.current.unshift(actual.current); poner(p); };
   const rehacer = () => { const s = adelante.current.shift(); if (s === undefined) return; atras.current.push(actual.current); poner(s); };
-  const anular = () => { const p = atras.current.pop(); if (p !== undefined) poner(p); };
-  const reiniciar = (v: T) => { atras.current = []; adelante.current = []; poner(v); };
+  const anular = () => { const p = atras.current.pop(); if (p === undefined) return; adelante.current = borrado.current; borrado.current = []; poner(p); };
+  const reiniciar = (v: T) => { atras.current = []; adelante.current = []; borrado.current = []; poner(v); };
   return { estado, cambiar, deshacer, rehacer, anular, reiniciar, puedeDeshacer: atras.current.length > 0, puedeRehacer: adelante.current.length > 0 };
 }
 
