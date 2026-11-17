@@ -98,7 +98,7 @@ html:has(.h-marco),body:has(.h-marco){height:100%;overflow:hidden;overscroll-beh
 .h-ajustado{position:relative;width:min(100cqw,calc(100cqh * var(--h-ratio,1)));aspect-ratio:var(--h-ratio,1);max-height:100cqh;background:var(--h-superficie);box-shadow:var(--h-sombra-chica)}
 
 /* panel derecho con scroll propio (la página nunca hace scroll) */
-.h-panel{min-width:0;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:var(--h-superficie);border-left:var(--h-trazo) solid var(--h-borde);scrollbar-width:thin;scrollbar-color:var(--h-borde) transparent}
+.h-panel{position:relative;min-width:0;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:var(--h-superficie);border-left:var(--h-trazo) solid var(--h-borde);scrollbar-width:thin;scrollbar-color:var(--h-borde) transparent}
 @media (orientation:portrait){
   .h-panel{border-left:0;border-top:var(--h-trazo) solid var(--h-borde)}
   .h-panel-contenido{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));align-items:start}
@@ -126,7 +126,7 @@ html:has(.h-marco),body:has(.h-marco){height:100%;overflow:hidden;overscroll-beh
 
 /* Segmento */
 .h-seg{display:flex;gap:2px;padding:2px;border-radius:var(--h-radio);background:var(--h-superficie-2);border:var(--h-trazo) solid var(--h-borde)}
-.h-seg>button{flex:1 1 0;min-width:0;min-height:calc(var(--h-toque) - 6px);padding:0 var(--h-e2);display:inline-flex;align-items:center;justify-content:center;gap:var(--h-e1);
+.h-seg>button{flex:1 1 0;min-width:0;min-height:var(--h-toque);padding:0 var(--h-e2);display:inline-flex;align-items:center;justify-content:center;gap:var(--h-e1);
   border:0;border-radius:calc(var(--h-radio) - 2px);background:transparent;color:var(--h-texto-2);font:600 var(--h-tam-chico)/1.1 var(--h-fuente);cursor:pointer;transition:background var(--h-mov),color var(--h-mov)}
 .h-seg>button[aria-checked="true"]{background:var(--h-superficie);color:var(--h-acento);box-shadow:var(--h-sombra-chica)}
 .h-seg>button:disabled{opacity:.4}
@@ -144,7 +144,7 @@ html:has(.h-marco),body:has(.h-marco){height:100%;overflow:hidden;overscroll-beh
 .h-extremos{display:flex;justify-content:space-between;font-size:var(--h-tam-chico);color:var(--h-texto-2)}
 
 /* Interruptor */
-.h-interruptor{display:flex;align-items:center;justify-content:space-between;gap:var(--h-e3);min-height:var(--h-toque);cursor:pointer;font:500 var(--h-tam-texto)/1.2 var(--h-fuente)}
+.h-interruptor{position:relative;display:flex;align-items:center;justify-content:space-between;gap:var(--h-e3);min-height:var(--h-toque);cursor:pointer;font:500 var(--h-tam-texto)/1.2 var(--h-fuente)}
 .h-interruptor input{position:absolute;opacity:0;pointer-events:none}
 .h-riel{position:relative;flex:none;width:44px;height:26px;border-radius:13px;background:var(--h-borde);transition:background var(--h-mov)}
 .h-riel::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--h-superficie);box-shadow:var(--h-sombra-chica);transition:transform var(--h-mov)}

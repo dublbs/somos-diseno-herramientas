@@ -181,9 +181,14 @@ const Anclado: React.FC<{ x: number; y: number; abajo: number; children: React.R
 export function useGestosHistorial(ref: React.RefObject<HTMLElement | null>, opciones: { onDeshacer: () => void; onRehacer: () => void; alMultitoque?: () => void; activo?: boolean }) {
   const cb = useRef(opciones); cb.current = opciones;
   const dedos = useRef(0);
+  const unido = useRef<{ el: HTMLElement; soltar: () => void } | null>(null);
   const activo = opciones.activo !== false;
+  // Sin lista de dependencias: el elemento puede aparecer después (tras el tutorial) o cambiar.
   useEffect(() => {
-    const el = ref.current; if (!el || !activo) return;
+    const el = activo ? ref.current : null;
+    if (unido.current?.el === el) return;
+    unido.current?.soltar(); unido.current = null;
+    if (!el) return;
     let s: { inicio: number; max: number; abiertos: Map<number, { x: number; y: number }>; movio: boolean; avisado: boolean } | null = null;
     const abajo = (e: PointerEvent) => {
       if (e.pointerType !== 'touch') return;
@@ -211,12 +216,16 @@ export function useGestosHistorial(ref: React.RefObject<HTMLElement | null>, opc
     window.addEventListener('pointermove', mueve, true);
     window.addEventListener('pointerup', arriba, true);
     window.addEventListener('pointercancel', arriba, true);
-    return () => {
-      el.removeEventListener('pointerdown', abajo, true);
-      window.removeEventListener('pointermove', mueve, true);
-      window.removeEventListener('pointerup', arriba, true);
-      window.removeEventListener('pointercancel', arriba, true);
+    unido.current = {
+      el, soltar: () => {
+        el.removeEventListener('pointerdown', abajo, true);
+        window.removeEventListener('pointermove', mueve, true);
+        window.removeEventListener('pointerup', arriba, true);
+        window.removeEventListener('pointercancel', arriba, true);
+        dedos.current = 0;
+      },
     };
-  }, [ref, activo]);
+  });
+  useEffect(() => () => { unido.current?.soltar(); unido.current = null; }, []);
   return { hayVariosDedos: () => dedos.current > 1 };
 }

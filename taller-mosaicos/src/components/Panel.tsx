@@ -1,7 +1,7 @@
-import React, { useRef, useEffect } from 'react';
-import { Formato, FORMATOS, FORMAS, HEX, Pincel, PALETAS, PaletaDef, girar, reflejarH, Celda } from '../data/formas';
+import React, { useRef, useEffect, useState } from 'react';
+import { Formato, FORMATOS, FORMAS, HEX, Pincel, PALETAS, PaletaDef, Celda } from '../data/formas';
 import { pintarCelda } from './Lienzo';
-import { BotonAccion, Confirmar, Interruptor, Seccion } from '../../../shared/ui/Kit';
+import { Boton, GrillaBiblioteca, Interruptor, Muestra, SeccionPanel, Segmento } from '../../../shared/ui/Herramienta';
 
 export const Miniatura: React.FC<{
   w: number;
@@ -39,7 +39,7 @@ export const Miniatura: React.FC<{
     ctx.restore();
   }, [w, h, celdas, tam]);
 
-  return <canvas ref={canvasRef} />;
+  return <canvas ref={canvasRef} aria-hidden="true" />;
 };
 
 const OPERACIONES = [
@@ -47,13 +47,13 @@ const OPERACIONES = [
   { op: 'escalonar', label: 'Escalonar', nombre: 'Escalonar', icon: 'stairs' },
   { op: 'derecha', label: 'Espejo →', nombre: 'Reflejar hacia la derecha', icon: 'flip' },
   { op: 'abajo', label: 'Espejo ↓', nombre: 'Reflejar hacia abajo', icon: 'swap_vert' },
-  { op: 'cuatro', label: 'Simetría', nombre: 'Simetría en 4', icon: 'grid_view' },
-  { op: 'girar', label: 'Girar', nombre: 'Girar el área 90°', icon: 'rotate_90_degrees_cw' },
-  { op: 'vaciar', label: 'Borrar', nombre: 'Borrar el área', icon: 'backspace' },
+  { op: 'cuatro', label: 'Simetría ×4', nombre: 'Simetría en 4', icon: 'grid_view' },
+  { op: 'girar', label: 'Girar área', nombre: 'Girar el área 90°', icon: 'rotate_90_degrees_cw' },
+  { op: 'vaciar', label: 'Vaciar área', nombre: 'Borrar el área', icon: 'backspace' },
 ];
 const CORTO: Record<string, string> = { cuadrado: '1:1', flyer: '4:5', historia: '9:16', horizontal: '16:9', modulo4: '4 × 4', modulo2: '2 × 2' };
 
-interface LateralProps {
+interface PanelProps {
   formato: Formato;
   onCambiarFormato: (f: string) => void;
   herramienta: string;
@@ -68,71 +68,73 @@ interface LateralProps {
   onInvertirMosaico: () => void;
 }
 
-// Barra derecha (propuesta 005): biblioteca de módulos (u operaciones de Multiplicar), paleta y formato.
-export const PanelLateral: React.FC<LateralProps> = ({
+// Botón que pide un segundo toque para confirmar.
+const LimpiarLienzo: React.FC<{ onConfirmar: () => void }> = ({ onConfirmar }) => {
+  const [armado, setArmado] = useState(false);
+  useEffect(() => { if (!armado) return; const id = setTimeout(() => setArmado(false), 2500); return () => clearTimeout(id); }, [armado]);
+  return <Boton icono="restart_alt" texto={armado ? '¿Seguro? Toca otra vez' : 'Limpiar el lienzo'} variante="peligro" ancho
+    onClick={() => { if (armado) { setArmado(false); onConfirmar(); } else setArmado(true); }} />;
+};
+
+// Panel derecho (plan 012): con Multiplicar, sus operaciones arriba; después el módulo (orientación y espejo: el único
+// lugar donde se gira y refleja el módulo), la biblioteca, la paleta, el formato y el lienzo. Tiene scroll propio.
+export const PanelMosaicos: React.FC<PanelProps> = ({
   formato, onCambiarFormato, herramienta, pincel, onCambiarPincel, sel, onEjecutarOp, grilla, onToggleGrilla, onVaciar, onAplicarPaletaMosaico, onInvertirMosaico,
 }) => (
   <>
-    {herramienta === 'seleccionar' ? (
-      <Seccion titulo="Multiplicar" crece>
-        <p className="k-ayuda" id="sel-info">{sel ? `Área: ${sel.w} × ${sel.h} celdas` : 'Arrastra sobre el mosaico para elegir un área.'}</p>
+    {herramienta === 'seleccionar' && (
+      <SeccionPanel titulo="Multiplicar" ayuda={sel ? `Área de ${sel.w} × ${sel.h} celdas.` : 'Arrastra sobre el mosaico para elegir un área.'}>
         <div className="ops" id="operaciones">
           {OPERACIONES.map((o) => (
-            <button key={o.op} type="button" className="k-herr" disabled={!sel} aria-label={o.nombre} title={o.nombre} onClick={() => onEjecutarOp(o.op)}>
-              <span className="material-symbols-outlined" aria-hidden="true">{o.icon}</span>
-              {o.label}
-            </button>
+            <Boton key={o.op} icono={o.icon} texto={o.label} etiqueta={o.nombre} disabled={!sel} onClick={() => onEjecutarOp(o.op)} />
           ))}
         </div>
-      </Seccion>
-    ) : (
-      <Seccion titulo="Módulos" crece>
-        <div className="pool" id="pool" role="radiogroup" aria-label="Formas geométricas">
-          {FORMAS.map((f) => (
-            <button key={f.id} type="button" className="k-color item" role="radio" aria-checked={pincel.id === f.id} aria-label={f.nombre} title={`${f.nombre} · ${f.nota}`}
-              onClick={() => onCambiarPincel({ ...pincel, id: f.id })}>
-              <Miniatura w={1} h={1} celdas={[{ x: 0, y: 0, f: f.id, r: pincel.r, e: pincel.e, c: pincel.c }]} tam={36} />
-            </button>
-          ))}
-        </div>
-      </Seccion>
+      </SeccionPanel>
     )}
 
-    <Seccion titulo="Paleta">
-      <div className="paletas-grid" role="radiogroup" aria-label="Paletas de color">
-        {PALETAS.map((p) => {
-          const activa = pincel.c.f === p.f && pincel.c.a === p.a && pincel.c.b === p.b;
-          return (
-            <button key={p.id} type="button" className="k-color paleta-btn" role="radio" aria-checked={activa} aria-label={p.nombre}
-              onClick={() => onAplicarPaletaMosaico(p)} title={`${p.nombre}: fondo ${p.f}, figura ${p.a}, detalle ${p.b}`}
-              style={{ '--c': HEX[p.f], '--c2': HEX[p.a], '--c3': HEX[p.b] } as React.CSSProperties} />
-          );
-        })}
-      </div>
-      <BotonAccion icono="swap_horiz" texto="Invertir colores" onClick={onInvertirMosaico} />
-    </Seccion>
+    <SeccionPanel titulo="Módulo" ayuda="Orientación y espejo del módulo que pones.">
+      <Segmento etiqueta="Orientación del módulo" valor={pincel.r} onCambiar={(r) => onCambiarPincel({ ...pincel, r })}
+          opciones={[0, 1, 2, 3].map((r) => ({
+            valor: r, etiqueta: `${r * 90}°`,
+            texto: <Miniatura w={1} h={1} celdas={[{ x: 0, y: 0, f: pincel.id, r, e: pincel.e, c: pincel.c }]} tam={30} />,
+          }))} />
+      <Interruptor texto="Espejo" activo={pincel.e} onCambiar={(e) => onCambiarPincel({ ...pincel, e })} />
+    </SeccionPanel>
 
-    <Seccion titulo="Formato">
+    <SeccionPanel titulo="Biblioteca">
+      <GrillaBiblioteca etiqueta="Módulos geométricos" tam={48} columnas={5} elegido={pincel.id} onElegir={(id) => onCambiarPincel({ ...pincel, id })}
+        elementos={FORMAS.map((f) => ({
+          id: f.id, nombre: `${f.nombre} · ${f.nota}`,
+          contenido: <Miniatura w={1} h={1} celdas={[{ x: 0, y: 0, f: f.id, r: pincel.r, e: pincel.e, c: pincel.c }]} tam={40} />,
+        }))} />
+    </SeccionPanel>
+
+    <SeccionPanel titulo="Paleta">
+      <div className="h-muestras paletas" role="radiogroup" aria-label="Paletas de color">
+        {PALETAS.map((p) => (
+          <Muestra key={p.id} nombre={`${p.nombre}: fondo ${p.f}, figura ${p.a}, detalle ${p.b}`}
+            activa={pincel.c.f === p.f && pincel.c.a === p.a && pincel.c.b === p.b}
+            color={`linear-gradient(135deg, ${HEX[p.f]} 0 40%, ${HEX[p.a]} 40% 72%, ${HEX[p.b]} 72%)`}
+            onClick={() => onAplicarPaletaMosaico(p)} />
+        ))}
+      </div>
+      <Boton icono="swap_horiz" texto="Invertir colores" ancho onClick={onInvertirMosaico} />
+    </SeccionPanel>
+
+    <SeccionPanel titulo="Formato">
       <div className="formatos" role="radiogroup" aria-label="Formato de diseño">
         {FORMATOS.map((f) => (
-          <button key={f.id} type="button" role="radio" aria-checked={formato.id === f.id} aria-label={f.nombre} title={f.nombre} onClick={() => onCambiarFormato(f.id)} className="k-btn formato-btn">
+          <button key={f.id} type="button" role="radio" aria-checked={formato.id === f.id} aria-label={f.nombre} title={f.nombre} onClick={() => onCambiarFormato(f.id)} className="h-btn formato-btn">
             <span className="formato-icono" style={{ aspectRatio: `${f.cols} / ${f.filas}` }} aria-hidden="true" />
             {CORTO[f.id]}
           </button>
         ))}
       </div>
-      <Interruptor id="grilla" texto="Mostrar grilla" activo={grilla} onCambiar={onToggleGrilla} />
-    </Seccion>
+      <Interruptor texto="Mostrar grilla" activo={grilla} onCambiar={onToggleGrilla} />
+    </SeccionPanel>
 
-    <Confirmar icono="restart_alt" texto="Limpiar el lienzo" onConfirmar={onVaciar} />
+    <SeccionPanel titulo="Lienzo">
+      <LimpiarLienzo onConfirmar={onVaciar} />
+    </SeccionPanel>
   </>
-);
-
-// Barra inferior, a la derecha de las herramientas: el pincel actual con girar y reflejar.
-export const PincelActual: React.FC<{ pincel: Pincel; onCambiarPincel: (p: Pincel) => void }> = ({ pincel, onCambiarPincel }) => (
-  <div className="k-grupo pincel-actual" aria-label="Pincel">
-    <span className="pincel-muestra" title="Pincel actual"><Miniatura w={1} h={1} celdas={[{ x: 0, y: 0, f: pincel.id, r: pincel.r, e: pincel.e, c: pincel.c }]} tam={44} /></span>
-    <BotonAccion icono="rotate_right" texto="Girar" etiqueta="Girar la forma 90° (tecla R)" onClick={() => onCambiarPincel({ ...pincel, ...girar(pincel) })} />
-    <BotonAccion icono="flip" texto="Reflejar" etiqueta="Reflejar la forma" onClick={() => onCambiarPincel({ ...pincel, ...reflejarH(pincel) })} />
-  </div>
 );
