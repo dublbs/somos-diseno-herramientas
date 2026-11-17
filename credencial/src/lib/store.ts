@@ -131,6 +131,24 @@ export async function encontrarAfiche(codigo: string, secreto: string): Promise<
   return { pasos: pasos.length, meta: META_DEMO, otorgado: c.sellos.includes(AFICHE_SELLO), nuevo, afiche: limpio, repetido, sello: AFICHE_SELLO };
 }
 
+// Afiche reconocido por su diseño con la cámara (plan 012): llega el id público (AF03), no el secreto.
+// Con Supabase lo timbra reconocer_afiche() (migraciones/007-afiche-por-diseno.sql), que se puede apagar desde
+// `config`; en modo demo el secreto del afiche es su id, así que basta con encontrarAfiche().
+export async function reconocerAfiche(codigo: string, afiche: string): Promise<ResultadoAfiche> {
+  if (!sb) return encontrarAfiche(codigo, afiche);
+  const { data, error } = await sb.rpc('reconocer_afiche', { p_codigo: codigo, p_afiche: afiche });
+  if (error) {
+    if (error.message.includes('por_diseno_apagado') || /reconocer_afiche|function/i.test(error.message)) throw new Error('Para este afiche, apunta al sello o escribe su código.');
+    if (error.message.includes('afiche_invalido')) throw new Error('Ese afiche no es de la cacería.');
+    if (error.message.includes('credencial_no_existe')) throw new Error('No encontramos tu credencial.');
+    throw new Error(error.message);
+  }
+  const r = data as { pasos: number; meta: number; sello_otorgado: boolean; nuevo: boolean; afiche: string; repetido: boolean; sello?: number };
+  const sello = r.sello ?? AFICHE_SELLO;
+  if (r.nuevo) publicar('timbre', { sello }, codigo).catch(() => { /* sin red */ });
+  return { pasos: r.pasos, meta: r.meta, otorgado: r.sello_otorgado, nuevo: r.nuevo, afiche: r.afiche, repetido: r.repetido, sello };
+}
+
 // Lo que muestra la vista Juego: afiches encontrados (en orden), la meta de la cacería y el inventario de
 // creación: lo que la persona hizo en cada mesa con su código, según los eventos que publican las mesas (plan 010 §2b).
 export interface Creacion { app: string; png?: string; escena?: string; creado: number }
