@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { COLS, FILAS, TAMANOS, type Tamano } from '../data/config';
+import { COLS, FILAS, TAMANOS, TAMANOS_RODILLO, type Tamano, type TamanoRodillo } from '../data/config';
 import { linea, nuevoDibujo, plumon, rociar, rodillo, tintaRodillo } from '../lib/pintura';
 
 // Vista previa del pincel activo, como la lista de pinceles de Photoshop: un trazo de muestra hecho con el mismo
@@ -13,13 +13,14 @@ const RASGOS: Record<Pincel, string[]> = {
 // La muestra se pinta en una franja de la pared (filas 10 a 70) y se recorta.
 const X0 = 8, X1 = COLS - 8, Y0 = 6, Y1 = FILAS - 6;
 
-export const PreviaPincel: React.FC<{ pincel: Pincel; tamano: Tamano; color: string }> = ({ pincel, tamano, color }) => {
+// `tamano` es el índice en TAMANOS (spray y plumón) o en TAMANOS_RODILLO (rodillo).
+export const PreviaPincel: React.FC<{ pincel: Pincel; tamano: Tamano | TamanoRodillo; color: string }> = ({ pincel, tamano, color }) => {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const c = ref.current;
     if (!c) return;
-    const d = nuevoDibujo(), t = TAMANOS[tamano];
+    const d = nuevoDibujo(), t = TAMANOS[Math.min(tamano, TAMANOS.length - 1)], mitad = TAMANOS_RODILLO[Math.min(tamano, TAMANOS_RODILLO.length - 1)].mitad;
     // Una curva en S de lado a lado.
     const punto = (k: number): [number, number] => [Math.round(X0 + 10 + (X1 - X0 - 20) * k), Math.round(FILAS / 2 + Math.sin(k * Math.PI * 2) * (FILAS * 0.22))];
     let [px, py] = punto(0), s = 0;
@@ -29,7 +30,7 @@ export const PreviaPincel: React.FC<{ pincel: Pincel; tamano: Tamano; color: str
       else if (pincel === 'plumon') linea(px, py, x, y, (a, b) => plumon(d, a, b, t.plumon, 1, null));
       else {
         const dx = x - px, dy = y - py, n = Math.hypot(dx, dy) || 1;
-        for (let k = 0; k <= n; k += 0.5) { s += 0.5; rodillo(d, Math.round(px + (dx * k) / n), Math.round(py + (dy * k) / n), -dy / n, dx / n, s, t.rodillo, 1, null, tintaRodillo(s * 2.2)); }
+        for (let k = 0; k <= n; k += 0.5) { s += 0.5; rodillo(d, Math.round(px + (dx * k) / n), Math.round(py + (dy * k) / n), -dy / n, dx / n, s, mitad, 1, null, tintaRodillo(s * 2.2)); }
       }
       [px, py] = [x, y];
     }
