@@ -2,22 +2,66 @@
 @import '../../shared/somos-fonts.css';
 @import '../../shared/somos-icons.css';
 
-/* «Hora punta»: juego Pixel con el kit de barras fijas (plan 009-juego-pixel). */
-.material-symbols-outlined { font-size: 20px; vertical-align: middle; }
-.tablero { position: relative; width: 100%; height: 100%; min-height: 0; }
-.juego { display: block; width: 100%; height: 100%; touch-action: none; image-rendering: pixelated; border: 3px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); background: #1E1C19; cursor: pointer; }
-.puntaje { margin: 0; font: 700 44px/1 "Silkscreen", monospace; color: var(--accent, #2B4BD8); }
-.reglas { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: 14px; line-height: 1.35; }
-.controles { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.controles .control { min-width: 64px; min-height: 56px; display: grid; place-items: center; }
-.controles .lanzar { min-height: 56px; margin-left: auto; padding: 0 22px; font-size: 15px; }
-.capa { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, 0.45); padding: 12px; }
-.caja { display: grid; gap: 10px; justify-items: center; text-align: center; padding: 20px; max-width: 420px; max-height: 100%; overflow: hidden; }
-.caja h2 { margin: 0; font: 700 22px var(--fuente-tit); }
+/* «Hora punta» a pantalla casi completa (plan 009-juego-pixel, ronda 2): barra superior delgada con los tokens neutros
+   de la guía común (plan 012) y el lienzo con el HUD y los controles encima. */
+:root {
+  --hp-fondo: #E9E9E7; --hp-sup: #FFFFFF; --hp-sup2: #F5F5F4; --hp-borde: #D4D4D2; --hp-texto: #1A1A1A; --hp-texto2: #6B6B69;
+  --hp-acento: #0062B8; --hp-sobre: #FFFFFF; --hp-radio: 10px; --hp-toque: 48px; --hp-sombra: 0 4px 16px rgba(0, 0, 0, .14);
+}
+html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; }
+.material-symbols-outlined { font-size: 22px; vertical-align: middle; }
+
+.hp { position: fixed; inset: 0; display: grid; grid-template-rows: auto 1fr; background: #1E1C19; font-family: "DM Sans", system-ui, sans-serif; color: var(--hp-texto); }
+.hp-barra { display: flex; align-items: center; gap: 8px; padding: 6px 10px; padding-top: max(6px, env(safe-area-inset-top)); background: var(--hp-sup); border-bottom: 1px solid var(--hp-borde); min-height: 60px; box-sizing: border-box; }
+.hp-titulo { min-width: 0; flex: 1; display: flex; align-items: baseline; gap: 10px; overflow: hidden; }
+.hp-titulo h1 { margin: 0; font: 700 18px/1.1 "Silkscreen", monospace; white-space: nowrap; letter-spacing: .02em; }
+.hp-titulo p { margin: 0; font-size: 14px; color: var(--hp-texto2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hp-puntaje { margin: 0 6px; display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.hp-puntaje b { font: 700 24px/1 "Silkscreen", monospace; color: var(--hp-acento); min-width: 2ch; text-align: right; }
+.hp-etq { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--hp-texto2); margin: 0; }
+.hp-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: var(--hp-toque); min-width: var(--hp-toque); padding: 0 14px; box-sizing: border-box;
+  border: 1px solid var(--hp-borde); border-radius: var(--hp-radio); background: var(--hp-sup2); color: var(--hp-texto); font: 600 15px "DM Sans", sans-serif; text-decoration: none; cursor: pointer; touch-action: manipulation; }
+.hp-btn:hover { background: #EDEDEB; }
+.hp-btn:disabled { opacity: .45; cursor: default; }
+.hp-btn:focus-visible, .tecla:focus-visible { outline: 3px solid var(--hp-acento); outline-offset: 2px; }
+.hp-primario { background: var(--hp-acento); border-color: var(--hp-acento); color: var(--hp-sobre); }
+.hp-primario:hover { background: #00559F; }
+@media (max-width: 900px) { .hp-ocultable { display: none; } .hp-btn { padding: 0 10px; } .hp-titulo { flex-direction: column; gap: 2px; } }
+
+.hp-lienzo { position: relative; min-height: 0; overflow: hidden; }
+.juego { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; image-rendering: pixelated; cursor: pointer; }
+
+/* HUD: lo que llevas, arriba a la izquierda; la barra del jefe, arriba al centro. */
+.hud { position: absolute; top: 10px; left: 10px; display: flex; gap: 8px; flex-wrap: wrap; pointer-events: none; max-width: 60%; }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; background: rgba(255, 255, 255, .88); border: 2px solid #000; border-radius: 8px; font: 700 16px/1 "Silkscreen", monospace; box-shadow: 3px 3px 0 #000; }
+.chip-sub { font: 600 13px "DM Sans", sans-serif; color: var(--hp-texto2); margin-left: 4px; }
+.pieza-ico { width: 16px; height: 16px; background: #FF8FB1; border: 2px solid #000; transform: rotate(45deg) scale(.8); }
+.hud-jefe { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); display: grid; justify-items: center; gap: 4px; padding: 6px 12px; background: rgba(255, 255, 255, .88); border: 2px solid #000; border-radius: 8px; box-shadow: 3px 3px 0 #000; pointer-events: none; }
+.barra-color { display: flex; gap: 3px; }
+.barra-color i { display: block; width: 30px; height: 14px; background: #8F8F8A; border: 2px solid #000; }
+@media (max-width: 900px) { .hud-jefe { top: auto; bottom: 236px; } }
+
+/* Controles a ambos lados: semitransparentes, de 64 px o más y multitáctiles. */
+.mando { position: absolute; bottom: max(14px, env(safe-area-inset-bottom)); display: grid; gap: 6px; touch-action: none; user-select: none; -webkit-user-select: none; }
+.mando.izq { left: 14px; grid-template-columns: repeat(3, 70px); grid-template-rows: repeat(3, 70px); }
+.mando.der { right: 14px; grid-auto-flow: column; align-items: end; gap: 12px; }
+.tecla { display: grid; place-items: center; align-content: center; gap: 2px; min-width: 64px; min-height: 64px; padding: 0; border: 3px solid #000; border-radius: 12px; background: rgba(255, 255, 255, .6); color: #000; box-shadow: 3px 3px 0 rgba(0, 0, 0, .55); cursor: pointer; touch-action: none; -webkit-tap-highlight-color: transparent; font: 700 12px "Silkscreen", monospace; }
+.tecla:active { background: rgba(255, 194, 14, .85); transform: translate(2px, 2px); box-shadow: 1px 1px 0 rgba(0, 0, 0, .55); }
+.mando.izq .arriba { grid-area: 1 / 2; } .mando.izq .izq { grid-area: 2 / 1; } .mando.izq .der { grid-area: 2 / 3; } .mando.izq .abajo { grid-area: 3 / 2; }
+.tecla.saltar { width: 84px; height: 84px; }
+.tecla.grande { width: 116px; height: 116px; border-radius: 50%; font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .tecla:active { transform: none; } }
+
+/* Tarjetas: entrada de cada nivel, pausa, pasos y fin. */
+.capa { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, .5); padding: 12px; }
+.caja { display: grid; gap: 10px; justify-items: center; text-align: center; padding: 20px 22px; max-width: 440px; max-height: 100%; box-sizing: border-box; overflow: hidden;
+  background: var(--hp-sup); border-radius: 14px; box-shadow: var(--hp-sombra); border: 1px solid var(--hp-borde); }
+.caja h2 { margin: 0; font: 700 22px/1.2 "Silkscreen", monospace; }
 .caja .acciones { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-.tarjeta-mini { height: min(28vh, 220px); width: auto; border: 2px solid var(--ink); }
-@media (prefers-reduced-motion: reduce) { .juego { transition: none; } }
-.latas { display: flex; flex-wrap: wrap; gap: 3px; min-height: 18px; }
-.latas.grande { justify-content: center; max-width: 320px; gap: 4px; }
-.mural { display: block; border: 2px solid var(--ink); image-rendering: pixelated; }
-.controles .lanzar svg { margin-right: 6px; vertical-align: middle; }
+.ayuda { margin: 0; font-size: 15px; line-height: 1.4; color: var(--hp-texto); }
+.reglas { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; line-height: 1.35; text-align: left; }
+.latas { display: flex; flex-wrap: wrap; gap: 3px; }
+.latas.grande { justify-content: center; max-width: 340px; gap: 4px; }
+.mural { display: block; border: 2px solid #000; image-rendering: pixelated; }
+.retrato { image-rendering: pixelated; }
+@media (max-height: 760px) { .caja { gap: 7px; padding: 14px 18px; } .reglas { font-size: 14px; } .caja h2 { font-size: 19px; } }
