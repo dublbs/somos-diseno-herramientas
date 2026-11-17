@@ -3,10 +3,6 @@
 @import '../../shared/somos-icons.css';
 
 /* Solo lo propio del Fotomatón; lo demás vive en shared/somos-ui.css */
-.tinta{display:inline-flex;gap:3px;margin-right:8px;vertical-align:middle}.tinta i{width:10px;height:10px;border-radius:var(--rt);display:block;border:1px solid rgba(0,0,0,.2)}
-.tintas{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.tintas button{min-width:0;min-height:46px;border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:var(--rb);font-weight:600;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:flex-start;padding:0 12px;text-align:left}
-.tintas button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent)}
 .carga{position:absolute;inset:0;display:grid;place-items:center;background:var(--bg);overflow:hidden;animation:aparece .25s ease-out}
 .carga::before{content:"";position:absolute;inset:-30%;transform:rotate(15deg);background-image:radial-gradient(circle,var(--accent) var(--p),transparent calc(var(--p) + 1.5%));background-size:20px 20px;animation:puntos 1.4s ease-in-out infinite alternate}
 .carga span{position:relative;background:var(--surface);color:var(--ink);padding:12px 18px;border-radius:var(--rb);border:var(--borde);font-family:var(--fuente-etq);font-weight:700;font-size:15px}
@@ -15,9 +11,6 @@
 .etiqueta-marco{position:absolute;left:14px;top:14px;background:rgba(0,0,0,.62);color:#fff;font:600 12px "DM Sans",sans-serif;padding:7px 11px;border-radius:999px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .estado-cara{position:absolute;right:14px;top:14px;background:rgba(0,0,0,.62);color:#fff;font:600 12px "DM Sans",sans-serif;padding:7px 11px;border-radius:999px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .estado-cara.ok{background:#00A651}
-.obturador{width:86px;height:86px;border-radius:var(--rt);border:4px solid var(--ink);background:var(--accent);box-shadow:inset 0 0 0 5px var(--bg);cursor:pointer;transition:transform .12s}
-.obturador:active{transform:scale(.93)}
-.obturador:disabled{opacity:.4}
 .cuenta{position:absolute;inset:0;display:grid;place-items:center;font:800 min(40vw,180px) "Bricolage Grotesque",sans-serif;color:#fff;text-shadow:0 6px 40px rgba(0,0,0,.45);pointer-events:none}
 .flash{position:absolute;inset:0;background:#fff;animation:flash .45s ease-out forwards;pointer-events:none}
 @keyframes flash{from{opacity:1}to{opacity:0}}
@@ -34,28 +27,76 @@ video.oculto{position:absolute;width:1px;height:1px;opacity:0;pointer-events:non
 .descarga img{width:100%;height:auto;border-radius:var(--r);box-shadow:var(--sombra);border:var(--borde)}
 .link-btn{text-decoration:none}
 
-/* --- Herramienta con barras fijas (kit, propuesta 005) --- */
+/* --- Herramienta (plan 012): abajo solo el disparador; todo lo demás en el panel derecho, que hace scroll solo --- */
 .btn-inicio{min-height:44px;padding:0 18px;font-size:15px}
 .k-lienzo .escenario-fit{width:100%;height:100%;display:grid;place-items:center}
-.tintas{grid-template-columns:1fr 1fr;gap:8px}
-.tintas .k-btn{min-height:50px;display:grid;justify-items:center;align-content:center;gap:3px;padding:4px 6px;font-size:11.5px;line-height:1.1;text-transform:none;letter-spacing:0;text-align:center}
-.tintas .k-btn .tinta{margin:0}
-[data-visual="Pixel"] .tintas .k-btn{font-size:9.5px}
-.tintas .k-btn[aria-checked="true"]{background:var(--accent);color:var(--on-accent)}
-.carrete{align-items:center;gap:12px}
-.marcos{gap:8px}
-.marcos .miniatura.k-color{width:52px;height:52px;padding:0;background:var(--bg);overflow:hidden}
-.marcos .miniatura img{width:100%;height:100%;display:block}
-.disparo{align-items:center;gap:12px}
-.obturador{width:72px;height:72px}
+.k-lateral{overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;-webkit-overflow-scrolling:touch}
+.panel-foto{display:grid;gap:18px;align-content:start;min-width:0}
+.panel-foto .k-seccion{gap:10px}
+.panel-foto .k-seccion>.k-btn{width:100%;justify-content:center;min-height:48px}
+.panel-foto .k-seg>button{min-height:48px}
+[data-visual="Pixel"] .panel-foto .k-seg>button{font-size:12px;padding:0 4px}
+
+/* Disparador: redondo, grande, con ícono y texto */
+.k-inferior{justify-content:center;padding:8px 12px}
+.disparador{width:88px;height:88px;border-radius:50%;border:4px solid var(--ink);background:var(--accent);color:var(--on-accent,#fff);
+  display:grid;place-content:center;justify-items:center;gap:0;cursor:pointer;box-shadow:0 0 0 4px var(--surface),0 0 0 7px var(--ink);
+  transition:transform .12s;-webkit-tap-highlight-color:transparent;margin:6px}
+.disparador .material-symbols-outlined{font-size:34px;line-height:1}
+.disparador-texto{font:800 14px/1.1 "DM Sans",sans-serif;letter-spacing:.01em}
+[data-visual="Pixel"] .disparador-texto{font:400 11px/1.1 "Silkscreen",monospace;text-transform:uppercase}
+.disparador:active:not(:disabled){transform:scale(.93)}
+.disparador:disabled{opacity:.45;cursor:default}
+.disparador:focus-visible{outline:3px solid var(--accent);outline-offset:8px}
+
+/* Marcos: miniaturas grandes con su nombre */
+.marcos-grilla{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.marco-op{display:grid;gap:4px;justify-items:center;padding:4px 4px 6px;min-height:48px;border:2px solid transparent;border-radius:var(--rb);background:transparent;color:var(--ink);cursor:pointer;font:600 11.5px/1.15 "DM Sans",sans-serif;text-align:center;-webkit-tap-highlight-color:transparent}
+.marco-op img{width:100%;aspect-ratio:1;display:block;border-radius:min(var(--r),10px);box-shadow:0 0 0 1px rgba(0,0,0,.18)}
+.marco-op[aria-checked="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.marco-op[aria-checked="true"] span{font-weight:800}
+[data-visual="Pixel"] .marco-op{border-radius:0;font-size:11px}
+[data-visual="Pixel"] .marco-op img{border-radius:0;image-rendering:pixelated}
+[data-visual="Pixel"] .marco-op[aria-checked="true"]{border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);background:#FFC20E}
+[data-visual="Orgánica"] .marco-op{border-radius:22px}
+[data-visual="Orgánica"] .marco-op img{border-radius:16px}
+
+/* Paleta: muestra grande de las tintas sobre su papel + nombre */
+.tintas{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tinta-op{min-width:0;min-height:56px;display:grid;gap:5px;padding:6px;border:2px solid var(--line,#D4D4D2);border-radius:var(--rb);background:var(--surface);color:var(--ink);cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+[data-visual="Orgánica"] .tinta-op{border-radius:18px}
+.tinta-op .muestra{display:flex;gap:3px;padding:4px;height:30px;box-sizing:border-box;border-radius:min(var(--r),8px);box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+.tinta-op .muestra i{flex:1;border-radius:min(var(--rt),50%)}
+[data-visual="Geométrica"] .tinta-op .muestra i{border-radius:0}
+[data-visual="Pixel"] .tinta-op .muestra i{border-radius:0;box-shadow:inset -3px -3px 0 rgba(0,0,0,.25)}
+.tinta-op .nombre{font:700 13px/1.15 "DM Sans",sans-serif}
+[data-visual="Pixel"] .tinta-op .nombre{font:400 10px/1.2 "Silkscreen",monospace;text-transform:uppercase}
+.tinta-op[aria-checked="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 2px var(--accent),0 0 0 2px var(--accent)}
+[data-visual="Pixel"] .tinta-op{border:3px solid var(--ink);border-radius:0}
+[data-visual="Pixel"] .tinta-op[aria-checked="true"]{background:#FFC20E;box-shadow:4px 4px 0 var(--ink)}
+
+/* Placas de impresión: se apagan y prenden como el ojo de un canal en Photoshop */
 .placas{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .placas[data-n="2"]{grid-template-columns:repeat(2,minmax(0,1fr))}
 .placas[data-n="1"]{grid-template-columns:minmax(0,1fr);max-width:50%}
-.placa{margin:0;display:grid;gap:4px;justify-items:center}
-.placa canvas{width:100%;aspect-ratio:1;display:block;border:2px solid var(--c);background:#fff}
-.placa figcaption{font:700 12px var(--fuente-etq);color:var(--ink)}
-@media (max-width:1100px) and (min-aspect-ratio:1/1){.k-bajada{display:none}.marcos .miniatura.k-color{width:44px;height:44px}.obturador{width:60px;height:60px}}
-@media (orientation:portrait) and (min-width:600px){.k-lateral{min-height:300px}}
+.placa{margin:0;padding:0;display:grid;gap:4px;justify-items:stretch;border:0;background:transparent;color:var(--ink);cursor:pointer;min-height:48px;-webkit-tap-highlight-color:transparent}
+.placa canvas{width:100%;aspect-ratio:1;display:block;border:3px solid var(--c);background:#fff;transition:opacity .15s,filter .15s}
+.placa-pie{display:flex;align-items:center;justify-content:center;gap:4px;font:800 13px/1 "DM Sans",sans-serif;min-height:24px}
+.placa .ojo{width:20px;height:20px;flex:none}
+.placa[aria-pressed="false"] canvas{opacity:.22;filter:grayscale(1);border-style:dashed}
+.placa[aria-pressed="false"] .placa-pie{color:var(--muted)}
+.placa:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+
+@media (max-width:1100px) and (min-aspect-ratio:1/1){.k-bajada{display:none}}
+@media (max-height:740px) and (min-aspect-ratio:1/1){.disparador{width:76px;height:76px}.disparador .material-symbols-outlined{font-size:28px}}
+/* En vertical: lienzo arriba, el panel debajo (con su scroll, en dos columnas) y el disparador al final */
+@media (max-aspect-ratio:1/1){
+  .k-cuerpo{grid-template-rows:minmax(0,1fr) minmax(0,38dvh) auto}
+  .k-lateral{display:block}
+  .panel-foto{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}
+  .disparador{width:76px;height:76px}
+}
+@media (prefers-reduced-motion:reduce){.disparador,.placa canvas{transition:none}}
 
 /* Portada: texto a la izquierda, demo a la derecha; todo cabe por alto */
 .portada .hero-texto{min-width:0;min-height:0;display:flex;align-items:center}

@@ -79,7 +79,8 @@ export function dibujarEncuadre(ctx: CanvasRenderingContext2D, src: Fuente, w: n
   ctx.drawImage(src, dx, dy, sw * s, sh * s);
 }
 
-export function trama(src: Fuente, w: number, h: number, celda: number, tinta: Tinta, cara: Cara | null, solo?: string) {
+// solo: dibuja una sola placa (canal) · apagadas: placas que la persona apagó (no se imprimen).
+export function trama(src: Fuente, w: number, h: number, celda: number, tinta: Tinta, cara: Cara | null, solo?: string, apagadas?: readonly string[]) {
   w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h)); celda = Math.max(3, celda);
   const paso = Math.max(1, celda / 2), mw = Math.ceil(w / paso), mh = Math.ceil(h / paso);
   const m = lienzoTmp('muestra', mw, mh), mx = m.getContext('2d', { willReadFrequently: true })!;
@@ -98,7 +99,7 @@ export function trama(src: Fuente, w: number, h: number, celda: number, tinta: T
   // Opaca: de lo más claro a lo más oscuro, así los puntos oscuros siempre quedan arriba.
   if (opaca) canales.sort((p, q) => lum(q[2]) - lum(p[2]));
   for (const [ch, ang, color] of canales) {
-    if (solo && ch !== solo) continue;
+    if (solo ? ch !== solo : apagadas?.includes(ch)) continue;
     const a = ang * Math.PI / 180, co = Math.cos(a), si = Math.sin(a);
     o.fillStyle = color; o.beginPath();
     for (let i = -n; i <= n; i++) for (let j = -n; j <= n; j++) {
@@ -206,7 +207,11 @@ export function mosaico(src: Fuente, w: number, h: number, celda: number, tinta:
   return out;
 }
 
-export const efectoDe = (visual: string) => (visual === 'Pixel' ? crt : visual === 'Geométrica' ? mosaico : trama);
+type Efecto = (src: Fuente, w: number, h: number, celda: number, tinta: Tinta, cara: Cara | null, apagadas?: readonly string[]) => HTMLCanvasElement;
+const tramaConPlacas: Efecto = (src, w, h, celda, tinta, cara, apagadas) => trama(src, w, h, celda, tinta, cara, undefined, apagadas);
+export const efectoDe = (visual: string): Efecto => (visual === 'Pixel' ? crt : visual === 'Geométrica' ? mosaico : tramaConPlacas);
+// Las placas (C, M, Y, K) solo existen en la trama de imprenta: la de Orgánica.
+export const tienePlacas = (visual: string) => visual === 'Orgánica';
 
 // Densidad constante: la trama se mide contra la cara (o contra la zona de foto
 // si no hay cara), tomando Panel escalonado (192×200, cara ≈ 100 u) como referencia.
@@ -221,7 +226,7 @@ export function celdaRelativa(src: Fuente, bw: number, bh: number, celda: number
 }
 
 // Placas de impresión: cada tinta de la trama por separado (C, M, Y, K; o las dos del dúo; o la única), como las
-// planchas que se entintan una a una en la imprenta. Se ven en la barra derecha.
+// planchas que se entintan una a una en la imprenta. Se ven en el panel derecho y se apagan y prenden con un toque.
 export const placasDe = (t: Tinta): { canal: string; nombre: string; color: string }[] =>
   t.modo === 'cmyk' ? [{ canal: 'c', nombre: 'C', color: t.c! }, { canal: 'm', nombre: 'M', color: t.m! }, { canal: 'y', nombre: 'Y', color: t.y! }, { canal: 'k', nombre: 'K', color: t.k! }]
     : t.modo === 'duo' ? [{ canal: 'a', nombre: 'Sombras', color: t.a! }, { canal: 'b', nombre: 'Medios', color: t.b! }]
@@ -232,7 +237,8 @@ export function dibujarPlaca(ctx: CanvasRenderingContext2D, lado: number, src: F
 }
 
 // Compone marco: fondo → figura → foto en trama dentro de su zona → lo que en Figma va sobre la foto.
-export function componer(ctx: CanvasRenderingContext2D, size: number, marcoId: string, src: Fuente, celda: number, tinta: Tinta, cara?: Cara | null) {
+export interface OpcionesComponer { apagadas?: readonly string[] }
+export function componer(ctx: CanvasRenderingContext2D, size: number, marcoId: string, src: Fuente, celda: number, tinta: Tinta, cara?: Cara | null, op: OpcionesComponer = {}) {
   const m = marcoListo(marcoId), s = size / 240, marco = marcoConTinta(m, tinta);
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'source-over';
@@ -240,7 +246,7 @@ export function componer(ctx: CanvasRenderingContext2D, size: number, marcoId: s
   ctx.setTransform(s, 0, 0, s, 0, 0);
   m._p.forEach(([p], i) => { ctx.fillStyle = marco.fills[i]; ctx.fill(p); });
   const [bx, by, bw, bh] = m._clip.box;
-  const t = efectoDe(m.visual)(src, bw * s, bh * s, celdaRelativa(src, bw, bh, celda, cara ?? null) * s, tinta, cara ?? null);
+  const t = efectoDe(m.visual)(src, bw * s, bh * s, celdaRelativa(src, bw, bh, celda, cara ?? null) * s, tinta, cara ?? null, op.apagadas);
   ctx.save();
   ctx.clip(m._clip.path);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
