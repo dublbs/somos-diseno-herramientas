@@ -63,7 +63,7 @@ function dibujarCapas(ctx: CanvasRenderingContext2D, capas: Capa[], durMs: numbe
   for (let i = 0; i < capas.length; i++) {
     const c = capas[i];
     let r = raster(c.src, tinte);
-    const d = dimension(c.src);
+    const d = dimension(c.src, tinte);
     if (!r || !d) continue;
     const kx = (c.w ?? d.w) / d.w, ky = (c.h ?? d.h) / d.h;
     if (papel != null) r = papelDe(r, nivelPapel(papel / kx));

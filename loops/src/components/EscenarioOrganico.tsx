@@ -379,10 +379,12 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
           {!elegido && <p className="k-ayuda">Toca una figura del escenario (o su fila en la línea de tiempo) para moverla, cambiar su tamaño, su animación o su trayecto.</p>}
           {elegido && (<>
             <p className="k-ayuda">Arrástrala para moverla. Tira del círculo amarillo para cambiar su tamaño.</p>
+            {variantes.length > 1 && <p className="prop-etq">Animación</p>}
             {variantes.length > 1 && (
               <Segmentado etiqueta="Animación" valor={elegido.variante ?? 0} onCambiar={n => cambiarElegida(i => ({ ...i, variante: n }))}
                 opciones={variantes.map((v, n) => ({ valor: n, texto: v.nombre }))} />
             )}
+            {p!.movil && <p className="prop-etq">Trayecto</p>}
             {p!.movil && (
               <Segmentado etiqueta="Trayecto" valor={elegido.destino ? 'camina' : 'fijo'}
                 onCambiar={v => {
@@ -391,6 +393,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
                 }}
                 opciones={[{ valor: 'fijo', texto: 'Quieto' }, { valor: 'camina', texto: 'De A a B' }]} />
             )}
+            {p!.colores && <p className="prop-etq">Color</p>}
             {p!.colores && (
               <Paleta etiqueta={`Color del ${p!.nombre.toLowerCase()}`} colores={Object.fromEntries(p!.colores.map(c => [c.nombre, c.hex]))}
                 elegido={(p!.colores.find(c => c.id === elegido.color) ?? p!.colores[0]).nombre}

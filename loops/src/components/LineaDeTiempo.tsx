@@ -24,6 +24,8 @@ interface Props {
 
 const FPS = [8, 12, 24];
 const MIN = 0.12, MAX = 0.88;
+// En la fila basta la primera palabra de los nombres largos («Picaflor de Arica» → «Picaflor»), para que no se corten.
+const corto = (n: string) => (n.length > 12 ? n.split(' ')[0] : n);
 
 export const LineaDeTiempo: React.FC<Props> = p => {
   const arrastre = useRef<{ uid: number; pista: HTMLElement } | null>(null);
@@ -54,7 +56,7 @@ export const LineaDeTiempo: React.FC<Props> = p => {
           const b = it.llegada ?? LLEGADA;
           return (
             <div key={it.uid} className="lt-fila" aria-selected={p.sel === it.uid}>
-              <button type="button" className="lt-nombre" onClick={() => p.onElegir(it.uid)}>{pieza(it.tipo).nombre}</button>
+              <button type="button" className="lt-nombre" aria-label={pieza(it.tipo).nombre} onClick={() => p.onElegir(it.uid)}>{corto(pieza(it.tipo).nombre)}</button>
               <div className={'lt-pista' + (it.destino ? ' camina' : '')} role={it.destino ? 'slider' : undefined}
                 aria-label={it.destino ? `${pieza(it.tipo).nombre}: llega a B a los ${(b * DURACION_TRAYECTO / 1000).toFixed(1)} s` : undefined}
                 aria-valuemin={it.destino ? MIN * DURACION_TRAYECTO : undefined} aria-valuemax={it.destino ? MAX * DURACION_TRAYECTO : undefined} aria-valuenow={it.destino ? Math.round(b * DURACION_TRAYECTO) : undefined}

@@ -23,7 +23,7 @@ const tintes = new Map<string, Tinte>();
 export const registrarTinte = (id: string, t: Tinte) => tintes.set(id, t);
 const clave = (src: string, tinte?: string) => (tinte ? `${src}|${tinte}` : src);
 
-export const dimension = (src: string) => listos.get(src) ?? null;
+export const dimension = (src: string, tinte?: string) => (tinte ? listos.get(clave(src, tinte)) : undefined) ?? listos.get(src) ?? null;
 export function raster(src: string, tinte?: string): Raster | null {
   if (tinte) { const t = listos.get(clave(src, tinte)); if (t) return t.raster; }
   return listos.get(src)?.raster ?? null;
