@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { CARA, detectarCara, suavizar, type Cara } from '../lib/cara';
 import { componer, pintarVideo } from '../lib/trama';
 import { TINTAS } from '../data/tintas';
@@ -12,7 +12,9 @@ const MENSAJES: Record<string, string> = {
   SinCamara: 'Este navegador no deja usar la cámara.',
 };
 
-interface Params { marco: string; celda: number; tinta: string }
+// vivo: el último cuadro de la cámara (para que las placas del panel muestren la vista en vivo).
+export type Lado = 'user' | 'environment';
+interface Params { lado: Lado; marco: string; celda: number; tinta: string; apagadas: readonly string[]; vivo?: MutableRefObject<{ c: HTMLCanvasElement; cara: Cara | null } | null> }
 
 // getUserMedia + loop de vista previa (~15 fps) + detección de cara cada ~220 ms.
 export function useCamara(params: Params) {
@@ -20,7 +22,7 @@ export function useCamara(params: Params) {
   const cuadro = useRef(document.createElement('canvas'));
   const props = useRef(params); props.current = params;
   const cara = useRef<Cara | null>(null), visto = useRef(0);
-  const [lado, setLado] = useState<'user' | 'environment'>('user');
+  const lado = params.lado;
   const [error, setError] = useState(''), [personas, setPersonas] = useState(0);
 
   useEffect(() => {
@@ -71,7 +73,8 @@ export function useCamara(params: Params) {
       if (!v || !c || !c.width || v.readyState < 2) return;
       if (!pintarVideo(cuadro.current, v, lado === 'user', 640)) return;
       const p = props.current;
-      componer(c.getContext('2d')!, c.width, p.marco, cuadro.current, p.celda, TINTAS[p.tinta], cara.current);
+      componer(c.getContext('2d')!, c.width, p.marco, cuadro.current, p.celda, TINTAS[p.tinta], cara.current, { apagadas: p.apagadas });
+      if (p.vivo) p.vivo.current = { c: cuadro.current, cara: cara.current };
     };
     raf = requestAnimationFrame(tick); return () => cancelAnimationFrame(raf);
   }, [lado]);
@@ -84,5 +87,5 @@ export function useCamara(params: Params) {
     return { foto, cara: c0 ? { x: c0.x * k, y: c0.y * k, w: c0.w * k, h: c0.h * k, n: c0.n, ref: c0.ref * k } : null };
   };
 
-  return { video, lienzo, lado, setLado, error, personas, capturar };
+  return { video, lienzo, error, personas, capturar };
 }
