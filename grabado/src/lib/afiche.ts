@@ -37,11 +37,12 @@ function impresion(t: TacoListo, e: Estampa, tinta: string, w: number, h: number
   g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.55, 'rgba(0,0,0,0.04)'); g.addColorStop(1, `rgba(0,0,0,${0.22 + r() * 0.22})`);
   x.fillStyle = g; x.fillRect(0, 0, W, H);
   // poros sin tinta: manchitas y grano
-  const poros = Math.round(W * H / 120);
+  const poros = Math.round(W * H / 160);
   x.fillStyle = '#000';
   for (let i = 0; i < poros; i++) {
-    const rr = (0.6 + r() * (r() < 0.035 ? 8 : 1.8)) * L / 320;
-    x.globalAlpha = 0.3 + r() * 0.6;
+    const grande = r() < 0.01;
+    const rr = (0.5 + r() * (grande ? 4 : 1.4)) * L / 320;
+    x.globalAlpha = grande ? 0.25 + r() * 0.3 : 0.2 + r() * 0.55;
     x.beginPath(); x.arc(r() * W, r() * H, rr, 0, Math.PI * 2); x.fill();
   }
   // vetas del taco: líneas finas sin tinta en una dirección (como la madera)
@@ -168,8 +169,14 @@ export function componer(ctx: CanvasRenderingContext2D, lado: number, a: Afiche,
     if (!capa.visible || !capa.estampas.length) return;
     const c = cache.obtener(capa, px, tacos);
     const [dx, dy] = a.registro ? corrimiento(i) : [0, 0];
-    ctx.globalCompositeOperation = capa.mezcla ? 'multiply' : 'source-over';
-    ctx.drawImage(c, dx * s, dy * s);
+    if (capa.mezcla) {
+      // Se mezcla: las tintas se multiplican donde se cruzan y la de encima pesa un poco más (como la tinta que se
+      // imprime al último): por eso el orden de las capas también se nota cuando se mezclan.
+      ctx.globalCompositeOperation = 'multiply'; ctx.drawImage(c, dx * s, dy * s);
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 0.22; ctx.drawImage(c, dx * s, dy * s); ctx.globalAlpha = 1;
+    } else {
+      ctx.globalCompositeOperation = 'source-over'; ctx.drawImage(c, dx * s, dy * s);
+    }
   });
   ctx.globalCompositeOperation = 'source-over';
   if (marco && a.marcoEncima) ctx.drawImage(marco, 0, 0);
