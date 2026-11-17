@@ -1,34 +1,36 @@
-@import '../../shared/somos-ui.css';
-@import '../../shared/somos-fonts.css';
-@import '../../shared/somos-icons.css';
+@import '../../shared/ui/herramienta.css';
 
-.material-symbols-outlined { font-size: 20px; vertical-align: middle; }
-.marco-faja { box-shadow: var(--sombra); }
-.faja { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+/* Taller de Grabado sobre el kit v2 (plan 012): pantalla, panel y controles vienen de shared/ui/herramienta.css;
+   aquí solo el papel, la barra de tacos y detalles propios, siempre con tokens --h-*. */
 
-.portada { min-height: 100dvh; display: grid; grid-template-rows: auto 1fr; padding: clamp(16px, 3vw, 40px); background: var(--bg); color: var(--ink); }
-.portada .volver { justify-self: start; display: inline-flex; align-items: center; gap: 6px; color: var(--ink); text-decoration: none; font-weight: 700; min-height: 44px; }
-.portada-cuerpo { align-self: center; justify-self: center; width: min(100%, 640px); display: grid; gap: clamp(14px, 2.4vh, 26px); }
-.portada h1 { margin: 0; font: 800 clamp(40px, 7vw, 84px)/.95 var(--fuente-tit); letter-spacing: -.02em; }
-.pasos { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.pasos li { display: grid; grid-template-columns: 40px 1fr; align-items: center; gap: 12px; font-size: clamp(16px, 1.6vw, 20px); }
-.pasos b { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font: 800 20px var(--fuente-tit); }
-.portada-acciones { display: flex; flex-wrap: wrap; gap: 10px; }
-.portada-acciones .btn { min-height: 56px; }
+/* Papel: el afiche y, encima, la vista previa del taco y la pista del papel vacío */
+.hoja { overflow: hidden; box-shadow: var(--h-sombra-flotante); }
+.hoja canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.papel { touch-action: none; cursor: crosshair; transform-origin: center; }
+.previa { pointer-events: none; }
+.pista { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; gap: var(--h-e2);
+  max-width: calc(100% - 32px); padding: var(--h-e3) var(--h-e4); border-radius: 999px; pointer-events: none;
+  background: color-mix(in srgb, var(--h-superficie) 92%, transparent); color: var(--h-texto); box-shadow: var(--h-sombra-chica);
+  font: 600 var(--h-tam-texto)/1.25 var(--h-fuente); text-align: left; }
+.pista .material-symbols-outlined { color: var(--h-acento); flex: none; }
 
-/* Grabado: herramienta de grabado y risografía con barras fijas (propuesta 005); pantalla y controles del kit. */
-.k-lienzo .escenario-fit { width: 100%; height: 100%; display: grid; place-items: center; }
-.marco-papel { box-shadow: var(--sombra); }
-.papel { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
-.tacos .k-herr { min-width: 64px; padding: 4px 6px; }
-.silueta { display: block; width: 30px; height: 30px; background: var(--tinta); -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
-.k-herr[aria-checked="true"] .silueta { background: currentColor; }
+/* Tacos: barra flotante abajo, en 1 o 2 filas según el ancho (sin scroll) */
+.h-flotante.tacos { padding: var(--h-e1); }
+.tacos-grilla { display: grid; grid-template-columns: repeat(var(--cols, 16), 52px); gap: var(--h-e1); }
+.taco { position: relative; width: 52px; height: 52px; display: grid; place-items: center; padding: 3px; border: var(--h-trazo) solid transparent;
+  border-radius: var(--h-radio-chico); background: var(--h-superficie-2); cursor: pointer; transition: border-color var(--h-mov), background var(--h-mov); }
+.taco img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; user-select: none; }
+.taco:hover { border-color: var(--h-borde); }
+.taco[aria-checked="true"] { background: var(--h-acento-suave); border-color: var(--h-acento); box-shadow: 0 0 0 1px var(--h-acento); }
+.taco:focus-visible { outline: 2px solid var(--h-acento); outline-offset: 2px; }
+.taco-cargando { width: 60%; height: 60%; border-radius: 50%; background: var(--h-borde); }
+/* 16 en una fila si caben; si no, 2 filas de 8 */
+.h-zona-lienzo { container-type: inline-size; }
+@container (max-width: 950px) { .tacos-grilla { --cols: 8; } }
 
-/* Muestra de mezclas: la tinta elegida encima de cada otra, multiplicadas sobre el papel */
-.mezclas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.mezcla { position: relative; height: 52px; border: 0; border-radius: 14px; background: var(--papel); cursor: pointer; isolation: isolate; box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, .12); }
-.gota { position: absolute; top: 9px; width: 34px; height: 34px; border-radius: 50%; left: calc(50% - 26px); mix-blend-mode: multiply; }
-.gota.encima { left: calc(50% - 8px); }
-.mezcla:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-@media (max-width: 1100px) and (min-aspect-ratio: 1/1) { .k-bajada { display: none; } }
-@media (orientation: portrait) and (min-width: 600px) { .k-lateral { min-height: 300px; } }
+/* Panel */
+.cuenta { font: 600 var(--h-tam-chico)/1 var(--h-fuente); color: var(--h-texto-2); }
+.papel-op { display: inline-flex; align-items: center; gap: var(--h-e2); }
+.papel-gota { width: 20px; height: 20px; border-radius: 50%; border: var(--h-trazo) solid var(--h-borde); }
+.h-item canvas { border-radius: 3px; }
+.h-seg > button { white-space: nowrap; }

@@ -1,7 +1,10 @@
 // Marcos de Figma (componentes «B · Marcos para foto y texto»). Los usan el Fotomatón y la credencial.
 // Los datos vienen de shared/marcos-figma.ts, que se genera con scripts/marcos-desde-figma.py desde los SVG de Figma:
 // color de fondo, capas de la figura (viewBox 240), capas que van encima de la foto y la zona de foto.
+// Los marcos rehechos en la ronda 2 (plan 012) vienen de shared/marcos-generados.ts (scripts/marcos-generados.py) y
+// reemplazan al de Figma con el mismo id. Manifiesto: docs/plans/012-ui-herramientas/assets-fotomaton.manifest.md.
 import { MARCOS_FIGMA } from './marcos-figma';
+import { MARCOS_GENERADOS } from './marcos-generados';
 
 export type Visual = 'Geométrica' | 'Orgánica' | 'Pixel';
 
@@ -15,9 +18,12 @@ export interface Marco {
   caja: readonly number[]; // su caja [x, y, ancho, alto]
   paths: readonly (readonly [string, string])[]; // figura, bajo la foto
   encima: readonly (readonly [string, string])[]; // figura sobre la foto (contornos, enredaderas, franjas)
+  generado?: boolean; // dibujado por scripts/marcos-generados.py
+  ajustado?: boolean; // false: generado, pero sobre la geometría de Figma (usa la tabla AJUSTES)
 }
 
-export const MARCOS: Marco[] = MARCOS_FIGMA as unknown as Marco[];
+const GENERADOS = MARCOS_GENERADOS as unknown as Marco[];
+export const MARCOS: Marco[] = (MARCOS_FIGMA as unknown as Marco[]).map(m => GENERADOS.find(g => g.id === m.id) ?? m);
 
 export const VISUALES: Visual[] = ['Geométrica', 'Orgánica', 'Pixel'];
 export const porId = (id: string): Marco => MARCOS.find(m => m.id === id) ?? MARCOS[0];
@@ -59,7 +65,8 @@ const cache = new Map<string, MarcoListo>();
 export function marcoListo(id: string): MarcoListo {
   let r = cache.get(id);
   if (r) return r;
-  const m = porId(id), aj = AJUSTES[m.id] ?? {};
+  // Los generados ya traen la zona estándar de 150 × 150 al centro: no se ajustan.
+  const m = porId(id), aj = m.generado && m.ajustado !== false ? {} : AJUSTES[m.id] ?? {};
   const original = new Path2D(m.zona);
   // La figura se escala alrededor del centro de su hueco y ese centro pasa al centro del cuadro.
   const [bx, by, bw, bh] = m.caja, k = aj.escala ?? 1;

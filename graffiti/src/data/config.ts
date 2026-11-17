@@ -18,13 +18,21 @@ export const PALETA: Color[] = [
   { id: 'hueso', nombre: 'Hueso', hex: '#F4EEE3' },
 ];
 
-// Tamaños de cada pincel, en celdas (como el tamaño del pincel en Photoshop): spray y borrador (radio),
-// plumón (radio del trazo) y rodillo (medio ancho de la franja).
-export type Tamano = 0 | 1 | 2;
-export const TAMANOS: { nombre: string; spray: number; plumon: number; rodillo: number }[] = [
-  { nombre: 'Fino', spray: 3, plumon: 1, rodillo: 6 },
-  { nombre: 'Medio', spray: 5, plumon: 2, rodillo: 10 },
-  { nombre: 'Grueso', spray: 8, plumon: 4, rodillo: 15 },
+// Tamaños de cada pincel, en celdas (como el tamaño del pincel en Photoshop). Plan 012 §4: spray, plumón y borrador
+// tienen 4 pasos (se sumó uno más chico; el antiguo «fino» es el medio y el antiguo «medio» es el grande); el rodillo
+// sigue con 3. spray y borrar: radio; plumón: radio del trazo (0 = una celda); rodillo: medio ancho de la franja.
+export type Tamano = 0 | 1 | 2 | 3;
+export const TAMANOS: { nombre: string; spray: number; plumon: number; borrar: number }[] = [
+  { nombre: 'Fino', spray: 1.5, plumon: 0, borrar: 1 },
+  { nombre: 'Medio', spray: 3, plumon: 1, borrar: 3 },
+  { nombre: 'Grande', spray: 5, plumon: 2, borrar: 5 },
+  { nombre: 'Gigante', spray: 8, plumon: 4, borrar: 8 },
+];
+export type TamanoRodillo = 0 | 1 | 2;
+export const TAMANOS_RODILLO: { nombre: string; mitad: number }[] = [
+  { nombre: 'Fino', mitad: 6 },
+  { nombre: 'Medio', mitad: 10 },
+  { nombre: 'Grueso', mitad: 15 },
 ];
 
 // Plan 009 §3: se quedan ladrillo y hormigón; entran la cortina metálica de la libreta (Figma) y el vagón de metro.

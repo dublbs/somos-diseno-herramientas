@@ -216,7 +216,7 @@ label.btn { cursor: pointer; }
 @keyframes entra-der { from { transform: translateX(28%); opacity: 0 } }
 [data-visual="Pixel"] .entra-izquierda, [data-visual="Pixel"] .entra-derecha { animation-timing-function: steps(4, end); }
 
-.juego { grid-template-rows: minmax(0, 1fr) auto auto auto; }
+.juego { grid-template-rows: minmax(0, 1fr) auto auto auto auto; }
 .panel-juego { min-height: 0; display: grid; gap: 8px; padding: 10px; background: var(--surface); color: var(--ink); border: var(--borde); border-radius: var(--r); }
 [data-visual="Pixel"] .panel-juego { box-shadow: var(--sombra-btn); }
 [data-visual="Orgánica"] .panel-juego { box-shadow: 0 18px 40px -22px rgba(0, 0, 0, .55); }
@@ -261,3 +261,76 @@ label.btn { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   .entra-izquierda, .entra-derecha, .visor-aviso, .recursos li.nuevo { animation: none; }
 }
+
+/* --- Timbre 4 · «Tu flyer» (plan 012 §8) --- */
+.tarjeta-flyer { width: 100%; min-height: 56px; display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 10px; text-align: left; cursor: pointer; font: inherit; }
+.tarjeta-flyer-icono { font-size: 28px; width: 40px; height: 40px; display: grid; place-items: center; border-radius: var(--rb); background: var(--chip); color: var(--muted); }
+.tarjeta-flyer.abierta .tarjeta-flyer-icono { background: var(--accent); color: var(--on-accent); }
+.tarjeta-flyer-texto { min-width: 0; display: grid; gap: 1px; }
+.tarjeta-flyer-texto b { font: 800 16px/1.1 var(--fuente-tit); }
+[data-visual="Pixel"] .tarjeta-flyer-texto b { font-weight: 700; font-size: 13px; }
+[data-visual="Geométrica"] .tarjeta-flyer-texto b { text-transform: uppercase; }
+.tarjeta-flyer-texto small { font-size: 12.5px; line-height: 1.25; color: var(--muted); }
+.tarjeta-flyer[aria-disabled="true"] .cuenta { background: var(--chip); color: var(--muted); }
+.tarjeta-flyer:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.juego > .progreso { font-size: 13px; padding: 5px 12px; }
+
+.flyer { grid-template-rows: minmax(0, 1fr) auto var(--alto-panel-flyer, 166px) auto; }
+.flyer-vista { position: relative; min-height: 0; display: grid; place-items: center; container-type: size; }
+.flyer-lienzo { display: block; width: min(100cqw, calc(100cqh * 0.8)); aspect-ratio: 4 / 5; height: auto; background: #000; }
+[data-visual="Pixel"] .flyer-lienzo { box-shadow: 6px 6px 0 #000; }
+[data-visual="Geométrica"] .flyer-lienzo { outline: 2px solid #000; }
+[data-visual="Orgánica"] .flyer-lienzo { border-radius: 14px; box-shadow: 0 18px 30px -16px rgba(0, 0, 0, .6); }
+.flyer-lienzo.mezclado { animation: mezclar .32s cubic-bezier(.2, .9, .3, 1.3); }
+[data-visual="Pixel"] .flyer-lienzo.mezclado { animation-timing-function: steps(4, end); }
+@keyframes mezclar { from { transform: scale(.94) rotate(-1.5deg); opacity: .5 } }
+.flyer-estado { position: absolute; left: 8px; right: 8px; bottom: 8px; margin: 0; z-index: 2; box-shadow: 0 6px 18px rgba(0, 0, 0, .3); }
+.flyer-estado[hidden] { display: none; }
+.pestanas-grilla.tres { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.flyer-panel { min-height: 0; overflow: hidden; display: grid; padding: 6px; background: var(--surface); color: var(--ink); border: var(--borde); border-radius: var(--r); }
+[data-visual="Orgánica"] .flyer-panel { border-radius: 24px; padding: 8px 10px; }
+.flyer-lenguajes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.flyer-opcion { min-height: 44px; min-width: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; justify-items: center; gap: 2px; padding: 6px 4px; border: 2px solid var(--line); border-radius: var(--rb); background: var(--bg); color: var(--ink); font: 700 14px "DM Sans", sans-serif; cursor: pointer; }
+[data-visual="Pixel"] .flyer-opcion { font: 700 11px "Silkscreen", monospace; }
+.flyer-opcion img { min-height: 0; height: 100%; max-height: 100px; aspect-ratio: 1; object-fit: contain; }
+.flyer-opcion[aria-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent); }
+.flyer-piezas { min-height: 0; display: grid; grid-template-rows: auto minmax(44px, 1fr) auto minmax(44px, 1fr); gap: 4px; }
+.flyer-rotulo { margin: 0; font: 700 12px "DM Sans", sans-serif; color: var(--muted); display: flex; justify-content: space-between; text-transform: uppercase; letter-spacing: .04em; }
+.flyer-rotulo b { color: var(--ink); }
+.flyer-fila { min-height: 0; display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 4px; }
+.pieza-opcion { position: relative; min-width: 0; min-height: 44px; padding: 0; overflow: hidden; display: grid; place-items: center; border: 2px solid var(--line); border-radius: var(--rb); background: var(--chip); color: var(--ink); cursor: pointer; }
+[data-visual="Orgánica"] .pieza-opcion { border-radius: 12px; }
+.pieza-opcion img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.pieza-opcion .marca-pieza { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; display: none; place-items: center; font-size: 16px; border-radius: 50%; background: var(--accent); color: var(--on-accent); }
+.pieza-opcion[aria-pressed="true"], .pieza-opcion[aria-checked="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+.pieza-opcion[aria-pressed="true"] .marca-pieza, .pieza-opcion[aria-checked="true"] .marca-pieza { display: grid; }
+.pieza-opcion[aria-pressed="false"] img { opacity: .55; }
+.flyer-frases { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(44px, 1fr); gap: 6px; }
+.flyer-frases button { min-height: 44px; min-width: 0; padding: 0 6px; border: 2px solid var(--line); border-radius: var(--rb); background: var(--bg); color: var(--ink); font: 700 14px var(--fuente-tit); cursor: pointer; }
+[data-visual="Pixel"] .flyer-frases button { font-size: 11px; }
+[data-visual="Geométrica"] .flyer-frases button { text-transform: uppercase; font-size: 13px; }
+.flyer-frases button[aria-checked="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.flyer-acciones { display: grid; grid-template-columns: 48px minmax(0, 1fr) minmax(0, 1.5fr); gap: 8px; }
+.flyer-acciones .btn { min-width: 0; padding: 0 6px; gap: 4px; white-space: nowrap; }
+[data-visual="Pixel"] .flyer-acciones .btn { font-size: 11px; }
+[data-visual="Geométrica"] .flyer-acciones .btn { font-size: 13px; letter-spacing: .01em; }
+@media (max-height: 760px) { .flyer { --alto-panel-flyer: 154px; } }
+
+/* --- Bienvenida «Tu recorrido» --- */
+.bienvenida-tarjeta { gap: 10px; animation: aparecer .22s ease-out both; }
+.bienvenida-imagen { position: relative; width: min(38vw, 140px); aspect-ratio: 1; }
+.bienvenida-imagen img { width: 100%; height: 100%; transform: rotate(-6deg); }
+.bienvenida-numero { position: absolute; left: -10px; top: -6px; z-index: 1; min-width: 44px; height: 44px; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); border: var(--borde); border-radius: var(--rb); font: 800 24px var(--fuente-tit); }
+.bienvenida-texto { margin: 0; font-size: 15px; line-height: 1.35; max-width: 30ch; }
+.bienvenida-codigo { margin: 0; font-size: 14px; }
+.bienvenida-codigo b { font-family: "IBM Plex Mono", monospace; color: var(--accent); filter: brightness(.8); }
+.bienvenida-acciones { width: 100%; display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; }
+.bienvenida-acciones .btn { width: 100%; }
+.timbrado-logro { margin: 0; font-size: 14px; line-height: 1.35; max-width: 30ch; }
+@media (prefers-reduced-motion: reduce) { .flyer-lienzo.mezclado, .bienvenida-tarjeta { animation: none; } }
+/* Pantallas angostas: en Juego y en el flyer los botones quedan solo con la palabra (sin ícono) para que quepa entera. */
+@media (max-width: 400px) {
+  .juego .acciones-movil .btn .material-symbols-outlined, .flyer-acciones .btn:not(:first-child) .material-symbols-outlined { display: none; }
+  [data-visual="Pixel"] .pestanas-grilla.tres button { font-size: 10px; }
+}
+.juego .acciones-movil .btn { line-height: 1.1; }

@@ -9,6 +9,7 @@ import type { Ir, PonerTema } from '../App';
 import { ACTIVAS, completa as estaCompleta } from '../../../shared/juego';
 import { activarAvisos, enIphoneSinInstalar, estadoAvisos, type EstadoAvisos } from '../lib/push';
 import { HACIA_JUEGO, tomarEntrada, useDeslizar } from '../lib/deslizar';
+import { Bienvenida, bienvenidaVista } from '../components/Bienvenida';
 
 const quieto = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 const VACIA: DatosCarta = { nombre: '', codigo: '', receta: { retrato: 'personaje', id: 'pixel' }, marco: 'PM05', sellos: [] };
@@ -21,6 +22,8 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
   const [recien, setRecien] = useState<number | null>(timbre || null);
   const [poniendo, setPoniendo] = useState(0); // timbre que está cayendo sobre la credencial
   const [volteando, setVolteando] = useState(false);
+  // «Tu recorrido»: una vez por credencial, después del timbre de Inscripción (y de que el timbre se asiente).
+  const [bienvenida, setBienvenida] = useState(() => !bienvenidaVista(codigo) && (!miCredencial() || miCredencial() === codigo));
   // Deslizar lleva a la vista Juego (plan 010); el toque sigue girando la credencial.
   const [entra] = useState(tomarEntrada);
   const { recien: recienDeslizo } = useDeslizar(dir => { if (dir === HACIA_JUEGO) ir('#/juego'); });
@@ -134,6 +137,7 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
         )}
       </div>
       {recien && <Timbrado n={recien} total={completos} sellos={datos.sellos} tema={tema} onCerrar={cerrarTimbrado} />}
+      {bienvenida && !recien && !poniendo && <Bienvenida codigo={codigo} tema={tema} onCerrar={() => setBienvenida(false)} />}
     </main>
   );
 };

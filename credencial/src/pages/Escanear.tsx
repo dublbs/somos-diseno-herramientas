@@ -12,7 +12,7 @@ export const Escanear: React.FC<{ ir: Ir }> = ({ ir }) => {
   const [codigo, setCodigo] = useState('');
   const [aviso, setAviso] = useState('');
   const [enviando, setEnviando] = useState(false);
-  // La cacería (3) y el sello secreto (4, plan B del plan 009) se timbran con el código del sello.
+  // La cacería (3) y el sello de respaldo del timbre 4 (el que lleva el staff, plan 012 §8) se timbran con el código del sello.
   const esAfiche = sello === AFICHE_SELLO || sello === 4;
 
   const { video, estado } = useLectorQR(texto => {
@@ -27,7 +27,7 @@ export const Escanear: React.FC<{ ir: Ir }> = ({ ir }) => {
     const mia = miCredencial();
     if (!mia) { ir('#/crear'); return; }
     const limpio = codigo.trim().toUpperCase();
-    if (esAfiche ? limpio.length < 4 : limpio.length !== 4) { setAviso(esAfiche ? 'Escribe el código que está bajo el sello del afiche.' : 'El código tiene 4 letras o números.'); return; }
+    if (esAfiche ? limpio.length < 4 : limpio.length !== 4) { setAviso(sello === 4 ? 'Escribe el código que está bajo el sello del equipo.' : esAfiche ? 'Escribe el código que está bajo el sello del afiche.' : 'El código tiene 4 letras o números.'); return; }
     setEnviando(true); setAviso('');
     try {
       if (esAfiche) {
@@ -73,7 +73,7 @@ export const Escanear: React.FC<{ ir: Ir }> = ({ ir }) => {
         <p className="estacion-elegida"><b>{ESTACIONES[sello - 1].nombre}</b> · {ESTACIONES[sello - 1].como}</p>
         <div className="pie-movil">
           <input id="codigo-sello" value={codigo} onChange={e => setCodigo(e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, esAfiche ? 6 : 4))}
-            autoComplete="off" autoCapitalize="characters" placeholder={esAfiche ? 'Código del afiche' : 'Código'} aria-label={esAfiche ? 'Código del afiche' : 'Código del timbre'} />
+            autoComplete="off" autoCapitalize="characters" placeholder={sello === 4 ? 'Código del sello' : esAfiche ? 'Código del afiche' : 'Código'} aria-label={esAfiche ? 'Código del afiche' : 'Código del timbre'} />
           <button className="btn primario" disabled={enviando}>{enviando ? 'Timbrando…' : 'Timbrar'}</button>
         </div>
         {aviso && <p className="aviso-movil" role="alert">{aviso}</p>}

@@ -1,40 +1,27 @@
-@import '../../shared/somos-ui.css';
-@import '../../shared/somos-fonts.css';
-@import '../../shared/somos-icons.css';
+@import '../../shared/ui/herramienta.css';
 
-/* Taller de Mosaicos: herramienta de sistemas y patrones con barras fijas (propuesta 005). La pantalla, las barras
-   y los controles vienen del kit (shared/ui/somos-kit.css); aquí solo el lienzo y las grillas propias. */
-.material-symbols-outlined { font-size: 20px; vertical-align: middle; }
+/* Taller de Mosaicos sobre el kit v2 (plan 012): la pantalla, las barras y los controles vienen de
+   shared/ui/herramienta.css; aquí solo el lienzo y las grillas propias, siempre con tokens --h-*. */
 
-/* Lienzo: el marco toma la proporción del formato (--ratio) y el tamaño lo da .lienzo-fit dentro de .escenario-fit */
-.k-lienzo .escenario-fit { width: 100%; height: 100%; display: grid; place-items: center; }
-.marco { border: 2px solid var(--ink); box-shadow: 6px 6px 0 var(--accent); background: #F4EEE3; position: relative; overflow: hidden; }
+/* Lienzo: LienzoAjustado da la proporción del formato; el mosaico lleva su propio color de fondo. */
+.marco { background: #F4EEE3; overflow: hidden; box-shadow: var(--h-sombra-flotante); }
 .marco canvas { display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
-.marco canvas:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+.marco canvas:focus-visible { outline: 2px solid var(--h-acento); outline-offset: 3px; }
 
-/* Biblioteca de módulos: 18 formas en 6 columnas */
-.pool { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
-.item.k-color { width: auto; height: auto; aspect-ratio: 1; padding: 3px; background: var(--bg); display: grid; place-items: center; }
-.item canvas { width: 100% !important; height: 100% !important; display: block; }
+/* Biblioteca: el canvas de cada módulo llena su celda */
+.h-item canvas { width: 100% !important; height: 100% !important; display: block; border-radius: 3px; }
+/* Orientación: miniaturas dentro del segmento */
+.h-seg canvas { display: block; border-radius: 2px; }
 
-/* Operaciones de Multiplicar */
-.ops { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-.ops .k-herr { min-width: 0; min-height: 52px; padding: 4px 2px; font-size: 10.5px; }
+/* Operaciones de Multiplicar: 2 columnas de botones con ícono y nombre */
+.ops { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--h-e2); }
+.ops .h-btn { justify-content: flex-start; padding: 0 var(--h-e3); font-size: var(--h-tam-chico); }
 
-/* Paletas: cada muestra lleva fondo, figura y detalle en franjas */
-.paletas-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.paleta-btn.k-color { width: auto; height: 44px; background: linear-gradient(90deg, var(--c) 0 34%, var(--c2) 34% 67%, var(--c3) 67%); }
+/* Paletas: 4 por fila */
+.paletas.h-muestras { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 /* Formato */
-.formatos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.formato-btn.k-btn { min-height: 48px; padding: 4px 6px; gap: 6px; font-size: 12px; }
-.formato-btn[aria-checked="true"] { background: var(--accent); color: var(--on-accent); }
-.formato-icono { flex: none; height: 20px; max-width: 30px; background: currentColor; opacity: .35; border: 1.5px solid currentColor; }
-
-/* Pincel actual en la barra inferior */
-.pincel-actual { align-items: center; }
-.pincel-muestra { display: grid; place-items: center; width: 52px; height: 52px; border: 2px solid var(--ink); background: var(--bg); }
-.pincel-muestra canvas { display: block; }
-
-@media (max-width: 1100px) and (min-aspect-ratio: 1/1) { .k-bajada { display: none; } .k-herr { min-width: 60px; padding: 4px 6px; } }
-@media (orientation: portrait) and (min-width: 600px) { .pool { grid-template-columns: repeat(6, minmax(0, 1fr)); } .k-lateral { min-height: 330px; } }
+.formatos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--h-e2); }
+.formato-btn.h-btn { padding: 0 var(--h-e2); gap: var(--h-e2); font-size: var(--h-tam-chico); }
+.formato-btn[aria-checked="true"] { background: var(--h-acento-suave); border-color: var(--h-acento); color: var(--h-acento); }
+.formato-icono { flex: none; height: 18px; max-width: 28px; border: 1.5px solid currentColor; border-radius: 2px; opacity: .7; }
