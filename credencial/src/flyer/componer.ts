@@ -154,7 +154,7 @@ function medir(p: PiezaFlyer) {
 }
 function encajar(iw: number, ih: number, w: number, h: number, entero = false) {
   let s = Math.min(w / iw, h / ih, 3);
-  if (entero && s >= 1) s = Math.floor(s * 2) / 2;
+  if (entero && s >= 2) s = Math.floor(s * 2) / 2; // con 2× o más, de medio en medio: los píxeles quedan parejos
   return { w: Math.round(iw * s), h: Math.round(ih * s) };
 }
 
@@ -258,11 +258,15 @@ function pixelVentana(ctx: CanvasRenderingContext2D, p: PiezaFlyer, s: Caja, pal
   ctx.fillStyle = pal.sombra; ctx.fillRect(x + sombra, y + sombra, W, H);
   ctx.fillStyle = C.negro; ctx.fillRect(x, y, W, H);
   ctx.fillStyle = color; ctx.fillRect(x + b, y + b, W - 2 * b, barra - b);
-  for (let i = 0; i < 3; i++) { ctx.fillStyle = C.negro; ctx.fillRect(x + W - b - 22 - i * 22, y + b + 10, 14, 14); }
-  ctx.fillStyle = C.negro;
-  const t = ajustar(ctx, p.etiqueta.toUpperCase(), FUENTE.Pixel, W - 2 * b - 92, barra - 12, 20, 1, 1, 10);
-  ctx.font = FUENTE.Pixel(t.px); ctx.textBaseline = 'middle';
+  const botones = W > 260 ? 3 : 2;
+  for (let i = 0; i < botones; i++) { ctx.fillStyle = C.negro; ctx.fillRect(x + W - b - 22 - i * 22, y + b + 10, 14, 14); }
+  // El título de la ventana: el nombre (en el afiche, sin la palabra «Afiche»), recortado a la barra.
+  const titulo = (p.tipo === 'afiche' ? p.etiqueta.replace(/^Afiche\s+/, '') : p.etiqueta).toUpperCase(), libre = W - 2 * b - 20 - botones * 22;
+  const t = ajustar(ctx, titulo, FUENTE.Pixel, libre, barra - 12, 20, 1, 1, 10);
+  ctx.save(); ctx.beginPath(); ctx.rect(x + b, y + b, libre + 10, barra - b); ctx.clip();
+  ctx.fillStyle = C.negro; ctx.font = FUENTE.Pixel(t.px); ctx.textBaseline = 'middle';
   ctx.fillText(t.lineas[0], x + b + 10, y + b + (barra - b) / 2 + 1);
+  ctx.restore();
   ctx.textBaseline = 'alphabetic';
   pintarImagen(ctx, p, x + b, y + b + barra, w, h, pal, color, 'Pixel', r);
 }
