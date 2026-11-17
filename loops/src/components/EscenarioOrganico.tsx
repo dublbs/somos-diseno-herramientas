@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { otorgarCreacion } from '../../../shared/juego';
-import { archivosColor, escalaInicial, limitarEscala, pieza } from '../escenario/piezas';
+import { archivosColor, archivosDe, escalaInicial, limitarEscala, pieza } from '../escenario/piezas';
 import { cargarLote } from '../escenario/recursos';
 import { ESCENARIOS, escenario, posicionNueva } from '../escenario/escenarios';
 import { sorprendeme } from '../escenario/sorprendeme';
@@ -39,8 +39,9 @@ const durDe = (it: Item) => {
 const DURACION_LOOP = DURACION_TRAYECTO;
 const RESOLUCION_CANVAS = 1080;
 // Diagnóstico (`?diag` en la URL): cuenta cuadros dibujados y su costo en `window.teatroDiag`.
-const DIAG: { cuadros: number; msDibujo: number } | null = new URLSearchParams(location.search).has('diag')
-  ? ((window as unknown as { teatroDiag: { cuadros: number; msDibujo: number } }).teatroDiag = { cuadros: 0, msDibujo: 0 })
+type Diag = { cuadros: number; msDibujo: number; [k: string]: unknown };
+const DIAG: Diag | null = new URLSearchParams(location.search).has('diag')
+  ? ((window as unknown as { teatroDiag: Diag }).teatroDiag = { cuadros: 0, msDibujo: 0 })
   : null;
 const ICONO_ESC: Record<string, string> = { cordillera: 'landscape', mar: 'water', bosque: 'forest', desierto: 'wb_sunny' };
 
@@ -270,7 +271,19 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
   const cambiarTiempoManual = (ms: number) => {
     relojRef.current = ms;
     setTiempoVisual(ms);
+    sucio.current = true;
   };
+  // Con ?diag, las pruebas pueden poner cualquier pieza (con su animación) y mover el tiempo a mano.
+  if (DIAG) Object.assign(DIAG, {
+    poner: async (tipo: string, variante = 0, escala?: number) => {
+      await cargarLote(archivosDe(pieza(tipo)));
+      registrar();
+      const uid = uidSig.current++;
+      actualizar(() => [{ uid, tipo, variante, escala: escala ?? escalaInicial(tipo) * 2.2, espejo: false, x: 120, y: 120 }]);
+      setSel(null);
+    },
+    tiempo: cambiarTiempoManual,
+  });
 
   const exportar = () => {
     const c = document.createElement('canvas');

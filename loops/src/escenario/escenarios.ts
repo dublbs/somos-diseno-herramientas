@@ -30,7 +30,7 @@ export const ESCENARIOS: Escenario[] = [
   {
     id: 'desierto', nombre: 'Desierto', detalle: 'Dunas y quiscos',
     fondo: FONDO_DESIERTO,
-    piezas: { sol: 'cielo', picaflor: 'cielo', guanaco: 'suelo', quisco: 'suelo', flor: 'suelo', chanar: 'suelo', cantaro: 'suelo' },
+    piezas: { sol: 'cielo', picaflor: 'cielo', guanaco: 'suelo', quisco: 'suelo', ananuca: 'suelo', chanar: 'suelo', cantaro: 'suelo' },
   },
   {
     id: 'bosque', nombre: 'Bosque', detalle: 'Lluvia y alerces',

@@ -133,11 +133,11 @@ function dibujarItem(ctx: CanvasRenderingContext2D, it: Item, ms: number, size: 
   const ws = Math.ceil((b.w + 2 * m) * ks) + 2 * PAD, hs = Math.ceil((b.h + 2 * m) * ks) + 2 * PAD;
   crecer(silueta, ws, hs); crecer(difusa, ws, hs);
   ctxSilueta.setTransform(1, 0, 0, 1, 0, 0);
-  ctxSilueta.clearRect(0, 0, ws, hs);
+  ctxSilueta.clearRect(0, 0, silueta.width, silueta.height); // entero: el suavizado al agrandar lee un pixel más allá
   ctxSilueta.setTransform(ks, 0, 0, ks, PAD - bx * ks, PAD - by * ks);
   trazar(ctxSilueta, grosor);
   ctxDifusa.setTransform(1, 0, 0, 1, 0, 0);
-  ctxDifusa.clearRect(0, 0, ws, hs);
+  ctxDifusa.clearRect(0, 0, difusa.width, difusa.height);
   ctxDifusa.save();
   ctxDifusa.shadowColor = 'rgba(0,0,0,0.28)'; ctxDifusa.shadowBlur = 3 * ks; ctxDifusa.shadowOffsetX = difusa.width;
   ctxDifusa.drawImage(silueta, 0, 0, ws, hs, -difusa.width, 0, ws, hs);
