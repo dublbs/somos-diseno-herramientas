@@ -43,7 +43,7 @@ export const Timbrado: React.FC<{ n: number; total: number; sellos: number[]; te
           {ACTIVAS.map(i => <span key={i} className={sellos.includes(i) ? 'lleno' : ''} />)}
           <b>{total} de {ACTIVAS.length}</b>
         </p>
-        {n === 4 && <p className="timbrado-logro">Tu flyer quedó guardado. Cerraste el recorrido diseñando.</p>}
+        {n === 4 && <p className="timbrado-logro">Tu flyer quedó guardado: es tuyo para compartirlo.</p>}
         {completa && <p className="timbrado-logro"><b>Ya puedes canjear tu bolsa:</b> muestra tu credencial al equipo de Somos Diseño.</p>}
         <button type="button" className="btn primario" onClick={onCerrar} autoFocus>Ver mi credencial</button>
       </div>

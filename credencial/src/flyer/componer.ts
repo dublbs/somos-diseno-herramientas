@@ -83,9 +83,10 @@ export async function cargarFuentes() {
 }
 
 // Parte el texto en líneas (a lo más maxLineas) y busca el tamaño más grande que cabe en la caja.
-function ajustar(ctx: CanvasRenderingContext2D, texto: string, fuente: (px: number) => string, w: number, h: number, maxPx: number, interlinea: number, maxLineas = 3) {
+function ajustar(ctx: CanvasRenderingContext2D, texto: string, fuente: (px: number) => string, w: number, h: number, maxPx: number, interlinea: number, maxLineas = 3, minPx = 28) {
   const palabras = texto.split(/\s+/).filter(Boolean);
-  for (let px = maxPx; px >= 28; px -= 4) {
+  const paso = maxPx > 60 ? 4 : 1;
+  for (let px = maxPx; px >= minPx; px -= paso) {
     ctx.font = fuente(px);
     const lineas: string[] = [];
     let actual = '';
@@ -98,12 +99,12 @@ function ajustar(ctx: CanvasRenderingContext2D, texto: string, fuente: (px: numb
     const ancho = Math.max(...lineas.map(l => ctx.measureText(l).width));
     if (lineas.length <= maxLineas && ancho <= w && lineas.length * px * interlinea <= h) return { lineas, px, ancho };
   }
-  ctx.font = fuente(28);
-  return { lineas: [texto], px: 28, ancho: ctx.measureText(texto).width };
+  ctx.font = fuente(minPx);
+  return { lineas: [texto], px: minPx, ancho: ctx.measureText(texto).width };
 }
 
 // ---------- composición ----------
-interface Caja { x: number; y: number; w: number; h: number }
+interface Caja { x: number; y: number; w: number; h: number; ax?: number; ay?: number } // ax, ay: hacia dónde se apoya la pieza en su espacio (0 a 1)
 const M = 60; // margen
 
 // Tres zonas que no se pisan: el titular, el personaje (al lado del titular) y las piezas.
@@ -121,6 +122,12 @@ function plan(r: Azar, k: number) {
 
 // Reparte k piezas en la zona, con varias formas para cada cantidad.
 function repartir(r: Azar, k: number, R: Caja): Caja[] {
+  // Cada pieza se apoya hacia el centro de la zona: el grupo queda junto y sin huecos entre piezas.
+  const cx = R.x + R.w / 2, cy = R.y + R.h / 2;
+  const lado = (c: number, m: number) => (Math.abs(c - m) < 40 ? 0.5 : c < m ? 1 : 0);
+  return repartirCajas(r, k, R).map(s => ({ ...s, ax: lado(s.x + s.w / 2, cx), ay: lado(s.y + s.h / 2, cy) }));
+}
+function repartirCajas(r: Azar, k: number, R: Caja): Caja[] {
   const g = 32;
   const col = (x: number, w: number, y = R.y, h = R.h): Caja => ({ x, y, w, h });
   if (k <= 1) return [{ x: R.x + 60, y: R.y, w: R.w - 120, h: R.h }];
@@ -147,7 +154,7 @@ function medir(p: PiezaFlyer) {
 }
 function encajar(iw: number, ih: number, w: number, h: number, entero = false) {
   let s = Math.min(w / iw, h / ih, 3);
-  if (entero && s >= 2) s = Math.floor(s);
+  if (entero && s >= 1) s = Math.floor(s * 2) / 2;
   return { w: Math.round(iw * s), h: Math.round(ih * s) };
 }
 
@@ -160,20 +167,26 @@ function ficha(ctx: CanvasRenderingContext2D, p: PiezaFlyer, x: number, y: numbe
     const bh = h * entre(r, 0.12, 0.5), bx = x + w * 0.12 + i * bw * 1.55;
     if (lenguaje === 'Orgánica') { ctx.beginPath(); ctx.roundRect(bx, base - bh, bw, bh, bw / 2); ctx.fill(); } else ctx.fillRect(Math.round(bx), Math.round(base - bh), Math.round(bw), Math.round(bh));
   }
-  const t = ajustar(ctx, lenguaje === 'Orgánica' ? p.etiqueta : p.etiqueta.toUpperCase(), FUENTE[lenguaje], w * 0.8, h * 0.18, 44, 1, 1);
+  const t = ajustar(ctx, lenguaje === 'Orgánica' ? p.etiqueta : p.etiqueta.toUpperCase(), FUENTE[lenguaje], w * 0.8, h * 0.18, 44, 1, 1, 12);
   ctx.font = FUENTE[lenguaje](t.px); ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
   ctx.fillText(t.lineas[0], x + w / 2, y + h * 0.9);
   ctx.textAlign = 'left';
 }
 
 function pintarImagen(ctx: CanvasRenderingContext2D, p: PiezaFlyer, x: number, y: number, w: number, h: number, pal: Paleta, color: string, lenguaje: Visual, r: Azar) {
-  if (!p.img) { ficha(ctx, p, x, y, w, h, color, lenguaje === 'Pixel' ? C.negro : pal.tinta === C.negro || color === C.hueso || color === C.amarillo || color === C.celeste ? C.negro : C.hueso, lenguaje, r); return; }
+  if (!p.img) { ficha(ctx, p, x, y, w, h, color, tintaSobre(color), lenguaje, r); return; }
   ctx.imageSmoothingEnabled = lenguaje !== 'Pixel';
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(p.img, x, y, w, h);
   ctx.imageSmoothingEnabled = true;
 }
 
+// Negro o hueso, lo que más contraste sobre el color (luminancia relativa).
+function tintaSobre(hex: string) {
+  const n = parseInt(hex.slice(1), 16), l = (v: number) => { const c = v / 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+  const L = 0.2126 * l((n >> 16) & 255) + 0.7152 * l((n >> 8) & 255) + 0.0722 * l(n & 255);
+  return (L + 0.05) / 0.05 >= 1.05 / (L + 0.05) ? C.negro : C.hueso;
+}
 // Silueta de un color (para el borde de sticker).
 function silueta(img: CanvasImageSource, w: number, h: number, color: string) {
   const c = document.createElement('canvas');
@@ -216,16 +229,17 @@ function pintarPersonaje(ctx: CanvasRenderingContext2D, d: DatosFlyer, caja: Caj
 }
 
 // ---------- Pixel: bloques, contornos y ventanas ----------
-function pixelFondo(ctx: CanvasRenderingContext2D, pal: Paleta, r: Azar) {
+function pixelFondo(ctx: CanvasRenderingContext2D, pal: Paleta, r: Azar, tituloArriba: boolean) {
   ctx.fillStyle = pal.fondo; ctx.fillRect(0, 0, FLYER.ancho, FLYER.cuerpo);
   ctx.fillStyle = pal.tinta; ctx.globalAlpha = 0.14;
   for (let y = 18; y < FLYER.cuerpo; y += 36) for (let x = 18; x < FLYER.ancho; x += 36) ctx.fillRect(x - 3, y - 3, 6, 6);
   ctx.globalAlpha = 1;
   // Escaleras de bloques en dos esquinas opuestas
-  const b = 36, esquinas = barajar(r, [[0, 0, 1, 1], [1, 0, -1, 1], [0, 1, 1, -1], [1, 1, -1, -1]]).slice(0, 2);
+  // Escaleras en las esquinas del lado contrario al titular (nunca bajo el texto).
+  const b = 36, esquinas = tituloArriba ? [[0, 1, 1, -1], [1, 1, -1, -1]] : [[0, 0, 1, 1], [1, 0, -1, 1]];
   esquinas.forEach(([ex, ey, dx, dy], i) => {
     ctx.fillStyle = pal.acentos[i % pal.acentos.length];
-    const n = 4 + Math.floor(r() * 3);
+    const n = 3 + Math.floor(r() * 3);
     for (let f = 0; f < n; f++) for (let c = 0; c < n - f; c++) {
       const x = ex * FLYER.ancho + dx * c * b - (dx < 0 ? b : 0), y = ey * FLYER.cuerpo + dy * f * b - (dy < 0 ? b : 0);
       ctx.fillRect(x, y, b, b);
@@ -240,22 +254,26 @@ function pixelVentana(ctx: CanvasRenderingContext2D, p: PiezaFlyer, s: Caja, pal
   const b = 8, barra = 40, sombra = 16, { iw, ih } = medir(p);
   const { w, h } = encajar(iw, ih, s.w - 2 * b - sombra, s.h - 2 * b - barra - sombra, true);
   const W = w + 2 * b, H = h + 2 * b + barra;
-  const x = Math.round((s.x + (s.w - sombra - W) / 2) / 4) * 4, y = Math.round((s.y + (s.h - sombra - H) / 2) / 4) * 4;
+  const x = Math.round((s.x + (s.w - sombra - W) * (s.ax ?? 0.5)) / 4) * 4, y = Math.round((s.y + (s.h - sombra - H) * (s.ay ?? 0.5)) / 4) * 4;
   ctx.fillStyle = pal.sombra; ctx.fillRect(x + sombra, y + sombra, W, H);
   ctx.fillStyle = C.negro; ctx.fillRect(x, y, W, H);
   ctx.fillStyle = color; ctx.fillRect(x + b, y + b, W - 2 * b, barra - b);
   for (let i = 0; i < 3; i++) { ctx.fillStyle = C.negro; ctx.fillRect(x + W - b - 22 - i * 22, y + b + 10, 14, 14); }
   ctx.fillStyle = C.negro;
-  const t = ajustar(ctx, p.etiqueta.toUpperCase(), FUENTE.Pixel, W - 2 * b - 90, barra - 12, 20, 1, 1);
+  const t = ajustar(ctx, p.etiqueta.toUpperCase(), FUENTE.Pixel, W - 2 * b - 92, barra - 12, 20, 1, 1, 10);
   ctx.font = FUENTE.Pixel(t.px); ctx.textBaseline = 'middle';
   ctx.fillText(t.lineas[0], x + b + 10, y + b + (barra - b) / 2 + 1);
   ctx.textBaseline = 'alphabetic';
   pintarImagen(ctx, p, x + b, y + b + barra, w, h, pal, color, 'Pixel', r);
 }
 function pixelTitulo(ctx: CanvasRenderingContext2D, d: DatosFlyer, caja: Caja, pal: Paleta, r: Azar, resumen: string) {
-  ctx.font = FUENTE.Pixel(22); ctx.fillStyle = pal.acentos[0]; ctx.textBaseline = 'top';
-  ctx.fillText(resumen.toUpperCase(), caja.x, caja.y + 4);
-  ctx.fillRect(caja.x, caja.y + 38, Math.min(caja.w, ctx.measureText(resumen.toUpperCase()).width), 6);
+  // El dato de lo que juntaste, en una placa como una etiqueta de máquina
+  const k = ajustar(ctx, resumen.toUpperCase(), FUENTE.Pixel, caja.w - 28, 30, 20, 1, 1, 10);
+  ctx.font = FUENTE.Pixel(k.px); ctx.textBaseline = 'middle';
+  ctx.fillStyle = C.negro; ctx.fillRect(caja.x + 6, caja.y + 6, k.ancho + 28, 44);
+  ctx.fillStyle = pal.papel; ctx.fillRect(caja.x, caja.y, k.ancho + 28, 44);
+  ctx.fillStyle = C.negro; ctx.fillText(k.lineas[0], caja.x + 14, caja.y + 23);
+  ctx.textBaseline = 'top';
   const t = ajustar(ctx, d.frase.toUpperCase(), FUENTE.Pixel, caja.w, caja.h - 70, 150, 1.02);
   ctx.font = FUENTE.Pixel(t.px);
   const alto = t.lineas.length * t.px * 1.02, y0 = caja.y + 64 + (caja.h - 64 - alto) / 2;
@@ -290,7 +308,8 @@ function geoFondo(ctx: CanvasRenderingContext2D, pal: Paleta, r: Azar) {
 function geoPieza(ctx: CanvasRenderingContext2D, p: PiezaFlyer, s: Caja, pal: Paleta, color: string, r: Azar, circulo: boolean) {
   const b = 6, desfase = 20, { iw, ih } = medir(p);
   if (circulo) {
-    const lado = Math.min(s.w, s.h) - desfase - 2 * b, cx = s.x + (s.w - desfase) / 2, cy = s.y + (s.h - desfase) / 2;
+    const lado = Math.min(s.w, s.h, 3 * Math.max(iw, ih)) - desfase - 2 * b, D = lado + 2 * b;
+    const cx = s.x + D / 2 + (s.w - desfase - D) * (s.ax ?? 0.5), cy = s.y + D / 2 + (s.h - desfase - D) * (s.ay ?? 0.5);
     ctx.fillStyle = color; ctx.beginPath(); ctx.arc(cx + desfase, cy + desfase, lado / 2 + b, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = pal.tinta === C.hueso ? C.hueso : C.negro; ctx.beginPath(); ctx.arc(cx, cy, lado / 2 + b, 0, Math.PI * 2); ctx.fill();
     ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, lado / 2, 0, Math.PI * 2); ctx.clip();
@@ -300,7 +319,7 @@ function geoPieza(ctx: CanvasRenderingContext2D, p: PiezaFlyer, s: Caja, pal: Pa
     return;
   }
   const { w, h } = encajar(iw, ih, s.w - 2 * b - desfase, s.h - 2 * b - desfase);
-  const W = w + 2 * b, H = h + 2 * b, x = s.x + (s.w - desfase - W) / 2, y = s.y + (s.h - desfase - H) / 2;
+  const W = w + 2 * b, H = h + 2 * b, x = s.x + (s.w - desfase - W) * (s.ax ?? 0.5), y = s.y + (s.h - desfase - H) * (s.ay ?? 0.5);
   ctx.fillStyle = color; ctx.fillRect(x + desfase, y + desfase, W, H);
   ctx.fillStyle = pal.tinta === C.hueso ? C.hueso : C.negro; ctx.fillRect(x, y, W, H);
   pintarImagen(ctx, p, x + b, y + b, w, h, pal, color, 'Geométrica', r);
@@ -309,10 +328,11 @@ function geoTitulo(ctx: CanvasRenderingContext2D, d: DatosFlyer, caja: Caja, pal
   // Un rectángulo del fondo detrás del texto: la figura de atrás nunca le quita lectura.
   const t = ajustar(ctx, d.frase.toUpperCase(), FUENTE.Geométrica, caja.w - 40, caja.h - 90, 190, 0.9);
   const alto = t.lineas.length * t.px * 0.9;
-  ctx.fillStyle = pal.fondo; ctx.fillRect(caja.x - 20, caja.y - 10, t.ancho + 60, alto + 110);
-  ctx.fillStyle = pal.acentos[0]; ctx.fillRect(caja.x, caja.y + 10, 120, 12);
-  ctx.fillStyle = pal.tinta; ctx.font = '700 24px "DM Sans", sans-serif'; ctx.textBaseline = 'top';
-  ctx.fillText(resumen.toUpperCase(), caja.x + 140, caja.y + 4);
+  const k = ajustar(ctx, resumen.toUpperCase(), px => `700 ${px}px "DM Sans", sans-serif`, caja.w - 100, 30, 24, 1, 1, 14);
+  ctx.fillStyle = pal.fondo; ctx.fillRect(caja.x - 20, caja.y - 10, Math.max(t.ancho, k.ancho + 100) + 50, alto + 110);
+  ctx.fillStyle = pal.acentos[0]; ctx.fillRect(caja.x, caja.y + 10, 80, 12);
+  ctx.fillStyle = pal.tinta; ctx.font = `700 ${k.px}px "DM Sans", sans-serif`; ctx.textBaseline = 'top';
+  ctx.fillText(k.lineas[0], caja.x + 100, caja.y + 4);
   ctx.font = FUENTE.Geométrica(t.px); ctx.textBaseline = 'alphabetic';
   t.lineas.forEach((l, i) => ctx.fillText(l, caja.x, caja.y + 60 + (i + 0.8) * t.px * 0.9));
 }
@@ -368,14 +388,15 @@ function orgPolaroid(ctx: CanvasRenderingContext2D, p: PiezaFlyer, s: Caja, pal:
   const lado = 18, pie = 62, { iw, ih } = medir(p);
   const { w, h } = encajar(iw, ih, s.w * 0.88 - 2 * lado, s.h * 0.88 - lado - pie);
   const W = w + 2 * lado, H = h + lado + pie;
-  const cx = s.x + s.w / 2 + entre(r, -12, 12), cy = s.y + s.h / 2 + entre(r, -12, 12), giro = entre(r, -7, 7) * Math.PI / 180;
+  const holgW = s.w - W * 1.08, holgH = s.h - H * 1.08;
+  const cx = s.x + W * 0.54 + Math.max(0, holgW) * (s.ax ?? 0.5) + entre(r, -12, 12), cy = s.y + H * 0.54 + Math.max(0, holgH) * (s.ay ?? 0.5) + entre(r, -12, 12), giro = entre(r, -7, 7) * Math.PI / 180;
   ctx.save(); ctx.translate(cx, cy); ctx.rotate(giro);
   ctx.shadowColor = pal.sombra; ctx.shadowBlur = 28; ctx.shadowOffsetY = 14;
   ctx.fillStyle = pal.papel; papel(ctx, -W / 2, -H / 2, W, H, r); ctx.fill();
   ctx.shadowColor = 'transparent';
   pintarImagen(ctx, p, -W / 2 + lado, -H / 2 + lado, w, h, pal, color, 'Orgánica', r);
   ctx.fillStyle = C.negro;
-  const t = ajustar(ctx, p.etiqueta, px => `600 ${px}px "Bricolage Grotesque", sans-serif`, W - 2 * lado, pie - 20, 30, 1, 1);
+  const t = ajustar(ctx, p.etiqueta, px => `600 ${px}px "Bricolage Grotesque", sans-serif`, W - 2 * lado, pie - 20, 30, 1, 1, 14);
   ctx.font = `600 ${t.px}px "Bricolage Grotesque", sans-serif`; ctx.textBaseline = 'middle';
   ctx.fillText(t.lineas[0], -W / 2 + lado, H / 2 - pie / 2);
   ctx.textBaseline = 'alphabetic';
@@ -387,17 +408,20 @@ function orgPolaroid(ctx: CanvasRenderingContext2D, p: PiezaFlyer, s: Caja, pal:
 function orgTitulo(ctx: CanvasRenderingContext2D, d: DatosFlyer, caja: Caja, pal: Paleta, r: Azar, resumen: string) {
   const t = ajustar(ctx, d.frase, FUENTE.Orgánica, caja.w - 70, caja.h - 120, 170, 0.98);
   const alto = t.lineas.length * t.px * 0.98;
+  const fuenteK = (px: number) => `600 ${px}px "Bricolage Grotesque", sans-serif`;
+  const k = ajustar(ctx, resumen, fuenteK, caja.w - 70, 34, 28, 1, 1, 14);
   const etiqueta = pal.fondo === C.hueso ? C.negro : C.hueso, texto = etiqueta === C.negro ? C.hueso : C.negro;
   ctx.save();
   ctx.translate(caja.x + 10, caja.y + (caja.h - alto - 100) / 2);
   ctx.rotate(entre(r, -2.5, 1.5) * Math.PI / 180);
   ctx.shadowColor = pal.sombra; ctx.shadowBlur = 24; ctx.shadowOffsetY = 10;
-  ctx.fillStyle = etiqueta; papel(ctx, -24, 40, t.ancho + 60, alto + 50, r, 5); ctx.fill();
+  // El dato de lo que juntaste va en el mismo papel, arriba de la frase: siempre se lee.
+  ctx.fillStyle = etiqueta; papel(ctx, -24, 0, Math.max(t.ancho, k.ancho) + 60, alto + 100, r, 5); ctx.fill();
   ctx.shadowColor = 'transparent';
-  ctx.fillStyle = texto; ctx.font = FUENTE.Orgánica(t.px);
-  t.lineas.forEach((l, i) => ctx.fillText(l, 6, 40 + 18 + (i + 0.8) * t.px * 0.98));
-  ctx.fillStyle = pal.tinta; ctx.font = '600 28px "Bricolage Grotesque", sans-serif';
-  ctx.fillText(resumen, 0, 22);
+  ctx.fillStyle = texto; ctx.globalAlpha = 0.75; ctx.font = fuenteK(k.px);
+  ctx.fillText(k.lineas[0], 6, 44);
+  ctx.globalAlpha = 1; ctx.font = FUENTE.Orgánica(t.px);
+  t.lineas.forEach((l, i) => ctx.fillText(l, 6, 58 + (i + 0.8) * t.px * 0.98));
   ctx.restore();
 }
 
@@ -409,7 +433,7 @@ function franja(ctx: CanvasRenderingContext2D, d: DatosFlyer) {
   ctx.fillStyle = '#BDB6AA'; ctx.font = '500 26px "DM Sans", sans-serif';
   ctx.fillText('Flyer de', 56, 1150);
   const fuente = d.lenguaje === 'Pixel' ? (px: number) => `700 ${px}px "Silkscreen", monospace` : (px: number) => `800 ${px}px "Bricolage Grotesque", sans-serif`;
-  const t = ajustar(ctx, d.lenguaje === 'Geométrica' || d.lenguaje === 'Pixel' ? d.nombre.toUpperCase() : d.nombre, fuente, 520, 80, d.lenguaje === 'Pixel' ? 58 : 72, 1, 1);
+  const t = ajustar(ctx, d.lenguaje === 'Geométrica' || d.lenguaje === 'Pixel' ? d.nombre.toUpperCase() : d.nombre, fuente, 520, 80, d.lenguaje === 'Pixel' ? 58 : 72, 1, 1, 24);
   ctx.fillStyle = C.hueso; ctx.font = fuente(t.px);
   ctx.fillText(t.lineas[0], 56, 1244);
   ctx.textAlign = 'right'; ctx.font = '500 26px "DM Sans", sans-serif'; ctx.fillStyle = '#BDB6AA';
@@ -435,7 +459,7 @@ export function pintarFlyer(ctx: CanvasRenderingContext2D, d: DatosFlyer, escala
   ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
   const k = Math.max(1, d.piezas.length), zonas = plan(r, k);
   const resumen = resumenPiezas(d.piezas);
-  if (d.lenguaje === 'Pixel') pixelFondo(ctx, pal, r);
+  if (d.lenguaje === 'Pixel') pixelFondo(ctx, pal, r, zonas.arriba);
   else if (d.lenguaje === 'Geométrica') geoFondo(ctx, pal, r);
   else orgFondo(ctx, pal, r);
 
@@ -443,7 +467,14 @@ export function pintarFlyer(ctx: CanvasRenderingContext2D, d: DatosFlyer, escala
   const orden = barajar(r, d.piezas);
   const colores = barajar(r, pal.acentos.filter(a => a !== pal.fondo));
   const circulo = d.lenguaje === 'Geométrica' && r() < 0.55 ? Math.floor(r() * orden.length) : -1;
-  if (d.lenguaje === 'Pixel') for (let i = 0; i < 5; i++) pixelChispa(ctx, Math.round(entre(r, 40, 1040) / 4) * 4, Math.round(entre(r, 40, 1040) / 4) * 4, 12, colores[i % colores.length]);
+  if (d.lenguaje === 'Pixel') {
+    const dentro = (x: number, y: number, c: Caja) => x > c.x - 40 && x < c.x + c.w + 40 && y > c.y - 40 && y < c.y + c.h + 40;
+    for (let i = 0, n = 0; i < 40 && n < 5; i++) {
+      const x = Math.round(entre(r, 40, 1040) / 4) * 4, y = Math.round(entre(r, 40, 1040) / 4) * 4;
+      if (dentro(x, y, zonas.titulo) || dentro(x, y, zonas.personaje)) continue;
+      pixelChispa(ctx, x, y, 12, colores[n % colores.length]); n++;
+    }
+  }
   orden.forEach((p, i) => {
     const s = cajas[i], color = colores[i % colores.length];
     if (!s) return;
