@@ -5,15 +5,15 @@ import { abrirSesionMesa, publicar, remoto, sellarRemoto, type Avance } from './
 // (pantalla ?staff) o llega por la variable de entorno VITE_STAFF_PIN_SHA256 al compilar. Sin ninguno, el PIN
 // de demo es 0000 y la interfaz lo dice.
 
-// Los 4 timbres finales (plan 009): Inscripción, Creación (4 experiencias distintas), Cacería (3 afiches) y Secreto
-// (el jefe final o su plan B).
+// Los 4 timbres finales (plan 009 y plan 012 §8): Inscripción, Creación (4 experiencias distintas), Cacería (3 afiches)
+// y Flyer (armas tu flyer en la credencial con lo que juntaste; de respaldo, el sello del staff).
 // `como` se lee en el álbum de la credencial (texto chico): frases cortas, en segunda persona (plan 010).
 export interface Estacion { n: number; nombre: string; como: string; activa: boolean }
 export const ESTACIONES: Estacion[] = [
   { n: 1, nombre: 'Inscripción', como: 'Al crear tu credencial', activa: true },
   { n: 2, nombre: 'Creación', como: 'Crea en 4 experiencias', activa: true },
   { n: 3, nombre: 'Cacería', como: 'Encuentra 3 afiches', activa: true },
-  { n: 4, nombre: 'Secreto', como: '???', activa: true },
+  { n: 4, nombre: 'Flyer', como: 'Arma tu flyer', activa: true },
 ];
 export const ACTIVAS = ESTACIONES.filter(e => e.activa).map(e => e.n);
 export const completa = (sellos: number[]) => ACTIVAS.every(n => sellos.includes(n));

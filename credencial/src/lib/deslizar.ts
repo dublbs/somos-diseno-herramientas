@@ -23,7 +23,7 @@ export function useDeslizar(alDeslizar: (dir: 1 | -1) => void) {
     let inicio: { x: number; y: number; t: number; id: number } | null = null, temporizador = 0;
     const abajo = (e: PointerEvent) => {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
-      if ((e.target as Element | null)?.closest?.('input, textarea, .timbrado')) return;
+      if ((e.target as Element | null)?.closest?.('input, textarea, .timbrado, .bienvenida')) return;
       inicio = { x: e.clientX, y: e.clientY, t: e.timeStamp, id: e.pointerId };
     };
     const arriba = (e: PointerEvent) => {

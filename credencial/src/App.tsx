@@ -8,6 +8,7 @@ import { Canje } from './pages/Canje';
 import { Juego } from './pages/Juego';
 import { Afiches } from './pages/Afiches';
 import { Afiche } from './pages/Afiche';
+import { Flyer } from './pages/Flyer';
 import { miCredencial, remoto, reiniciarTodo } from './lib/store';
 import { temaDe, type Tema } from './temas';
 import type { Cara } from './pixel/render';
@@ -16,6 +17,7 @@ import './styles.css';
 // Rutas con hash (funcionan en cualquier carpeta o dominio, como el QR del Fotomatón):
 //   #/crear · #/c/SD-XXXXX · #/sello/1..4?t=CODIGO&k=PASO · #/escanear · #/foto · #/canje
 //   #/juego (vista Juego) · #/afiches (cámara de la cacería) · #/afiche/SECRETO (QR de un afiche, plan 010)
+//   #/flyer (tu flyer: timbre 4, plan 012 §8)
 export type Ruta =
   | { vista: 'crear' }
   | { vista: 'carta'; codigo: string; aviso?: string; cara?: Cara; timbre?: number }
@@ -25,7 +27,8 @@ export type Ruta =
   | { vista: 'canje' }
   | { vista: 'juego'; codigo: string; aviso?: string }
   | { vista: 'afiches' }
-  | { vista: 'afiche'; secreto: string };
+  | { vista: 'afiche'; secreto: string }
+  | { vista: 'flyer'; codigo: string };
 
 export function leerRuta(hash: string): Ruta {
   const [camino, consulta = ''] = hash.replace(/^#/, '').split('?');
@@ -42,6 +45,7 @@ export function leerRuta(hash: string): Ruta {
   // La vista Juego y la cámara de la cacería existen solo con una credencial creada.
   if (p === '/juego') return mia ? { vista: 'juego', codigo: mia } : { vista: 'crear' };
   if (p === '/afiches') return mia ? { vista: 'afiches' } : { vista: 'crear' };
+  if (p === '/flyer') return mia ? { vista: 'flyer', codigo: mia } : { vista: 'crear' };
   return mia ? { vista: 'carta', codigo: mia } : { vista: 'crear' };
 }
 
@@ -122,9 +126,10 @@ export const App: React.FC = () => {
       {ruta.vista === 'escanear' && <Escanear ir={ir} />}
       {ruta.vista === 'foto' && <Foto ir={ir} ponerTema={ponerTema} />}
       {ruta.vista === 'canje' && <Canje ir={ir} ponerTema={ponerTema} />}
-      {ruta.vista === 'juego' && <Juego key={ruta.aviso || ''} codigo={ruta.codigo} aviso={ruta.aviso} ir={ir} ponerTema={ponerTema} />}
+      {ruta.vista === 'juego' && <Juego key={ruta.aviso || ''} codigo={ruta.codigo} aviso={ruta.aviso} ir={ir} ponerTema={ponerTema} tema={tema} />}
       {ruta.vista === 'afiches' && <Afiches ir={ir} />}
       {ruta.vista === 'afiche' && <Afiche secreto={ruta.secreto} ir={ir} />}
+      {ruta.vista === 'flyer' && <Flyer codigo={ruta.codigo} ir={ir} ponerTema={ponerTema} />}
     </div>
   );
 };
