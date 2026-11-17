@@ -228,7 +228,7 @@ export function escucharCreaciones(codigo: string, alLlegar: (c: Creacion) => vo
   });
 }
 
-// ---------- Timbre 4 · «Tu flyer» (plan 013 §8) ----------
+// ---------- Timbre 4 · «Tu flyer» (plan 012 §8) ----------
 // Se abre con al menos 1 creación (de una tablet) y 1 afiche encontrado. Con Supabase lo otorga sellar_flyer()
 // (shared/supabase/migraciones/006-timbre-flyer.sql), que revisa lo mismo en el servidor; en modo demo, en el equipo.
 export const SELLO_FLYER = 4;
