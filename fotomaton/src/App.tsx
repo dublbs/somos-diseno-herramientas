@@ -16,7 +16,7 @@ import { useRetardo } from './hooks/useRetardo';
 import { cargarCara, detectarCara } from './lib/cara';
 import { exportarTarjeta } from './lib/tarjeta';
 import { componer, leerArchivo, tienePlacas } from './lib/trama';
-import { demoDe, useDemosListas } from './lib/demo';
+import { demoDe } from './lib/demo';
 
 const REVELADO_MIN = 1800, RETARDO_MARCO = 1500;
 const INICIAL = { visual: 'Pixel' as Visual, marco: 'PM05', celda: 2.5, tinta: 'cmyk' };
@@ -41,12 +41,12 @@ export function App() {
   const revelar = () => { inicioRevelado.current = performance.now(); setRevelando(true); };
 
   useEffect(() => { document.documentElement.dataset.visual = visual; }, [visual]);
-  const demosListas = useDemosListas();
   const miniaturas = useMemo(() => {
-    const o: Record<string, string> = {}, c = document.createElement('canvas'); c.width = c.height = 160; const x = c.getContext('2d')!;
-    MARCOS.forEach(m => { componer(x, 160, m.id, demoDe(m.visual), 4, TINTAS[tinta]); o[m.id] = c.toDataURL('image/png'); });
+    // 200 px: se ven a ~90 px de CSS, nítidas en pantallas de densidad 2.
+    const o: Record<string, string> = {}, c = document.createElement('canvas'); c.width = c.height = 200; const x = c.getContext('2d')!;
+    MARCOS.forEach(m => { componer(x, 200, m.id, demoDe(m.visual), 3, TINTAS[tinta]); o[m.id] = c.toDataURL('image/png'); });
     return o;
-  }, [tinta, demosListas]);
+  }, [tinta]);
   useEffect(() => { cargarCara(); }, []);
 
   // Afinar la cara sobre la foto final (más resolución que la vista previa).

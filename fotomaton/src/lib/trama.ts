@@ -129,7 +129,7 @@ export function trama(src: Fuente, w: number, h: number, celda: number, tinta: T
 export const EFECTOS = {
   Orgánica: { nombre: 'Trama CMYK', control: 'Trama', paleta: 'Tinta', ayuda: 'Con la trama fina se reconoce mejor la cara.' },
   Pixel: { nombre: 'Pantalla CRT', control: 'Píxel', paleta: 'Paleta', ayuda: 'Con píxeles chicos se reconoce mejor la cara.' },
-  'Geométrica': { nombre: 'Mosaico de triángulos', control: 'Mosaico', paleta: 'Paleta', ayuda: 'Con triángulos chicos se reconoce mejor la cara.' },
+  'Geométrica': { nombre: 'Mosaico de triángulos', control: 'Triángulo', paleta: 'Paleta', ayuda: 'Los triángulos se achican solos donde hay detalle: ojos, boca y contorno.' },
 } as const;
 
 // Foto reducida a una grilla: un pixel por bloque.
@@ -177,33 +177,65 @@ export function crt(src: Fuente, w: number, h: number, celda: number, tinta: Tin
   return out;
 }
 
-// Geométrica · mosaico: cada cuadrado se parte en dos triángulos (la diagonal se alterna como en un damero)
-// y cada triángulo se pinta con un tono plano de la paleta, según la luz de la foto en ese punto.
+// Geométrica · mosaico de triángulos adaptativo (plan 012): una grilla de triángulos equiláteros que se parten en
+// cuatro donde la foto tiene detalle (ojos, boca, contorno de la cara) y quedan grandes donde es pareja (fondo, ropa).
+// Cada triángulo es un tono plano de la paleta según su luz; con la tinta CMYK, su color real posterizado.
 export function mosaico(src: Fuente, w: number, h: number, celda: number, tinta: Tinta, cara: Cara | null) {
   w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h));
-  const c = Math.max(7, celda * 1.15), { mw, mh, px } = reducir(src, w, h, c / 3, cara);
+  const T = Math.max(18, celda * 8), minimo = Math.max(3.2, T / 9);
+  const paso = Math.max(1, minimo / 2), { mw, mh, px } = reducir(src, w, h, paso, cara);
   const out = lienzoTmp('mosaico', w, h), o = out.getContext('2d')!;
   o.globalCompositeOperation = 'source-over'; o.globalAlpha = 1; o.fillStyle = tinta.papel; o.fillRect(0, 0, w, h);
   const rampa = [...tintasDe(tinta), tinta.papel], n = rampa.length;
-  const color = (x: number, y: number) => {
-    const sx = Math.min(mw - 1, Math.max(0, Math.floor(x / (c / 3)))), sy = Math.min(mh - 1, Math.max(0, Math.floor(y / (c / 3)))), p = (sy * mw + sx) * 4;
-    const L = realce(0.299 * px[p] / 255 + 0.587 * px[p + 1] / 255 + 0.114 * px[p + 2] / 255);
-    return rampa[Math.min(n - 1, Math.floor(L * n))];
+  const muestra = (x: number, y: number) => {
+    const sx = Math.min(mw - 1, Math.max(0, (x / paso) | 0)), sy = Math.min(mh - 1, Math.max(0, (y / paso) | 0)), p = (sy * mw + sx) * 4;
+    return [px[p] / 255, px[p + 1] / 255, px[p + 2] / 255];
   };
-  const tri = (a: number[], b: number[], d: number[], fill: string) => {
-    o.fillStyle = fill; o.beginPath(); o.moveTo(a[0], a[1]); o.lineTo(b[0], b[1]); o.lineTo(d[0], d[1]); o.closePath(); o.fill();
+  type P = [number, number];
+  // Juntas de papel entre las piezas, más finas en las piezas chicas: así se lee el mosaico aunque dos vecinas
+  // tengan el mismo tono.
+  const juntas: [P, P, P, number][] = [];
+  const pintar = (a: P, b: P, c: P, color: string) => {
+    o.fillStyle = color; o.strokeStyle = color; o.lineWidth = 0.6;
+    o.beginPath(); o.moveTo(a[0], a[1]); o.lineTo(b[0], b[1]); o.lineTo(c[0], c[1]); o.closePath(); o.fill(); o.stroke();
+    juntas.push([a, b, c, Math.hypot(b[0] - a[0], b[1] - a[1])]);
   };
-  const ox = (w % c) / 2 - c, oy = (h % c) / 2 - c;
-  for (let j = 0; j * c + oy < h; j++) for (let i = 0; i * c + ox < w; i++) {
-    const x = ox + i * c, y = oy + j * c, par = (i + j) % 2 === 0;
-    if (par) { // diagonal ↘
-      tri([x, y], [x + c, y], [x + c, y + c], color(x + c * 2 / 3, y + c / 3));
-      tri([x, y], [x + c, y + c], [x, y + c], color(x + c / 3, y + c * 2 / 3));
-    } else { // diagonal ↙
-      tri([x, y], [x + c, y], [x, y + c], color(x + c / 3, y + c / 3));
-      tri([x + c, y], [x + c, y + c], [x, y + c], color(x + c * 2 / 3, y + c * 2 / 3));
+  const tri = (a: P, b: P, c: P, nivel: number) => {
+    const gx = (a[0] + b[0] + c[0]) / 3, gy = (a[1] + b[1] + c[1]) / 3;
+    if (gx < -T || gy < -T || gx > w + T || gy > h + T) return;
+    // 7 muestras: el centro, hacia los vértices y hacia los lados
+    const pts: P[] = [[gx, gy], ...[a, b, c].map(v => [gx + (v[0] - gx) * 0.62, gy + (v[1] - gy) * 0.62] as P),
+      ...[[a, b], [b, c], [c, a]].map(([u, v]) => [gx + ((u[0] + v[0]) / 2 - gx) * 0.7, gy + ((u[1] + v[1]) / 2 - gy) * 0.7] as P)];
+    let r = 0, g = 0, bl = 0, lmin = 1, lmax = 0;
+    for (const [x, y] of pts) { const [pr, pg, pb] = muestra(x, y), l = 0.299 * pr + 0.587 * pg + 0.114 * pb; r += pr; g += pg; bl += pb; lmin = Math.min(lmin, l); lmax = Math.max(lmax, l); }
+    r /= 7; g /= 7; bl /= 7;
+    const lado = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (lmax - lmin > 0.16 && lado / 2 >= minimo && nivel < 3) {
+      const ab: P = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], bc: P = [(b[0] + c[0]) / 2, (b[1] + c[1]) / 2], ca: P = [(c[0] + a[0]) / 2, (c[1] + a[1]) / 2];
+      tri(a, ab, ca, nivel + 1); tri(ab, b, bc, nivel + 1); tri(ca, bc, c, nivel + 1); tri(ab, bc, ca, nivel + 1);
+      return;
     }
+    if (tinta.colorReal) {
+      const q = (v: number) => Math.round(Math.round(realce(v) * 4) / 4 * 255);
+      pintar(a, b, c, `rgb(${q(r)},${q(g)},${q(bl)})`);
+    } else {
+      const L = realce(0.299 * r + 0.587 * g + 0.114 * bl);
+      pintar(a, b, c, rampa[Math.min(n - 1, Math.max(0, Math.round(L * (n - 1))))]);
+    }
+  };
+  const H = T * Math.sqrt(3) / 2, cols = Math.ceil(w / (T / 2)) + 3, filas = Math.ceil(h / H) + 1;
+  const ox = (w - (cols - 1) * T / 2) / 2 - T / 2, oy = (h - filas * H) / 2;
+  for (let j = 0; j < filas; j++) for (let i = 0; i < cols; i++) {
+    const x = ox + i * T / 2, y0 = oy + j * H, y1 = y0 + H;
+    if ((i + j) % 2 === 0) tri([x, y1], [x + T / 2, y0], [x + T, y1], 0);
+    else tri([x, y0], [x + T / 2, y1], [x + T, y0], 0);
   }
+  o.strokeStyle = tinta.papel; o.globalAlpha = 0.55; o.lineJoin = 'round';
+  for (const [a, b, c, lado] of juntas) {
+    o.lineWidth = Math.max(0.5, lado / 26);
+    o.beginPath(); o.moveTo(a[0], a[1]); o.lineTo(b[0], b[1]); o.lineTo(c[0], c[1]); o.closePath(); o.stroke();
+  }
+  o.globalAlpha = 1;
   return out;
 }
 
