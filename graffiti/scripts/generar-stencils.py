@@ -104,8 +104,8 @@ def metro_lateral():
     """Vagón de metro de lado, como el de la web de las experiencias (juego-pixel/public/figma/metro-lateral.svg, Figma
     522:2179). El SVG es un patrón de 24 × 24 celdas de 10 px (ventana, puerta doble con marco, franja roja, bogies):
     se lee celda a celda y se arma un carro de 60 × 24 con ventana · puerta · ventana · puerta · ventana.
-    Capa 1: la silueta del carro (esquinas de arriba redondeadas). Capa 2: contorno, ventanas, puertas con su marco,
-    franja y bajos; las ruedas quedan solo en la capa 1, así se ven del color de la base sobre los bajos."""
+    Capa 1: la silueta del carro (esquinas de arriba redondeadas). Capa 2: contorno, ventanas, ventanas y junta de las
+    puertas, franja y bajos; las ruedas quedan solo en la capa 1, así se ven del color de la base sobre los bajos."""
     raiz = ET.parse(os.path.join(RAIZ, 'juego-pixel/public/figma/metro-lateral.svg')).getroot()
     formas = [((e.get('fill') or '').lower(), poligonos(e.get('d'))) for e in raiz.iter(SVG + 'path')]
     patron = [[next((f for f, p in reversed(formas) if dentro((x + .5) * 10, (y + .5) * 10, p)), '') for x in range(24)] for y in range(24)]
@@ -116,7 +116,8 @@ def metro_lateral():
     for y in range(h):
         for x, c in enumerate(cols):
             f = patron[y][c]
-            if y >= 20 and f == '#7a2e8e': m[y][x] = 1   # rueda: solo base
+            if f == '#7a2e8e': m[y][x] = 1   # ruedas y marco de las puertas: solo base (con el marco la puerta se empasta)
+            elif f == '#e2001a' and y in (13, 17): m[y][x] = 1  # la franja queda en una sola banda: se lee mejor pintada
             elif f in ('black', '#e2001a', '#7a2e8e', '#7fc8f8'): m[y][x] = 3
     for x, y in ((0, 0), (1, 0), (0, 1), (w - 1, 0), (w - 2, 0), (w - 1, 1)): m[y][x] = 0  # esquinas redondeadas
     for y in range(h):  # contorno de la silueta

@@ -46,7 +46,9 @@ export function mascaraDe(p: Puesta | null): Mascara {
 }
 
 // Probabilidad de que la pintura llegue a la celda según la plantilla.
-const paso = (mascara: Mascara, i: number) => !mascara ? 1 : mascara[i] === HUECO || mascara[i] === LIBRE ? 1 : mascara[i] === BORDE ? 0.12 : 0;
+// Bajo el canto del cartón (BORDE) solo se cuela el rocío suelto, no el chorro principal: el spray pasa muchas veces
+// por la misma celda y cualquier fuga se acumularía hasta tapar las partes finas de la plantilla.
+const paso = (mascara: Mascara, i: number, fuga = 0) => !mascara ? 1 : mascara[i] === HUECO || mascara[i] === LIBRE ? 1 : mascara[i] === BORDE ? fuga : 0;
 
 // Los tres pinceles (plan 009 §3, como los pinceles de Photoshop): cada uno deja una marca propia.
 // · Spray: gotitas al azar con distribución gaussiana (denso al centro, difuso al borde) y algo de rocío suelto
@@ -61,11 +63,14 @@ const gauss = (): [number, number] => {
 
 export function rociar(d: Dibujo, cx: number, cy: number, radio: number, color: number, mascara: Mascara, carga?: Float32Array) {
   const sigma = radio / 2, n = Math.round(radio * radio * 1.5) + 4;
+  // Si se pinta sobre la placa del stencil, el cartón ataja la pintura que se abre: no cae fuera de la placa.
+  const sobrePlaca = !!mascara && dentro(Math.round(cx), Math.round(cy)) && mascara[Math.round(cy) * COLS + Math.round(cx)] !== LIBRE;
   for (let k = 0; k < n; k++) {
     const [gx, gy] = gauss();
     const x = Math.round(cx + gx * sigma), y = Math.round(cy + gy * sigma);
     if (!dentro(x, y)) continue;
     const i = y * COLS + x;
+    if (sobrePlaca && mascara![i] === LIBRE) continue;
     if (Math.random() > paso(mascara, i)) continue;
     d.pintura[i] = color;
     if (carga) carga[i] += 1;
@@ -74,7 +79,8 @@ export function rociar(d: Dibujo, cx: number, cy: number, radio: number, color: 
   for (let k = 0; k < Math.ceil(radio / 2); k++) {
     const [gx, gy] = gauss();
     const x = Math.round(cx + gx * radio * 1.1), y = Math.round(cy + gy * radio * 1.1);
-    if (dentro(x, y) && Math.random() < 0.5 * paso(mascara, y * COLS + x)) d.pintura[y * COLS + x] = color;
+    if (!dentro(x, y) || (sobrePlaca && mascara![y * COLS + x] === LIBRE)) continue;
+    if (Math.random() < 0.5 * paso(mascara, y * COLS + x, 0.25)) d.pintura[y * COLS + x] = color;
   }
 }
 
