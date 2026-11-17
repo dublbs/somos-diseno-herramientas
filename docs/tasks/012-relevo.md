@@ -34,7 +34,7 @@ done
 | Quién | Tareas | Ramas |
 |---|---|---|
 | **Claude de Amaro** | A0 kit + Mosaicos · A5 Fotomatón · A7 flyer (corriendo) · A3 Graffiti (corriendo) · después A2 Audioreactiva y A6 Hora punta · integración | `kit-v2`, `fotomaton-ronda-2`, `flyer-timbre-4`, `graffiti-ronda-2`, `audioreactiva-tactil`, `hora-punta-iso` |
-| **Claude de Felipe (Pipe)** | **A8 Teatro** (es suyo) y **A1 Grabado** (base `amaro/kit-v2`, ya subida con el kit v2 y su `shared/ui/README.md`) | `teatro-ronda-2`, `grabado-afiche` |
+| **Claude de Felipe (Pipe)** | **A8 Teatro** (es suyo). Grabado lo tomó el Claude de Amaro el 17 nov a las 18:00 UTC, porque seguía libre | `teatro-ronda-2` |
 
 Si alguno se queda sin créditos, el otro toma sus ramas leyendo su `AVANCE.md`. Meta: todo aplicado el **18 nov**.
 
@@ -201,3 +201,15 @@ Si alguno se queda sin créditos, el otro toma sus ramas leyendo su `AVANCE.md`.
   sacar su secreto y generar el sello (`npm --prefix credencial run sellos:afiches`). Imprimirlo para el staff.
 - **Afiches de la cacería** impresos con su sello y probados con un iPhone y un Android.
 - **Escuchar** los 5 estilos de música, **validar** el Inacapín y **probar en las tablets reales**.
+
+## 7. Avance (17 nov, 18:00 UTC)
+| Rama | Estado |
+|---|---|
+| `amaro/kit-v2` | **Terminada**: kit v2 + README + Mosaicos migrado, `dist/` de Mosaicos |
+| `amaro/flyer-timbre-4` | **Terminada**: flyer, timbre 4, bienvenida, migración 006 probada, hoja del staff, `dist/` de credencial |
+| `amaro/fotomaton-ronda-2` | **Terminada**: barra solo con disparador, placas, triángulos, 6 marcos nuevos, `dist/` (aún con el kit actual) |
+| `amaro/graffiti-ronda-2` | **Terminada**: marco v2, 4 tamaños, stencil y sticker con manijas, metro nuevo, `dist/` |
+| `amaro/audioreactiva-tactil` | En curso |
+| `amaro/hora-punta-iso` | En curso |
+| `amaro/grabado-afiche` | En curso (Claude de Amaro) |
+| `amaro/teatro-ronda-2` | Para Felipe; sin avances |
