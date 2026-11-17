@@ -1,21 +1,24 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { otorgarCreacion } from '../../../shared/juego';
-import { PIEZAS, pieza } from '../escenario/piezas';
-import { ESCENARIOS, escenario } from '../escenario/escenarios';
+import { escalaInicial, limitarEscala, pieza } from '../escenario/piezas';
+import { ESCENARIOS, escenario, posicionNueva } from '../escenario/escenarios';
 import { sorprendeme } from '../escenario/sorprendeme';
+import { miniaturaDe, useCarga } from '../escenario/carga';
 import { cargarFuentesTarjeta, dibujarTarjetaMotion, exportarTarjetaMotion } from '../lib/exportarTarjeta';
 import { duracionLoop, grabarLoop, puedeGrabar } from '../lib/grabarLoop';
 import type { VideoLoop } from './ModalExportar';
 import { LineaDeTiempo } from './LineaDeTiempo';
-import { BarraSuperior, BotonAccion, Confirmar, PantallaHerramienta, Seccion, Segmentado } from '../../../shared/ui/Kit';
+import { Carga } from './Carga';
+import { BarraSuperior, BotonAccion, Confirmar, Paleta, PantallaHerramienta, Seccion, Segmentado } from '../../../shared/ui/Kit';
 import {
-  ASA, ESCENARIO, cajaItem, quieto, cargarTodo, dibujarEscenario, dibujarPieza, dibujarSeleccion,
+  ASA, ESCENARIO, cajaItem, quieto, dibujarEscenario, dibujarSeleccion,
   posicionItem, DURACION_TRAYECTO, type Item,
 } from '../escenario/dibujar';
 
 interface Props {
   onExportar: (canvas: HTMLCanvasElement) => void;
   onVideo: (tarjetaPng: Blob, video: VideoLoop) => void;
+  onGrabando?: (grabando: boolean) => void;
 }
 
 type Gesto =
@@ -24,37 +27,8 @@ type Gesto =
   | { tipo: 'destino'; uid: number; movido: boolean };
 type Mapa = Record<string, Item[]>;
 
-const ESCALA_INICIAL: Record<string, number> = {
-  pudu: 0.75, paloma: 0.6, sol: 1, araucaria: 1.1, pina: 0.65, helecho: 0.6, quisco: 0.7, flor: 0.65,
-  pez: 0.7, pinguino: 0.6, cantaro: 0.5, canasto: 0.5, kisa: 0.7,
-  condor: 0.6, gaviota: 0.55, picaflor: 0.45, carpintero: 0.5, chucao: 0.6, huemul: 0.7, guanaco: 0.7,
-  chagual: 0.75, cochayuyo: 0.7, doca: 0.6, concha: 0.45, chanar: 0.8, alerce: 0.95, copihue: 0.6, maqui: 0.65, telar: 0.7, luna: 0.9, lluvia: 0.9,
-};
-
-// Límites de escala mínimos y máximos específicos para mantener proporciones creíbles frente a los fondos
-const LIMITES_ESCALA: Record<string, [number, number]> = {
-  pudu: [0.38, 1.3],
-  pinguino: [0.38, 1.3],
-  paloma: [0.32, 1.2],
-  pez: [0.32, 1.3],
-  araucaria: [0.55, 2.0],
-  quisco: [0.45, 1.8],
-  sol: [0.55, 1.7],
-  helecho: [0.3, 1.4],
-  flor: [0.28, 1.3],
-  pina: [0.25, 1.1],
-  canasto: [0.28, 1.2],
-  cantaro: [0.28, 1.2],
-  kisa: [0.32, 1.3],
-  condor: [0.32, 1.3], gaviota: [0.3, 1.2], picaflor: [0.25, 1], carpintero: [0.3, 1.1], chucao: [0.3, 1.1],
-  huemul: [0.38, 1.3], guanaco: [0.38, 1.3], chagual: [0.4, 1.5], cochayuyo: [0.35, 1.4], doca: [0.3, 1.2], concha: [0.25, 1],
-  chanar: [0.45, 1.6], alerce: [0.5, 2], copihue: [0.3, 1.3], maqui: [0.35, 1.4], telar: [0.35, 1.3], luna: [0.5, 1.6], lluvia: [0.5, 1.6],
-};
-
-const limitar = (tipo: string, n: number) => {
-  const [min, max] = LIMITES_ESCALA[tipo] ?? [0.3, 1.5];
-  return Math.min(max, Math.max(min, n));
-};
+// Tope de piezas por escena (plan 008, D4): mantiene legible la línea de tiempo y acota el costo de dibujo.
+export const MAX_PIEZAS = 8;
 
 const durDe = (it: Item) => {
   const p = pieza(it.tipo);
@@ -63,8 +37,9 @@ const durDe = (it: Item) => {
 
 const DURACION_LOOP = DURACION_TRAYECTO;
 const RESOLUCION_CANVAS = 1080;
+const ICONO_ESC: Record<string, string> = { cordillera: 'landscape', mar: 'water', bosque: 'forest', desierto: 'wb_sunny' };
 
-export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
+export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrabando }) => {
   const lienzo = useRef<HTMLCanvasElement>(null);
   const [escId, setEscId] = useState(ESCENARIOS[0].id);
   const [mapa, setMapa] = useState<Mapa>({});
@@ -73,23 +48,29 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
   // Parte pausado: así se arma la escena con calma; al darle play se ve el loop completo.
   const [pausado, setPausado] = useState(true);
   const [borde, setBorde] = useState(true);
-  const [listo, setListo] = useState(false);
   const [grabando, setGrabando] = useState<number | null>(null);
   const [errorVideo, setErrorVideo] = useState('');
   const [puedeDeshacer, setPuedeDeshacer] = useState(false);
-  const [miniaturas, setMiniaturas] = useState<Record<string, string>>({});
   const [puedeRehacer, setPuedeRehacer] = useState(false);
   const [tiempoVisual, setTiempoVisual] = useState(0);
   // Pieza que se arrastra desde la biblioteca al escenario (el «fantasma» sigue al dedo).
   const [fantasma, setFantasma] = useState<{ tipo: string; x: number; y: number } | null>(null);
   const toque = useRef<{ tipo: string; x: number; y: number } | null>(null);
 
+  const carga = useCarga(escId);
+  const listo = carga.listo;
   const esc = escenario(escId);
   const items = mapa[escId] ?? [];
+  const lleno = items.length >= MAX_PIEZAS;
 
   const relojRef = useRef(0);
-  const vivo = useRef({ items, sel, fps, pausado, fondo: esc.fondo, mapa, escId, borde, reloj: 0 });
-  vivo.current = { items, sel, fps, pausado, fondo: esc.fondo, mapa, escId, borde, reloj: relojRef.current };
+  const vivo = useRef({ items, sel, fps, pausado, fondo: esc.fondo, mapa, escId, borde, grabando: false });
+  vivo.current = { items, sel, fps, pausado, fondo: esc.fondo, mapa, escId, borde, grabando: grabando !== null };
+  // Se redibuja solo si algo cambió (o si cambió el cuadro en play), no en cada requestAnimationFrame.
+  const sucio = useRef(true);
+  useEffect(() => { sucio.current = true; }, [items, sel, borde, escId, pausado, listo, carga.hechas]);
+  useEffect(() => { onGrabando?.(grabando !== null); }, [grabando !== null]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const gesto = useRef<Gesto | null>(null);
   const antesDelGesto = useRef<Mapa | null>(null);
   const historial = useRef<Mapa[]>([]);
@@ -116,49 +97,25 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
     actualizar(l => l.map(it => (it.uid === vivo.current.sel ? f(it) : it)));
   }, [actualizar, registrar]);
 
-  useEffect(() => {
-    let cancelado = false;
-    cargarTodo().then(() => {
-      if (cancelado) return;
-      const o: Record<string, string> = {};
-      for (const p of PIEZAS) {
-        const c = document.createElement('canvas');
-        c.width = c.height = 144;
-        const x = c.getContext('2d')!, k = (144 * 0.86) / Math.max(p.caja[2], p.caja[3]);
-        x.translate(72, 72); x.scale(k, k);
-        dibujarPieza(x, p.id, p.durMs * (p.muestra ?? (p.durMs > 2000 ? 0.5 : 0.25)));
-        o[p.id] = c.toDataURL('image/png');
-      }
-      setMiniaturas(o);
-      setListo(true);
-    });
-    return () => { cancelado = true; };
-  }, []);
-
-  // Loop de dibujo a alta definición (1080p)
+  // Bucle de dibujo: en pausa dibuja solo cuando algo cambia; en play, solo cuando cambia el cuadro según los FPS.
   useEffect(() => {
     const c = lienzo.current;
     if (!c || !listo) return;
     const ctx = c.getContext('2d')!;
-    let raf = 0, anterior = performance.now();
-    let ultimoSegundoUI = 0;
+    let raf = 0, anterior = performance.now(), ultimoUI = 0, ultimoMs = -1;
+    sucio.current = true;
 
     const tick = (ahora: number) => {
       raf = requestAnimationFrame(tick);
       const v = vivo.current;
-      if (!v.pausado) {
-        relojRef.current += ahora - anterior;
-      }
+      if (!v.pausado) relojRef.current += ahora - anterior;
       anterior = ahora;
+      if (v.grabando) return; // mientras se graba, todo el tiempo de cuadro queda para el video
       const paso = 1000 / v.fps;
       const ms = Math.floor(relojRef.current / paso) * paso;
-
-      // Actualizar indicador de línea de tiempo con un throttle suave
-      if (ahora - ultimoSegundoUI > 60) {
-        setTiempoVisual(relojRef.current % DURACION_LOOP);
-        ultimoSegundoUI = ahora;
-      }
-
+      if (!v.pausado && ahora - ultimoUI > 100) { setTiempoVisual(relojRef.current % DURACION_LOOP); ultimoUI = ahora; }
+      if (ms === ultimoMs && !sucio.current) return;
+      ultimoMs = ms; sucio.current = false;
       // En pausa, la pieza elegida se edita quieta en su punto A; en play, camina como en el video.
       dibujarEscenario(ctx, c.width, v.items, ms, v.fondo, v.borde, v.pausado ? v.sel : null);
       const it = v.items.find(i => i.uid === v.sel);
@@ -174,13 +131,14 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
   };
 
   const alBajar = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    const p = aEscenario(e), { items: lista, sel: actual, pausado: enPausa } = vivo.current;
-    const comoSeVe = (it: Item) => (enPausa ? quieto(it) : it);
+    if (!listo) return;
+    // Tocar el escenario con el loop corriendo lo pausa: en pausa se edita y nada salta (plan 008, T-016).
+    if (!vivo.current.pausado) { setPausado(true); vivo.current.pausado = true; }
+    const p = aEscenario(e), { items: lista, sel: actual } = vivo.current;
     const msActual = relojRef.current;
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* sin captura */ }
     antesDelGesto.current = vivo.current.mapa;
 
-    // 1. Tirador de escala de la pieza elegida
     const elegido = lista.find(i => i.uid === actual);
     if (elegido) {
       // 0. El punto B del trayecto (se arrastra para elegir hacia dónde camina)
@@ -188,17 +146,17 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
         gesto.current = { tipo: 'destino', uid: elegido.uid, movido: false };
         return;
       }
-      const b = cajaItem(comoSeVe(elegido), msActual);
-      if (Math.hypot(p.x - (b.x + b.w), p.y - (b.y + b.h)) <= ASA * 2.2) {
-        const pos = posicionItem(comoSeVe(elegido), msActual);
+      // 1. Tirador de tamaño (siempre dentro del escenario, plan 008 T-009)
+      const t = posTirador(cajaItem(quieto(elegido), msActual));
+      if (Math.hypot(p.x - t.x, p.y - t.y) <= ASA * 2.2) {
+        const pos = posicionItem(quieto(elegido), msActual);
         gesto.current = { tipo: 'escalar', uid: elegido.uid, d0: Math.hypot(p.x - pos.x, p.y - pos.y) || 1, e0: elegido.escala, movido: false };
         return;
       }
     }
-    // 2. La pieza bajo el dedo
+    // 2. La pieza bajo el dedo (en pausa, la pieza se toca en su punto A: ahí empieza el trayecto)
     for (let i = lista.length - 1; i >= 0; i--) {
-      // En pausa, la pieza se toca en su punto A (ahí empieza el trayecto).
-      const it = comoSeVe(lista[i]);
+      const it = quieto(lista[i]);
       const b = cajaItem(it, msActual);
       if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) {
         setSel(lista[i].uid);
@@ -226,20 +184,19 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
         const destino = it.destino && { x: Math.min(ESCENARIO, Math.max(0, it.destino.x + x - it.x)), y: Math.min(ESCENARIO, Math.max(0, it.destino.y + y - it.y)) };
         return { ...it, x, y, destino };
       }
-      return { ...it, escala: limitar(it.tipo, g.e0 * (Math.hypot(p.x - it.x, p.y - it.y) / g.d0)) };
+      return { ...it, escala: limitarEscala(it.tipo, g.e0 * (Math.hypot(p.x - it.x, p.y - it.y) / g.d0)) };
     }));
   };
 
   const alSoltar = () => { gesto.current = null; };
 
   const agregar = (tipo: string, en?: { x: number; y: number }) => {
+    if (vivo.current.items.length >= MAX_PIEZAS) return;
     registrar();
-    const n = vivo.current.items.length, uid = uidSig.current++;
-    const zona = esc.piezas[tipo];
-    const it: Item = {
-      uid, tipo, escala: ESCALA_INICIAL[tipo] ?? 1, espejo: false, variante: 0,
-      x: en?.x ?? ESCENARIO / 2 + ((n * 23) % 70) - 35, y: en?.y ?? (zona === 'cielo' ? 70 : zona === 'agua' ? 128 : 172),
-    };
+    const uid = uidSig.current++;
+    const escala = escalaInicial(tipo);
+    const pos = en ?? posicionNueva(vivo.current.escId, tipo, escala, vivo.current.items);
+    const it: Item = { uid, tipo, escala, espejo: false, variante: 0, x: pos.x, y: pos.y };
     actualizar(l => [...l, it]);
     setSel(uid);
   };
@@ -252,30 +209,16 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
     setSel(null);
   }, [actualizar, registrar]);
 
-  const duplicar = () => {
-    const it = vivo.current.items.find(i => i.uid === vivo.current.sel);
-    if (!it) return;
-    registrar();
-    const uid = uidSig.current++;
-    actualizar(l => [...l, { ...it, uid, x: Math.min(ESCENARIO - 10, it.x + 14), y: Math.min(ESCENARIO - 10, it.y + 8) }]);
-    setSel(uid);
-  };
-
   const alFrente = () => { registrar(); actualizar(l => { const it = l.find(i => i.uid === vivo.current.sel); return it ? [...l.filter(i => i !== it), it] : l; }); };
   const alFondo = () => { registrar(); actualizar(l => { const it = l.find(i => i.uid === vivo.current.sel); return it ? [it, ...l.filter(i => i !== it)] : l; }); };
   const vaciar = () => { registrar(); actualizar(() => []); setSel(null); };
 
-  const ES_MOVIL = (tipo: string) => ['pudu', 'pinguino', 'paloma', 'pez', 'condor', 'gaviota', 'picaflor', 'carpintero', 'chucao', 'huemul', 'guanaco'].includes(tipo);
-
   const sorprender = () => {
     registrar();
-    const nuevas: Item[] = sorprendeme(vivo.current.escId, uidSig.current).map(it => {
-      const movil = ES_MOVIL(it.tipo);
-      return {
-        ...it,
-        destino: movil ? { x: Math.max(30, Math.min(210, it.x + (it.espejo ? -60 : 60))), y: it.y } : undefined,
-      };
-    });
+    const nuevas: Item[] = sorprendeme(vivo.current.escId, uidSig.current, MAX_PIEZAS).map(it => ({
+      ...it,
+      destino: pieza(it.tipo).movil ? { x: Math.max(30, Math.min(210, it.x + (it.espejo ? -60 : 60))), y: it.y } : undefined,
+    }));
     uidSig.current += nuevas.length;
     actualizar(() => nuevas);
     setSel(null);
@@ -307,6 +250,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
     }
   };
 
+  // Atajos: borrar, deshacer y rehacer. A propósito NO hay duplicar ni copiar y pegar (rompen la escena).
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => {
       if ((e.key === 'Delete' || e.key === 'Backspace') && vivo.current.sel != null) { e.preventDefault(); quitar(); }
@@ -332,7 +276,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
   const grabar = async () => {
     const { items: lista, fps: f, fondo, borde: conBorde } = vivo.current;
     if (!lista.length || grabando !== null) return;
-    setErrorVideo(''); setGrabando(0);
+    setErrorVideo(''); setGrabando(0); vivo.current.grabando = true;
     try {
       await cargarFuentesTarjeta();
       const escena = document.createElement('canvas');
@@ -359,21 +303,20 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
       setErrorVideo(e instanceof Error ? e.message : 'No se pudo grabar el loop.');
     } finally {
       setGrabando(null);
+      sucio.current = true;
     }
   };
 
   const elegido = items.find(i => i.uid === sel) ?? null;
-
   const ocupado = grabando !== null;
-  const ayuda = !listo ? 'Cargando piezas…'
-    : items.length === 0 ? 'Arrastra una pieza de la biblioteca al escenario o prueba «Sorpréndeme»'
-    : elegido ? `Seleccionado: ${pieza(elegido.tipo).nombre} · Arrastra para mover o tira de la esquina amarilla para tamaño`
-    : 'Toca cualquier figura del escenario para seleccionarla';
-
-
-  const ICONO_ESC: Record<string, string> = { cordillera: 'landscape', mar: 'water', bosque: 'forest', desierto: 'wb_sunny' };
   const p = elegido && pieza(elegido.tipo);
   const variantes = p?.variantes ?? [];
+  // Ayuda corta en la barra superior; la instrucción completa va en el panel, donde puede ocupar dos líneas.
+  const ayuda = !listo ? 'Preparando las piezas…'
+    : items.length === 0 ? 'Arrastra piezas al escenario'
+    : elegido ? `${p!.nombre} elegido`
+    : lleno ? `Llegaste a ${MAX_PIEZAS} piezas`
+    : 'Toca una figura para editarla';
 
   return (<>
     <PantallaHerramienta
@@ -382,65 +325,80 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
         <BarraSuperior titulo="Teatro de Papel" bajada={ayuda}>
           <BotonAccion icono="undo" etiqueta="Deshacer" onClick={deshacer} disabled={!puedeDeshacer} />
           <BotonAccion icono="redo" etiqueta="Rehacer" onClick={rehacer} disabled={!puedeRehacer} />
-          <BotonAccion icono="auto_awesome" texto="Sorpréndeme" onClick={sorprender} disabled={!listo} />
+          <BotonAccion icono="auto_awesome" texto="Sorpréndeme" onClick={sorprender} disabled={!listo || ocupado} />
           <BotonAccion icono="download" texto="Tarjeta" etiqueta="Descargar la tarjeta PNG" onClick={exportar} disabled={items.length === 0 || ocupado} />
           {puedeGrabar() && (
             <BotonAccion icono="movie" primario onClick={grabar} disabled={items.length === 0 || ocupado}
-              texto={grabando === null ? 'Grabar loop' : `Grabando… ${Math.round(grabando * 100)} %`} />
+              texto={grabando === null ? 'Grabar loop' : `Grabando ${Math.round(grabando * 100)} %`} />
           )}
         </BarraSuperior>
       }
       lateral={<>
         <Seccion titulo="Escenario">
-          <Segmentado etiqueta="Escenario" valor={escId} onCambiar={id => { setEscId(id); setSel(null); }}
-            opciones={ESCENARIOS.map(e => ({ valor: e.id, texto: <span className="esc-op"><span className="material-symbols-outlined" aria-hidden="true">{ICONO_ESC[e.id]}</span>{e.nombre}</span> }))} />
-        </Seccion>
-
-        <Seccion titulo="Biblioteca · arrastra al escenario">
-          <div className="bandeja">
-            {PIEZAS.filter(pz => pz.id in esc.piezas).map(pz => (
-              <button key={pz.id} type="button" className="k-btn pieza-btn" disabled={!listo} aria-label={`Añadir ${pz.nombre}`} title={pz.nombre}
-                onClick={e => { if (e.detail === 0) agregar(pz.id); }}
-                onPointerDown={e => { toque.current = { tipo: pz.id, x: e.clientX, y: e.clientY }; try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* sin captura */ } }}
-                onPointerMove={e => {
-                  const t = toque.current;
-                  if (t && (fantasma || Math.hypot(e.clientX - t.x, e.clientY - t.y) > 8)) setFantasma({ tipo: t.tipo, x: e.clientX, y: e.clientY });
-                }}
-                onPointerUp={soltarFantasma}
-                onPointerCancel={() => { toque.current = null; setFantasma(null); }}>
-                {miniaturas[pz.id] ? <img src={miniaturas[pz.id]} alt="" draggable={false} /> : <span className="pieza-vacia" />}
-                <span>{pz.nombre}</span>
+          <div className="k-seg escenarios" role="radiogroup" aria-label="Escenario">
+            {ESCENARIOS.map(e => (
+              <button key={e.id} type="button" role="radio" aria-checked={escId === e.id} disabled={ocupado}
+                onClick={() => { setEscId(e.id); setSel(null); }}>
+                <span className="material-symbols-outlined" aria-hidden="true">{ICONO_ESC[e.id]}</span>{e.nombre}
               </button>
             ))}
           </div>
         </Seccion>
 
-        <Seccion titulo={elegido ? `Propiedades · ${p!.nombre}` : 'Propiedades'} crece>
+        <Seccion titulo={lleno ? `Biblioteca · tope de ${MAX_PIEZAS}` : 'Biblioteca'}>
+          {lleno && <p className="k-ayuda">Llegaste a {MAX_PIEZAS} piezas: quita una para sumar otra.</p>}
+          <div className="bandeja">
+            {Object.keys(esc.piezas).map(id => {
+              const pz = pieza(id), mini = miniaturaDe(id);
+              return (
+                <button key={id} type="button" className="k-btn pieza-btn" disabled={!listo || lleno || ocupado} aria-label={`Añadir ${pz.nombre}`}
+                  onClick={e => { if (e.detail === 0) agregar(id); }}
+                  onPointerDown={e => { toque.current = { tipo: id, x: e.clientX, y: e.clientY }; try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* sin captura */ } }}
+                  onPointerMove={e => {
+                    const t = toque.current;
+                    if (t && (fantasma || Math.hypot(e.clientX - t.x, e.clientY - t.y) > 8)) setFantasma({ tipo: t.tipo, x: e.clientX, y: e.clientY });
+                  }}
+                  onPointerUp={soltarFantasma}
+                  onPointerCancel={() => { toque.current = null; setFantasma(null); }}>
+                  {mini ? <img src={mini} alt="" draggable={false} /> : <span className="pieza-vacia" />}
+                  <span className="pieza-nombre">{pz.nombre}</span>
+                </button>
+              );
+            })}
+          </div>
+        </Seccion>
+
+        <Seccion titulo={elegido ? p!.nombre : 'Pieza elegida'}>
           {!elegido && <p className="k-ayuda">Toca una figura del escenario (o su fila en la línea de tiempo) para moverla, cambiar su tamaño, su animación o su trayecto.</p>}
           {elegido && (<>
-            {ES_MOVIL(elegido.tipo) && (
+            <p className="k-ayuda">Arrástrala para moverla. Tira del círculo amarillo para cambiar su tamaño.</p>
+            {variantes.length > 1 && (
+              <Segmentado etiqueta="Animación" valor={elegido.variante ?? 0} onCambiar={n => cambiarElegida(i => ({ ...i, variante: n }))}
+                opciones={variantes.map((v, n) => ({ valor: n, texto: v.nombre }))} />
+            )}
+            {p!.movil && (
               <Segmentado etiqueta="Trayecto" valor={elegido.destino ? 'camina' : 'fijo'}
                 onCambiar={v => {
                   if (v === 'fijo') cambiarElegida(i => ({ ...i, destino: undefined }));
                   else if (!elegido.destino) cambiarElegida(i => ({ ...i, destino: { x: Math.max(25, Math.min(215, Math.round(i.x + (i.espejo ? -70 : 70)))), y: i.y } }));
                 }}
-                opciones={[{ valor: 'fijo', texto: 'En su lugar' }, { valor: 'camina', texto: 'Camina A → B' }]} />
+                opciones={[{ valor: 'fijo', texto: 'Quieto' }, { valor: 'camina', texto: 'De A a B' }]} />
             )}
-            {variantes.length > 1 && (
-              <Segmentado etiqueta="Animación" valor={elegido.variante ?? 0} onCambiar={n => cambiarElegida(i => ({ ...i, variante: n }))}
-                opciones={variantes.map((v, n) => ({ valor: n, texto: v.nombre }))} />
+            {p!.colores && (
+              <Paleta etiqueta={`Color del ${p!.nombre.toLowerCase()}`} colores={Object.fromEntries(p!.colores.map(c => [c.nombre, c.hex]))}
+                elegido={(p!.colores.find(c => c.id === elegido.color) ?? p!.colores[0]).nombre}
+                onElegir={n => { const c = p!.colores!.find(x => x.nombre === n); if (c) cambiarElegida(i => ({ ...i, color: c.id })); }} />
             )}
             <div className="transformar">
-              <BotonAccion icono="zoom_in" etiqueta="Más grande" onClick={() => cambiarElegida(i => ({ ...i, escala: limitar(i.tipo, i.escala * 1.15) }))} />
-              <BotonAccion icono="zoom_out" etiqueta="Más chica" onClick={() => cambiarElegida(i => ({ ...i, escala: limitar(i.tipo, i.escala / 1.15) }))} />
-              <BotonAccion icono="flip" etiqueta="Voltear" onClick={() => cambiarElegida(i => ({ ...i, espejo: !i.espejo }))} />
-              {elegido.destino && <BotonAccion icono="swap_horiz" etiqueta="Invertir el trayecto" onClick={() => cambiarElegida(i => i.destino ? ({ ...i, x: i.destino.x, y: i.destino.y, destino: { x: i.x, y: i.y }, espejo: !i.espejo }) : i)} />}
-              <BotonAccion icono="flip_to_front" etiqueta="Al frente" onClick={alFrente} />
-              <BotonAccion icono="flip_to_back" etiqueta="Al fondo" onClick={alFondo} />
-              <BotonAccion icono="content_copy" etiqueta="Duplicar" onClick={duplicar} />
-              <BotonAccion icono="delete" etiqueta="Quitar" onClick={quitar} />
+              <BotonEtiquetado icono="zoom_in" texto="Agrandar" onClick={() => cambiarElegida(i => ({ ...i, escala: limitarEscala(i.tipo, i.escala * 1.15) }))} />
+              <BotonEtiquetado icono="zoom_out" texto="Achicar" onClick={() => cambiarElegida(i => ({ ...i, escala: limitarEscala(i.tipo, i.escala / 1.15) }))} />
+              <BotonEtiquetado icono="flip" texto="Voltear" onClick={() => cambiarElegida(i => ({ ...i, espejo: !i.espejo }))} />
+              {elegido.destino && <BotonEtiquetado icono="swap_horiz" texto="Invertir" etiqueta="Invertir el trayecto" onClick={() => cambiarElegida(i => i.destino ? ({ ...i, x: i.destino.x, y: i.destino.y, destino: { x: i.x, y: i.y }, espejo: !i.espejo }) : i)} />}
+              <BotonEtiquetado icono="flip_to_front" texto="Al frente" onClick={alFrente} />
+              <BotonEtiquetado icono="flip_to_back" texto="Al fondo" onClick={alFondo} />
+              <BotonEtiquetado icono="delete" texto="Quitar" onClick={quitar} />
             </div>
-            {elegido.destino && <p className="k-ayuda">{pausado ? 'Arrastra el punto verde B en el escenario. En la línea de tiempo, mueve B para elegir cuándo llega.' : 'Pausa el loop para editar el trayecto.'}</p>}
+            {elegido.destino && <p className="k-ayuda">Arrastra el punto verde B en el escenario. En la línea de tiempo, mueve B para elegir cuándo llega.</p>}
           </>)}
         </Seccion>
         <Confirmar icono="restart_alt" texto="Vaciar el escenario" disabled={items.length === 0 || ocupado} onConfirmar={vaciar} />
@@ -448,7 +406,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
       </>}
       inferior={
         <LineaDeTiempo
-          items={items} sel={sel} tiempo={tiempoVisual} pausado={pausado} fps={fps} borde={borde}
+          items={items} sel={sel} tiempo={tiempoVisual} pausado={pausado} fps={fps} borde={borde} max={MAX_PIEZAS}
           onPlay={() => setPausado(v => !v)}
           onTiempo={ms => { setPausado(true); cambiarTiempoManual(ms); }}
           onFps={setFps} onBorde={setBorde}
@@ -471,11 +429,27 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo }) => {
             onPointerCancel={alSoltar}
             aria-label={`Escenario ${esc.nombre}: toca una pieza para moverla`}
           />
+          {!listo && <Carga hechas={carga.hechas} total={carga.total} />}
+          {ocupado && <div className="velo-grabando" role="status"><span className="material-symbols-outlined" aria-hidden="true">movie</span>Grabando tu loop…</div>}
         </div>
       </div>
     </PantallaHerramienta>
-    {fantasma && miniaturas[fantasma.tipo] && (
-      <img className="fantasma" src={miniaturas[fantasma.tipo]} alt="" style={{ left: fantasma.x, top: fantasma.y }} />
+    {fantasma && miniaturaDe(fantasma.tipo) && (
+      <img className="fantasma" src={miniaturaDe(fantasma.tipo)} alt="" style={{ left: fantasma.x, top: fantasma.y }} />
     )}
   </>);
 };
+
+// Botón de propiedades: ícono con su nombre debajo (plan 008, T-011).
+const BotonEtiquetado: React.FC<{ icono: string; texto: string; etiqueta?: string; onClick: () => void }> = ({ icono, texto, etiqueta, onClick }) => (
+  <button type="button" className="k-btn prop-btn" onClick={onClick} aria-label={etiqueta ?? texto}>
+    <span className="material-symbols-outlined" aria-hidden="true">{icono}</span>
+    <span className="prop-texto">{texto}</span>
+  </button>
+);
+
+// Tirador de tamaño: la esquina de la caja, pero siempre dentro del escenario para poder tomarlo (plan 008, T-009).
+export const posTirador = (b: { x: number; y: number; w: number; h: number }) => ({
+  x: Math.min(ESCENARIO - ASA, Math.max(ASA, b.x + b.w)),
+  y: Math.min(ESCENARIO - ASA, Math.max(ASA, b.y + b.h)),
+});

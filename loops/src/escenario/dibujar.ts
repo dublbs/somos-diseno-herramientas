@@ -1,5 +1,6 @@
 import { muestrear, type Pista } from './animacion';
-import { FONDO, FONDO_BOSQUE, FONDO_DESIERTO, FONDO_MAR, pieza, PIEZAS, type Capa } from './piezas';
+import { FONDO, pieza, tinteDe, type Capa } from './piezas';
+import { dimension, raster } from './recursos';
 
 export interface Item {
   uid: number;
@@ -11,6 +12,7 @@ export interface Item {
   variante?: number; // forma de moverse (índice en `variantes` de la pieza)
   destino?: { x: number; y: number }; // Punto B (llegada) personalizado estilo After Effects
   llegada?: number; // keyframe B en la línea de tiempo: fracción del loop en que llega a B (0,1); vuelve a A al final
+  color?: string; // id del color elegido (solo piezas con `colores`)
 }
 
 export const DURACION_TRAYECTO = 4000;
@@ -39,67 +41,6 @@ export function posicionItem(it: Item, ms = 0): { x: number; y: number; espejo: 
   return { x, y, espejo };
 }
 
-const cache = new Map<string, HTMLImageElement>();
-const dimensionesLogicas = new Map<string, { w: number; h: number }>();
-
-export async function cargarImagen(src: string): Promise<HTMLImageElement> {
-  const hay = cache.get(src);
-  if (hay) return hay.complete ? Promise.resolve(hay) : new Promise(r => hay.addEventListener('load', () => r(hay), { once: true }));
-
-  if (src.endsWith('.svg')) {
-    try {
-      const resp = await fetch(src);
-      if (resp.ok) {
-        let svg = await resp.text();
-        const vbMatch = svg.match(/viewBox="([^"]+)"/);
-        const wMatch = svg.match(/width="([^"]+)"/);
-        const hMatch = svg.match(/height="([^"]+)"/);
-
-        let origW = wMatch ? parseFloat(wMatch[1]) : 240;
-        let origH = hMatch ? parseFloat(hMatch[1]) : 240;
-
-        if (vbMatch) {
-          const parts = vbMatch[1].trim().split(/\s+/).map(Number);
-          if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
-            origW = parts[2];
-            origH = parts[3];
-          }
-        } else {
-          svg = svg.replace('<svg', `<svg viewBox="0 0 ${origW} ${origH}"`);
-        }
-
-        dimensionesLogicas.set(src, { w: origW, h: origH });
-
-        // Multiplicador 4x (mínimo 960px) para máxima nitidez vectorial en pantallas Retina y al agrandar figuras
-        const mult = Math.max(4, Math.ceil(960 / Math.max(origW, origH)));
-        const nuevoW = Math.round(origW * mult);
-        const nuevoH = Math.round(origH * mult);
-
-        svg = svg.replace(/width="[^"]+"/, `width="${nuevoW}"`);
-        svg = svg.replace(/height="[^"]+"/, `height="${nuevoH}"`);
-
-        const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
-        const blobUrl = URL.createObjectURL(blob);
-        const im = new Image();
-        cache.set(src, im);
-        return new Promise((res, rej) => {
-          im.onload = () => res(im);
-          im.onerror = rej;
-          im.src = blobUrl;
-        });
-      }
-    } catch {
-      // Fallback a carga estándar si fetch no está disponible
-    }
-  }
-
-  const im = new Image();
-  cache.set(src, im);
-  return new Promise((res, rej) => { im.onload = () => res(im); im.onerror = rej; im.src = src; });
-}
-export const cargarTodo = () =>
-  Promise.all([...FONDO.capas, ...FONDO_MAR.capas, ...FONDO_DESIERTO.capas, ...FONDO_BOSQUE.capas, ...PIEZAS.flatMap(p => p.capas)].map(c => cargarImagen(c.src)));
-
 function aplicar(ctx: CanvasRenderingContext2D, pistas: Pista[] | undefined, u: number, pivote?: [number, number]) {
   if (!pistas?.length) return;
   let dx = 0, dy = 0, rot = 0, sx = 1, sy = 1;
@@ -116,29 +57,30 @@ function aplicar(ctx: CanvasRenderingContext2D, pistas: Pista[] | undefined, u: 
   if (pivote) ctx.translate(-pivote[0], -pivote[1]);
 }
 
-function dibujarCapas(ctx: CanvasRenderingContext2D, capas: Capa[], durMs: number, ms: number, pistas?: (Pista[] | undefined)[]) {
+function dibujarCapas(ctx: CanvasRenderingContext2D, capas: Capa[], durMs: number, ms: number, pistas?: (Pista[] | undefined)[], tinte?: string) {
   const u = (ms % durMs) / durMs;
   for (let i = 0; i < capas.length; i++) {
     const c = capas[i];
-    const im = cache.get(c.src);
-    if (!im || !im.complete) continue;
-    const dim = dimensionesLogicas.get(c.src);
-    const w = c.w ?? dim?.w ?? (im.naturalWidth > 500 ? 240 : im.naturalWidth);
-    const h = c.h ?? dim?.h ?? (im.naturalHeight > 500 ? 240 : im.naturalHeight);
-    ctx.save();
-    aplicar(ctx, pistas ? pistas[i] : c.pistas, u, c.pivote);
-    ctx.drawImage(im, c.x, c.y, w, h);
-    ctx.restore();
+    const r = raster(c.src, tinte), d = dimension(c.src);
+    if (!r || !d) continue;
+    const kx = (c.w ?? d.w) / d.w, ky = (c.h ?? d.h) / d.h;
+    const p = pistas ? pistas[i] : c.pistas;
+    if (p?.length) {
+      ctx.save();
+      aplicar(ctx, p, u, c.pivote);
+      ctx.drawImage(r.lienzo, c.x + r.x * kx, c.y + r.y * ky, r.w * kx, r.h * ky);
+      ctx.restore();
+    } else ctx.drawImage(r.lienzo, c.x + r.x * kx, c.y + r.y * ky, r.w * kx, r.h * ky);
   }
 }
 
 // Dibuja la pieza en su marco de 240 × 240 (sin recorte artificial para permitir movimiento natural).
-export function dibujarMarco(ctx: CanvasRenderingContext2D, tipo: string, ms: number, variante = 0) {
+export function dibujarMarco(ctx: CanvasRenderingContext2D, tipo: string, ms: number, variante = 0, color?: string) {
   const p = pieza(tipo), v = p.variantes?.[variante] ?? null, dur = v?.durMs ?? p.durMs;
   ctx.save();
   const u = (ms % dur) / dur;
   aplicar(ctx, v ? v.grupo : p.grupo, u, p.pivote);
-  dibujarCapas(ctx, p.capas, dur, ms, v?.pistas);
+  dibujarCapas(ctx, p.capas, dur, ms, v?.pistas, tinteDe(tipo, color));
   for (const parte of p.partes ?? []) {
     ctx.save();
     ctx.translate(parte.x, parte.y);
@@ -150,17 +92,26 @@ export function dibujarMarco(ctx: CanvasRenderingContext2D, tipo: string, ms: nu
 }
 
 // Dibuja una pieza con su caja centrada en (0,0) y escala 1 = tamaño del marco de 240.
-export function dibujarPieza(ctx: CanvasRenderingContext2D, tipo: string, ms: number, variante = 0) {
+export function dibujarPieza(ctx: CanvasRenderingContext2D, tipo: string, ms: number, variante = 0, color?: string) {
   const [bx, by, bw, bh] = pieza(tipo).caja;
   ctx.save();
   ctx.translate(-(bx + bw / 2), -(by + bh / 2));
-  dibujarMarco(ctx, tipo, ms, variante);
+  dibujarMarco(ctx, tipo, ms, variante, color);
   ctx.restore();
 }
 
 // Borde de papel: cada pieza se recorta con un contorno de hueso y una sombra suave, como un papel pegado encima.
+// La pieza se pinta una vez en un lienzo auxiliar (que solo crece, nunca se reasigna por cuadro); de ahí salen la
+// silueta hueso, la sombra y el borde (8 copias desplazadas), y la pieza se copia encima sin volver a trazarla.
 const HUESO = '#F4EEE3', BORDE = 1.5; // grosor del borde, en unidades del escenario
 const tmp = document.createElement('canvas'), sil = document.createElement('canvas');
+const ctxTmp = tmp.getContext('2d')!, ctxSil = sil.getContext('2d')!;
+const DIRS = Array.from({ length: 8 }, (_, i) => [Math.cos((i / 8) * Math.PI * 2), Math.sin((i / 8) * Math.PI * 2)]);
+function asegurar(w: number, h: number) {
+  if (tmp.width >= w && tmp.height >= h) return;
+  tmp.width = sil.width = Math.max(tmp.width, Math.ceil(w * 1.2));
+  tmp.height = sil.height = Math.max(tmp.height, Math.ceil(h * 1.2));
+}
 
 function dibujarItem(ctx: CanvasRenderingContext2D, it: Item, ms: number, size: number, borde: boolean) {
   const pos = posicionItem(it, ms);
@@ -168,52 +119,37 @@ function dibujarItem(ctx: CanvasRenderingContext2D, it: Item, ms: number, size: 
     c.save();
     c.translate(pos.x, pos.y);
     c.scale(it.escala * (pos.espejo ? -1 : 1), it.escala);
-    dibujarPieza(c, it.tipo, ms, it.variante ?? 0);
+    dibujarPieza(c, it.tipo, ms, it.variante ?? 0, it.color);
     c.restore();
   };
   if (!borde) { trazar(ctx); return; }
 
-  // Margen amplio para que ninguna rama, ala, cola ni espina sufra clipping al rotar o vibrar
-  const k = size / ESCENARIO, b = cajaItem(it, ms), m = Math.max(36, BORDE * 14) * Math.max(1, it.escala);
-  const bx = b.x - m, by = b.y - m, w = Math.max(1, Math.ceil((b.w + 2 * m) * k)), h = Math.max(1, Math.ceil((b.h + 2 * m) * k));
-  tmp.width = sil.width = w; tmp.height = sil.height = h;
-  const t = tmp.getContext('2d')!;
-  t.clearRect(0, 0, w, h);
-  t.imageSmoothingEnabled = true;
-  t.imageSmoothingQuality = 'high';
-  t.setTransform(k, 0, 0, k, -bx * k, -by * k);
-  trazar(t);
+  // Margen para que alas, colas y ramas que salen de la caja al moverse no se corten.
+  const k = size / ESCENARIO, b = cajaItem(it, ms), m = Math.max(b.w, b.h) * 0.3 + BORDE * 3;
+  const bx = b.x - m, by = b.y - m;
+  const w = Math.max(1, Math.ceil((b.w + 2 * m) * k)), h = Math.max(1, Math.ceil((b.h + 2 * m) * k));
+  asegurar(w, h);
+  ctxTmp.setTransform(1, 0, 0, 1, 0, 0);
+  ctxTmp.clearRect(0, 0, w, h);
+  ctxTmp.setTransform(k, 0, 0, k, -bx * k, -by * k);
+  trazar(ctxTmp);
 
-  const sx = sil.getContext('2d')!;
-  sx.clearRect(0, 0, w, h);
-  sx.imageSmoothingEnabled = true;
-  sx.imageSmoothingQuality = 'high';
-  sx.globalCompositeOperation = 'source-over';
-  sx.drawImage(tmp, 0, 0);
-  sx.globalCompositeOperation = 'source-in';
-  sx.fillStyle = HUESO; sx.fillRect(0, 0, w, h);
+  ctxSil.globalCompositeOperation = 'copy';
+  ctxSil.drawImage(tmp, 0, 0, w, h, 0, 0, w, h);
+  ctxSil.globalCompositeOperation = 'source-in';
+  ctxSil.fillStyle = HUESO; ctxSil.fillRect(0, 0, w, h);
+  ctxSil.globalCompositeOperation = 'source-over';
 
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
   const ox = bx * k, oy = by * k, r = BORDE * k;
-  
-  // Sombra suave inferior
   ctx.save();
   ctx.shadowColor = 'rgba(0,0,0,0.28)'; ctx.shadowBlur = 3 * k; ctx.shadowOffsetX = 1 * k; ctx.shadowOffsetY = 2 * k;
-  ctx.drawImage(sil, ox, oy);
+  ctx.drawImage(sil, 0, 0, w, h, ox, oy, w, h);
   ctx.restore();
-
-  // Borde de papel suave
-  for (let i = 0; i < 16; i++) {
-    const a = (i / 16) * Math.PI * 2;
-    ctx.drawImage(sil, ox + Math.cos(a) * r, oy + Math.sin(a) * r);
-  }
+  for (const [dx, dy] of DIRS) ctx.drawImage(sil, 0, 0, w, h, ox + dx * r, oy + dy * r, w, h);
+  ctx.drawImage(tmp, 0, 0, w, h, ox, oy, w, h);
   ctx.restore();
-
-  // Dibujar la pieza original directamente en el lienzo destino para máxima nitidez vectorial
-  trazar(ctx);
 }
 
 export function dibujarEscenario(
@@ -259,7 +195,7 @@ export function dibujarSeleccion(ctx: CanvasRenderingContext2D, size: number, it
       ctx.globalAlpha = 0.35;
       ctx.translate(d.x, d.y);
       ctx.scale(it.escala * (d.x < it.x ? -1 : 1), it.escala);
-      dibujarPieza(ctx, it.tipo, ms, it.variante ?? 0);
+      dibujarPieza(ctx, it.tipo, ms, it.variante ?? 0, it.color);
       ctx.restore();
     }
     ctx.save();

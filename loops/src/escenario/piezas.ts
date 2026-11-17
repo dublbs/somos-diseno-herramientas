@@ -1,4 +1,5 @@
 import type { Curva, Pista } from './animacion';
+import { PPU_FONDO, PPU_PIEZA, registrarTinte, type Tinte } from './recursos';
 
 // Piezas de Orgánica armadas con las capas y el movimiento de Figma (archivo SomosDiseño).
 // Todas las coordenadas están en el marco de 240 × 240 de cada pieza. El `pivote` es el centro
@@ -34,7 +35,14 @@ export interface Pieza {
   partes?: { tipo: string; x: number; y: number; escala: number; fase: number }[]; // piezas dentro de la pieza
   muestra?: number; // momento del ciclo (0..1) para la miniatura
   variantes?: Variante[]; // distintas animaciones de la misma pieza; la primera es la de Figma
+  // Perfil (una sola tabla, PERFILES, al final del archivo): tamaño en el escenario y si camina.
+  tam?: number; // tamaño inicial del lado mayor de `caja`, en unidades del escenario (240 = alto del escenario)
+  limites?: [number, number]; // tamaño mínimo y máximo del lado mayor, en unidades del escenario
+  movil?: boolean; // puede caminar de A a B
+  colores?: ColorPieza[]; // colores para elegir (el primero es el inicial)
 }
+
+export interface ColorPieza { id: string; nombre: string; hex: string; tinte: Tinte }
 
 const A = (ruta: string) => `${import.meta.env.BASE_URL}figma/organica/${ruta}.svg`;
 const T5 = [0, 0.25, 0.5, 0.75, 1];
@@ -379,10 +387,73 @@ const lluvia: Pieza = {
   ],
 };
 
-export const PIEZAS: Pieza[] = [pudu2, palomaV, solV, araucariaV, pina, helechoV, quiscoV, florV, pezV, pinguinoV, cantaro, canasto, kisaV,
+const LISTA: Pieza[] = [pudu2, palomaV, solV, araucariaV, pina, helechoV, quiscoV, florV, pezV, pinguinoV, cantaro, canasto, kisaV,
   condor, gaviota, picaflor, carpintero, chucao, huemul, guanaco, chagual, cochayuyo, doca, concha, chanar, alerce, copihue, maqui, telar, luna, lluvia];
 
-export const pieza = (id: string) => PIEZAS.find(p => p.id === id)!;
+// ---- Perfil de cada pieza: la ÚNICA tabla por tipo (tamaño en el escenario, límites, si camina, colores) ----
+// Tamaños en unidades del escenario (240 = alto). Un cóndor en el cielo es chico; una araucaria, alta; un huemul, mediano.
+// Mínimo y máximo dejan agrandar o achicar sin que la pieza se coma la escena ni desaparezca.
+type Perfil = { tam: number; min?: number; max?: number; movil?: boolean; colores?: ColorPieza[] };
+const AMARILLO = '#FFC20E', ROSA = '#FF8FB1', VERDE = '#00A651', HUESO = '#F4EEE3', NEGRO = '#000000';
+// Pez: el cuerpo era Lapislázuli y en el mar no se notaba. Colores que siempre contrastan con el agua azul.
+const tintePez = (cuerpo: string, escamas: string): Tinte => ({ '#2B4BD8': cuerpo, '#7FC8F8': escamas });
+const COLORES_PEZ: ColorPieza[] = [
+  { id: 'amarillo', nombre: 'Amarillo', hex: AMARILLO, tinte: tintePez(AMARILLO, HUESO) },
+  { id: 'rosa', nombre: 'Rosa', hex: ROSA, tinte: tintePez(ROSA, HUESO) },
+  { id: 'verde', nombre: 'Verde', hex: VERDE, tinte: tintePez(VERDE, AMARILLO) },
+  { id: 'hueso', nombre: 'Hueso', hex: HUESO, tinte: tintePez(HUESO, ROSA) },
+  { id: 'negro', nombre: 'Negro', hex: NEGRO, tinte: tintePez(NEGRO, AMARILLO) },
+];
+const PERFILES: Record<string, Perfil> = {
+  // astros y cielo
+  sol: { tam: 46, min: 30, max: 72 }, luna: { tam: 44, min: 28, max: 70 }, lluvia: { tam: 60, min: 40, max: 96 },
+  // aves (vuelan)
+  condor: { tam: 46, min: 26, max: 80, movil: true }, gaviota: { tam: 38, min: 22, max: 64, movil: true },
+  picaflor: { tam: 22, min: 14, max: 40, movil: true }, carpintero: { tam: 34, min: 20, max: 56, movil: true },
+  // animales
+  huemul: { tam: 58, min: 36, max: 92, movil: true }, guanaco: { tam: 66, min: 40, max: 104, movil: true },
+  pudu: { tam: 40, min: 26, max: 66, movil: true }, pinguino: { tam: 46, min: 28, max: 72, movil: true },
+  chucao: { tam: 24, min: 16, max: 40, movil: true }, pez: { tam: 34, min: 20, max: 60, movil: true, colores: COLORES_PEZ },
+  // plantas emblema
+  araucaria: { tam: 110, min: 70, max: 170 }, alerce: { tam: 130, min: 80, max: 190 }, quisco: { tam: 84, min: 50, max: 140 },
+  chagual: { tam: 88, min: 54, max: 140 }, chanar: { tam: 84, min: 50, max: 140 },
+  // plantas chicas
+  helecho: { tam: 52, min: 30, max: 90 }, copihue: { tam: 50, min: 30, max: 84 }, maqui: { tam: 56, min: 34, max: 96 },
+  cochayuyo: { tam: 64, min: 40, max: 110 }, doca: { tam: 36, min: 22, max: 60 }, ananuca: { tam: 40, min: 24, max: 68 },
+  // frutos y hallazgos
+  pina: { tam: 26, min: 16, max: 46 }, concha: { tam: 24, min: 14, max: 42 },
+  // artesanía
+  kisa: { tam: 64, min: 40, max: 104 }, canasto: { tam: 40, min: 24, max: 70 }, cantaro: { tam: 38, min: 22, max: 66 }, telar: { tam: 74, min: 46, max: 120 },
+};
+
+export const PIEZAS: Pieza[] = LISTA.map(p => {
+  const f = PERFILES[p.id] ?? { tam: 60 };
+  const piezaCon: Pieza = { ...p, tam: f.tam, limites: [f.min ?? f.tam * 0.6, f.max ?? f.tam * 1.6], movil: !!f.movil, colores: f.colores };
+  for (const c of f.colores ?? []) registrarTinte(`${p.id}:${c.id}`, c.tinte);
+  return piezaCon;
+});
+
+const PORID = new Map(PIEZAS.map(p => [p.id, p]));
+export const pieza = (id: string) => PORID.get(id)!;
+
+// Escala del item (1 = marco de 240) a partir de un tamaño en el escenario, y al revés.
+const lado = (p: Pieza) => Math.max(p.caja[2], p.caja[3]);
+export const escalaInicial = (tipo: string) => { const p = pieza(tipo); return +(p.tam! / lado(p)).toFixed(3); };
+export const limitarEscala = (tipo: string, escala: number) => {
+  const p = pieza(tipo), [a, b] = p.limites!, l = lado(p);
+  return Math.min(b / l, Math.max(a / l, escala));
+};
+// Tinte con que se dibuja: el color elegido o, si la pieza tiene colores, el primero.
+export const tinteDe = (tipo: string, color?: string) => {
+  const p = pieza(tipo);
+  return p.colores?.length ? `${tipo}:${color ?? p.colores[0].id}` : undefined;
+};
+// Archivos que hay que tener rasterizados para dibujar una pieza (con todos sus colores).
+export const archivosDe = (p: Pieza) => [
+  ...p.capas.map(c => ({ src: c.src, ppu: PPU_PIEZA })),
+  ...(p.colores ?? []).flatMap(col => p.capas.map(c => ({ src: c.src, ppu: PPU_PIEZA, tinte: `${p.id}:${col.id}` }))),
+];
+export const archivosFondo = (f: { capas: Capa[] }) => f.capas.map(c => ({ src: c.src, ppu: PPU_FONDO }));
 
 // Fondo fijo: cielo y cordillera de C6 · Teatro de papel (la cordillera se mece 4 s).
 export const FONDO: { dur: number; capas: Capa[] } = {
