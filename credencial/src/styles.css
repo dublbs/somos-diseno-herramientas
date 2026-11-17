@@ -328,3 +328,9 @@ label.btn { cursor: pointer; }
 .bienvenida-acciones .btn { width: 100%; }
 .timbrado-logro { margin: 0; font-size: 14px; line-height: 1.35; max-width: 30ch; }
 @media (prefers-reduced-motion: reduce) { .flyer-lienzo.mezclado, .bienvenida-tarjeta { animation: none; } }
+/* Pantallas angostas: en Juego y en el flyer los botones quedan solo con la palabra (sin ícono) para que quepa entera. */
+@media (max-width: 400px) {
+  .juego .acciones-movil .btn .material-symbols-outlined, .flyer-acciones .btn:not(:first-child) .material-symbols-outlined { display: none; }
+  [data-visual="Pixel"] .pestanas-grilla.tres button { font-size: 10px; }
+}
+.juego .acciones-movil .btn { line-height: 1.1; }
