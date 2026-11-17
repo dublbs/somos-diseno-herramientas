@@ -30,6 +30,14 @@ done
 | #15, #16 | Ya entraron con el #17 | Cerrar |
 | #12, #10 | De Pipe (Teatro y docs) | Son suyos |
 
+## 2b. Reparto del 17 nov (para no pisarse)
+| Quién | Tareas | Ramas |
+|---|---|---|
+| **Claude de Amaro** | A0 kit + Mosaicos · A5 Fotomatón · A7 flyer (corriendo) · A3 Graffiti (corriendo) · después A2 Audioreactiva y A6 Hora punta · integración | `kit-v2`, `fotomaton-ronda-2`, `flyer-timbre-4`, `graffiti-ronda-2`, `audioreactiva-tactil`, `hora-punta-iso` |
+| **Claude de Felipe (Pipe)** | **A8 Teatro** (es suyo) y **A1 Grabado** (base `amaro/kit-v2`, ya subida con el kit v2 y su `shared/ui/README.md`) | `teatro-ronda-2`, `grabado-afiche` |
+
+Si alguno se queda sin créditos, el otro toma sus ramas leyendo su `AVANCE.md`. Meta: todo aplicado el **18 nov**.
+
 ## 3. Orden de trabajo
 | Ola | Rama | Agente | Base | Depende de |
 |---|---|---|---|---|
