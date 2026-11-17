@@ -35,24 +35,36 @@ npm --prefix <app> run build    # tsc --noEmit && vite build
 ```
 `dist/` está versionado porque el hub enlaza a él: reconstruye la app que toques antes de hacer commit.
 
-## Regla de pantalla: todo cabe sin scroll
-Las experiencias son **herramientas de diseño con barras fijas** (propuesta `docs/plans/005-herramientas-de-diseno.md`) y usan el **kit** de `shared/ui/`:
-- `shared/ui/somos-kit.css` (componentes `k-`, con forma propia por lenguaje según `data-visual`) y `shared/ui/Kit.tsx`:
-  - estructura: `PantallaHerramienta`, `BarraSuperior`, `Seccion`;
-  - herramientas: `BarraHerramientas`, `Paleta`;
-  - controles: `Segmentado`, `Deslizador`, `Interruptor`, `BotonAccion`, `Confirmar`;
-  - estado: `useHistorial` (deshacer y rehacer).
-  - `shared/ui/Llevatela.tsx`: «Llévatela», la forma de exportar de todas las experiencias (plan 011): vista previa → QR que descarga en el celular (24 h). La app suma `qrcode` a `resolve.dedupe` y a `paths`.
-  - `shared/ui/Tutorial.tsx`: `Tutorial` (pantalla previa con 3 pasos, una vez por sesión con `useTutorialVisto`) y `Quiosco` (a los 90 s sin uso avisa 10 s antes y vuelve al inicio borrando lo guardado; `?quiosco=<s>` para probar).
-- Muestra del kit: `docs/kit/muestra.html` (se genera con `python3 scripts/kit-muestra.py`).
-- Para importar el kit, la app agrega `resolve.dedupe: ['react', 'react-dom']` en `vite.config.ts` y `paths` de `react` en `tsconfig.json` (ver `vagon/`).
-- **Pantalla:** barra superior, lienzo, barra derecha y barra inferior, todas fijas.
-  - Nada se colapsa ni se esconde en pestañas, y no hay scroll de página ni de panel.
-  - En vertical, la barra derecha pasa sobre la inferior.
-  - Las barras que lleva cada experiencia están en la tabla de la propuesta 005.
-- Ya usan el kit: Vagón, Graffiti, Mosaicos, Teatro, Grabado, Fotomatón (cámara y edición) y Audioreactiva. Las portadas siguen con `shared/somos-ui.css`, con la misma regla de no scroll.
+## Regla de pantalla: la página no hace scroll; el panel lateral sí (plan 012, D6)
+Las experiencias son **herramientas de diseño** con la anatomía de Figma UI3 y Affinity (plan
+`docs/plans/012-ui-de-herramienta-y-ronda-2.md`). Manda sobre la propuesta 005 donde chocan.
+- **Kit v2 «herramienta»** (lo que se usa desde ahora): `shared/ui/Herramienta.tsx`, `shared/ui/Manijas.tsx` y
+  `shared/ui/herramienta.css` (prefijo `h-`, tokens `--h-*`, activos con `<html data-ui="v2">`). **API y receta de
+  migración: [`shared/ui/README.md`](shared/ui/README.md).** Muestra: `docs/kit/muestra-v2.html`. Referencia viva:
+  `taller-mosaicos/`.
+  - plantilla `MarcoHerramienta` (+ `LienzoAjustado`); átomos `Boton`, `BotonIcono`, `Segmento`, `Deslizador`,
+    `Interruptor`, `Muestra`; moléculas `SeccionPanel`, `FilaPropiedad`, `GrillaBiblioteca`, `SelectorColor` (Línea azul
+    con escalas), `ListaCapas`; organismos `BarraFlotante`, `BarritaSeleccion`, `Manijas` (mover, girar, escalar,
+    pellizcar); estado `useHistorial` (con `anular`), `useGestosHistorial` (2 dedos deshace, 3 rehace), `useAviso`.
+  - Etapa 1: neutro e igual en todas. Etapa 2: cada lenguaje cambia **solo tokens** (bloque «ETAPA 2» de `herramienta.css`).
+- **Pantalla:** barra superior delgada (volver, título, ↶ ↷, «Llévatelo»), lienzo, **barra de herramientas flotante
+  abajo al centro** (solo herramientas) y **un panel derecho** con propiedades arriba y biblioteca, capas o ajustes abajo.
+  - **Solo el panel lateral tiene scroll** (`overflow-y:auto`, `overscroll-behavior:contain`). La página, el lienzo y la
+    barra de herramientas no. Lo frecuente va arriba en el panel, nunca bajo el scroll.
+  - En vertical el panel pasa abajo con alto fijo y su propio scroll. El lado izquierdo queda libre para el lienzo.
+- Ventanas comunes (iguales en v1 y v2): `shared/ui/Tutorial.tsx` (`Tutorial`, una vez por sesión con
+  `useTutorialVisto`; `Quiosco`, a los 90 s sin uso avisa 10 s antes y vuelve al inicio; `?quiosco=<s>` para probar),
+  `shared/ui/Juego.tsx` (`PuertaJuego`), `shared/ui/Llevatela.tsx` («Llévatela», plan 011: vista previa → QR de 24 h; la
+  app suma `qrcode` a `resolve.dedupe` y a `paths`) y `Confirmar`.
+- **Kit v1** (`shared/ui/Kit.tsx` + `somos-kit.css`, componentes `k-` con forma por `data-visual`): lo siguen usando las
+  apps no migradas y no cambia de API. Muestra: `docs/kit/muestra.html`. Las dos muestras salen de
+  `python3 scripts/kit-muestra.py`.
+- Para importar el kit (v1 o v2), la app agrega `resolve.dedupe: ['react', 'react-dom', 'qrcode']` en `vite.config.ts`
+  y `paths` de `react`, `react/jsx-runtime` y `qrcode` en `tsconfig.json` (ver `taller-mosaicos/`).
 - **Excepción: `credencial/`** es para el celular de cada persona. Su layout propio (`.movil`, 100dvh) cabe sin scroll en 390×844, 412×915 y 360×740.
-- **Verificación:** ninguna resolución de tablet (1024×768, 1180×820, 1280×720, 1366×768, 768×1024, 820×1180) puede tener scroll de página, controles fuera de vista ni panel con scroll. Hay que probar con cada herramienta activa.
+- **Verificación:** en 1024×768, 1180×820, 1280×720, 1366×768, 768×1024 y 820×1180, con cada herramienta activa: sin
+  scroll de página, sin controles fuera de vista (los del panel, alcanzables con su scroll), la barra flotante sin tapar
+  el lienzo ni salirse, y toques ≥ 48 px.
 
 ## Datos compartidos
 - `shared/datos.ts`: lo que las experiencias mandan al HUB (`publicar`) y lo que el HUB escucha (`escuchar`, `recientes`). Local (localStorage + BroadcastChannel) o Supabase por REST si existen `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` (en `.env.local`, nunca en el repo). Guía: `docs/supabase.md`.
@@ -72,7 +84,7 @@ Las experiencias son **herramientas de diseño con barras fijas** (propuesta `do
 - Si algo bloquea o la tarea es ambigua, escribir el bloqueo en la tarea y detenerse. No improvisar arquitectura.
 - No inventar arte: los assets vienen de Figma (Claude Code tiene el MCP) o se generan con un script, y quedan en `<app>/public/figma/` con un manifiesto (ej. `docs/plans/002-graffiti/assets.manifest.md`).
 - No commitear `.env`, claves de Supabase ni `node_modules`. No reescribir historia.
-- Respetar `prefers-reduced-motion` y objetivos táctiles de al menos 44–48 px.
+- Respetar `prefers-reduced-motion` y objetivos táctiles de al menos 48 px (44 solo en lo que aún no migra a v2).
 
 ## Flujo con dos herramientas (opcional)
 Hoy Claude Code ejecuta de punta a punta. Si se reparte trabajo con Antigravity:

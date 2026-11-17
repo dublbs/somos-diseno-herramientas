@@ -3,7 +3,7 @@
   `Herramienta.tsx`, `Manijas.tsx`) y `README.md` con la API. Compila (tsc en taller-mosaicos).
 - Falta, en orden:
   1. (hecho, falta probar funciones) Mosaicos en MarcoHerramienta; medición de pantalla en 6 resoluciones OK.
-  2. Playwright en las 6 resoluciones (puerto 4201), capturas y ajustes.
-  3. `tsc --noEmit` en las 11 apps que importan shared/ui (npm ci en cada una).
-  4. `docs/kit/muestra-v2.html` (script `scripts/kit-muestra.py`) y «Regla de pantalla» de AGENTS.md (D6).
+  2. (hecho) Playwright: 6 resoluciones x 5 herramientas sin fallas; funciones y QR OK.
+  3. (hecho) tsc en las 11 apps: verde.
+  4. (hecho) muestra-v2 y AGENTS.md.
   5. `dist/` de producción de taller-mosaicos con su `.env.local`; borrar este archivo.
