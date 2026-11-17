@@ -3,7 +3,7 @@
 // filtro de grano de un SVG. Se carga por escenario: primero el que se ve, después los demás en segundo plano.
 
 export interface Raster {
-  lienzo: HTMLCanvasElement;
+  lienzo: ImageBitmap | HTMLCanvasElement; // ImageBitmap: queda listo para la GPU, no se vuelve a subir en cada cuadro
   x: number; y: number; w: number; h: number; // en unidades del SVG (su viewBox), relativo a su esquina
 }
 interface Entrada { w: number; h: number; raster: Raster | null }
@@ -59,31 +59,74 @@ async function rasterizar(texto: string, ppu: number, tinte?: Tinte): Promise<En
     await im.decode();
     const c = document.createElement('canvas');
     c.width = W; c.height = H;
-    const ctx = c.getContext('2d', { willReadFrequently: true })!;
-    ctx.drawImage(im, 0, 0, W, H);
-    // Recorte al contenido (muchas capas ocupan el marco entero de 240 con una pata o un ala chica).
-    const d = ctx.getImageData(0, 0, W, H).data;
-    let x0 = W, y0 = H, x1 = -1, y1 = -1;
-    for (let y = 0; y < H; y++) {
-      const fila = y * W * 4;
-      for (let x = 0; x < W; x++) {
-        if (d[fila + x * 4 + 3] > 2) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; y1 = y; }
+    c.getContext('2d')!.drawImage(im, 0, 0, W, H);
+    // Recorte al contenido (muchas capas ocupan el marco entero de 240 con una pata o un ala chica). La caja se busca
+    // en una copia a 1/4 de lado (16 veces menos pixeles que recorrer) y se agranda un poco para no comerse bordes.
+    const R = 4, ws = Math.ceil(W / R), hs = Math.ceil(H / R);
+    const chica = document.createElement('canvas');
+    chica.width = ws; chica.height = hs;
+    const cc = chica.getContext('2d', { willReadFrequently: true })!;
+    cc.drawImage(c, 0, 0, ws, hs);
+    const d = cc.getImageData(0, 0, ws, hs).data;
+    let x0 = ws, y0 = hs, x1 = -1, y1 = -1;
+    for (let y = 0; y < hs; y++) {
+      const fila = y * ws * 4;
+      for (let x = 0; x < ws; x++) {
+        if (d[fila + x * 4 + 3] > 0) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; y1 = y; }
       }
     }
+    chica.width = chica.height = 0;
     if (x1 < 0) return { w, h, raster: null };
-    x0 = Math.max(0, x0 - 1); y0 = Math.max(0, y0 - 1); x1 = Math.min(W - 1, x1 + 1); y1 = Math.min(H - 1, y1 + 1);
+    x0 = Math.max(0, (x0 - 1) * R); y0 = Math.max(0, (y0 - 1) * R); x1 = Math.min(W - 1, (x1 + 2) * R); y1 = Math.min(H - 1, (y1 + 2) * R);
     const cw = x1 - x0 + 1, ch = y1 - y0 + 1;
-    let lienzo = c;
-    if (cw < W || ch < H) {
+    // Un ImageBitmap queda listo para la GPU: no se vuelve a subir en cada cuadro. Sin createImageBitmap
+    // (navegadores viejos), un canvas común.
+    let lienzo: ImageBitmap | HTMLCanvasElement;
+    if (typeof createImageBitmap === 'function') lienzo = await createImageBitmap(c, x0, y0, cw, ch);
+    else {
       lienzo = document.createElement('canvas');
       lienzo.width = cw; lienzo.height = ch;
       lienzo.getContext('2d')!.drawImage(c, x0, y0, cw, ch, 0, 0, cw, ch);
-      c.width = c.height = 0; // suelta la memoria del grande
     }
+    c.width = c.height = 0; // suelta la memoria del grande
     return { w, h, raster: { lienzo, x: x0 / k, y: y0 / k, w: cw / k, h: ch / k } };
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+// ---- Papel: la silueta engrosada de cada capa, toda de hueso (el borde de papel recortado) ----
+// Se calcula una sola vez por capa y grosor, la primera vez que se dibuja, a media resolución (es un color plano).
+// Como engrosar la unión de las capas es lo mismo que unir las capas engrosadas, la pieza animada se dibuja dos veces
+// (papel y encima la pieza) sin lienzos auxiliares por cuadro.
+export const NIVELES_PAPEL = [1.5, 2.25, 3.4, 5, 7.5, 11]; // grosor, en unidades del marco de 240
+const HUESO = '#F4EEE3';
+const DIRS16 = Array.from({ length: 16 }, (_, i) => [Math.cos((i / 16) * Math.PI * 2), Math.sin((i / 16) * Math.PI * 2)]);
+const papeles = new WeakMap<Raster, Map<number, Raster>>();
+export function nivelPapel(grosor: number) {
+  let mejor = 0;
+  for (let i = 1; i < NIVELES_PAPEL.length; i++) if (Math.abs(Math.log(NIVELES_PAPEL[i] / grosor)) < Math.abs(Math.log(NIVELES_PAPEL[mejor] / grosor))) mejor = i;
+  return mejor;
+}
+export function papelDe(r: Raster, nivel: number): Raster {
+  let m = papeles.get(r);
+  if (!m) { m = new Map(); papeles.set(r, m); }
+  let p = m.get(nivel);
+  if (p) return p;
+  const grosor = NIVELES_PAPEL[nivel];
+  const s = (r.lienzo.width / r.w) / 2; // pixeles por unidad, a media resolución
+  const rad = grosor * s, pad = Math.ceil(rad) + 2;
+  const w = Math.max(1, Math.round(r.lienzo.width / 2)), h = Math.max(1, Math.round(r.lienzo.height / 2));
+  const c = document.createElement('canvas');
+  c.width = w + 2 * pad; c.height = h + 2 * pad;
+  const x = c.getContext('2d')!;
+  x.drawImage(r.lienzo, pad, pad, w, h);
+  for (const f of [0.5, 1]) for (const [dx, dy] of DIRS16) x.drawImage(r.lienzo, pad + dx * rad * f, pad + dy * rad * f, w, h);
+  x.globalCompositeOperation = 'source-in';
+  x.fillStyle = HUESO; x.fillRect(0, 0, c.width, c.height);
+  p = { lienzo: c, x: r.x - pad / s, y: r.y - pad / s, w: c.width / s, h: c.height / s };
+  m.set(nivel, p);
+  return p;
 }
 
 export function cargar(src: string, ppu = PPU_PIEZA, tinte?: string): Promise<void> {

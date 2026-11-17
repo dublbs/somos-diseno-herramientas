@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { otorgarCreacion } from '../../../shared/juego';
-import { escalaInicial, limitarEscala, pieza } from '../escenario/piezas';
+import { archivosColor, escalaInicial, limitarEscala, pieza } from '../escenario/piezas';
+import { cargarLote } from '../escenario/recursos';
 import { ESCENARIOS, escenario, posicionNueva } from '../escenario/escenarios';
 import { sorprendeme } from '../escenario/sorprendeme';
 import { miniaturaDe, useCarga } from '../escenario/carga';
@@ -37,6 +38,10 @@ const durDe = (it: Item) => {
 
 const DURACION_LOOP = DURACION_TRAYECTO;
 const RESOLUCION_CANVAS = 1080;
+// Diagnóstico (`?diag` en la URL): cuenta cuadros dibujados y su costo en `window.teatroDiag`.
+const DIAG: { cuadros: number; msDibujo: number } | null = new URLSearchParams(location.search).has('diag')
+  ? ((window as unknown as { teatroDiag: { cuadros: number; msDibujo: number } }).teatroDiag = { cuadros: 0, msDibujo: 0 })
+  : null;
 const ICONO_ESC: Record<string, string> = { cordillera: 'landscape', mar: 'water', bosque: 'forest', desierto: 'wb_sunny' };
 
 export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrabando }) => {
@@ -117,9 +122,11 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
       if (ms === ultimoMs && !sucio.current) return;
       ultimoMs = ms; sucio.current = false;
       // En pausa, la pieza elegida se edita quieta en su punto A; en play, camina como en el video.
-      dibujarEscenario(ctx, c.width, v.items, ms, v.fondo, v.borde, v.pausado ? v.sel : null);
+      const t0 = DIAG ? performance.now() : 0;
+      dibujarEscenario(ctx, c.width, v.items, ms, v.fondo, v.borde, v.pausado ? v.sel : null, true);
       const it = v.items.find(i => i.uid === v.sel);
       if (it) dibujarSeleccion(ctx, c.width, it, ms, v.pausado);
+      if (DIAG) { const d = DIAG; d.cuadros++; d.msDibujo += performance.now() - t0; }
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
@@ -387,7 +394,15 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
             {p!.colores && (
               <Paleta etiqueta={`Color del ${p!.nombre.toLowerCase()}`} colores={Object.fromEntries(p!.colores.map(c => [c.nombre, c.hex]))}
                 elegido={(p!.colores.find(c => c.id === elegido.color) ?? p!.colores[0]).nombre}
-                onElegir={n => { const c = p!.colores!.find(x => x.nombre === n); if (c) cambiarElegida(i => ({ ...i, color: c.id })); }} />
+                onElegir={n => {
+                  const c = p!.colores!.find(x => x.nombre === n);
+                  // Cada color se recorta la primera vez que se elige (son pocas capas: tarda un instante).
+                  const uid = elegido.uid;
+                  if (c) cargarLote(archivosColor(p!, c.id)).then(() => {
+                    registrar();
+                    actualizar(l => l.map(it => (it.uid === uid ? { ...it, color: c.id } : it)));
+                  });
+                }} />
             )}
             <div className="transformar">
               <BotonEtiquetado icono="zoom_in" texto="Agrandar" onClick={() => cambiarElegida(i => ({ ...i, escala: limitarEscala(i.tipo, i.escala * 1.15) }))} />

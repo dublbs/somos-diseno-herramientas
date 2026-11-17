@@ -12,6 +12,7 @@ interface Props {
   pausado: boolean;
   fps: number;
   borde: boolean;
+  max?: number; // tope de piezas por escena
   onPlay: () => void;
   onTiempo: (ms: number) => void;
   onFps: (f: number) => void;
@@ -48,7 +49,7 @@ export const LineaDeTiempo: React.FC<Props> = p => {
         </div>
       </div>
       <div className="lt-pistas" style={{ '--filas': Math.max(1, p.items.length) } as React.CSSProperties}>
-        {!p.items.length && <p className="k-ayuda lt-vacia">Arrastra piezas al escenario: cada una tendrá aquí su fila con sus keyframes.</p>}
+        {!p.items.length && <p className="k-ayuda lt-vacia">Arrastra piezas al escenario: cada una tendrá aquí su fila con sus keyframes{p.max ? ` (hasta ${p.max})` : ''}.</p>}
         {[...p.items].reverse().map(it => {
           const b = it.llegada ?? LLEGADA;
           return (

@@ -18,6 +18,14 @@
 .lienzo-wrap { position: relative; overflow: hidden; border-radius: var(--r); border: var(--borde); box-shadow: var(--sombra); background: #F4EEE3; }
 .canvas-escenario { display: block; width: 100%; height: 100%; cursor: pointer; touch-action: none; }
 .canvas-escenario.recibe { outline: 4px dashed var(--accent); outline-offset: -6px; }
+/* Pantalla de carga sobre el escenario: «Preparando el teatro…» con avance real */
+.carga { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 10px; padding: 24px; text-align: center; background: #F4EEE3; color: var(--ink); }
+.carga-icono.material-symbols-outlined { font-size: 40px; color: var(--accent); }
+.carga-titulo { margin: 0; font: 800 clamp(18px, 2.4vw, 26px) var(--fuente-tit, "DM Sans"), sans-serif; letter-spacing: -0.01em; }
+.carga-barra { width: min(260px, 60%); height: 10px; border-radius: 999px; background: rgba(0, 0, 0, .1); overflow: hidden; }
+.carga-barra span { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .2s ease-out; }
+.carga-detalle { margin: 0; font: 600 13px "DM Sans", sans-serif; color: var(--muted); font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { .carga-barra span { transition: none; } }
 .fantasma { position: fixed; z-index: 40; width: 88px; height: 88px; transform: translate(-50%, -60%) rotate(-4deg); pointer-events: none; filter: drop-shadow(0 10px 14px rgba(0, 60, 30, .35)); }
 
 /* Escenario: cuatro opciones con ícono */

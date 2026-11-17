@@ -1,6 +1,6 @@
 import { muestrear, type Pista } from './animacion';
 import { FONDO, pieza, tinteDe, type Capa } from './piezas';
-import { dimension, raster } from './recursos';
+import { dimension, nivelPapel, papelDe, raster } from './recursos';
 
 export interface Item {
   uid: number;
@@ -57,13 +57,16 @@ function aplicar(ctx: CanvasRenderingContext2D, pistas: Pista[] | undefined, u: 
   if (pivote) ctx.translate(-pivote[0], -pivote[1]);
 }
 
-function dibujarCapas(ctx: CanvasRenderingContext2D, capas: Capa[], durMs: number, ms: number, pistas?: (Pista[] | undefined)[], tinte?: string) {
+// `papel`: si viene, en vez de la capa se dibuja su silueta engrosada de hueso con ese grosor (unidades locales).
+function dibujarCapas(ctx: CanvasRenderingContext2D, capas: Capa[], durMs: number, ms: number, pistas?: (Pista[] | undefined)[], tinte?: string, papel?: number) {
   const u = (ms % durMs) / durMs;
   for (let i = 0; i < capas.length; i++) {
     const c = capas[i];
-    const r = raster(c.src, tinte), d = dimension(c.src);
+    let r = raster(c.src, tinte);
+    const d = dimension(c.src);
     if (!r || !d) continue;
     const kx = (c.w ?? d.w) / d.w, ky = (c.h ?? d.h) / d.h;
+    if (papel != null) r = papelDe(r, nivelPapel(papel / kx));
     const p = pistas ? pistas[i] : c.pistas;
     if (p?.length) {
       ctx.save();
@@ -75,90 +78,87 @@ function dibujarCapas(ctx: CanvasRenderingContext2D, capas: Capa[], durMs: numbe
 }
 
 // Dibuja la pieza en su marco de 240 × 240 (sin recorte artificial para permitir movimiento natural).
-export function dibujarMarco(ctx: CanvasRenderingContext2D, tipo: string, ms: number, variante = 0, color?: string) {
+export function dibujarMarco(ctx: CanvasRenderingContext2D, tipo: string, ms: number, variante = 0, color?: string, papel?: number) {
   const p = pieza(tipo), v = p.variantes?.[variante] ?? null, dur = v?.durMs ?? p.durMs;
   ctx.save();
   const u = (ms % dur) / dur;
   aplicar(ctx, v ? v.grupo : p.grupo, u, p.pivote);
-  dibujarCapas(ctx, p.capas, dur, ms, v?.pistas, tinteDe(tipo, color));
+  dibujarCapas(ctx, p.capas, dur, ms, v?.pistas, tinteDe(tipo, color), papel);
   for (const parte of p.partes ?? []) {
     ctx.save();
     ctx.translate(parte.x, parte.y);
     ctx.scale(parte.escala, parte.escala);
-    dibujarMarco(ctx, parte.tipo, ms + parte.fase * pieza(parte.tipo).durMs);
+    dibujarMarco(ctx, parte.tipo, ms + parte.fase * pieza(parte.tipo).durMs, 0, undefined, papel != null ? papel / parte.escala : undefined);
     ctx.restore();
   }
   ctx.restore();
 }
 
 // Dibuja una pieza con su caja centrada en (0,0) y escala 1 = tamaño del marco de 240.
-export function dibujarPieza(ctx: CanvasRenderingContext2D, tipo: string, ms: number, variante = 0, color?: string) {
+export function dibujarPieza(ctx: CanvasRenderingContext2D, tipo: string, ms: number, variante = 0, color?: string, papel?: number) {
   const [bx, by, bw, bh] = pieza(tipo).caja;
   ctx.save();
   ctx.translate(-(bx + bw / 2), -(by + bh / 2));
-  dibujarMarco(ctx, tipo, ms, variante, color);
+  dibujarMarco(ctx, tipo, ms, variante, color, papel);
   ctx.restore();
 }
 
 // Borde de papel: cada pieza se recorta con un contorno de hueso y una sombra suave, como un papel pegado encima.
-// La pieza se pinta una vez en un lienzo auxiliar (que solo crece, nunca se reasigna por cuadro); de ahí salen la
-// silueta hueso, la sombra y el borde (8 copias desplazadas), y la pieza se copia encima sin volver a trazarla.
-const HUESO = '#F4EEE3', BORDE = 1.5; // grosor del borde, en unidades del escenario
-const tmp = document.createElement('canvas'), sil = document.createElement('canvas');
-const ctxTmp = tmp.getContext('2d')!, ctxSil = sil.getContext('2d')!;
-const DIRS = Array.from({ length: 8 }, (_, i) => [Math.cos((i / 8) * Math.PI * 2), Math.sin((i / 8) * Math.PI * 2)]);
-function asegurar(w: number, h: number) {
-  if (tmp.width >= w && tmp.height >= h) return;
-  tmp.width = sil.width = Math.max(tmp.width, Math.ceil(w * 1.2));
-  tmp.height = sil.height = Math.max(tmp.height, Math.ceil(h * 1.2));
-}
+// El contorno sale de la silueta engrosada de cada capa (recursos.ts, calculada una vez): se dibuja la pieza en hueso
+// y encima la pieza, sin lienzos auxiliares grandes por cuadro. La sombra se difumina a un cuarto de resolución
+// (16 veces menos pixeles) en un lienzo chico que solo crece, y se agranda al pegarla: es suave, no se nota.
+const BORDE = 1.5; // grosor del borde, en unidades del escenario
+const SOMBRA = 4, PAD = 6; // reducción de la sombra y su margen, en pixeles del lienzo chico
+const silueta = document.createElement('canvas'), difusa = document.createElement('canvas');
+const ctxSilueta = silueta.getContext('2d')!, ctxDifusa = difusa.getContext('2d')!;
+const crecer = (c: HTMLCanvasElement, w: number, h: number) => {
+  if (c.width < w || c.height < h) { c.width = Math.max(c.width, Math.ceil(w * 1.2)); c.height = Math.max(c.height, Math.ceil(h * 1.2)); }
+};
 
 function dibujarItem(ctx: CanvasRenderingContext2D, it: Item, ms: number, size: number, borde: boolean) {
   const pos = posicionItem(it, ms);
-  const trazar = (c: CanvasRenderingContext2D) => {
+  const trazar = (c: CanvasRenderingContext2D, papel?: number) => {
     c.save();
     c.translate(pos.x, pos.y);
     c.scale(it.escala * (pos.espejo ? -1 : 1), it.escala);
-    dibujarPieza(c, it.tipo, ms, it.variante ?? 0, it.color);
+    dibujarPieza(c, it.tipo, ms, it.variante ?? 0, it.color, papel);
     c.restore();
   };
   if (!borde) { trazar(ctx); return; }
+  const grosor = BORDE / it.escala; // en unidades del marco de la pieza: el borde mide lo mismo a cualquier tamaño
 
-  // Margen para que alas, colas y ramas que salen de la caja al moverse no se corten.
-  const k = size / ESCENARIO, b = cajaItem(it, ms), m = Math.max(b.w, b.h) * 0.3 + BORDE * 3;
+  // Sombra: la silueta de papel a 1/4 de resolución, difuminada fuera de cuadro (solo su sombra cae en el lienzo).
+  const k = size / ESCENARIO, ks = k / SOMBRA, b = cajaItem(it, ms), m = Math.max(b.w, b.h) * 0.3 + BORDE * 3;
   const bx = b.x - m, by = b.y - m;
-  const w = Math.max(1, Math.ceil((b.w + 2 * m) * k)), h = Math.max(1, Math.ceil((b.h + 2 * m) * k));
-  asegurar(w, h);
-  ctxTmp.setTransform(1, 0, 0, 1, 0, 0);
-  ctxTmp.clearRect(0, 0, w, h);
-  ctxTmp.setTransform(k, 0, 0, k, -bx * k, -by * k);
-  trazar(ctxTmp);
-
-  ctxSil.globalCompositeOperation = 'copy';
-  ctxSil.drawImage(tmp, 0, 0, w, h, 0, 0, w, h);
-  ctxSil.globalCompositeOperation = 'source-in';
-  ctxSil.fillStyle = HUESO; ctxSil.fillRect(0, 0, w, h);
-  ctxSil.globalCompositeOperation = 'source-over';
-
+  const ws = Math.ceil((b.w + 2 * m) * ks) + 2 * PAD, hs = Math.ceil((b.h + 2 * m) * ks) + 2 * PAD;
+  crecer(silueta, ws, hs); crecer(difusa, ws, hs);
+  ctxSilueta.setTransform(1, 0, 0, 1, 0, 0);
+  ctxSilueta.clearRect(0, 0, ws, hs);
+  ctxSilueta.setTransform(ks, 0, 0, ks, PAD - bx * ks, PAD - by * ks);
+  trazar(ctxSilueta, grosor);
+  ctxDifusa.setTransform(1, 0, 0, 1, 0, 0);
+  ctxDifusa.clearRect(0, 0, ws, hs);
+  ctxDifusa.save();
+  ctxDifusa.shadowColor = 'rgba(0,0,0,0.28)'; ctxDifusa.shadowBlur = 3 * ks; ctxDifusa.shadowOffsetX = difusa.width;
+  ctxDifusa.drawImage(silueta, 0, 0, ws, hs, -difusa.width, 0, ws, hs);
+  ctxDifusa.restore();
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  const ox = bx * k, oy = by * k, r = BORDE * k;
-  ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,0.28)'; ctx.shadowBlur = 3 * k; ctx.shadowOffsetX = 1 * k; ctx.shadowOffsetY = 2 * k;
-  ctx.drawImage(sil, 0, 0, w, h, ox, oy, w, h);
+  ctx.drawImage(difusa, 0, 0, ws, hs, (bx + 1) * k - PAD * SOMBRA, (by + 2) * k - PAD * SOMBRA, ws * SOMBRA, hs * SOMBRA);
   ctx.restore();
-  for (const [dx, dy] of DIRS) ctx.drawImage(sil, 0, 0, w, h, ox + dx * r, oy + dy * r, w, h);
-  ctx.drawImage(tmp, 0, 0, w, h, ox, oy, w, h);
-  ctx.restore();
+
+  trazar(ctx, grosor); // papel
+  trazar(ctx); // pieza
 }
 
 export function dibujarEscenario(
   ctx: CanvasRenderingContext2D, size: number, items: Item[], ms: number,
-  fondo: { dur: number; capas: Capa[] } = FONDO, borde = true, enEdicion: number | null = null
+  fondo: { dur: number; capas: Capa[] } = FONDO, borde = true, enEdicion: number | null = null, enVivo = false
 ) {
   ctx.save();
   ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
+  // En pantalla basta un suavizado medio (más barato al achicar bitmaps); la tarjeta y el video van en alta.
+  ctx.imageSmoothingQuality = enVivo ? 'medium' : 'high';
   ctx.setTransform(size / ESCENARIO, 0, 0, size / ESCENARIO, 0, 0);
   ctx.clearRect(0, 0, ESCENARIO, ESCENARIO);
   dibujarCapas(ctx, fondo.capas, fondo.dur, ms);

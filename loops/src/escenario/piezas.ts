@@ -448,11 +448,15 @@ export const tinteDe = (tipo: string, color?: string) => {
   const p = pieza(tipo);
   return p.colores?.length ? `${tipo}:${color ?? p.colores[0].id}` : undefined;
 };
-// Archivos que hay que tener rasterizados para dibujar una pieza (con todos sus colores).
-export const archivosDe = (p: Pieza) => [
-  ...p.capas.map(c => ({ src: c.src, ppu: PPU_PIEZA })),
-  ...(p.colores ?? []).flatMap(col => p.capas.map(c => ({ src: c.src, ppu: PPU_PIEZA, tinte: `${p.id}:${col.id}` }))),
-];
+// Densidad con que se rasteriza cada pieza: la justa para su tamaño máximo en la tarjeta de 1080 (4,5 px por unidad
+// del escenario), con un 15 % de holgura. Un cóndor (máx. 80 de 240) no necesita el detalle de un alerce.
+const ppuDe = (p: Pieza) => Math.min(PPU_PIEZA, Math.max(2, PPU_FONDO * (p.limites![1] / lado(p)) * 1.15));
+// Archivos que hay que tener rasterizados para dibujar una pieza. Las piezas con colores se cargan con el primero
+// (el inicial); los demás colores, al elegirlos (`archivosColor`).
+export const archivosDe = (p: Pieza) => (p.colores?.length
+  ? archivosColor(p, p.colores[0].id)
+  : p.capas.map(c => ({ src: c.src, ppu: ppuDe(p) })));
+export const archivosColor = (p: Pieza, color: string) => p.capas.map(c => ({ src: c.src, ppu: ppuDe(p), tinte: `${p.id}:${color}` }));
 export const archivosFondo = (f: { capas: Capa[] }) => f.capas.map(c => ({ src: c.src, ppu: PPU_FONDO }));
 
 // Fondo fijo: cielo y cordillera de C6 · Teatro de papel (la cordillera se mece 4 s).
