@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { jugador, otorgarCreacion } from '../../shared/juego';
 import { miniatura, publicar } from '../../shared/datos';
-import { FIGURAS, HEX, cargarFiguras, descargar, tarjeta, type IdFigura, type NombreColor } from './lib/comun';
+import { FIGURAS, HEX, cargarFiguras, tarjeta, type IdFigura, type NombreColor } from './lib/comun';
 import { PAPEL, TAMANOS, dibujarGrabado, type Estampa, type Tamano } from './lib/grabado';
 import { BarraSuperior, BotonAccion, Confirmar, Interruptor, Paleta, PantallaHerramienta, Seccion, Segmentado, useHistorial } from '../../shared/ui/Kit';
 import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
+import { Llevatela } from '../../shared/ui/Llevatela';
 import '../../shared/ui/somos-kit.css';
 import './styles.css';
 
@@ -25,6 +26,7 @@ export const App: React.FC = () => {
   const historial = useHistorial<Estampa[]>([]);
   const estampas = historial.estado;
   const [registro, setRegistro] = useState(false);
+  const [llevar, setLlevar] = useState<Blob | null>(null); // «Llévatela» con QR (plan 011)
   const lienzo = useRef<HTMLCanvasElement>(null);
   const aparece = useRef<{ indice: number; inicio: number } | null>(null);
   const vivo = useRef({ estampas, colorPapel, tacos });
@@ -66,7 +68,7 @@ export const App: React.FC = () => {
   const exportar = async () => {
     if (!tacos) return;
     const blob = await tarjeta((x, lado) => dibujarGrabado(x, lado, colorPapel, estampas, tacos), ['Mi grabado', 'de taller']);
-    descargar(blob, `grabado-${estampas.length}-estampas.png`);
+    setLlevar(blob);
     if (lienzo.current) publicar('grabado', { png: miniatura(lienzo.current, 160) }, jugador()?.codigo ?? null).catch(() => { /* sin red */ });
     otorgarCreacion('grabado');
   };
@@ -89,7 +91,7 @@ export const App: React.FC = () => {
         <BarraSuperior titulo="Taller de Grabado" bajada={estampas.length ? `${estampas.length} estampa${estampas.length === 1 ? '' : 's'} · toca el papel para estampar` : 'Toca el papel para estampar'}>
           <BotonAccion icono="undo" etiqueta="Deshacer la última estampa" onClick={historial.deshacer} disabled={!historial.puedeDeshacer} />
           <BotonAccion icono="redo" etiqueta="Rehacer" onClick={historial.rehacer} disabled={!historial.puedeRehacer} />
-          <BotonAccion icono="download" texto="Descargar" primario onClick={exportar} disabled={!estampas.length} />
+          <BotonAccion icono="ios_share" texto="Llévatelo" primario onClick={exportar} disabled={!estampas.length} />
         </BarraSuperior>
       }
       lateral={<>
@@ -134,6 +136,7 @@ export const App: React.FC = () => {
         </div>
       </div>
     </PantallaHerramienta>
+    {llevar && <Llevatela blob={llevar} app="grabado" titulo="Tu grabado está listo" conCredencial={!!jugador()?.codigo} alCerrar={() => setLlevar(null)} />}
     <Quiosco app="grabado" />
   </>);
 };

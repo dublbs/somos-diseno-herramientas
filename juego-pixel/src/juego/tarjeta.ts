@@ -44,11 +44,3 @@ export async function crearTarjeta(r: Resumen, personaje: HTMLImageElement | nul
   x.fillText('INACAP Santiago Centro', 1024, 1244);
   return new Promise((res, rej) => c.toBlob(b => (b ? res(b) : rej(new Error('sin imagen'))), 'image/png'));
 }
-
-export function descargar(blob: Blob, nombre: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = nombre;
-  document.body.append(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
-}
