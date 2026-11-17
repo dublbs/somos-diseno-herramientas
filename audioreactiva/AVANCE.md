@@ -7,7 +7,11 @@
 - `src/escenas/escenas.ts`: Túnel nuevo, Escalera nueva, Acordeón/Caleidoscopio/Tejido con eventos; compositor (giro, zoom, eco visual, color, estallidos).
 - `src/App.tsx`: marco v2, panel (música, pistas, tempo, escena), barra flotante de escenas, pads Bum/Chas, arrastre multitáctil, foto y loop con audio.
 
+- Medido con Playwright (relevo 2): niveles por estilo (−16,5 a −18,6 dBFS RMS, picos ≤ −3,4 dBFS, 0 muestras
+  saturadas) y movimiento escena × estilo. Tejido era la más quieta: se agrandó y respira (commit 857c6d7).
+- Pantalla en las 6 tablets con cada escena, antes y después de sonar: sin scroll de página, nada fuera, toques ≥ 48 px.
+  «Llévatela» (foto) cabe en las 6; el loop sale en webm VP9 + Opus (con audio).
+
 ## Falta
-- Medir con Playwright (niveles por estilo, movimiento por escena × estilo) y ajustar.
-- Pantalla en 6 resoluciones, capturas, tabla en docs/plans/009-refinamiento/audioreactiva.md.
-- dist de producción.
+- Aporte de cada pista por escena × estilo (corriendo) y la tabla en docs/plans/009-refinamiento/audioreactiva.md.
+- dist de producción (sin .env.local en este entorno: sale en modo demo).
