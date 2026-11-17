@@ -16,8 +16,11 @@ done
 - Cada agente deja en su zona un **`AVANCE.md`** (qué está hecho, qué falta, en qué orden) mientras trabaja y lo borra en
   su último commit. **Si la rama tiene `AVANCE.md`, está a medias:** se retoma desde ahí.
 - Si la rama no existe, se parte de cero con su encargo (§4).
-- Estado al escribir esto (17 nov, 03:20 UTC): los 6 agentes de la ola 0 estaban corriendo y **ninguna rama estaba
-  subida todavía**.
+- Estado al 17 nov, 15:40 UTC: la ola 0 se cortó dos veces por límite de uso y **casi no avanzó**. Las ramas `kit-v2`,
+  `fotomaton-ronda-2`, `hora-punta-iso` y `flyer-timbre-4` están subidas, pero solo con la unión de «Llévatela» (y la
+  migración 006 a medias, en un commit «wip», en `flyer-timbre-4`). `audioreactiva-tactil` no existe y `teatro-ronda-2`
+  no tiene commits. Se retomó de a 3 agentes: **A7, A0 y A5** primero; después A2, A6 y A8; al final A1 y A3.
+- Si retomas tú: lanza **pocos agentes a la vez** (2–3). Seis en paralelo agotaron el límite en minutos.
 
 ## 2. Estado de `main` y PR abiertos (17 nov)
 | PR | Qué es | Qué hacer |
