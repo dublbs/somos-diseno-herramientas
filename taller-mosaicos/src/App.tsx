@@ -16,10 +16,9 @@ import {
 import { leerStorage, guardarStorage } from './lib/almacen';
 import { Llevatela } from '../../shared/ui/Llevatela';
 import { Lienzo, pintarCelda } from './components/Lienzo';
-import { PanelLateral, PincelActual } from './components/Panel';
-import { BarraHerramientas, BarraSuperior, BotonAccion, PantallaHerramienta, useHistorial } from '../../shared/ui/Kit';
+import { PanelMosaicos } from './components/Panel';
+import { BarraFlotante, Boton, MarcoHerramienta, useAviso, useGestosHistorial, useHistorial, type DefHerramienta } from '../../shared/ui/Herramienta';
 import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
-import '../../shared/ui/somos-kit.css';
 import './styles.css';
 
 interface EstadoPersistido {
@@ -57,8 +56,16 @@ export const App: React.FC = () => {
   const historial = useHistorial<Record<string, Celda>>(estadoInicial?.celdas || {});
   const celdas = historial.estado;
   const trazo = useRef(false);
+  const pasoDelTrazo = useRef(false); // el trazo en curso ya guardó su paso en el historial
   const setCeldas = (nuevas: Record<string, Celda>, guardar = true) => historial.cambiar(nuevas, guardar);
-  const consumirTrazo = () => { const g = trazo.current; trazo.current = false; return g; };
+  const consumirTrazo = () => { const g = trazo.current; trazo.current = false; if (g) pasoDelTrazo.current = true; return g; };
+  // Tocar con 2 dedos deshace y con 3 rehace (como Affinity). Lo que alcanzó a pintar el primer dedo se descarta.
+  const marcoRef = useRef<HTMLDivElement | null>(null);
+  const gestos = useGestosHistorial(marcoRef, {
+    onDeshacer: () => { historial.deshacer(); setSel(null); },
+    onRehacer: () => { historial.rehacer(); setSel(null); },
+    alMultitoque: () => { if (pasoDelTrazo.current) historial.anular(); pasoDelTrazo.current = false; trazo.current = false; },
+  });
   const [pincel, setPincel] = useState<Pincel>(
     estadoInicial?.pincel || {
       id: 'media',
@@ -71,13 +78,12 @@ export const App: React.FC = () => {
   const [sel, setSel] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
   const [grilla, setGrilla] = useState<boolean>(true);
-  const [estadoMsg, setEstadoMsg] = useState<string>('');
+  const [estadoMsg, setEstadoMsg] = useAviso();
   const [llevar, setLlevar] = useState<Blob | null>(null); // «Llévatela» con QR (plan 011)
   const [visto, marcarVisto] = useTutorialVisto('mosaicos');
-  useEffect(() => { if (!estadoMsg) return; const t = setTimeout(() => setEstadoMsg(''), 2600); return () => clearTimeout(t); }, [estadoMsg]);
-
   useEffect(() => {
-    document.documentElement.dataset.visual = 'Geométrica';
+    document.documentElement.dataset.visual = 'Geométrica'; // para la etapa 2 (tokens por lenguaje)
+    document.documentElement.dataset.ui = 'v2';
   }, []);
 
   const formato = FORMATOS.find((f) => f.id === formatoId) || FORMATOS[0];
@@ -422,7 +428,7 @@ export const App: React.FC = () => {
     otorgarCreacion('mosaicos');
   };
 
-  const HERRAMIENTAS = [
+  const HERRAMIENTAS: DefHerramienta<string>[] = [
     { id: 'poner', nombre: 'Poner', icono: 'draw' },
     { id: 'girar', nombre: 'Girar', icono: 'rotate_right' },
     { id: 'reflejar', nombre: 'Reflejar', icono: 'flip' },
@@ -430,9 +436,9 @@ export const App: React.FC = () => {
     { id: 'seleccionar', nombre: 'Multiplicar', icono: 'highlight_alt' },
   ];
   const AYUDA: Record<string, string> = {
-    poner: 'Toca o arrastra para poner el módulo. La tecla R lo gira.',
-    girar: 'Toca una celda para girarla 90°.',
-    reflejar: 'Toca una celda para reflejarla.',
+    poner: 'Toca o arrastra para poner el módulo. Su orientación y espejo están en el panel.',
+    girar: 'Toca una celda del mosaico para girarla 90°.',
+    reflejar: 'Toca una celda del mosaico para reflejarla.',
     borrar: 'Toca o arrastra para borrar celdas.',
     seleccionar: 'Arrastra para elegir un área y multiplícala: repetir, escalonar, simetría.',
   };
@@ -447,20 +453,22 @@ export const App: React.FC = () => {
       acciones={[{ texto: 'Empezar a diseñar', icono: 'grid_on', alTocar: marcarVisto }]} />
   );
 
+  const deshacer = () => { historial.deshacer(); setSel(null); };
+  const rehacer = () => { historial.rehacer(); setSel(null); };
+
   return (
     <>
-      <PantallaHerramienta
-        anchoLateral={300}
-        superior={
-          <BarraSuperior titulo="Taller de Mosaicos" bajada={AYUDA[herramienta]}>
-            <BotonAccion icono="undo" etiqueta="Deshacer" onClick={() => { historial.deshacer(); setSel(null); }} disabled={!historial.puedeDeshacer} />
-            <BotonAccion icono="redo" etiqueta="Rehacer" onClick={() => { historial.rehacer(); setSel(null); }} disabled={!historial.puedeRehacer} />
-            <BotonAccion icono="shuffle" texto="Sorpréndeme" onClick={() => generarMosaico()} />
-            <BotonAccion icono="ios_share" texto="Llévatelo" primario onClick={exportarPNG} />
-          </BarraSuperior>
-        }
-        lateral={
-          <PanelLateral
+      <MarcoHerramienta
+        titulo="Taller de Mosaicos"
+        anchoPanel={320}
+        ayuda={AYUDA[herramienta]}
+        historia={{ deshacer, rehacer, puedeDeshacer: historial.puedeDeshacer, puedeRehacer: historial.puedeRehacer }}
+        acciones={<Boton icono="shuffle" texto="Sorpréndeme" onClick={() => generarMosaico()} />}
+        primario={{ texto: 'Llévatelo', icono: 'ios_share', onClick: exportarPNG }}
+        herramientas={<BarraFlotante herramientas={HERRAMIENTAS} activa={herramienta} onElegir={(h) => { setHerramienta(h); if (h !== 'seleccionar') setSel(null); }} />}
+        aviso={estadoMsg}
+        panel={
+          <PanelMosaicos
             formato={formato}
             onCambiarFormato={(fId) => { setFormatoId(fId); setSel(null); }}
             herramienta={herramienta}
@@ -475,31 +483,27 @@ export const App: React.FC = () => {
             onInvertirMosaico={invertirMosaico}
           />
         }
-        inferior={<>
-          <BarraHerramientas herramientas={HERRAMIENTAS} activa={herramienta} onElegir={(h) => { setHerramienta(h); if (h !== 'seleccionar') setSel(null); }} />
-          <PincelActual pincel={pincel} onCambiarPincel={setPincel} />
-        </>}
       >
-        <div className="escenario-fit" aria-label="Mosaico">
-          <Lienzo
-            formato={formato}
-            celdas={celdas}
-            pincel={pincel}
-            herramienta={herramienta}
-            grilla={grilla}
-            sel={sel}
-            onAplicar={aplicarHerramienta}
-            onTrazo={() => { trazo.current = true; }}
-            onBorrar={borrarCelda}
-            onGirarPincel={() => setPincel((p) => ({ ...p, ...girar(p) }))}
-            onSetSel={setSel}
-            hover={hover}
-            setHover={setHover}
-          />
-        </div>
-      </PantallaHerramienta>
+        <Lienzo
+          refMarco={marcoRef}
+          formato={formato}
+          celdas={celdas}
+          pincel={pincel}
+          herramienta={herramienta}
+          grilla={grilla}
+          sel={sel}
+          onAplicar={aplicarHerramienta}
+          onTrazo={() => { trazo.current = true; pasoDelTrazo.current = false; }}
+          onFinTrazo={() => { pasoDelTrazo.current = false; }}
+          onBorrar={borrarCelda}
+          onGirarPincel={() => setPincel((p) => ({ ...p, ...girar(p) }))}
+          onSetSel={setSel}
+          hover={hover}
+          setHover={setHover}
+          hayVariosDedos={gestos.hayVariosDedos}
+        />
+      </MarcoHerramienta>
       {llevar && <Llevatela blob={llevar} app="mosaicos" titulo="Tu mosaico está listo" conCredencial={!!jugador()?.codigo} alCerrar={() => setLlevar(null)} />}
-      {estadoMsg && <div className="aviso" role="status">{estadoMsg}</div>}
       <Quiosco app="mosaicos" limpiar={['geo:estado']} />
     </>
   );
