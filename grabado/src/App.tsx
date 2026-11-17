@@ -1,73 +1,207 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { jugador, otorgarCreacion } from '../../shared/juego';
 import { miniatura, publicar } from '../../shared/datos';
-import { FIGURAS, HEX, cargarFiguras, tarjeta, type IdFigura, type NombreColor } from './lib/comun';
-import { PAPEL, TAMANOS, dibujarGrabado, type Estampa, type Tamano } from './lib/grabado';
-import { BarraSuperior, BotonAccion, Confirmar, Interruptor, Paleta, PantallaHerramienta, Seccion, Segmentado, useHistorial } from '../../shared/ui/Kit';
+import {
+  BarritaSeleccion, Boton, GrillaBiblioteca, Icono, Interruptor, LienzoAjustado, LINEA_AZUL, ListaCapas, Manijas,
+  MarcoHerramienta, SeccionPanel, Segmento, SelectorColor, useAviso, useGestosHistorial, useHistorial, type Transformacion,
+} from '../../shared/ui/Herramienta';
 import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
 import { Llevatela } from '../../shared/ui/Llevatela';
-import '../../shared/ui/somos-kit.css';
+import { TACOS, cargarTacos, miniaturaTaco, tacoEntintado, tacoPorId, type TacoListo } from './lib/tacos';
+import {
+  CacheCapas, MARCOS_AFICHE, MAX_CAPAS, PAPEL, PAPELES, TACO_BASE, componer, lienzoMarco, tamEstampa, tarjeta,
+  type Afiche, type CapaAfiche, type Papel,
+} from './lib/afiche';
 import './styles.css';
 
+const CLAVE = 'grabado:afiche';
 const QUIETO = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-const TINTAS: NombreColor[] = ['Negro', 'Azul', 'Lapislázuli', 'Verde', 'Rosa', 'Morado', 'Amarillo', 'Celeste'];
-const PAPELES: NombreColor[] = ['Hueso', 'Celeste', 'Amarillo', 'Rosa'];
-// Corrimiento fijo de cada tinta (en unidades del papel de 1000) cuando el registro está corrido.
-const corrimiento = (c: NombreColor): [number, number] => { const a = TINTAS.indexOf(c) * 2.4; return [Math.cos(a) * 9, Math.sin(a) * 9]; };
+// Tintas: la paleta Línea azul con escalas, sin Hueso (sobre papel blanco o hueso no se vería).
+const TINTAS = LINEA_AZUL.filter(c => c.nombre !== 'Hueso');
+// Cada capa nueva parte con una tinta distinta de las que ya hay.
+const ROTACION = ['#0062B8', '#FF8FB1', '#FFC20E', '#00A651', '#7A2E8E', '#000000', '#2B4BD8', '#7FC8F8'];
+const nombreTinta = (hex: string) => TINTAS.find(c => c.hex.toUpperCase() === hex.toUpperCase())?.nombre;
+
+let serie = 0;
+const nuevaCapa = (n: number, tinta: string): CapaAfiche => ({ id: `c${Date.now().toString(36)}${serie++}`, nombre: `Capa ${n}`, visible: true, tinta, mezcla: true, estampas: [] });
+function inicial(): Afiche {
+  try {
+    const g = JSON.parse(localStorage.getItem(CLAVE) || 'null') as Afiche | null;
+    if (g && Array.isArray(g.capas) && g.capas.length && g.capas.some(c => c.id === g.activa)) return { ...g, papel: g.papel in PAPELES ? g.papel : 'Hueso' };
+  } catch { /* sin almacenamiento */ }
+  const c = nuevaCapa(1, ROTACION[0]);
+  return { capas: [c], activa: c.id, papel: 'Hueso', marco: null, marcoEncima: true, registro: false };
+}
+
+// Miniatura de una capa: lo que tiene, en su tinta, sobre el papel y encuadrado en sus estampas (o una gota de su
+// tinta si está vacía). `zona` es el cuadrado [x, y, lado] en unidades del papel.
+const MiniCapa: React.FC<{ fuente: HTMLCanvasElement | null; zona: [number, number, number]; papel: string; tinta: string; version: number }> = ({ fuente, zona, papel, tinta, version }) => {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const c = ref.current; if (!c) return;
+    const x = c.getContext('2d')!;
+    x.fillStyle = papel; x.fillRect(0, 0, 80, 80);
+    if (fuente && fuente.width) {
+      const k = fuente.width / PAPEL, [zx, zy, zl] = zona;
+      x.globalCompositeOperation = 'multiply'; x.drawImage(fuente, zx * k, zy * k, zl * k, zl * k, 0, 0, 80, 80); x.globalCompositeOperation = 'source-over';
+    } else { x.fillStyle = tinta; x.beginPath(); x.arc(40, 40, 15, 0, Math.PI * 2); x.fill(); }
+  }, [fuente, zona[0], zona[1], zona[2], papel, tinta, version]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <canvas ref={ref} width={80} height={80} style={{ width: 40, height: 40, display: 'block' }} />;
+};
+
+// El cuadrado que encierra las estampas de una capa (mínimo 280 de lado), para encuadrar su miniatura.
+function zonaDe(c: CapaAfiche): [number, number, number] {
+  if (!c.estampas.length) return [0, 0, PAPEL];
+  let x0 = PAPEL, y0 = PAPEL, x1 = 0, y1 = 0;
+  c.estampas.forEach(e => { const r = TACO_BASE * e.escala * 0.6; x0 = Math.min(x0, e.x - r); y0 = Math.min(y0, e.y - r); x1 = Math.max(x1, e.x + r); y1 = Math.max(y1, e.y + r); });
+  const l = Math.min(PAPEL, Math.max(280, x1 - x0, y1 - y0));
+  const cx = Math.max(l / 2, Math.min(PAPEL - l / 2, (x0 + x1) / 2)), cy = Math.max(l / 2, Math.min(PAPEL - l / 2, (y0 + y1) / 2));
+  return [cx - l / 2, cy - l / 2, l];
+}
 
 export const App: React.FC = () => {
   const [empezado, setEmpezado] = useTutorialVisto('grabado');
-  const [tacos, setTacos] = useState<Record<IdFigura, HTMLImageElement> | null>(null);
-  const [taco, setTaco] = useState<IdFigura>('helecho');
-  const [tinta, setTinta] = useState<NombreColor>('Verde');
-  const [tamano, setTamano] = useState<Tamano>('mediano');
-  const [giroBase, setGiroBase] = useState(0);
-  const [colorPapel, setColorPapel] = useState<NombreColor>('Hueso');
-  const historial = useHistorial<Estampa[]>([]);
-  const estampas = historial.estado;
-  const [registro, setRegistro] = useState(false);
-  const [llevar, setLlevar] = useState<Blob | null>(null); // «Llévatela» con QR (plan 011)
+  const [tacos, setTacos] = useState<Record<string, TacoListo> | null>(null);
+  const [taco, setTaco] = useState<string>('helecho');
+  const historial = useHistorial<Afiche>(inicial);
+  const a = historial.estado;
+  const capa = a.capas.find(c => c.id === a.activa) ?? a.capas[a.capas.length - 1];
+  const [previa, setPrevia] = useState<Transformacion | null>(null);
+  const ultima = useRef({ escala: 1, giro: 0 }); // la vista previa nueva parte con el tamaño y giro de la anterior
+  const [llevar, setLlevar] = useState<Blob | null>(null);
+  const [aviso, avisar] = useAviso();
+  const [version, setVersion] = useState(0); // sube al repintar: refresca las miniaturas de las capas
+  const [borrarTodo, setBorrarTodo] = useState(false);
   const lienzo = useRef<HTMLCanvasElement>(null);
-  const aparece = useRef<{ indice: number; inicio: number } | null>(null);
-  const vivo = useRef({ estampas, colorPapel, tacos });
-  vivo.current = { estampas, colorPapel, tacos };
+  const encima = useRef<HTMLCanvasElement>(null);
+  const caja = useRef<HTMLDivElement>(null);
+  const cache = useRef(new CacheCapas());
+  const cacheMini = useRef(new CacheCapas());
+  const aparece = useRef<{ inicio: number } | null>(null);
 
-  useEffect(() => { cargarFiguras().then(setTacos); }, []);
-  useEffect(() => { try { localStorage.setItem('sd:grabado', JSON.stringify({ estampas: estampas.length, papel: colorPapel, ts: Date.now() })); } catch { /* sin almacenamiento */ } }, [estampas, colorPapel]);
+  useEffect(() => { document.documentElement.dataset.ui = 'v2'; document.documentElement.dataset.visual = 'Orgánica'; }, []);
+  useEffect(() => { cargarTacos().then(setTacos).catch(() => avisar('No pudimos cargar los tacos. Recarga la página.')); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    try {
+      localStorage.setItem(CLAVE, JSON.stringify(a));
+      localStorage.setItem('sd:grabado', JSON.stringify({ estampas: a.capas.reduce((n, c) => n + c.estampas.length, 0), capas: a.capas.length, papel: a.papel, ts: Date.now() }));
+    } catch { /* sin almacenamiento */ }
+  }, [a]);
 
+  const cambiar = (fn: (v: Afiche) => Afiche, guardar = true) => historial.cambiar(fn, guardar);
+  const cambiarCapa = (id: string, fn: (c: CapaAfiche) => CapaAfiche, guardar = true) =>
+    cambiar(v => ({ ...v, capas: v.capas.map(c => (c.id === id ? fn(c) : c)) }), guardar);
+
+  // ---------------------------------------------------------------- dibujo
+  const vivo = useRef({ a, tacos }); vivo.current = { a, tacos };
   const dibujar = useCallback(() => {
-    const c = lienzo.current, { tacos: t, estampas: e, colorPapel: p } = vivo.current;
+    const c = lienzo.current, { a: af, tacos: t } = vivo.current;
     if (!c || !t) return;
     const lado = Math.round(c.clientWidth * Math.min(window.devicePixelRatio || 1, 2));
     if (!lado) return;
     if (c.width !== lado) { c.width = c.height = lado; }
-    const a = aparece.current;
-    dibujarGrabado(c.getContext('2d')!, lado, p, e, t, a ? { indice: a.indice, t: (performance.now() - a.inicio) / 180 } : undefined);
-    if (a && performance.now() - a.inicio < 200) requestAnimationFrame(dibujar);
-    else aparece.current = null;
+    const x = c.getContext('2d')!;
+    componer(x, lado, af, t, cache.current);
+    cache.current.limpiar(af.capas.map(k => k.id));
+    // la última estampa aparece con un golpe suave (como al levantar el taco)
+    const ap = aparece.current;
+    if (ap) {
+      const k = Math.min(1, (performance.now() - ap.inicio) / 220);
+      c.style.transform = k < 1 ? `scale(${1 - 0.006 * Math.sin(k * Math.PI)})` : '';
+      if (k < 1) requestAnimationFrame(dibujar); else aparece.current = null;
+    }
   }, []);
-  useEffect(() => { dibujar(); }, [estampas, colorPapel, tacos, empezado, dibujar]);
+  useEffect(() => { dibujar(); setVersion(v => v + 1); }, [a, tacos, empezado, dibujar]);
   useEffect(() => {
     const c = lienzo.current; if (!c) return;
-    const ro = new ResizeObserver(() => dibujar()); ro.observe(c);
+    const ro = new ResizeObserver(() => { dibujar(); }); ro.observe(c);
     return () => ro.disconnect();
   }, [empezado, dibujar]);
 
-  // Estampar: el taco gira un poco solo, como cuando se presiona a mano.
-  const estampar = (ev: React.PointerEvent<HTMLCanvasElement>) => {
-    const r = ev.currentTarget.getBoundingClientRect();
-    let x = ((ev.clientX - r.left) / r.width) * PAPEL, y = ((ev.clientY - r.top) / r.height) * PAPEL;
+  // Vista previa del taco: translúcida, en la tinta de la capa activa, sobre el papel.
+  useEffect(() => {
+    const c = encima.current; if (!c) return;
+    const lado = Math.round(c.clientWidth * Math.min(window.devicePixelRatio || 1, 2));
+    if (c.width !== lado) { c.width = c.height = lado; }
+    const x = c.getContext('2d')!;
+    x.clearRect(0, 0, c.width, c.height);
+    if (!previa || !tacos) return;
+    const t = tacos[taco], s = lado / PAPEL, [w, h] = tamEstampa(t, previa.escala);
+    const img = tacoEntintado(t, w * s, h * s, capa.tinta);
+    x.save(); x.globalAlpha = 0.62;
+    x.translate(previa.x * s, previa.y * s); x.rotate(previa.giro * Math.PI / 180);
+    x.drawImage(img, -img.width / 2, -img.height / 2);
+    x.restore();
+  }, [previa, tacos, taco, capa.tinta]);
+
+  // ---------------------------------------------------------------- colocar y estampar
+  const enPapel = (ev: React.PointerEvent) => {
+    const r = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+    return { x: ((ev.clientX - r.left) / r.width) * PAPEL, y: ((ev.clientY - r.top) / r.height) * PAPEL };
+  };
+  const tocarPapel = (ev: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!ev.isPrimary || !tacos || gestos.hayVariosDedos()) return;
+    const p = enPapel(ev);
+    setPrevia(v => ({ x: p.x, y: p.y, escala: v?.escala ?? ultima.current.escala, giro: v?.giro ?? ultima.current.giro }));
+  };
+  const cancelar = () => setPrevia(null);
+  const estampar = () => {
+    if (!previa) return;
     const semilla = Math.floor(Math.random() * 1e9);
-    // Registro corrido (como la risografía): cada tinta es una «placa» y queda corrida siempre hacia el mismo lado.
-    if (registro) { const [dx, dy] = corrimiento(tinta); x += dx; y += dy; }
-    const nueva: Estampa = { taco, tinta, x, y, tam: TAMANOS[tamano], giro: giroBase + ((semilla % 13) - 6) * (Math.PI / 180), semilla };
-    if (!QUIETO) aparece.current = { indice: estampas.length, inicio: performance.now() };
-    historial.cambiar(l => [...l, nueva]);
+    // cada impresión sale levemente distinta: el taco se corre y gira un poco al presionarlo a mano
+    const r = (semilla % 1000) / 1000 - 0.5, q = ((semilla >> 10) % 1000) / 1000 - 0.5;
+    const e = { taco, x: previa.x + q * 6, y: previa.y + r * 6, escala: previa.escala, giro: previa.giro + r * 3, semilla };
+    const oculta = !capa.visible;
+    cambiarCapa(capa.id, c => ({ ...c, visible: true, estampas: [...c.estampas, e] }));
+    ultima.current = { escala: previa.escala, giro: previa.giro };
+    setPrevia(null);
+    if (!QUIETO) aparece.current = { inicio: performance.now() };
+    avisar(oculta ? `${capa.nombre} estaba oculta: la volvimos a mostrar.` : `Estampado en ${capa.nombre}.`);
   };
 
+  // 2 dedos deshace y 3 rehace. Si el primer dedo alcanzó a abrir la vista previa, se cierra.
+  const gestos = useGestosHistorial(caja, {
+    onDeshacer: () => { historial.deshacer(); setPrevia(null); },
+    onRehacer: () => { historial.rehacer(); setPrevia(null); },
+    alMultitoque: () => setPrevia(null),
+  });
+
+  // ---------------------------------------------------------------- capas
+  const agregarCapa = () => {
+    if (a.capas.length >= MAX_CAPAS) return;
+    const usadas = new Set(a.capas.map(c => c.tinta.toUpperCase()));
+    const tinta = ROTACION.find(t => !usadas.has(t)) ?? ROTACION[a.capas.length % ROTACION.length];
+    const n = Math.max(0, ...a.capas.map(c => Number(c.nombre.replace(/\D/g, '')) || 0)) + 1;
+    const nueva = nuevaCapa(n, tinta);
+    cambiar(v => { const i = v.capas.findIndex(c => c.id === v.activa); const capas = [...v.capas]; capas.splice(i + 1, 0, nueva); return { ...v, capas, activa: nueva.id }; });
+    avisar(`${nueva.nombre} lista, con tinta ${nombreTinta(tinta) ?? ''}.`.replace(' .', '.'));
+  };
+  const borrarCapa = (id: string) => {
+    if (a.capas.length <= 1) return;
+    const i = a.capas.findIndex(c => c.id === id), nombre = a.capas[i].nombre;
+    cambiar(v => { const capas = v.capas.filter(c => c.id !== id); return { ...v, capas, activa: capas[Math.max(0, i - 1)].id }; });
+    avisar(`${nombre} borrada. Puedes deshacer.`);
+  };
+  const moverCapa = (id: string, hacia: 'adelante' | 'atras') => cambiar(v => {
+    const i = v.capas.findIndex(c => c.id === id), j = hacia === 'adelante' ? i + 1 : i - 1;
+    if (j < 0 || j >= v.capas.length) return v;
+    const capas = [...v.capas]; [capas[i], capas[j]] = [capas[j], capas[i]];
+    return { ...v, capas };
+  });
+
+  const capasLista = useMemo(() => a.capas.map(c => ({
+    id: c.id,
+    nombre: c.estampas.length ? c.nombre : `${c.nombre} (vacía)`,
+    visible: c.visible,
+    miniatura: <MiniCapa fuente={tacos && c.estampas.length ? cacheMini.current.obtener(c, 400, tacos) : null} zona={zonaDe(c)} papel={PAPELES[a.papel]} tinta={c.tinta} version={version} />,
+  })), [a.capas, a.papel, tacos, version]);
+
+  // ---------------------------------------------------------------- exportar
+  const total = a.capas.reduce((n, c) => n + c.estampas.length, 0);
   const exportar = async () => {
-    if (!tacos) return;
-    const blob = await tarjeta((x, lado) => dibujarGrabado(x, lado, colorPapel, estampas, tacos), ['Mi grabado', 'de taller']);
+    if (!tacos || !total) return;
+    setPrevia(null);
+    const blob = await tarjeta((x, lado) => componer(x, lado, a, tacos), ['Mi afiche', 'por capas']);
     setLlevar(blob);
     if (lienzo.current) publicar('grabado', { png: miniatura(lienzo.current, 160) }, jugador()?.codigo ?? null).catch(() => { /* sin red */ });
     otorgarCreacion('grabado');
@@ -76,67 +210,126 @@ export const App: React.FC = () => {
   if (!empezado) return (
     <Tutorial etiqueta="Orgánica · hecho a mano" titulo="Taller de Grabado"
       pasos={[
-        { icono: 'approval', texto: 'Elige un taco: cada uno es una figura de la familia Orgánica.' },
-        { icono: 'format_color_fill', texto: 'Elige la tinta y toca el papel para estampar. Cada impresión sale distinta.' },
-        { icono: 'layers', texto: 'Superpón tintas: donde se cruzan, se mezclan. Llévate tu grabado.' },
+        { icono: 'touch_app', texto: 'Elige un taco y toca el papel donde lo quieres estampar.' },
+        { icono: 'rotate_right', texto: 'Muévelo, gíralo o agrándalo con las manijas. Con ✓ lo estampas.' },
+        { icono: 'layers', texto: 'Cada capa tiene su tinta. Ordénalas y mira cómo se mezclan. Llévate tu afiche.' },
       ]}
-      acciones={[{ texto: 'Empezar a estampar', icono: 'approval', alTocar: setEmpezado }]} />
+      acciones={[{ texto: 'Hacer mi afiche', icono: 'approval', alTocar: setEmpezado }]} />
   );
 
-  const nombreTaco = FIGURAS.find(f => f.id === taco)!.nombre;
-  return (<>
-    <PantallaHerramienta
-      anchoLateral={300}
-      superior={
-        <BarraSuperior titulo="Taller de Grabado" bajada={estampas.length ? `${estampas.length} estampa${estampas.length === 1 ? '' : 's'} · toca el papel para estampar` : 'Toca el papel para estampar'}>
-          <BotonAccion icono="undo" etiqueta="Deshacer la última estampa" onClick={historial.deshacer} disabled={!historial.puedeDeshacer} />
-          <BotonAccion icono="redo" etiqueta="Rehacer" onClick={historial.rehacer} disabled={!historial.puedeRehacer} />
-          <BotonAccion icono="ios_share" texto="Llévatelo" primario onClick={exportar} disabled={!estampas.length} />
-        </BarraSuperior>
-      }
-      lateral={<>
-        <Seccion titulo="Tinta">
-          <Paleta etiqueta="Tinta" colores={Object.fromEntries(TINTAS.map(c => [c, HEX[c]]))} elegido={tinta} onElegir={c => setTinta(c as NombreColor)} />
-        </Seccion>
-        <Seccion titulo="Papel">
-          <Paleta etiqueta="Papel" colores={Object.fromEntries(PAPELES.map(c => [c, HEX[c]]))} elegido={colorPapel} onElegir={c => setColorPapel(c as NombreColor)} />
-        </Seccion>
-        <Seccion titulo={`Mezclas con ${tinta}`} crece>
-          <div className="mezclas" style={{ '--papel': HEX[colorPapel] } as React.CSSProperties}>
-            {TINTAS.filter(c => c !== tinta).map(c => (
-              <button key={c} type="button" className="mezcla" onClick={() => setTinta(c)} aria-label={`${tinta} sobre ${c}: elegir ${c}`} title={`${tinta} sobre ${c}`}>
-                <span className="gota" style={{ background: HEX[c] }} /><span className="gota encima" style={{ background: HEX[tinta] }} />
-              </button>
-            ))}
-          </div>
-          <p className="k-ayuda">Las tintas se multiplican donde se cruzan, como en el grabado y la risografía. Toca una mezcla para usar esa tinta.</p>
-          <Interruptor id="registro" texto="Registro corrido" activo={registro} onCambiar={setRegistro} />
-        </Seccion>
-        <Confirmar texto="Limpiar el papel" disabled={!estampas.length} onConfirmar={() => historial.cambiar([])} />
-      </>}
-      inferior={<>
-        <div className="k-grupo tacos" role="radiogroup" aria-label="Taco">
-          {FIGURAS.map(f => (
-            <button key={f.id} type="button" role="radio" aria-checked={taco === f.id} className="k-herr" onClick={() => setTaco(f.id)} title={f.nombre}>
-              <span className="silueta" aria-hidden="true" style={{ '--tinta': HEX[tinta], WebkitMaskImage: `url("${f.src}")`, maskImage: `url("${f.src}")` } as React.CSSProperties} />
-              {f.nombre}
-            </button>
-          ))}
-        </div>
-        <div className="k-grupo">
-          <Segmentado etiqueta="Tamaño del taco" valor={tamano} onCambiar={setTamano}
-            opciones={(Object.keys(TAMANOS) as Tamano[]).map(t => ({ valor: t, texto: t[0].toUpperCase() + t.slice(1) }))} />
-          <BotonAccion icono="rotate_90_degrees_cw" etiqueta="Girar el taco 90 grados" onClick={() => setGiroBase(g => g + Math.PI / 2)} />
-        </div>
-      </>}
-    >
-      <div className="escenario-fit">
-        <div className="lienzo-fit marco-papel" style={{ '--ratio': 1 } as React.CSSProperties}>
-          <canvas ref={lienzo} className="papel" onPointerDown={estampar} role="img" aria-label={`Papel con ${estampas.length} estampas. Toca para estampar ${nombreTaco} en ${tinta}`} />
-        </div>
+  const def = tacoPorId(taco);
+  const tacoListo = tacos?.[taco];
+  const [tw, th] = tacoListo ? tamEstampa(tacoListo, 1) : [300, 300];
+  const vacio = total === 0;
+  const papelHex = PAPELES[a.papel];
+
+  const barraTacos = (
+    <div className="h-flotante tacos" role="toolbar" aria-label="Tacos">
+      <div className="tacos-grilla" role="radiogroup" aria-label="Taco">
+        {TACOS.map(t => (
+          <button key={t.id} type="button" role="radio" aria-checked={taco === t.id} aria-label={t.nombre} title={t.nombre} className="taco"
+            onClick={() => { setTaco(t.id); if (!previa) avisar(`${t.nombre}: toca el papel para ubicarlo.`); }}>
+            {tacos ? <img src={miniaturaTaco(tacos[t.id], taco === t.id ? capa.tinta : '#1A1A1A')} alt="" draggable={false} /> : <span className="taco-cargando" />}
+          </button>
+        ))}
       </div>
-    </PantallaHerramienta>
-    {llevar && <Llevatela blob={llevar} app="grabado" titulo="Tu grabado está listo" conCredencial={!!jugador()?.codigo} alCerrar={() => setLlevar(null)} />}
-    <Quiosco app="grabado" />
+    </div>
+  );
+
+  const panel = (<>
+    <SeccionPanel titulo="Capas" acciones={<span className="cuenta">{a.capas.length} de {MAX_CAPAS}</span>}>
+      <ListaCapas capas={capasLista} activa={a.activa} maximo={MAX_CAPAS} minimo={1}
+        onActivar={id => { if (id !== a.activa) { cambiar(v => ({ ...v, activa: id }), false); } }}
+        onVisible={(id, v) => cambiarCapa(id, c => ({ ...c, visible: v }))}
+        onMover={moverCapa} onAgregar={agregarCapa} onBorrar={borrarCapa} />
+      <p className="h-ayuda">Estampas en la capa marcada. La de arriba de la lista se imprime al último, encima de las demás.</p>
+    </SeccionPanel>
+
+    <SeccionPanel titulo={`Tinta de ${capa.nombre}`}>
+      <SelectorColor valor={capa.tinta} colores={TINTAS} pasos={5} etiqueta="Tinta"
+        onCambiar={hex => { if (hex.toUpperCase() !== capa.tinta.toUpperCase()) cambiarCapa(capa.id, c => ({ ...c, tinta: hex })); }} />
+      <Segmento etiqueta={`Cómo se imprime ${capa.nombre}`} valor={capa.mezcla}
+        onCambiar={m => cambiarCapa(capa.id, c => ({ ...c, mezcla: m }))}
+        opciones={[{ valor: true, texto: 'Se mezcla', icono: 'invert_colors' }, { valor: false, texto: 'Tapa', icono: 'flip_to_front' }]} />
+      <p className="h-ayuda">{capa.mezcla
+        ? 'Donde se cruza con las capas de abajo, las tintas se suman y sale un color nuevo, como en la risografía.'
+        : 'Cubre lo que hay debajo, como una tinta opaca.'} La tinta es de toda la capa.</p>
+    </SeccionPanel>
+
+    <SeccionPanel titulo="Papel">
+      <Segmento etiqueta="Papel" valor={a.papel} onCambiar={(p: Papel) => cambiar(v => ({ ...v, papel: p }))}
+        opciones={(Object.keys(PAPELES) as Papel[]).map(p => ({ valor: p, texto: <span className="papel-op"><span className="papel-gota" style={{ background: PAPELES[p] }} />{p}</span> }))} />
+    </SeccionPanel>
+
+    <SeccionPanel titulo="Marco">
+      <GrillaBiblioteca etiqueta="Marco" tam={60} elegido={a.marco ?? 'ninguno'}
+        onElegir={id => cambiar(v => ({ ...v, marco: id === 'ninguno' ? null : id }))}
+        elementos={[
+          { id: 'ninguno', nombre: 'Sin marco', contenido: <Icono nombre="crop_square" /> },
+          ...MARCOS_AFICHE.map(m => ({ id: m.id, nombre: `${m.name} · ${m.visual}`, contenido: <MiniMarco id={m.id} papel={papelHex} /> })),
+        ]} />
+      {a.marco && (
+        <Segmento etiqueta="Dónde va el marco" valor={a.marcoEncima} onCambiar={v => cambiar(x => ({ ...x, marcoEncima: v }))}
+          opciones={[{ valor: true, texto: 'Sobre las estampas', icono: 'flip_to_front' }, { valor: false, texto: 'Bajo las estampas', icono: 'flip_to_back' }]} />
+      )}
+    </SeccionPanel>
+
+    <SeccionPanel titulo="Ajustes">
+      <Interruptor texto="Registro corrido" activo={a.registro} onCambiar={v => cambiar(x => ({ ...x, registro: v }))} />
+      <p className="h-ayuda">Corre un poco cada capa, como cuando las placas de la risografía no calzan justo.</p>
+      <Boton icono="delete" texto={borrarTodo ? 'Toca otra vez para borrar todo' : 'Empezar de nuevo'} variante="peligro" ancho
+        disabled={vacio && a.capas.length === 1 && !a.marco}
+        onClick={() => {
+          if (!borrarTodo) { setBorrarTodo(true); window.setTimeout(() => setBorrarTodo(false), 3000); return; }
+          setBorrarTodo(false); setPrevia(null);
+          const c = nuevaCapa(1, ROTACION[0]);
+          cambiar(v => ({ ...v, capas: [c], activa: c.id, marco: null }));
+          avisar('Papel nuevo. Puedes deshacer.');
+        }} />
+    </SeccionPanel>
   </>);
+
+  const ayuda = previa
+    ? `${def.nombre} en ${capa.nombre}: muévelo, gíralo o agrándalo y confirma con ✓`
+    : `${def.nombre} · toca el papel para elegir dónde estampar`;
+
+  return (<>
+    <MarcoHerramienta titulo="Taller de Grabado" ayuda={ayuda} historia={{
+      deshacer: () => { historial.deshacer(); setPrevia(null); }, rehacer: () => { historial.rehacer(); setPrevia(null); },
+      puedeDeshacer: historial.puedeDeshacer, puedeRehacer: historial.puedeRehacer,
+    }}
+      primario={{ texto: 'Llévatelo', onClick: exportar, disabled: vacio || !tacos }}
+      herramientas={barraTacos} panel={panel} anchoPanel={340} altoPanelVertical="40%" aviso={aviso}>
+      <LienzoAjustado ref={caja} proporcion={1} className="hoja">
+        <canvas ref={lienzo} className="papel" onPointerDown={tocarPapel} role="img"
+          aria-label={`Afiche con ${a.capas.length} capa${a.capas.length === 1 ? '' : 's'} y ${total} estampa${total === 1 ? '' : 's'}. Toca para ubicar ${def.nombre}.`} />
+        <canvas ref={encima} className="previa" aria-hidden="true" />
+        {vacio && !previa && (
+          <div className="pista" aria-hidden="true"><Icono nombre="touch_app" tam={28} /><span>Toca el papel para elegir dónde estampar</span></div>
+        )}
+        {previa && tacoListo && (
+          <Manijas etiqueta={`Taco ${def.nombre}`} valor={previa} ancho={tw} alto={th} lienzo={{ ancho: PAPEL, alto: PAPEL }}
+            limites={{ min: 0.08, max: 0.85 }}
+            onCambiar={(t, final) => { setPrevia(t); if (final) ultima.current = { escala: t.escala, giro: t.giro }; }}
+            barrita={<BarritaSeleccion etiqueta="Taco"
+              acciones={[{ icono: 'rotate_90_degrees_cw', etiqueta: 'Girar 90°', onClick: () => setPrevia(p => p && { ...p, giro: ((p.giro + 90 + 180) % 360) - 180 }) }]}
+              onCancelar={cancelar} onConfirmar={estampar} />} />
+        )}
+      </LienzoAjustado>
+    </MarcoHerramienta>
+    {llevar && <Llevatela blob={llevar} app="grabado" titulo="Tu afiche está listo" conCredencial={!!jugador()?.codigo} alCerrar={() => setLlevar(null)} />}
+    <Quiosco app="grabado" limpiar={[CLAVE, 'sd:grabado']} />
+  </>);
+};
+
+// Miniatura de un marco sobre el papel elegido.
+const MiniMarco: React.FC<{ id: string; papel: string }> = ({ id, papel }) => {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const c = ref.current; if (!c) return;
+    const x = c.getContext('2d')!;
+    x.fillStyle = papel; x.fillRect(0, 0, 96, 96);
+    x.drawImage(lienzoMarco(id, 96, papel), 0, 0);
+  }, [id, papel]);
+  return <canvas ref={ref} width={96} height={96} style={{ width: '100%', height: '100%', display: 'block', borderRadius: 3 }} />;
 };
