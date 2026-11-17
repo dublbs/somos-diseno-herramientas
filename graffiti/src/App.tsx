@@ -6,10 +6,10 @@ import { PLANTILLAS } from './data/stencils';
 import { cargar } from './lib/imagenes';
 import { borrar, copiar, gotear, linea, mascaraDe, nacerChorro, nuevoDibujo, plantilla, plumon, rociar, rodillo, tintaRodillo, type Chorro, type Dibujo, type Puesta } from './lib/pintura';
 import { dibujarMuro, dibujarPlacaStencil } from './lib/dibujar';
-import { crearTarjeta, descargar } from './lib/exportar';
+import { crearTarjeta } from './lib/exportar';
 import { Lienzo } from './components/Lienzo';
 import { PreviaPincel } from './components/PreviaPincel';
-import { ModalExportar } from './components/ModalExportar';
+import { Llevatela } from '../../shared/ui/Llevatela';
 import { BarraHerramientas, BarraSuperior, BotonAccion, Confirmar, Deslizador, Paleta, PantallaHerramienta, Seccion, Segmentado, type DefHerramienta } from '../../shared/ui/Kit';
 import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
 import '../../shared/ui/somos-kit.css';
@@ -347,11 +347,8 @@ export const App: React.FC = () => {
       </PantallaHerramienta>
 
       {tarjeta && (
-        <ModalExportar
-          blob={tarjeta}
-          onCerrar={() => setTarjeta(null)}
-          onGuardar={() => { descargar(tarjeta, 'graffiti-somos-diseno.png'); setAviso('Imagen descargada'); }}
-        />
+        <Llevatela blob={tarjeta} app="graffiti" titulo="Tu muro está listo" conCredencial={!!jugador()?.codigo}
+          alCerrar={() => setTarjeta(null)} />
       )}
       {aviso && <div className="aviso" role="status">{aviso}</div>}
       <Quiosco app="graffiti" />
