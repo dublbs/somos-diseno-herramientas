@@ -13,6 +13,11 @@
 - La guía de la cámara pasa a tener la forma del afiche (3:4) y el texto dice «Encuadra el afiche completo, de frente».
 - Base: `reconocer_afiche(p_codigo, p_afiche)` (migración `007-afiche-por-diseno.sql`) recibe el id público y timbra como `encontrar_afiche()`. Se apaga con `config.cacería_por_diseño = 'no'`; la credencial muestra entonces «apunta al sello o escribe su código».
 
+## Cambios del 17 nov, después de la primera prueba en el celular
+- **No reconocía:** muchos celulares entregan el video en horizontal y el visor muestra solo el centro (object-fit: cover). Ahora se compara solo la zona visible del video.
+- **Solo reconocer:** la pantalla de la cacería ya no tiene campo de código; basta apuntar al afiche. El QR del sello se sigue leyendo en silencio.
+- **Diagnóstico:** `#/afiches?ver` muestra en vivo los dos afiches más parecidos y sus puntajes, para ajustar el umbral con los impresos.
+
 ## Pruebas (simuladas)
 - 78 fotos simuladas de los 6 afiches: de frente, más grande, más chico, corrido, inclinado 20° y 35°, desde abajo, girado 8°, poca luz, luz cálida, desenfocado, reflejo y en la pared con otros afiches. Reconoce 77 sin confundir ninguno; Tejido con muy poca luz queda bajo el umbral.
 - 85 imágenes que no son afiches (piezas de las experiencias, personajes, estampillas, pared): ninguna pasa.

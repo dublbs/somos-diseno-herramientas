@@ -14,7 +14,7 @@ import { AFICHES } from './afiches';
 const GW = 36, GH = 48;          // miniatura de la zona de la cámara (guía + 15 % de aire)
 const AIRE = 1.15;
 const ESCALAS = [0.78, 0.86, 0.94, 1.02, 1.1];
-const GUIAS = [0.6, 0.8, 1];     // la gente no encuadra exacto: se prueban varios tamaños de guía
+const GUIAS = [0.55, 0.72, 0.9]; // ancho de la guía respecto de lo visible; la gente no encuadra exacto
 export const UMBRAL = 0.34;      // puntaje mínimo del mejor afiche
 export const MARGEN = 0.12;      // ventaja mínima sobre el segundo
 const SEGUIDOS = 3;              // cuadros seguidos con el mismo afiche antes de darlo por encontrado
@@ -119,10 +119,12 @@ export function puntuar(preparados: Preparado[], rgba: ArrayLike<number>, w: num
   return [...mejor].map(([id, puntaje]) => ({ id, puntaje })).sort((a, b) => b.puntaje - a.puntaje);
 }
 
-// El afiche reconocido en un cuadro, o null.
-export function reconocer(preparados: Preparado[], rgba: ArrayLike<number>, w: number, h: number): string | null {
-  const [p1, p2] = puntuar(preparados, rgba, w, h);
-  return p1 && p1.puntaje >= UMBRAL && p1.puntaje - (p2?.puntaje ?? 0) >= MARGEN ? p1.id : null;
+// El afiche reconocido en un cuadro (o null) y los dos mejores puntajes, para el modo de diagnóstico.
+export function reconocer(preparados: Preparado[], rgba: ArrayLike<number>, w: number, h: number): { id: string | null; mejores: Puntaje[] } {
+  const orden = puntuar(preparados, rgba, w, h);
+  const [p1, p2] = orden;
+  const id = p1 && p1.puntaje >= UMBRAL && p1.puntaje - (p2?.puntaje ?? 0) >= MARGEN ? p1.id : null;
+  return { id, mejores: orden.slice(0, 2) };
 }
 
 // ---------- En la cámara ----------
@@ -130,12 +132,13 @@ const LADO = 480;       // el cuadro se reduce a esto antes de comparar
 const CADA_MS = 450;
 const REPETIR_MS = 8000; // el mismo afiche frente a la cámara no se vuelve a avisar antes de esto
 
-function rgbaDe(fuente: CanvasImageSource, ancho: number, alto: number, lienzo: HTMLCanvasElement) {
+// Copia a un lienzo chico el rectángulo (sx, sy, ancho, alto) de la fuente.
+function rgbaDe(fuente: CanvasImageSource, ancho: number, alto: number, lienzo: HTMLCanvasElement, sx = 0, sy = 0) {
   const k = Math.min(1, LADO / Math.max(ancho, alto));
   const w = Math.max(1, Math.round(ancho * k)), h = Math.max(1, Math.round(alto * k));
   if (lienzo.width !== w || lienzo.height !== h) { lienzo.width = w; lienzo.height = h; }
   const ctx = lienzo.getContext('2d', { willReadFrequently: true })!;
-  ctx.drawImage(fuente, 0, 0, w, h);
+  ctx.drawImage(fuente, sx, sy, ancho, alto, 0, 0, w, h);
   return { rgba: ctx.getImageData(0, 0, w, h).data, w, h };
 }
 
@@ -150,10 +153,23 @@ async function cargarPreparados(): Promise<Preparado[]> {
   return prepararAfiches(datos);
 }
 
+// Lo que se ve del video en pantalla: el visor lo muestra con object-fit: cover, así que recorta los lados (muchos
+// celulares entregan el video en horizontal aunque el teléfono esté vertical). Se compara solo esa parte.
+function zonaVisible(v: HTMLVideoElement) {
+  const cw = v.clientWidth, ch = v.clientHeight;
+  if (!cw || !ch) return { sx: 0, sy: 0, w: v.videoWidth, h: v.videoHeight };
+  const k = Math.max(cw / v.videoWidth, ch / v.videoHeight);
+  const w = Math.min(v.videoWidth, cw / k), h = Math.min(v.videoHeight, ch / k);
+  return { sx: (v.videoWidth - w) / 2, sy: (v.videoHeight - h) / 2, w, h };
+}
+
 // Mira el mismo <video> que el lector de QR y avisa cuando reconoce un afiche varias veces seguidas.
-export function useReconocerAfiche(video: RefObject<HTMLVideoElement | null>, activo: boolean, alReconocer: (id: string) => void) {
+// alMirar (opcional) recibe los dos mejores puntajes de cada cuadro, para el modo de diagnóstico.
+export function useReconocerAfiche(video: RefObject<HTMLVideoElement | null>, activo: boolean, alReconocer: (id: string) => void, alMirar?: (mejores: Puntaje[]) => void) {
   const aviso = useRef(alReconocer);
   aviso.current = alReconocer;
+  const mira = useRef(alMirar);
+  mira.current = alMirar;
   useEffect(() => {
     if (!activo) return;
     let vivo = true, temporizador = 0, candidato = '', seguidos = 0;
@@ -165,8 +181,10 @@ export function useReconocerAfiche(video: RefObject<HTMLVideoElement | null>, ac
       if (!vivo) return;
       const v = video.current;
       if (preparados && v && v.readyState >= 2 && v.videoWidth) {
-        const { rgba, w, h } = rgbaDe(v, v.videoWidth, v.videoHeight, lienzo);
-        const id = reconocer(preparados, rgba, w, h);
+        const z = zonaVisible(v);
+        const { rgba, w, h } = rgbaDe(v, z.w, z.h, lienzo, z.sx, z.sy);
+        const { id, mejores } = reconocer(preparados, rgba, w, h);
+        mira.current?.(mejores);
         if (id && id === candidato) seguidos++; else { candidato = id ?? ''; seguidos = id ? 1 : 0; }
         if (id && seguidos >= SEGUIDOS && Date.now() - (ultimos.get(id) ?? 0) > REPETIR_MS) {
           ultimos.set(id, Date.now()); seguidos = 0;

@@ -2,18 +2,17 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { encontrarAfiche, miCredencial, progresoJuego, reconocerAfiche, type ResultadoAfiche } from '../lib/store';
 import { interpretar, useLectorQR } from '../lib/lector';
 import { nombreAfiche } from '../lib/afiches';
-import { useReconocerAfiche } from '../lib/reconocer-afiche';
+import { useReconocerAfiche, type Puntaje } from '../lib/reconocer-afiche';
 import type { Ir } from '../App';
 
 // Cámara de la cacería (plan 010): queda abierta mientras la persona busca. Cada afiche nuevo suma sin salir;
 // al completar la meta, la credencial muestra la ceremonia del timbre 3.
-// Reconoce el afiche de dos formas sobre la misma cámara: por su diseño (plan 013, lib/reconocer-afiche.ts)
-// o por el QR del sello (plan 010). Si nada funciona, queda escribir el código.
+// Basta apuntar al afiche: se reconoce por su diseño (plan 013, lib/reconocer-afiche.ts). El QR del sello
+// (plan 010) se sigue leyendo en silencio por si un afiche lo trae. #/afiches?ver muestra los puntajes en vivo.
 export const Afiches: React.FC<{ ir: Ir }> = ({ ir }) => {
   const mia = miCredencial();
   const [cuenta, setCuenta] = useState<{ n: number; meta: number } | null>(null);
   const [aviso, setAviso] = useState<{ texto: string; tipo: 'ok' | 'info' | 'error' } | null>(null);
-  const [codigo, setCodigo] = useState('');
   const ocupado = useRef(false);
 
   useEffect(() => { if (!mia) ir('#/crear'); else progresoJuego(mia).then(p => setCuenta({ n: p.afiches.length, meta: p.meta })).catch(() => { /* se ve al leer */ }); }, [mia, ir]);
@@ -27,7 +26,6 @@ export const Afiches: React.FC<{ ir: Ir }> = ({ ir }) => {
       const r = await buscar(mia);
       if (r.nuevo) { ir(`#/c/${mia}`, { timbre: r.sello }); return; }
       setCuenta({ n: r.pasos, meta: r.meta });
-      setCodigo('');
       navigator.vibrate?.(r.repetido ? 40 : [60, 40, 60]);
       setAviso(r.repetido
         ? { texto: `Ya tenías el afiche ${nombreAfiche(r.afiche)}.`, tipo: 'info' }
@@ -46,19 +44,13 @@ export const Afiches: React.FC<{ ir: Ir }> = ({ ir }) => {
     else setAviso({ texto: 'Ese código no es de un afiche de la cacería.', tipo: 'info' });
   });
 
-  useReconocerAfiche(video, estado === 'buscando', id => probar(c => reconocerAfiche(c, id)));
-
-  const escrito = (e: React.FormEvent) => {
-    e.preventDefault();
-    const limpio = codigo.trim().toUpperCase();
-    if (limpio.length < 4) { setAviso({ texto: 'Escribe el código que está bajo el sello del afiche.', tipo: 'error' }); return; }
-    probar(c => encontrarAfiche(c, limpio));
-  };
+  const ver = location.hash.includes('?ver');
+  const [diagnostico, setDiagnostico] = useState<Puntaje[]>([]);
+  useReconocerAfiche(video, estado === 'buscando', id => probar(c => reconocerAfiche(c, id)), ver ? setDiagnostico : undefined);
 
   const mensaje = estado === 'buscando' ? 'Encuadra el afiche completo, de frente' :
     estado === 'iniciando' ? 'Abriendo la cámara…' :
-    estado === 'sin-camara' ? 'No pudimos abrir la cámara. Revisa el permiso del navegador o escribe el código.' :
-    'No pudimos cargar el lector. Escribe el código que está bajo el sello.';
+    'No pudimos abrir la cámara. Revisa el permiso del navegador y vuelve a entrar.';
 
   return (
     <main className="pantalla escanear afiches">
@@ -75,13 +67,7 @@ export const Afiches: React.FC<{ ir: Ir }> = ({ ir }) => {
         {aviso && <p className={`visor-aviso ${aviso.tipo}`} role="alert">{aviso.texto}</p>}
       </div>
       <p className="progreso" role="status">{mensaje}</p>
-      <form className="codigo-sello" onSubmit={escrito}>
-        <div className="pie-movil">
-          <input value={codigo} onChange={e => setCodigo(e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 6))}
-            autoComplete="off" autoCapitalize="characters" placeholder="Código del afiche" aria-label="Código del afiche" />
-          <button className="btn primario">Sumar</button>
-        </div>
-      </form>
+      {ver && <p className="diagnostico" aria-live="off">{diagnostico.map(d => `${nombreAfiche(d.id)} ${d.puntaje.toFixed(2)}`).join(' · ') || 'Cargando…'} · pasa con 0,34 y 0,12 de ventaja</p>}
       <div className="acciones-movil">
         <button type="button" className="btn" onClick={() => ir('#/juego')}>Listo</button>
       </div>
