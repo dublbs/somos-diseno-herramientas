@@ -59,6 +59,11 @@ export function entrarJugador(codigo: string, app = 'mesa') {
   try { sessionStorage.setItem(LLAVE_JUGADOR, JSON.stringify({ codigo, ganado: [] })); } catch { /* nada */ }
   abrirSesionMesa(idMesa(), app, codigo);
 }
+// Jugar sin credencial (plan 011): la persona juega y se lleva su creación por QR, sin timbres. Dura la sesión, como el
+// código: el quiosco la borra y la mesa vuelve a preguntar.
+const LLAVE_SIN = 'sd:sin-credencial';
+export const sinCredencial = () => { try { return sessionStorage.getItem(LLAVE_SIN) === '1'; } catch { return false; } };
+export function entrarSinCredencial() { try { sessionStorage.setItem(LLAVE_SIN, '1'); } catch { /* nada */ } }
 // Identificador de esta tablet para el PC madre: 4 letras que se generan una vez y quedan en el equipo.
 export function idMesa(): string {
   try {
