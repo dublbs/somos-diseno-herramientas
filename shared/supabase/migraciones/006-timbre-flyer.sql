@@ -30,10 +30,10 @@ begin
     return jsonb_build_object('ok', true, 'otorgado', false, 'falta', '[]'::jsonb, 'sello', 4);
   end if;
   if not exists (select 1 from pasos where credencial_id = v_id and sello = 2) then
-    v_falta := v_falta || 'creacion';
+    v_falta := array_append(v_falta, 'creacion');
   end if;
   if not exists (select 1 from pasos where credencial_id = v_id and sello = 3 and clave <> 'unico') then
-    v_falta := v_falta || 'afiche';
+    v_falta := array_append(v_falta, 'afiche');
   end if;
   if array_length(v_falta, 1) > 0 then
     return jsonb_build_object('ok', false, 'otorgado', false, 'falta', to_jsonb(v_falta), 'sello', 4);
