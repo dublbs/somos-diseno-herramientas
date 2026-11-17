@@ -43,12 +43,13 @@ const tunel: Escena = {
   id: 'tunel', nombre: 'Túnel', icono: 'blur_on', fondo: C.Negro,
   linea: 'Viajas por un túnel de anillos: el bombo te empuja y la melodía pinta cada anillo nuevo.',
   mapa: { bateria: 'Bombo empuja, caja enciende, hi-hat brilla', bajo: 'Ondula los anillos', acordes: 'Tuerce el túnel', melodia: 'Pinta los anillos nuevos' },
-  crear: () => ({ anillos: Array.from({ length: 18 }, (_, i) => ({ z: (i + 0.5) / 18, k: i, color: VIVOS[i % VIVOS.length] })), cuenta: 18, giro: 0, t: 0, torsion: 0 }),
+  crear: () => ({ anillos: Array.from({ length: 18 }, (_, i) => ({ z: (i + 0.5) / 18, k: i, color: VIVOS[i % VIVOS.length] })), cuenta: 18, giro: 0, t: 0, torsion: 0, ola: 0 }),
   dibujar(ctx, S, dt, r, e) {
     e.t += dt;
     const vel = 0.13 + r.volumen * 0.1 + r.bombo * 0.55 + r.mano * 0.6;
     const color = r.notaMel >= 0 ? colorNota(r.notaMel) : C.Azul;
-    e.giro += dt * (0.12 + r.acordes * 0.5);
+    e.giro += dt * (0.12 + r.acordes * 1.1);
+    e.ola += dt * (1 + r.bajo * 7); // el bajo hace correr la onda por los anillos
     e.torsion += ((0.2 + r.acordes * 1.8) - e.torsion) * Math.min(1, dt * 3);
     for (const a of e.anillos) { a.z -= vel * dt; if (a.z <= 0.03) { a.z += 1; a.k = e.cuenta++; a.color = color; } }
     ctx.fillStyle = C.Negro; ctx.fillRect(0, 0, S, S);
@@ -65,7 +66,7 @@ const tunel: Escena = {
       ctx.fillStyle = col; ctx.beginPath();
       for (let j = 0; j <= 64; j++) {
         const th = (j / 64) * Math.PI * 2, cuadrado = 1 / Math.max(Math.abs(Math.cos(th)), Math.abs(Math.sin(th)));
-        const rad = R * (cuadrado * 0.8 + 0.2) * (1 + def * Math.sin(lob * th + e.t * 2.5 + a.k));
+        const rad = R * (cuadrado * 0.8 + 0.2) * (1 + def * Math.sin(lob * th + e.ola + a.k));
         const x = cx + rad * Math.cos(th + rot), y = cy + rad * Math.sin(th + rot);
         j ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
       }
@@ -74,7 +75,7 @@ const tunel: Escena = {
         const l = Math.max(2, R * 0.06);
         ctx.fillStyle = C.Hueso; ctx.globalAlpha = Math.min(1, r.hat * 1.4) * (1 - a.z);
         for (let q = 0; q < 4; q++) {
-          const th = Math.PI / 4 + (q * Math.PI) / 2, rad = R * 1.13 * (1 + def * Math.sin(lob * th + e.t * 2.5 + a.k));
+          const th = Math.PI / 4 + (q * Math.PI) / 2, rad = R * 1.13 * (1 + def * Math.sin(lob * th + e.ola + a.k));
           ctx.fillRect(cx + rad * Math.cos(th + rot) - l / 2, cy + rad * Math.sin(th + rot) - l / 2, l, l);
         }
         ctx.globalAlpha = 1;
