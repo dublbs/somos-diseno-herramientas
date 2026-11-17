@@ -3,16 +3,14 @@
 Rama `amaro/teatro-ronda-2` (desde `main` + merge de `origin/amaro/juego-pixel`). Pedido: feedback de Amaro del 17 nov.
 
 ## Hecho
-- Lectura de planes 012 y 008, y de todo `loops/src/`.
-- Medición base (antes): ver «Números» abajo.
+- Motor del wip compilado, probado y corregido: caché de bitmaps (ImageBitmap) a la densidad justa por pieza, carga por
+  escenario con «Preparando el teatro…», dibujo solo si cambia el cuadro, borde de papel por capa (sin lienzos grandes
+  por cuadro) y sombra difuminada a 1/4.
+- Tabla única por pieza (tamaño, mín., máx., móvil, colores); Sorpréndeme y «agregar» la usan (un solo astro, piezas enteras).
+- UI: panel derecho con scroll propio, escenarios 2 × 2, nombres en dos líneas, línea de tiempo que crece con 8 piezas,
+  play de 48 px, sin duplicar/copiar/pegar, selector de color (pez y huemul).
+- Arte: huemul amable, guanaco con 3 animaciones, aleteo de la paloma en las aves, ≥ 3 estados por animal, añañuca en vez
+  de la flor. Manifiesto en `docs/plans/012-ui-herramientas/assets-teatro.manifest.md`. README al día.
 
-## Falta, en este orden
-1. Motor: rasterizar cada SVG una vez a bitmap (caché), carga diferida por escenario, dibujar solo si cambia el cuadro.
-2. Pantalla de carga «Preparando el teatro…» con avance real.
-3. Una sola tabla por pieza (escala inicial, mínimo, máximo, móvil, color) relativa al escenario.
-4. UI: panel derecho con scroll propio, quitar duplicar, textos que no se salgan, selector de color.
-5. Arte (scripts/generar-bocetos.py): huemul amable con cabeza y cola separadas, guanaco mejorado, 3 estados por animal, aleteo de la paloma en las aves, reemplazo de la flor.
-6. Manifiesto `docs/plans/012-ui-herramientas/assets-teatro.manifest.md`, README, verificación Playwright en 6 resoluciones, `dist/`.
-
-## Números
-- Antes: (pendiente de anotar)
+## Falta
+- Medición final antes/después, verificación de pantalla en las 6 tablets y `dist/` (modo demo: no hay `.env.local`).
