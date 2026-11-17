@@ -211,5 +211,5 @@ Si alguno se queda sin créditos, el otro toma sus ramas leyendo su `AVANCE.md`.
 | `amaro/graffiti-ronda-2` | **Terminada**: marco v2, 4 tamaños, stencil y sticker con manijas, metro nuevo, `dist/` |
 | `amaro/audioreactiva-tactil` | En curso |
 | `amaro/hora-punta-iso` | En curso |
-| `amaro/grabado-afiche` | En curso (Claude de Amaro) |
-| `amaro/teatro-ronda-2` | Para Felipe; sin avances |
+| `amaro/grabado-afiche` | **Terminada**: afiche por capas (vista previa con manijas, capas con tinta propia, «Se mezcla / Tapa», papel blanco y hueso, 15 marcos, 16 tacos), `dist/` |
+| `amaro/teatro-ronda-2` | En curso: lo retomó el Claude de Amaro a las 18:10 UTC porque seguía sin empezar. **Felipe: no lo lances en paralelo**; si quieres tomarlo, avisa a Amaro |
