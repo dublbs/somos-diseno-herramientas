@@ -14,7 +14,7 @@ import {
   reflejarV,
 } from './data/formas';
 import { leerStorage, guardarStorage } from './lib/almacen';
-import { guardarArchivo } from './lib/exportar';
+import { Llevatela } from '../../shared/ui/Llevatela';
 import { Lienzo, pintarCelda } from './components/Lienzo';
 import { PanelLateral, PincelActual } from './components/Panel';
 import { BarraHerramientas, BarraSuperior, BotonAccion, PantallaHerramienta, useHistorial } from '../../shared/ui/Kit';
@@ -72,6 +72,7 @@ export const App: React.FC = () => {
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
   const [grilla, setGrilla] = useState<boolean>(true);
   const [estadoMsg, setEstadoMsg] = useState<string>('');
+  const [llevar, setLlevar] = useState<Blob | null>(null); // «Llévatela» con QR (plan 011)
   const [visto, marcarVisto] = useTutorialVisto('mosaicos');
   useEffect(() => { if (!estadoMsg) return; const t = setTimeout(() => setEstadoMsg(''), 2600); return () => clearTimeout(t); }, [estadoMsg]);
 
@@ -415,22 +416,10 @@ export const App: React.FC = () => {
     }
 
     const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/png'));
-    if (!blob) return;
-    const res = await guardarArchivo(
-      `mosaico-${formato.id}-${canvas.width}x${canvas.height}.png`,
-      blob
-    );
-    if (res !== 'cancelado') {
-      publicar('mosaico', { png: miniatura(canvas, 200) }, jugador()?.codigo ?? null).catch(() => { /* sin red */ });
-      otorgarCreacion('mosaicos');
-    }
-    setEstadoMsg(
-      res === 'cancelado'
-        ? 'Descarga cancelada.'
-        : res === 'ocupado'
-        ? 'Ya hay una descarga pendiente.'
-        : '¡Imagen descargada con éxito!'
-    );
+    if (!blob) { setEstadoMsg('No pudimos preparar la imagen.'); return; }
+    setLlevar(blob);
+    publicar('mosaico', { png: miniatura(canvas, 200) }, jugador()?.codigo ?? null).catch(() => { /* sin red */ });
+    otorgarCreacion('mosaicos');
   };
 
   const HERRAMIENTAS = [
@@ -453,7 +442,7 @@ export const App: React.FC = () => {
       pasos={[
         { icono: 'grid_view', texto: 'Elige un módulo de la biblioteca.' },
         { icono: 'draw', texto: 'Toca la grilla: pon, gira y refleja.' },
-        { icono: 'repeat', texto: 'Multiplica un área, cambia la paleta y descarga tu patrón.' },
+        { icono: 'repeat', texto: 'Multiplica un área, cambia la paleta y llévate tu patrón con un QR.' },
       ]}
       acciones={[{ texto: 'Empezar a diseñar', icono: 'grid_on', alTocar: marcarVisto }]} />
   );
@@ -467,7 +456,7 @@ export const App: React.FC = () => {
             <BotonAccion icono="undo" etiqueta="Deshacer" onClick={() => { historial.deshacer(); setSel(null); }} disabled={!historial.puedeDeshacer} />
             <BotonAccion icono="redo" etiqueta="Rehacer" onClick={() => { historial.rehacer(); setSel(null); }} disabled={!historial.puedeRehacer} />
             <BotonAccion icono="shuffle" texto="Sorpréndeme" onClick={() => generarMosaico()} />
-            <BotonAccion icono="download" texto="Descargar" primario onClick={exportarPNG} />
+            <BotonAccion icono="ios_share" texto="Llévatelo" primario onClick={exportarPNG} />
           </BarraSuperior>
         }
         lateral={
@@ -509,6 +498,7 @@ export const App: React.FC = () => {
           />
         </div>
       </PantallaHerramienta>
+      {llevar && <Llevatela blob={llevar} app="mosaicos" titulo="Tu mosaico está listo" conCredencial={!!jugador()?.codigo} alCerrar={() => setLlevar(null)} />}
       {estadoMsg && <div className="aviso" role="status">{estadoMsg}</div>}
       <Quiosco app="mosaicos" limpiar={['geo:estado']} />
     </>
