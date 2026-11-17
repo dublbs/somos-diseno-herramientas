@@ -251,8 +251,17 @@ Un PR «Ronda 2 (parte 2)» desde una rama que una las 3 sobre `main` (después 
 recompilados y la prueba de humo de todas las apps. **Fotomatón** queda pendiente de pasar al kit v2: es cambiar el
 contenedor en `fotomaton/src/components/Camara.tsx` y `Editor.tsx`, porque `Panel` y `Disparador` ya están separados.
 
+## 7b. Cacería por diseño (agente de Felipe, 17 nov)
+- **PR #28** (`pipe/caceria-por-diseno`), plan [`013`](../plans/013-caceria-por-diseno.md). La cámara de la cacería (`#/afiches`) reconoce el afiche **por su diseño**, sin QR: compara la imagen de la cámara con las miniaturas `af01–af06.webp` (forma + color, sin dependencias) y da el afiche tras 3 cuadros seguidos iguales. El QR del plan 010 y el código escrito siguen funcionando en la misma pantalla.
+- Código: `credencial/src/lib/reconocer-afiche.ts`, `reconocerAfiche()` en `store.ts`, guía 3:4 en `Afiches.tsx`.
+- Base: **migración `007-afiche-por-diseno.sql` ya corrida** en somos-diseno el 17 nov (`reconocer_afiche()` y `config.cacería_por_diseño = 'si'`). Para apagarlo: `update public.config set valor = 'no' where clave = 'cacería_por_diseño';` (queda el QR).
+- Pruebas simuladas: 77 de 78 fotos de los 6 afiches reconocidas sin confusiones; 0 de 85 imágenes que no son afiches aceptadas; de punta a punta con cámara falsa en modo demo. Página suelta para probar con fotos: artefacto «Prueba · reconocer afiches».
+- **Falta (prueba general del 18 nov):** los 6 afiches impresos con iPhone y Android, de frente y de lado, y cosas que no son afiches. Riesgo aceptado: basta conocer el afiche (o fotografiarlo en otra pantalla) para sumarlo.
+- **Migración 006 (flyer):** el 17 nov no estaba corrida (timbre 4 seguía «Secreto», sin `sellar_flyer`). Pipe la corre a mano; comprobar `select nombre from sellos_def where id = 4;` → «Flyer».
+- Sellos de medias celdas y estampillas (exploración del 15 nov): quedaron fuera del repo, sin subir; se retoman si el reconocimiento por diseño falla.
+
 ## 8. Orden en GitHub (17 nov)
-- **PR abiertos que quedan:** #27 (ronda 2, parte 1; mergear), #12 y #10 (de Pipe), #5 (ImgBot: optimiza imágenes,
+- **PR abiertos que quedan:** #28 (cacería por diseño, §7b; mergear), #27 (ronda 2, parte 1; mergear), #12 y #10 (de Pipe), #5 (ImgBot: optimiza imágenes,
   toca 297 archivos; revisar antes de mergear, puede pisar los `dist/`).
 - **Cerrados por estar ya en `main`:** #15 y #16. **#24** quedó incluido en el #27.
 - **Ramas ya contenidas enteras en `main`, para borrar** (desde esta sesión GitHub no deja borrar ramas; se borran en
