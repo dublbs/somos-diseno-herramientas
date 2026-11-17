@@ -7,7 +7,8 @@
     "dev": "vite",
     "dev:tablet": "vite --host",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "pruebas": "rolldown pruebas/motor.ts --format esm --file node_modules/.pruebas/motor.mjs --log-level warn && node node_modules/.pruebas/motor.mjs"
   },
   "dependencies": {
     "qrcode": "^1.5.4",

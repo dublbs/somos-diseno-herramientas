@@ -159,9 +159,9 @@ export function avanzarJefe(e: Jefe, dtMs: number) {
   if (j.vx) j.mira = j.vx > 0 ? 1 : -1;
   fisica(j, dt, VIGAS_JEFE);
   j.x = Math.max(0, Math.min(ANCHO_A - ANCHO_F, j.x));
-  if (enJefe(e, j.x, j.y)) { // el Inacapín es una pared que además duele
-    j.x = e.lado > 0 ? Math.min(j.x, xJefe(e) + 0.2 - ANCHO_F) : Math.max(j.x, xJefe(e) + ANCHO_JEFE - 0.2);
-    perderVida(e);
+  if (enJefe(e, j.x, j.y)) { // el Inacapín es una pared que te empuja de un salto (no quita vidas: medido con bots, ver plan)
+    j.x = e.lado > 0 ? Math.min(j.x, xJefe(e) + 0.2 - ANCHO_F) - 1 : Math.max(j.x, xJefe(e) + ANCHO_JEFE - 0.2) + 1;
+    if (j.suelo) { j.vy = -9; j.suelo = false; }
   }
 
   // Tiros.
