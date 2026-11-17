@@ -20,6 +20,7 @@ import './styles.css';
 // piezas. Jefe, el Inacapín Pixel: le devuelves el color con bolas de Grises. Lo que te llevas es tu mural.
 const TITULO = 'Hora punta';
 const MIN_PUNTOS_CREACION = 5;
+const ESPERA_FIN = 1200; // ms entre el final del cruce y su tarjeta
 type Nivel = 'cruce' | 'anden' | 'jefe';
 type Etapa = Nivel | 'paso' | 'paso2' | 'fin';
 type Accion = 'arriba' | 'abajo' | 'izq' | 'der' | 'lanzar';
@@ -109,6 +110,7 @@ export const App: React.FC = () => {
   const anden = useRef<Anden | null>(NIVEL > 1 ? andenDePrueba() : null);
   const jefe = useRef<Jefe | null>(NIVEL === 3 ? nuevoJefe(coloresJefe(LATAS_PRUEBA, PIEZAS_PRUEBA)) : null);
   const camara = useRef(0);
+  const espera = useRef(0); // ms desde que el cruce terminó (choque o llegada)
   const img = useRef<Imagenes>({ personaje: null, metro: null });
   const [etapa, setEtapa] = useState<Etapa>(NIVEL === 3 ? 'jefe' : NIVEL === 2 ? 'anden' : 'cruce');
   const [intro, setIntro] = useState(true); // tarjeta «Cómo se juega» al empezar cada nivel
@@ -189,10 +191,17 @@ export const App: React.FC = () => {
         const e = cruce.current;
         if (corre && etapa === 'cruce') {
           avanzarCruce(e, dt);
-          if (e.fin) terminar(e.fin === 'atropellado' ? '¡Te atropellaron!' : e.fin === 'tren' ? '¡Pasó el metro!' : 'Se te pasó la hora punta');
-          else if (e.llego) setEtapa('paso');
+          // Al chocar o llegar, la tarjeta espera un momento: se ve el aplastón o la entrada al metro.
+          if (e.fin || e.llego) espera.current += dt;
+          if (espera.current > ESPERA_FIN) {
+            espera.current = 0;
+            if (e.fin) terminar(e.fin === 'atropellado' ? '¡Te atropellaron!' : e.fin === 'tren' ? '¡Pasó el metro!' : 'Se te pasó la hora punta');
+            else setEtapa('paso');
+          }
         }
-        camara.current += (e.camara - camara.current) * (q ? 1 : Math.min(1, dt / 140));
+        // Al llegar, la cámara deja ver el pórtico del metro.
+        const meta = e.llego ? Math.max(e.camara, e.jugador.y - 3) : e.camara;
+        camara.current += (meta - camara.current) * (q ? 1 : Math.min(1, dt / 140));
         if (ctx) dibujarCruce(ctx, c!.width, c!.height, e, camara.current, img.current, t, q);
       }
       const total = cruce.current.puntos + (a?.puntos ?? 0) + (j?.puntos ?? 0);
@@ -227,8 +236,7 @@ export const App: React.FC = () => {
     if (etapa === 'cruce') {
       const e = cruce.current;
       if (x === 'lanzar') return;
-      mover(e, x === 'izq' ? -1 : x === 'der' ? 1 : 0, x === 'arriba' ? 1 : x === 'abajo' ? -1 : 0);
-      if (e.fin) terminar(e.fin === 'atropellado' ? '¡Te atropellaron!' : '¡Pasó el metro!');
+      mover(e, x === 'izq' ? -1 : x === 'der' ? 1 : 0, x === 'arriba' ? 1 : x === 'abajo' ? -1 : 0); // el bucle ve si chocaste
     } else if (etapa === 'anden' && anden.current) {
       const a = anden.current;
       if (x === 'izq') a.teclas.izq = true;
@@ -292,7 +300,7 @@ export const App: React.FC = () => {
   });
 
   const reiniciar = () => {
-    cruce.current = nuevoCruce(); anden.current = null; jefe.current = null; camara.current = 0; setLlevar(null);
+    cruce.current = nuevoCruce(); anden.current = null; jefe.current = null; camara.current = 0; espera.current = 0; setLlevar(null);
     setEtapa('cruce'); setIntro(true); setPausa(false); setPuntos(0); setResumen(null); setSumado(false); setMotivo('');
     setHud({ latas: [], tiros: 0, piezas: 0, vidas: VIDAS, golpes: 0, color: HUESO });
   };

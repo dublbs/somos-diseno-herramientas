@@ -33,7 +33,8 @@ export function sombra(hex: string, f: number) {
 }
 
 // Estado del dibujo que no es del motor: la cámara en x y el salto del personaje entre celdas.
-interface Vista { camX: number; desdeX: number; desdeY: number; x: number; y: number; mira: 1 | -1 }
+// `fin`: cuándo terminó el cruce (llegada o choque), para animar la entrada al metro o el aplastón.
+interface Vista { camX: number; desdeX: number; desdeY: number; x: number; y: number; mira: 1 | -1; fin: number }
 const vistas = new WeakMap<Cruce, Vista>();
 
 type P = [number, number];
@@ -41,13 +42,17 @@ type P = [number, number];
 export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto: number, e: Cruce, camara: number, img: Imagenes, ahora: number, quieto = false) {
   const j = e.jugador;
   let v = vistas.get(e);
-  if (!v) { v = { camX: j.x + 0.5, desdeX: j.x, desdeY: j.y, x: j.x, y: j.y, mira: 1 }; vistas.set(e, v); }
+  if (!v) { v = { camX: j.x + 0.5, desdeX: j.x, desdeY: j.y, x: j.x, y: j.y, mira: 1, fin: 0 }; vistas.set(e, v); }
   if (v.x !== j.x || v.y !== j.y) { // se movió: el salto parte desde donde estaba
     v.desdeX = v.x; v.desdeY = v.y; v.x = j.x; v.y = j.y;
     if (j.x !== v.desdeX) v.mira = j.x > v.desdeX ? 1 : -1;
   }
+  if ((e.llego || e.fin) && !v.fin) v.fin = ahora;
   const s = quieto ? 0 : j.salto; // 1 → 0 durante el salto
-  const jx = j.x + (v.desdeX - j.x) * s, jy = j.y + (v.desdeY - j.y) * s;
+  let jx = j.x + (v.desdeX - j.x) * s, jy = j.y + (v.desdeY - j.y) * s;
+  // Al llegar, el personaje camina hasta el pórtico y baja la escalera (se pierde detrás del letrero).
+  const entra = e.llego && !quieto ? Math.min(1, Math.max(0, (ahora - v.fin - 150) / 750)) : 0;
+  if (entra) { jx += (6 - j.x) * Math.min(1, entra * 1.6); jy += entra * 2.2; }
   const foco = 6.5 + (jx + 0.5 - 6.5) * 0.6;
   v.camX += (foco - v.camX) * (quieto ? 1 : 0.12);
 
@@ -103,6 +108,7 @@ export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto:
     plano(0, ANCHO, y, y + 1, h, t.top);
     if (canto) { ctx.lineWidth = lw; ctx.strokeStyle = NEGRO; ctx.beginPath(); const a = P(xa, y, h), b = P(xb, y, h); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
     detalleSuelo(y, tipo, h, f);
+    if (y === yMeta + 2) escalera(y - 1); // antes que el personaje, que la baja al llegar
 
     if (!f) continue;
     // Señal del metro, a la izquierda del tablero.
@@ -121,7 +127,7 @@ export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto:
     for (const [x, color] of f.latas) cosas.push({ x, dibujar: () => lata(x, y, h, color) });
     for (const veh of f.vehiculos) cosas.push({ x: veh.x, dibujar: () => vehiculo(veh, y, f.dir) });
     if (f.tren?.activo) cosas.push({ x: f.tren.x, dibujar: () => tren(f.tren!.x, y) });
-    if (y === Math.round(jy)) cosas.push({ x: jx, dibujar: personaje });
+    if (y === Math.round(jy)) cosas.push({ x: e.fin === 'atropellado' || e.fin === 'tren' ? -99 : jx, dibujar: personaje }); // aplastado: queda en el suelo y el tránsito le pasa por encima
     cosas.sort((a, b) => a.x - b.x).forEach(k => k.dibujar());
     if (y === yMeta + 1) portico(y);
   }
@@ -270,20 +276,27 @@ export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto:
     ctx.globalAlpha = 0.3;
     plano(jx + 0.5 - 0.28 * enc, jx + 0.5 + 0.28 * enc, jy + 0.5 - 0.2 * enc, jy + 0.5 + 0.2 * enc, fz + 0.002, NEGRO);
     ctx.globalAlpha = 1;
-    const [px, py] = P(jx + 0.5, jy + 0.45, fz + arco);
+    const [px, py] = P(jx + 0.5, jy + 0.45, fz + arco - entra * 0.4);
     const t = Math.round(c * 0.98);
+    // Si te atropellan o pasa el metro, quedas aplastado (ancho y bajito) con una mancha de pintura.
+    const choque = e.fin === 'atropellado' || e.fin === 'tren';
+    const sx = choque ? 1.35 : 1, sy = choque ? 0.32 : 1;
+    if (choque) { plano(jx - 0.15, jx + 1.15, jy + 0.12, jy + 0.88, fz + 0.003, '#FF8FB1'); plano(jx + 0.1, jx + 0.9, jy + 0.3, jy + 0.7, fz + 0.004, '#FF5C8E'); }
     ctx.save();
-    if (v!.mira < 0) { ctx.translate(px, 0); ctx.scale(-1, 1); ctx.translate(-px, 0); }
-    if (img.personaje) ctx.drawImage(img.personaje, px - t / 2, py - t * 0.9, t, t);
-    else { ctx.fillStyle = '#00A651'; ctx.fillRect(px - t / 3, py - t * 0.7, t * 0.66, t * 0.66); }
+    if (entra > 0.55) ctx.globalAlpha = Math.max(0, 1 - (entra - 0.55) / 0.45);
+    ctx.translate(px, py); ctx.scale(sx * v!.mira, sy);
+    if (img.personaje) ctx.drawImage(img.personaje, -t / 2, -t * 0.9, t, t);
+    else { ctx.fillStyle = '#00A651'; ctx.fillRect(-t / 3, -t * 0.7, t * 0.66, t * 0.66); }
     ctx.restore();
   }
 
-  // Entrada del metro: pórtico azul con letrero «METRO» y la escalera que baja.
+  // Entrada del metro: la escalera que baja (peldaños hacia adelante) y el pórtico azul con su letrero «METRO».
+  function escalera(y: number) {
+    const h = SUELO.estacion.h;
+    for (let k = 0; k < 5; k++) plano(4.1, 8.9, y + 1.1 + k * 0.26, y + 1.36 + k * 0.26, h - 0.02, sombra('#4A453E', 1 - k * 0.14), true);
+  }
   function portico(y: number) {
     const h = SUELO.estacion.h, a = 3.6, b = 9.4;
-    // Escalera: peldaños que bajan hacia adelante.
-    for (let k = 0; k < 5; k++) plano(a + 0.5, b - 0.5, y + 1.1 + k * 0.26, y + 1.36 + k * 0.26, h - 0.02, sombra('#4A453E', 1 - k * 0.14), true);
     caja(a, a + 0.5, y + 0.6, y + 1.0, h, h + 1.7, '#0062B8');
     caja(b - 0.5, b, y + 0.6, y + 1.0, h, h + 1.7, '#0062B8');
     caja(a - 0.3, b + 0.3, y + 0.55, y + 1.05, h + 1.7, h + 2.45, '#2B4BD8');
