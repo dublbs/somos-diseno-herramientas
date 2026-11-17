@@ -202,7 +202,7 @@ Si alguno se queda sin créditos, el otro toma sus ramas leyendo su `AVANCE.md`.
 - **Afiches de la cacería** impresos con su sello y probados con un iPhone y un Android.
 - **Escuchar** los 5 estilos de música, **validar** el Inacapín y **probar en las tablets reales**.
 
-## 7. Estado al 17 nov, 22:00 UTC (Claude de Amaro sin créditos hasta las 22:40 UTC)
+## 7. Estado al 17 nov, 18:50 UTC (los agentes de Amaro se cortaron por límite de uso hasta las 22:40 UTC)
 **Para el agente de Felipe: empieza aquí.** Lo terminado está unido en el **PR #27** (`amaro/ronda-2`). Lo que falta son
 **3 ramas a medias**; cada una tiene su `AVANCE.md` con lo hecho y lo que falta. Retómalas en este orden (prioridad para el
 19 nov) y **con 2–3 agentes a la vez como máximo**.
