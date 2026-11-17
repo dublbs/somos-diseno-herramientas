@@ -1,6 +1,6 @@
 # 012 · UI de herramienta de diseño, ronda 2 de refinamiento y timbre final
 
-Fecha: 17 nov 2026 · Estado: **propuesta, falta decidir (§7)** · Pedido de Amaro del 17 nov.
+Fecha: 17 nov 2026 · Estado: **decidido el 17 nov (§7) · en construcción** · Pedido de Amaro del 17 nov.
 Investigación: [`012-ui-herramientas/investigacion.md`](012-ui-herramientas/investigacion.md) · Pedida multi-agente:
 [`docs/tasks/012-ronda-2.md`](../tasks/012-ronda-2.md).
 
@@ -110,11 +110,37 @@ Es **mucho más que lo que cabe antes del 19 nov** (hoy es 17). Estimación con 
 | Marcos y efectos del Fotomatón (necesita arte) | 2 días + arte | No |
 | Música por estilos y escenas nuevas | 1–2 días | Parcial |
 
-## 7. Decisiones que faltan
-- **D1 · Fecha:** ¿el evento sigue el 19 nov? Si sí, ¿se hace solo la columna «Para el 19» y el resto después?
-- **D2 · Timbre 4:** ¿opción A (Tu flyer) con D o E de respaldo?
-- **D3 · Música:** no hay archivos con licencia en el repo. Propuesta: **5 estilos generados con Web Audio** (sin
-  archivos ni dependencias, inspirados en esos géneros). Alternativa: que el equipo entregue 5 pistas con licencia.
-- **D4 · Arte del Fotomatón:** los marcos nuevos, ¿los dibuja el equipo en Figma o se generan aquí con acabado medio?
-- **D5 · Teatro:** ¿Pipe está de acuerdo en que un agente optimice `loops/`?
-- **D6 · Regla de pantalla:** confirmar el cambio en `AGENTS.md` (panel derecho con scroll).
+## 7. Decisiones (Amaro, 17 nov)
+- **D1 · Fecha:** el evento es el **19 nov**. Se hace **todo**; cada bloque va en su PR para poder dejar fuera lo que no
+  llegue estable.
+- **D2 · Timbre 4:** **A, «Tu flyer»**, con **E (sello del staff)** de respaldo. Detalle en §8.
+- **D3 · Música:** los 5 estilos **se generan aquí** con Web Audio (sin archivos ni dependencias).
+- **D4 · Arte:** se genera aquí, **con el mejor acabado posible** (manifiesto con `generado: true`).
+- **D5 · Teatro:** lo toma Amaro. Ningún agente toca `loops/`.
+- **D6 · Regla de pantalla:** scroll **solo en las barras laterales** (el panel derecho; en vertical, ese mismo panel
+  abajo). La página, el lienzo y la barra de herramientas no tienen scroll.
+
+## 8. Timbre 4 · «Tu flyer» (opción A, ampliada)
+**Idea:** el cierre del recorrido es diseñar. Con lo que juntaste en las tablets y en la cacería armas tu flyer de la
+Semana del Diseño en el celular, y te lo llevas. Mientras más juntaste, más piezas tienes para jugar.
+
+- **Dónde:** en la credencial, vista Juego: tarjeta **«Tu flyer»** bajo el inventario. Ruta `#/flyer`.
+- **Cuándo se abre:** con **al menos 1 creación y 1 afiche**. Antes, la tarjeta dice qué falta («Te falta crear algo en
+  una tablet»). No exige tener completos los timbres 2 y 3: el canje ya los pide.
+- **Cómo se juega (3 pasos, todo con toques, sin escribir):**
+  1. **Lenguaje:** Pixel, Geométrica u Orgánica. Cambia la composición, la tipografía y las formas.
+  2. **Tus piezas:** eliges hasta 3 creaciones de tu inventario y 1 afiche encontrado; tu personaje va siempre.
+     Botón **«Mezclar»**: reordena posiciones, tamaños, giros y colores. Se puede tocar las veces que quieras.
+  3. **Tu frase:** una de 6 frases de la campaña («Somos Diseño», «Yo diseño», «Hecho a mano», «Ven a crear», «Línea
+     azul», «Diseño en la calle»). Sin texto libre (es un evento público). Tu nombre va en la franja.
+- **Resultado:** tarjeta 1080 × 1350 con la franja negra común. **«Guardar mi flyer»** lo descarga o comparte y **otorga
+  el timbre 4**. Se puede rehacer; el timbre se da una vez.
+- **Servidor:** migración `006-timbre-flyer.sql`: el timbre 4 pasa a llamarse **«Flyer»** y la función
+  `sellar_flyer(p_codigo)` lo otorga solo si esa credencial tiene al menos 1 paso de Creación y 1 afiche. Sin Supabase
+  (demo), se otorga en el equipo.
+- **Respaldo E:** el **sello del staff** ya funciona (plan 009, D5): `insert into afiches (id, nombre, lenguaje, sello)
+  values ('SECRETO', 'Flyer', 'Pixel', 4);` y se genera su sello. Sirve si alguien no puede hacer el flyer (celular sin
+  batería, sin datos) o si falla la red.
+- **Bienvenida «Tu recorrido»:** al crear la credencial, 3 tarjetas: *1 · Crea en las tablets*, *2 · Caza 3 afiches*,
+  *3 · Arma tu flyer y canjea tu bolsa*. Se puede volver a ver desde la vista Juego. Hoja para el staff:
+  `docs/staff/guion-del-recorrido.md`.
