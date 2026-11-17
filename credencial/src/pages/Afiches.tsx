@@ -7,7 +7,7 @@ import type { Ir } from '../App';
 
 // Cámara de la cacería (plan 010): queda abierta mientras la persona busca. Cada afiche nuevo suma sin salir;
 // al completar la meta, la credencial muestra la ceremonia del timbre 3.
-// Reconoce el afiche de dos formas sobre la misma cámara: por su diseño (plan 012, lib/reconocer-afiche.ts)
+// Reconoce el afiche de dos formas sobre la misma cámara: por su diseño (plan 013, lib/reconocer-afiche.ts)
 // o por el QR del sello (plan 010). Si nada funciona, queda escribir el código.
 export const Afiches: React.FC<{ ir: Ir }> = ({ ir }) => {
   const mia = miCredencial();

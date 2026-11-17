@@ -1,4 +1,4 @@
--- 007 · Cacería: reconocer el afiche por su diseño (plan 012). Va después de 001-afiches.sql.
+-- 007 · Cacería: reconocer el afiche por su diseño (plan 013). Va después de 001-afiches.sql.
 -- Idempotente: se puede correr más de una vez. SQL Editor → New query → Run.
 --
 -- La credencial reconoce el afiche con la cámara comparando su imagen con las miniaturas de los 6 afiches, así que

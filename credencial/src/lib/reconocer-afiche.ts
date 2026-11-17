@@ -1,7 +1,7 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import { AFICHES } from './afiches';
 
-// Reconocer un afiche de la cacería por su propio diseño, sin QR (plan 012).
+// Reconocer un afiche de la cacería por su propio diseño, sin QR (plan 013).
 // Se compara la imagen de la cámara con una miniatura de cada afiche (las mismas de ./figma/afiches), a varias
 // escalas y encuadres: primero la forma, con correlación normalizada por canal (no importa si hay más o menos luz),
 // y después que los colores estén donde corresponden (la forma sola no basta: cualquier figura oscura centrada

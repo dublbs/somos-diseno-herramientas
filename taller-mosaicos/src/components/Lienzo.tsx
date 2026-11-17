@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { Formato, Celda, Pincel, forma, HEX, U, girar, reflejarH } from '../data/formas';
+import { Formato, Celda, Pincel, forma, HEX, U } from '../data/formas';
+import { LienzoAjustado } from '../../../shared/ui/Herramienta';
 
 interface LienzoProps {
   formato: Formato;
@@ -16,6 +17,10 @@ interface LienzoProps {
   onSetSel: (sel: { x: number; y: number; w: number; h: number } | null) => void;
   hover: { x: number; y: number } | null;
   setHover: (h: { x: number; y: number } | null) => void;
+  // Gestos de 2 y 3 dedos (deshacer y rehacer): el lienzo deja de pintar en cuanto hay más de un dedo.
+  hayVariosDedos: () => boolean;
+  onFinTrazo: () => void;
+  refMarco: React.Ref<HTMLDivElement>;
 }
 
 const cacheTrazos = new Map<string, Path2D>();
@@ -66,9 +71,11 @@ export const Lienzo: React.FC<LienzoProps> = ({
   onSetSel,
   hover,
   setHover,
+  hayVariosDedos,
+  onFinTrazo,
+  refMarco,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const marcoRef = useRef<HTMLDivElement | null>(null);
   const arrastreRef = useRef<{ x: number; y: number } | null>(null);
   const ultimaRef = useRef<string>('');
 
@@ -99,10 +106,6 @@ export const Lienzo: React.FC<LienzoProps> = ({
       canvas.height = H;
     }
 
-    if (marcoRef.current) {
-      // El marco se ajusta al espacio disponible (ancho y alto) con la proporción del formato: ver .lienzo-fit
-      marcoRef.current.style.setProperty('--ratio', String(W / H));
-    }
 
     const t = formato.celda;
     ctx.fillStyle = HEX.Hueso;
@@ -180,6 +183,7 @@ export const Lienzo: React.FC<LienzoProps> = ({
   );
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!e.isPrimary || hayVariosDedos()) return; // los dedos extra son gestos, no pintan
     const c = celdaDe(e);
     const canvas = canvasRef.current;
     if (canvas) canvas.setPointerCapture(e.pointerId);
@@ -197,6 +201,8 @@ export const Lienzo: React.FC<LienzoProps> = ({
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!e.isPrimary) return;
+    if (hayVariosDedos()) { arrastreRef.current = null; return; }
     const c = celdaDe(e);
     setHover(e.pointerType === 'touch' ? null : c);
 
@@ -217,8 +223,10 @@ export const Lienzo: React.FC<LienzoProps> = ({
     }
   };
 
-  const soltar = () => {
+  const soltar = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!e.isPrimary) return;
     arrastreRef.current = null;
+    onFinTrazo();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLCanvasElement>) => {
@@ -251,7 +259,7 @@ export const Lienzo: React.FC<LienzoProps> = ({
   };
 
   return (
-    <div className="marco lienzo-fit" id="marco" ref={marcoRef}>
+    <LienzoAjustado className="marco" proporcion={(formato.cols * formato.celda) / (formato.filas * formato.celda)} ref={refMarco}>
       <canvas
         id="lienzo"
         ref={canvasRef}
@@ -270,6 +278,6 @@ export const Lienzo: React.FC<LienzoProps> = ({
           if (!hover) setHover({ x: 0, y: 0 });
         }}
       />
-    </div>
+    </LienzoAjustado>
   );
 };

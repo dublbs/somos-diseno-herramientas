@@ -179,7 +179,7 @@ html:has(.k-tutorial),body:has(.k-tutorial){height:100%;overflow:hidden}
 [data-visual="Pixel"] .k-tutorial-titulo{font-family:"Silkscreen",monospace;font-weight:400;letter-spacing:0;font-size:clamp(30px,min(5.6vw,8dvh),64px)}
 [data-visual="Geométrica"] .k-tutorial-pasos li{border:2px solid var(--ink);background:linear-gradient(135deg,var(--accent) 0 18px,var(--surface) 18px)}
 [data-visual="Geométrica"] .k-tutorial-num{background:linear-gradient(135deg,var(--accent) 0 72%,var(--ink) 72%)}
-[data-visual="Orgánica"] .k-tutorial-pasos li{background:#FBF8F2 var(--k-grano);border-radius:30px 38px 28px 40px/38px 28px 40px 30px;box-shadow:0 0 0 4px var(--bg),0 20px 40px -28px rgba(0,80,40,.5)}
+[data-visual="Orgánica"] .k-tutorial-pasos li{background:#FBF8F2 var(--k-grano);color:#1B1B1B;border-radius:30px 38px 28px 40px/38px 28px 40px 30px;box-shadow:0 0 0 4px var(--bg),0 20px 40px -28px rgba(0,80,40,.5)}
 [data-visual="Orgánica"] .k-tutorial-num{border-radius:46% 54% 50% 50%/52% 46% 54% 48%}
 [data-visual="Orgánica"] .k-tutorial-num b{border-radius:50%}
 
@@ -189,6 +189,22 @@ html:has(.k-tutorial),body:has(.k-tutorial){height:100%;overflow:hidden}
 .k-quiosco-caja h2{margin:0;font:800 28px var(--fuente-tit)}
 .k-quiosco-caja p{margin:0;line-height:1.4}
 .k-quiosco-cuenta{font:800 64px/1 var(--fuente-tit)!important;color:var(--accent)}
+
+/* Modo juego: desbloqueo con el código de la credencial y panel del staff */
+.k-juego-form{display:grid;gap:10px;max-width:520px}
+.k-juego-input{min-height:56px;padding:0 16px;border:2px solid var(--ink);background:var(--surface);color:var(--ink);font:700 24px "IBM Plex Mono",monospace;letter-spacing:.08em;text-transform:uppercase}
+[data-visual="Orgánica"] .k-juego-input{border-radius:18px 22px 16px 20px}
+.k-juego-error{color:#C23B4E;font-weight:700}
+.k-juego-token{margin:4px 0!important;font:800 44px "IBM Plex Mono",monospace!important;letter-spacing:.12em;color:var(--accent)}
+.k-quiosco-cuenta .material-symbols-outlined{font-size:64px}
+/* «Llévatela» (plan 011): ventana con la vista previa y el QR, encima de la herramienta. Cabe sin scroll. */
+.k-llevatela{width:min(100%,460px);max-height:calc(100dvh - 32px);display:grid;justify-items:center;gap:12px;padding:22px;text-align:center;background:var(--surface);color:var(--ink);overflow:hidden}
+.k-llevatela h2{margin:0;font:800 26px var(--fuente-tit)}
+.k-llevatela .k-ayuda{margin:0;max-width:380px}
+.k-llevatela-previa{display:block;max-width:100%;max-height:min(40dvh,320px);width:auto;height:auto;border:2px solid var(--ink)}
+.k-llevatela-qr{background:#fff;padding:10px;border:2px solid var(--ink)}
+.k-llevatela-qr img{display:block;width:min(52dvh,300px);height:auto;image-rendering:pixelated}
+.k-llevatela-acciones{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
 
 .material-symbols-outlined{font-family:"Material Symbols Outlined",sans-serif;font-weight:normal;font-style:normal;font-size:22px;line-height:1;display:inline-block;white-space:nowrap;font-feature-settings:"liga"}
 body{background:var(--bg)}

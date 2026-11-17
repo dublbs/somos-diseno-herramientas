@@ -50,6 +50,8 @@ Generados por `graffiti/scripts/generar-stencils.py` desde los SVG pixel de Figm
 | `stencils/alien.svg` | 22×22 | Figma `510:1273` FA10 · Personaje | contorno y ojos (hueso) |
 | `stencils/diseno.svg` | 37×9 | `shared/pixelfont.ts`, «DISEÑO» | la letra (capa 1 es la letra engrosada) |
 | `stencils/lata.svg` | 22×23 | Figma `510:1266` FA09 · Spray | contorno y la nube (rosa) |
-| `stencils/metro.svg` | 20×22 | Figma FA08 · Metro / Línea 1 · frente | contorno, ventanas (negro) y luces (amarillo) |
+| `stencils/metro.svg` | 60×24 | Figma `522:2179` FA08 · Metro / Línea 1 · lateral (`juego-pixel/public/figma/metro-lateral.svg`, el vagón de la web). Plan 012: reemplaza al frente. El script lee el patrón de 24 × 24 celdas y arma un carro ventana · puerta · ventana · puerta · ventana, con esquinas redondeadas y dos bogies. `generado: true` (composición) | contorno, ventanas, ventanas y junta de las puertas, franja roja y bajos; las ruedas y el marco de las puertas quedan solo en la capa 1 |
+
+Plan 012 (ronda 2): el stencil se puede mover, girar y escalar con las manijas del kit v2; girado nunca tapa más del 60 % del alto de la pared. Los stickers se rasterizan a 640 px de ancho y se dibujan con suavizado, girados y escalados.
 
 La textura del **rodillo** sale del patrón P12 «Trazos de rodillo» (`510:1200`, `muros/trazos-rodillo.svg`): el hueso es la veta que queda sin pintar (`TEXTURA_RODILLO`, 24×24).

@@ -21,7 +21,6 @@ SVG = '{http://www.w3.org/2000/svg}'
 FIGURAS = [
     ('alien', 'Alien', 'graffiti/public/figma/stickers/personaje.svg', '510:1273 FA10 · Personaje', 8, {'contorno', 'color hueso'}),
     ('lata', 'Lata', 'graffiti/public/figma/stickers/spray.svg', '510:1266 FA09 · Spray', 8, {'contorno', 'color rosa'}),
-    ('metro', 'Metro', 'hub-estacion/public/figma/metro/linea1-frente.svg', 'FA08 · Metro / Línea 1 · frente', 10, {'contorno', 'color negro', 'color amarillo'}),
 ]
 
 def texto(s):
@@ -101,6 +100,36 @@ def palabra(t):
             elif any(letra[yy][xx] for yy in range(max(0, y - 1), min(9, y + 2)) for xx in range(max(0, x - 1), min(ancho + 2, x + 2))): m[y][x] = 1
     return m
 
+def metro_lateral():
+    """Vagón de metro de lado, como el de la web de las experiencias (juego-pixel/public/figma/metro-lateral.svg, Figma
+    522:2179). El SVG es un patrón de 24 × 24 celdas de 10 px (ventana, puerta doble con marco, franja roja, bogies):
+    se lee celda a celda y se arma un carro de 60 × 24 con ventana · puerta · ventana · puerta · ventana.
+    Capa 1: la silueta del carro (esquinas de arriba redondeadas). Capa 2: contorno, ventanas, ventanas y junta de las
+    puertas, franja y bajos; las ruedas quedan solo en la capa 1, así se ven del color de la base sobre los bajos."""
+    raiz = ET.parse(os.path.join(RAIZ, 'juego-pixel/public/figma/metro-lateral.svg')).getroot()
+    formas = [((e.get('fill') or '').lower(), poligonos(e.get('d'))) for e in raiz.iter(SVG + 'path')]
+    patron = [[next((f for f, p in reversed(formas) if dentro((x + .5) * 10, (y + .5) * 10, p)), '') for x in range(24)] for y in range(24)]
+    # columnas del patrón: 20-23 + 0-3 ventana, 4-5 muro, 6-17 puerta, 18-19 muro
+    cols = [18, 19] + [20, 21, 22, 23, 0, 1, 2, 3, 4, 5] + list(range(6, 18)) + [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5] + list(range(6, 18)) + [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5]
+    w, h = len(cols), 24
+    m = [[1] * w for _ in range(h)]
+    for y in range(h):
+        for x, c in enumerate(cols):
+            f = patron[y][c]
+            if f == '#7a2e8e': m[y][x] = 1   # ruedas y marco de las puertas: solo base (con el marco la puerta se empasta)
+            elif f == '#e2001a' and y in (13, 17): m[y][x] = 1  # la franja queda en una sola banda: se lee mejor pintada
+            elif f in ('black', '#e2001a', '#7a2e8e', '#7fc8f8'): m[y][x] = 3
+    for x, y in ((0, 0), (1, 0), (0, 1), (w - 1, 0), (w - 2, 0), (w - 1, 1)): m[y][x] = 0  # esquinas redondeadas
+    for y in range(h):  # contorno de la silueta
+        for x in range(w):
+            if m[y][x] and any(not (0 <= x + dx < w and 0 <= y + dy < h) or not m[y + dy][x + dx] for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))): m[y][x] = 3
+    # bajos: solo dos bogies, uno en cada punta; entre ellos queda aire (la silueta no es un rectángulo)
+    for y in (21, 22, 23):
+        for x in range(12, w - 12): m[y][x] = 0
+    for y in (21, 22, 23):  # el bogie se cierra con contorno
+        for x in (11, w - 12): m[y][x] = 3
+    return m
+
 def textura_rodillo():
     raiz = ET.parse(os.path.join(RAIZ, 'graffiti/public/figma/muros/trazos-rodillo.svg')).getroot()
     vetas = [poligonos(e.get('d')) for e in raiz.iter(SVG + 'path') if (e.get('fill') or '').upper() == '#F4EEE3']
@@ -118,6 +147,7 @@ def vista(m):
 if __name__ == '__main__':
     plantillas = [(i, nom, org, figura(ruta, celda, det)) for i, nom, ruta, org, celda, det in FIGURAS]
     plantillas.insert(1, ('diseno', 'Diseño', 'shared/pixelfont.ts', palabra('DISEÑO')))
+    plantillas.append(('metro', 'Metro', '522:2179 FA08 · Metro / Línea 1 · lateral (juego-pixel/public/figma/metro-lateral.svg)', metro_lateral()))
     carpeta = os.path.join(RAIZ, 'graffiti', 'public', 'figma', 'stencils'); os.makedirs(carpeta, exist_ok=True)
     with open(os.path.join(RAIZ, 'graffiti', 'src', 'data', 'stencils.ts'), 'w', encoding='utf-8') as f:
         f.write('// GENERADO por graffiti/scripts/generar-stencils.py (no editar a mano).\n')

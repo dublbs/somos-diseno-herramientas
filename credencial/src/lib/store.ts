@@ -117,9 +117,16 @@ export async function encontrarAfiche(codigo: string, secreto: string): Promise<
     if (r.nuevo) publicar('timbre', { sello }, codigo).catch(() => { /* sin red */ });
     return { pasos: r.pasos, meta: r.meta, otorgado: r.sello_otorgado, nuevo: r.nuevo, afiche: r.afiche, repetido: r.repetido, sello };
   }
-  if (!aficheDe(limpio)) throw new Error('Ese código no es de un afiche de la cacería.');
   const db = leer();
   const c = db[codigo];
+  // Demo: el sello de respaldo del timbre 4 (el que lleva el staff) es SDA:SECRETO.
+  if (limpio === 'SECRETO') {
+    if (!c) throw new Error('No encontramos tu credencial.');
+    const nuevo4 = !c.sellos.includes(4);
+    if (nuevo4) { c.sellos = [...c.sellos, 4].sort(); publicar('timbre', { sello: 4 }, codigo).catch(() => { /* sin red */ }); escribir(db); }
+    return { pasos: 1, meta: 1, otorgado: true, nuevo: nuevo4, afiche: limpio, repetido: !nuevo4, sello: 4 };
+  }
+  if (!aficheDe(limpio)) throw new Error('Ese código no es de un afiche de la cacería.');
   if (!c) throw new Error('No encontramos tu credencial.');
   const vistos = c.pasos?.[AFICHE_SELLO] ?? [];
   const repetido = vistos.includes(limpio);
@@ -131,7 +138,7 @@ export async function encontrarAfiche(codigo: string, secreto: string): Promise<
   return { pasos: pasos.length, meta: META_DEMO, otorgado: c.sellos.includes(AFICHE_SELLO), nuevo, afiche: limpio, repetido, sello: AFICHE_SELLO };
 }
 
-// Afiche reconocido por su diseño con la cámara (plan 012): llega el id público (AF03), no el secreto.
+// Afiche reconocido por su diseño con la cámara (plan 013): llega el id público (AF03), no el secreto.
 // Con Supabase lo timbra reconocer_afiche() (migraciones/007-afiche-por-diseno.sql), que se puede apagar desde
 // `config`; en modo demo el secreto del afiche es su id, así que basta con encontrarAfiche().
 export async function reconocerAfiche(codigo: string, afiche: string): Promise<ResultadoAfiche> {
@@ -219,6 +226,62 @@ export function escucharCreaciones(codigo: string, alLlegar: (c: Creacion) => vo
     const c = creacionDe(e as unknown as FilaEvento);
     if (c) alLlegar(c);
   });
+}
+
+// ---------- Timbre 4 · «Tu flyer» (plan 013 §8) ----------
+// Se abre con al menos 1 creación (de una tablet) y 1 afiche encontrado. Con Supabase lo otorga sellar_flyer()
+// (shared/supabase/migraciones/006-timbre-flyer.sql), que revisa lo mismo en el servidor; en modo demo, en el equipo.
+export const SELLO_FLYER = 4;
+export type FaltaFlyer = 'credencial' | 'creacion' | 'afiche';
+export function faltaParaFlyer(p: ProgresoJuego): FaltaFlyer[] {
+  const f: FaltaFlyer[] = [];
+  if (Object.keys(p.creaciones).length === 0 && p.creacion.pasos === 0) f.push('creacion');
+  if (p.afiches.length === 0) f.push('afiche');
+  return f;
+}
+export function textoFaltaFlyer(f: FaltaFlyer[]): string {
+  if (f.includes('credencial')) return 'No encontramos tu credencial.';
+  if (f.includes('creacion') && f.includes('afiche')) return 'Te falta crear algo en una tablet y encontrar un afiche.';
+  if (f.includes('creacion')) return 'Te falta crear algo en una tablet.';
+  if (f.includes('afiche')) return 'Te falta encontrar un afiche.';
+  return '';
+}
+export interface ResultadoFlyer { ok: boolean; otorgado: boolean; falta: FaltaFlyer[] }
+export async function sellarFlyer(codigo: string): Promise<ResultadoFlyer> {
+  if (sb) {
+    const { data, error } = await sb.rpc('sellar_flyer', { p_codigo: codigo });
+    if (error) {
+      if (/sellar_flyer|function/i.test(error.message)) throw new Error('El timbre del flyer todavía no está abierto. Pide al equipo el sello del timbre 4.');
+      throw new Error('No pudimos timbrar tu flyer. Revisa tu conexión y vuelve a guardarlo.');
+    }
+    const r = data as { ok: boolean; otorgado: boolean; falta: FaltaFlyer[] };
+    if (r.otorgado) publicar('timbre', { sello: SELLO_FLYER }, codigo).catch(() => { /* sin red */ });
+    return { ok: !!r.ok, otorgado: !!r.otorgado, falta: r.falta ?? [] };
+  }
+  const db = leer();
+  const c = db[codigo];
+  if (!c) return { ok: false, otorgado: false, falta: ['credencial'] };
+  if (c.sellos.includes(SELLO_FLYER)) return { ok: true, otorgado: false, falta: [] };
+  const falta = faltaParaFlyer(await progresoJuego(codigo));
+  if (falta.length) return { ok: false, otorgado: false, falta };
+  c.sellos = [...c.sellos, SELLO_FLYER].sort();
+  c.pasos = { ...c.pasos, [SELLO_FLYER]: ['flyer'] };
+  escribir(db);
+  publicar('timbre', { sello: SELLO_FLYER }, codigo).catch(() => { /* sin red */ });
+  return { ok: true, otorgado: true, falta: [] };
+}
+
+// Lo que falta para el canje, en una línea («Te faltan: 2 creaciones, 1 afiche y tu flyer»).
+export function textoFaltaCanje(d: { sellos: number[]; canjeado?: boolean }, p: ProgresoJuego): string {
+  if (d.canjeado) return 'Bolsa canjeada. ¡Gracias por jugar!';
+  const partes: string[] = [];
+  const pl = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+  if (!d.sellos.includes(2)) { const n = Math.max(1, p.creacion.meta - Math.max(p.creacion.pasos, Object.keys(p.creaciones).length)); partes.push(pl(n, 'creación', 'creaciones')); }
+  if (!d.sellos.includes(3)) { const n = Math.max(1, p.meta - p.afiches.length); partes.push(pl(n, 'afiche', 'afiches')); }
+  if (!d.sellos.includes(SELLO_FLYER)) partes.push('tu flyer');
+  if (!partes.length) return '¡Completaste todo! Canjea tu bolsa con el equipo.';
+  const lista = partes.length > 1 ? partes.slice(0, -1).join(', ') + ' y ' + partes[partes.length - 1] : partes[0];
+  return `Te faltan: ${lista}.`;
 }
 
 // Canje del premio con la credencial completa. Con Supabase, el PIN del staff, el stock y el límite diario

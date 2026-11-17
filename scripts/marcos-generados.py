@@ -1,0 +1,467 @@
+#!/usr/bin/env python3
+"""Genera shared/marcos-generados.ts: los marcos rehechos en la ronda 2 (plan 012, decisión D4: arte generado aquí).
+
+Tienen prioridad sobre shared/marcos-figma.ts (que sigue saliendo de Figma con scripts/marcos-desde-figma.py y no se
+edita a mano). Mismo formato: lienzo de 240, fondo, capas bajo la foto (`paths`), zona de foto y capas sobre la foto
+(`encima`). Todos traen la zona de foto estándar: 150 × 150 al centro (45..195), así no necesitan la tabla AJUSTES.
+
+Paleta Línea azul. Pixel: grilla de 2,5 u (los escalones grandes van de a 5 u), contorno negro.
+Geométrica: figuras planas. Orgánica: bordes con pulso de tijera (papel recortado), como los de Figma.
+
+Uso: python3 scripts/marcos-generados.py
+Manifiesto: docs/plans/012-ui-herramientas/assets-fotomaton.manifest.md
+"""
+import json, math, os, random, re
+
+HUESO, NEGRO, AZUL, LAPIS, CELESTE = '#F4EEE3', '#000000', '#0062B8', '#2B4BD8', '#7FC8F8'
+AMARILLO, VERDE, ROSA, MORADO = '#FFC20E', '#00A651', '#FF8FB1', '#7A2E8E'
+Z0, Z1 = 45, 195  # zona de foto estándar
+FOTO = 'FOTO'
+
+def num(v):
+    return f'{round(v, 2):g}'
+
+# ---------------------------------------------------------------- Pixel: grilla de celdas
+class Grilla:
+    """Grilla de 96 × 96 celdas de 2,5 u. Cada celda tiene un color (gana el último que pinta)."""
+    def __init__(self, u=2.5):
+        self.u, self.n = u, int(240 / u)
+        self.c = [[None] * self.n for _ in range(self.n)]
+
+    def celda(self, i, j, col):
+        if 0 <= i < self.n and 0 <= j < self.n:
+            self.c[j][i] = col
+
+    def rect(self, x0, y0, x1, y1, col):
+        """Rectángulo en unidades del lienzo (x1, y1 exclusivos)."""
+        u = self.u
+        for j in range(round(y0 / u), round(y1 / u)):
+            for i in range(round(x0 / u), round(x1 / u)):
+                self.celda(i, j, col)
+
+    def donde(self, prueba, col, paso=5):
+        """Pinta los bloques de `paso` u cuyo centro cumple la prueba (escalones parejos)."""
+        k = round(paso / self.u)
+        for bj in range(0, self.n, k):
+            for bi in range(0, self.n, k):
+                cx, cy = (bi + k / 2) * self.u, (bj + k / 2) * self.u
+                if prueba(cx, cy):
+                    for j in range(bj, bj + k):
+                        for i in range(bi, bi + k):
+                            self.celda(i, j, col)
+
+    def sprite(self, x, y, filas, colores, escala=1):
+        """Dibujo de texto: cada carácter es una celda (o escala × escala celdas). Espacio o '.' = vacío."""
+        for j, f in enumerate(filas):
+            for i, ch in enumerate(f):
+                if ch in colores:
+                    for dj in range(escala):
+                        for di in range(escala):
+                            self.celda(round(x / self.u) + i * escala + di, round(y / self.u) + j * escala + dj, colores[ch])
+
+    def contorno(self, col=NEGRO, de=None, paso=1, fuera_de=None):
+        """Contorno de `paso` celdas alrededor de las celdas `de` (por defecto, todas las pintadas)."""
+        es = (lambda v: v is not None and v != FOTO) if de is None else (lambda v: v in de)
+        base = [[es(v) for v in fila] for fila in self.c]
+        for _ in range(paso):
+            nuevo = [fila[:] for fila in base]
+            for j in range(self.n):
+                for i in range(self.n):
+                    if base[j][i]:
+                        continue
+                    if any(0 <= i + di < self.n and 0 <= j + dj < self.n and base[j + dj][i + di] for di, dj in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                        if fuera_de is None or self.c[j][i] in fuera_de:
+                            self.c[j][i] = col
+                            nuevo[j][i] = True
+            base = nuevo
+
+    def paths(self, sin=()):
+        """Un path por color, en orden de aparición, hecho de tramos horizontales."""
+        orden, por = [], {}
+        for j in range(self.n):
+            i = 0
+            while i < self.n:
+                col = self.c[j][i]
+                if col is None or col in sin:
+                    i += 1
+                    continue
+                k = i
+                while k < self.n and self.c[j][k] == col:
+                    k += 1
+                if col not in por:
+                    por[col] = []
+                    orden.append(col)
+                u = self.u
+                por[col].append(f'M{num(i * u)} {num(j * u)}H{num(k * u)}V{num((j + 1) * u)}H{num(i * u)}Z')
+                i = k
+        return [[''.join(por[c]), c] for c in orden]
+
+FUENTE = {
+    'A': ['.#.', '#.#', '###', '#.#', '#.#'], 'C': ['###', '#..', '#..', '#..', '###'], 'D': ['##.', '#.#', '#.#', '#.#', '##.'],
+    'E': ['###', '#..', '##.', '#..', '###'], 'F': ['###', '#..', '##.', '#..', '#..'], 'G': ['###', '#..', '#.#', '#.#', '###'],
+    'H': ['#.#', '#.#', '###', '#.#', '#.#'], 'I': ['###', '.#.', '.#.', '.#.', '###'], 'L': ['#..', '#..', '#..', '#..', '###'], 'Z': ['###', '..#', '.#.', '#..', '###'], 'J': ['..#', '..#', '..#', '#.#', '###'], 'K': ['#.#', '##.', '#..', '##.', '#.#'],
+    'M': ['#.#', '###', '###', '#.#', '#.#'], 'N': ['###', '#.#', '#.#', '#.#', '#.#'], 'O': ['###', '#.#', '#.#', '#.#', '###'],
+    'P': ['###', '#.#', '###', '#..', '#..'], 'R': ['##.', '#.#', '##.', '#.#', '#.#'], 'S': ['###', '#..', '###', '..#', '###'],
+    'T': ['###', '.#.', '.#.', '.#.', '.#.'], 'U': ['#.#', '#.#', '#.#', '#.#', '###'], 'V': ['#.#', '#.#', '#.#', '#.#', '.#.'],
+    'W': ['#.#', '#.#', '###', '###', '#.#'], 'Y': ['#.#', '#.#', '.#.', '.#.', '.#.'], 'X': ['#.#', '#.#', '.#.', '#.#', '#.#'],
+    '1': ['.#.', '##.', '.#.', '.#.', '###'], '2': ['###', '..#', '###', '#..', '###'], '6': ['###', '#..', '###', '#.#', '###'],
+    '0': ['###', '#.#', '#.#', '#.#', '###'], '8': ['###', '#.#', '###', '#.#', '###'], '3': ['###', '..#', '.##', '..#', '###'], '.': ['...', '...', '...', '...', '.#.'], '/': ['..#', '..#', '.#.', '#..', '#..'],
+    ':': ['...', '.#.', '...', '.#.', '...'], '-': ['...', '...', '###', '...', '...'], ' ': ['...', '...', '...', '...', '...'],
+}
+
+def texto(g, x, y, s, col, escala=1):
+    for k, ch in enumerate(s):
+        g.sprite(x + k * 4 * g.u * escala, y, FUENTE[ch], {'#': col}, escala)
+
+def chico(t, x, y, s, col):
+    """Texto en una grilla de 1,25 u (letras de 3,75 × 6,25 u)."""
+    for k, ch in enumerate(s):
+        t.sprite(x + k * 5, y, FUENTE[ch], {'#': col})
+
+def ancho_chico(s):
+    return len(s) * 5 - 1.25
+
+def ancho_texto(s, u=2.5, escala=1):
+    return (len(s) * 4 - 1) * u * escala
+
+ZONA_CUADRO = f'M{Z0} {Z0}H{Z1}V{Z1}H{Z0}Z'
+
+def marco(id_, visual, code, name, bg, paths, encima, zona=ZONA_CUADRO, reemplaza=''):
+    return {'id': id_, 'visual': visual, 'code': code, 'name': name, 'bg': bg, 'zona': zona, 'caja': [Z0, Z0, Z1 - Z0, Z1 - Z0],
+            'paths': paths, 'encima': encima, 'generado': True}
+
+# ---------------------------------------------------------------- PM02 · Vinilo
+def vinilo():
+    g, sobre = Grilla(), Grilla()
+    g.rect(0, 0, 240, 240, MORADO)
+    # cuadros de la funda asomando en las esquinas
+    for (x, y) in ((0, 0), (200, 0), (0, 200), (200, 200)):
+        g.rect(x, y, x + 40, y + 40, MORADO)
+    g.donde(lambda x, y: (x // 20 + y // 20) % 2 == 0 and math.hypot(x - 120, y - 120) > 122, LAPIS, 5)
+    R = 119
+    g.donde(lambda x, y: math.hypot(x - 120, y - 120) <= R, NEGRO, 5)
+    # surcos: anillos finos un poco más claros (de a 2,5 u)
+    for r in (86, 94, 102, 110):
+        g.donde(lambda x, y, r=r: abs(math.hypot(x - 120, y - 120) - r) < 1.3, '#2A2A2A', 2.5)
+    # brillos del disco: dos arcos en diagonal
+    def brillo(x, y):
+        d, a = math.hypot(x - 120, y - 120), math.degrees(math.atan2(y - 120, x - 120))
+        return (abs(d - 98) < 1.3 or abs(d - 106) < 1.3) and (abs(a - (-135)) < 18 or abs(a - 45) < 18)
+    g.donde(brillo, '#7A7A7A', 2.5)
+    # borde de la etiqueta (amarillo) y la etiqueta = la foto
+    g.donde(lambda x, y: math.hypot(x - 120, y - 120) <= 81, AMARILLO, 5)
+    g.donde(lambda x, y: math.hypot(x - 120, y - 120) <= 76, FOTO, 5)
+    zona = Grilla(); zona.c = [[FOTO if v == FOTO else None for v in fila] for fila in g.c]
+    # brazo del tocadiscos (arriba a la derecha, sobre los surcos)
+    sobre.rect(205, 10, 230, 35, '#BDB6AA')            # base
+    sobre.rect(210, 15, 225, 30, HUESO)
+    sobre.rect(215, 20, 220, 25, NEGRO)                # eje
+    for k in range(5):                                 # brazo en diagonal hacia los surcos
+        sobre.rect(207.5 - k * 2.5, 35 + k * 5, 212.5 - k * 2.5, 40 + k * 5, HUESO)
+    sobre.rect(190, 57.5, 205, 67.5, HUESO)            # cápsula
+    sobre.rect(192.5, 67.5, 197.5, 72.5, ROSA)         # aguja
+    sobre.contorno(NEGRO)
+    zona_d = ''.join(p for p, c in zona.paths() if c == FOTO)
+    return marco('PM02', 'Pixel', 'M02', 'Vinilo', MORADO, g.paths(sin=(FOTO,)), sobre.paths(), zona=zona_d)
+
+# ---------------------------------------------------------------- PM04 · Ventana web
+def ventana():
+    g, sobre = Grilla(), Grilla()
+    # escritorio: celeste con una grilla de puntos hueso
+    g.rect(0, 0, 240, 240, CELESTE)
+    for y in range(0, 240, 20):
+        for x in range(0, 240, 20):
+            g.rect(x + 10, y + 10, x + 12.5, y + 12.5, HUESO)
+    def caja(x0, y0, x1, y1, barra, sombra=True):
+        if sombra:
+            g.rect(x0 + 5, y0 + 5, x1 + 7.5, y1 + 7.5, NEGRO)   # sombra dura
+        g.rect(x0 - 2.5, y0 - 2.5, x1 + 2.5, y1 + 2.5, NEGRO)
+        g.rect(x0, y0, x1, y1, HUESO)
+        g.rect(x0, y0, x1, y0 + 12.5, barra)
+        g.rect(x0, y0 + 12.5, x1, y0 + 15, NEGRO)
+    # dos ventanas de atrás, apiladas
+    t = Grilla(1.25)
+    caja(5, 2.5, 200, 195, AMARILLO)
+    # ventana de adelante
+    X0, X1, Y0, Y1 = 20, 230, 20, 225
+    caja(X0, Y0, X1, Y1, AZUL)
+    g.rect(X0, Y0, X1, 35, AZUL)                       # barra de pestañas (más alta)
+    for k, col in enumerate((ROSA, AMARILLO, VERDE)):  # botones de la ventana
+        g.rect(25 + k * 8.75, 25, 31.25 + k * 8.75, 31.25, col)
+    g.rect(55, 22.5, 135, 35, HUESO)                   # pestaña activa
+    g.rect(52.5, 22.5, 55, 35, NEGRO); g.rect(135, 22.5, 137.5, 35, NEGRO); g.rect(55, 20, 135, 22.5, NEGRO)
+    chico(t, 60, 26.25, 'TU-FOTO.PNG', NEGRO)
+    g.sprite(125, 26.25, ['#.#', '.#.', '#.#'], {'#': NEGRO})
+    g.rect(140, 25, 192.5, 35, CELESTE)                # pestaña de atrás
+    chico(t, 145, 27.5, 'SOMOS', AZUL)
+    g.sprite(197.5, 26.25, ['.#.', '###', '.#.'], {'#': HUESO})  # nueva pestaña
+    g.rect(X0, 35, X1, 37.5, NEGRO)
+    # barra de dirección
+    g.rect(X0, 37.5, X1, 45, HUESO)
+    g.sprite(25, 38.75, ['.#', '##', '.#'], {'#': AZUL})
+    g.sprite(32.5, 38.75, ['#.', '##', '#.'], {'#': '#BDB6AA'})
+    g.rect(40, 37.5, 225, 45, '#FFFFFF')
+    # texto chico (escala 1 de 2,5 u es muy alto para 7,5 u): la dirección va en celdas de la mitad
+    for k, ch in enumerate('SOMOSDISENO.CL/TU-FOTO'):
+        t.sprite(47.5 + k * 5, 38.75, FUENTE[ch], {'#': NEGRO})
+    t.sprite(41.25, 38.75, ['.#.', '#.#', '###', '###', '###'], {'#': VERDE})
+    # lado izquierdo: favoritos; derecho: barra de scroll
+    for k, col in enumerate((AMARILLO, ROSA, VERDE, CELESTE, MORADO)):
+        g.rect(25, 52.5 + k * 27.5, 40, 67.5 + k * 27.5, col)
+        g.rect(25, 67.5 + k * 27.5, 40, 70 + k * 27.5, NEGRO)
+    g.rect(205, 47.5, 222.5, 192.5, '#E4DDD0')
+    g.rect(207.5, 50, 220, 57.5, '#BDB6AA'); g.rect(207.5, 182.5, 220, 190, '#BDB6AA')
+    g.rect(207.5, 65, 220, 112.5, AZUL)
+    # pie: me gusta y botón
+    g.sprite(45, 205, ['.#.#.', '#####', '#####', '.###.', '..#..'], {'#': ROSA}, 1)
+    chico(t, 57.5, 205, '128', NEGRO)
+    g.rect(110, 200, 167.5, 215, AZUL); g.rect(110, 215, 170, 217.5, NEGRO); g.rect(167.5, 202.5, 170, 217.5, NEGRO)
+    chico(t, 138.75 - ancho_chico('DESCARGAR') / 2, 205, 'DESCARGAR', HUESO)
+    g.rect(Z0, Z0, Z1, Z1, FOTO)
+    # puntero sobre el botón «Descargar», asomando a la foto
+    puntero = ['#.......', '##......', '#o#.....', '#oo#....', '#ooo#...', '#oooo#..', '#ooooo#.', '#oo####.', '#o#o#...', '##.#o#..', '#...#o#.', '....##..']
+    sobre.sprite(152.5, 207.5, puntero, {'#': NEGRO, 'o': '#FFFFFF'}, 1)
+    # títulos de las ventanas de atrás (en lo que asoma de su barra)
+    chico(t, 10, 5, 'DSGN.EXE', NEGRO)
+    paths = g.paths(sin=(FOTO,)) + t.paths()
+    return marco('PM04', 'Pixel', 'M04', 'Ventana web', CELESTE, paths, sobre.paths())
+
+# ---------------------------------------------------------------- PM05 · Metro
+def metro():
+    g, sobre = Grilla(), Grilla()
+    # túnel: azul con azulejos celestes (como el andén)
+    g.rect(0, 0, 240, 240, LAPIS)
+    for y in range(0, 200, 15):
+        for x in range(-15 if (y // 15) % 2 else 0, 240, 30):
+            g.rect(x + 2.5, y + 2.5, x + 27.5, y + 12.5, AZUL)
+    # andén abajo: borde amarillo con botones (franja podotáctil) y vía
+    g.rect(0, 215, 240, 240, '#2A2A2A')
+    g.rect(0, 220, 240, 222.5, '#5A5A5A'); g.rect(0, 232.5, 240, 235, '#5A5A5A')
+    # el tren, de frente, como el afiche «El vagón como lienzo»
+    X0, X1, Y0, Y1 = 17.5, 222.5, 10, 222.5
+    def tren(x, y):
+        # esquinas de arriba redondeadas en escalones
+        if not (X0 <= x < X1 and Y0 <= y < Y1):
+            return False
+        dx = min(x - X0, X1 - x); dy = y - Y0
+        return not (dx < 15 and dy < 15 and (15 - dx) + (15 - dy) > 16)
+    g.donde(tren, AMARILLO, 2.5)
+    # letrero de destino
+    g.rect(37.5, 17.5, 202.5, 37.5, NEGRO)
+    texto(g, 120 - ancho_texto('L1 SOMOS DISENO') / 2, 21.25, 'L1 SOMOS DISENO', AMARILLO)
+    g.rect(127.5 + 12.5, 21.25, 130 + 12.5, 22.5, AMARILLO) if False else None
+    # parabrisas = foto, con marco negro grueso
+    g.rect(Z0 - 7.5, Z0 - 5, Z1 + 7.5, Z1 + 5, NEGRO)
+    g.rect(Z0, Z0, Z1, Z1, FOTO)
+    # costados del frente: trama de puntos (como el afiche) y focos
+    for y in range(50, 190, 10):
+        for x in (22.5, 27.5, 205, 210):
+            if ((y // 10) + (x // 5)) % 2 == 0:
+                g.rect(x, y, x + 5, y + 5, NEGRO)
+    # parte baja: focos, franja y enganche
+    g.rect(27.5, 205, 57.5, 215, HUESO); g.rect(182.5, 205, 212.5, 215, HUESO)          # focos
+    g.rect(30, 207.5, 37.5, 212.5, '#FFFFFF'); g.rect(185, 207.5, 192.5, 212.5, '#FFFFFF')
+    g.rect(67.5, 202.5, 172.5, 207.5, NEGRO)                                            # franja
+    g.rect(105, 210, 135, 222.5, NEGRO)                                                 # enganche
+    g.rect(112.5, 212.5, 127.5, 217.5, '#5A5A5A')
+    g.contorno(NEGRO, de=(AMARILLO, HUESO, '#FFFFFF'), fuera_de=(LAPIS, AZUL, '#2A2A2A', '#5A5A5A'))
+    # ruedas y riel bajo el tren
+    for x in (35, 185):
+        g.rect(x, 222.5, x + 20, 230, NEGRO); g.rect(x + 5, 225, x + 15, 227.5, '#5A5A5A')
+    return marco('PM05', 'Pixel', 'M05', 'Metro', LAPIS, g.paths(sin=(FOTO,)), sobre.paths())
+
+# ---------------------------------------------------------------- PM06 · Señal
+STICKERS = {
+    'corazon': (['.##.##.', '#######', '#######', '#######', '.#####.', '..###..', '...#...'], {'#': ROSA}),
+    'estrella': (['...#...', '...#...', '..###..', '#######', '.#####.', '.##.##.', '#.....#'], {'#': AMARILLO}),
+    'cara': (['.#####.', '#######', '##.#.##', '#######', '#.###.#', '##...##', '.#####.'], {'#': VERDE}),
+    'rayo': (['...###', '..###.', '.###..', '######', '..###.', '.###..', '###...'], {'#': CELESTE}),
+}
+
+def sticker(g, x, y, nombre, escala=2):
+    filas, cols = STICKERS[nombre]
+    s = Grilla(); s.sprite(x, y, filas, cols, escala)
+    s.contorno(HUESO, paso=2)       # borde troquelado blanco
+    s.contorno(NEGRO, paso=1)
+    for j in range(g.n):
+        for i in range(g.n):
+            if s.c[j][i] is not None:
+                g.c[j][i] = s.c[j][i]
+
+def senal():
+    g, sobre = Grilla(), Grilla()
+    # muro de azulejos detrás (se ve en las esquinas)
+    g.rect(0, 0, 240, 240, AZUL)
+    for y in range(0, 240, 15):
+        for x in range(-15 if (y // 15) % 2 else 0, 240, 30):
+            g.rect(x + 2.5, y + 2.5, x + 27.5, y + 12.5, LAPIS)
+    # la señal de advertencia, expandida: rombo amarillo con borde negro que se sale del cuadro
+    g.donde(lambda x, y: abs(x - 120) + abs(y - 120) <= 178, NEGRO, 5)
+    g.donde(lambda x, y: abs(x - 120) + abs(y - 120) <= 168, AMARILLO, 5)
+    g.donde(lambda x, y: abs(x - 120) + abs(y - 120) <= 160, NEGRO, 5)
+    g.donde(lambda x, y: abs(x - 120) + abs(y - 120) <= 155, AMARILLO, 5)
+    # la foto es el pictograma: cuadro con borde negro
+    g.rect(Z0 - 5, Z0 - 5, Z1 + 5, Z1 + 5, NEGRO)
+    g.rect(Z0, Z0, Z1, Z1, FOTO)
+    # tornillos de la señal
+    for (x, y) in ((120, 15), (15, 120), (220, 120)):
+        g.rect(x - 5, y - 5, x + 5, y + 5, '#BDB6AA'); g.rect(x - 2.5, y - 2.5, x + 2.5, y + 2.5, NEGRO)
+    # letrero «ATENCION: DISENO» abajo, dentro del rombo
+    g.rect(72.5, 202.5, 167.5, 215, NEGRO)
+    t = Grilla(1.25)
+    chico(t, 120 - ancho_chico('ZONA DE DISENO') / 2, 205.625, 'ZONA DE DISENO', AMARILLO)
+    # stickers pegados (encima de la foto en las esquinas, como pegados sobre la señal)
+    sticker(sobre, 25, 27.5, 'corazon', 2)
+    sticker(sobre, 177.5, 30, 'estrella', 2)
+    sticker(sobre, 175, 170, 'cara', 2)
+    sticker(sobre, 22.5, 172.5, 'rayo', 2)
+    # tag «DSGN» arriba al centro
+    tag = Grilla(); tag.rect(92.5, 30, 147.5, 47.5, MORADO); texto(tag, 97.5, 32.5, 'DSGN', HUESO, 1)
+    tag.contorno(HUESO, paso=1); tag.contorno(NEGRO, paso=1)
+    for j in range(tag.n):
+        for i in range(tag.n):
+            if tag.c[j][i] is not None:
+                sobre.c[j][i] = tag.c[j][i]
+    return marco('PM06', 'Pixel', 'M06', 'Señal', AZUL, g.paths(sin=(FOTO,)) + t.paths(), sobre.paths())
+
+# ---------------------------------------------------------------- vectores (Geométrica y Orgánica)
+def poli(pts):
+    return 'M' + 'L'.join(f'{num(x)} {num(y)}' for x, y in pts) + 'Z'
+
+def circulo(cx, cy, r, n=96):
+    return poli([(cx + r * math.cos(2 * math.pi * k / n), cy + r * math.sin(2 * math.pi * k / n)) for k in range(n)])
+
+def sector(cx, cy, r0, r1, a0, a1, n=12):
+    ext = [(cx + r1 * math.cos(a0 + (a1 - a0) * k / n), cy + r1 * math.sin(a0 + (a1 - a0) * k / n)) for k in range(n + 1)]
+    inn = [(cx + r0 * math.cos(a1 - (a1 - a0) * k / n), cy + r0 * math.sin(a1 - (a1 - a0) * k / n)) for k in range(n + 1)]
+    return poli(ext + inn)
+
+# GM02 · Estallido: anillos de cuñas alternadas (damero polar) que nacen en el borde de la foto redonda.
+# Antes el hueco cuadrado de Figma con el paspartú cortaba el tercer anillo; ahora cada anillo termina en un círculo.
+def estallido():
+    paths = []
+    anillos = [(80, 100, 16, 0), (100, 128, 16, 0.5), (128, 175, 16, 0)]
+    claras = []
+    for r0, r1, n, desfase in anillos:
+        for k in range(n):
+            if k % 2:
+                continue
+            a0 = 2 * math.pi * (k + desfase) / n - math.pi / 2
+            claras.append(sector(120, 120, r0, r1, a0, a0 + 2 * math.pi / n))
+    paths.append([''.join(claras), CELESTE])
+    # rayos rosados en las esquinas
+    rayos = []
+    for k in range(4):
+        a = math.pi / 4 + k * math.pi / 2
+        rayos.append(sector(120, 120, 140, 168, a - 0.1, a + 0.1, 4))
+    paths.append([''.join(rayos), ROSA])
+    paths.append([sector(120, 120, 75, 80.5, 0, 2 * math.pi, 96), ROSA])  # filo de la foto
+    zona = circulo(120, 120, 75, 96)
+    m = marco('GM02', 'Geométrica', 'M02', 'Estallido', MORADO, paths, [], zona=zona)
+    return m
+
+# GM06 · Diamante: una gema vista desde arriba. La foto es la mesa; las facetas bajan hacia un octógono que llena el
+# cuadro, en claros y oscuros alternados; destellos de 4 puntas en las esquinas.
+def diamante():
+    A, B = 45, 195
+    oct_ = [(70, 0), (170, 0), (240, 70), (240, 170), (170, 240), (70, 240), (0, 170), (0, 70)]
+    mesa = [(A, A), (120, A), (B, A), (B, 120), (B, B), (120, B), (A, B), (A, 120)]
+    # facetas: entre cada punto de la mesa y dos vértices del octógono
+    tonos = [CELESTE, AZUL, LAPIS, CELESTE, AZUL, LAPIS, CELESTE, AZUL]
+    capas = {CELESTE: [], AZUL: [], LAPIS: [], AMARILLO: []}
+    # corona: triángulos mesa[i], oct[i], oct[i+1] y mesa[i], mesa[i+1], oct[i+1]
+    for i in range(8):
+        m0, m1 = mesa[i], mesa[(i + 1) % 8]
+        o0, o1 = oct_[i], oct_[(i + 1) % 8]
+    # reparto que se lee como gema: cada lado del cuadro tiene una faceta clara y una oscura
+    pts_o = oct_
+    caras = [
+        ((A, A), (70, 0), (120, A), AMARILLO), ((120, A), (70, 0), (170, 0), CELESTE), ((120, A), (170, 0), (B, A), AZUL),
+        ((B, A), (170, 0), (240, 70), LAPIS), ((B, A), (240, 70), (B, 120), CELESTE), ((B, 120), (240, 70), (240, 170), AZUL),
+        ((B, 120), (240, 170), (B, B), LAPIS), ((B, B), (240, 170), (170, 240), AZUL), ((B, B), (170, 240), (120, B), LAPIS),
+        ((120, B), (170, 240), (70, 240), AZUL), ((120, B), (70, 240), (A, B), LAPIS), ((A, B), (70, 240), (0, 170), AZUL),
+        ((A, B), (0, 170), (A, 120), CELESTE), ((A, 120), (0, 170), (0, 70), AZUL), ((A, 120), (0, 70), (A, A), CELESTE),
+        ((A, A), (0, 70), (70, 0), AMARILLO),
+    ]
+    for a, b, c, col in caras:
+        capas[col].append(poli([a, b, c]))
+    paths = [[''.join(v), k] for k, v in capas.items() if v]
+    # aristas finas (hueso) entre facetas
+    aristas = []
+    for p in mesa:
+        pass
+    def linea(p, q, w=1.6):
+        dx, dy = q[0] - p[0], q[1] - p[1]; L = math.hypot(dx, dy); nx, ny = -dy / L * w / 2, dx / L * w / 2
+        return poli([(p[0] + nx, p[1] + ny), (q[0] + nx, q[1] + ny), (q[0] - nx, q[1] - ny), (p[0] - nx, p[1] - ny)])
+    for a, b, c, _ in caras:
+        aristas += [linea(a, b), linea(b, c)]
+    paths.append([''.join(aristas), HUESO])
+    # destellos de 4 puntas en las esquinas negras
+    def destello(cx, cy, r):
+        k = r * 0.22
+        return poli([(cx, cy - r), (cx + k, cy - k), (cx + r, cy), (cx + k, cy + k), (cx, cy + r), (cx - k, cy + k), (cx - r, cy), (cx - k, cy - k)])
+    paths.append([destello(24, 24, 16) + destello(216, 216, 16) + destello(222, 30, 9) + destello(18, 214, 9), AMARILLO])
+    # filo de la mesa
+    paths.append([poli([(A - 4, A - 4), (B + 4, A - 4), (B + 4, B + 4), (A - 4, B + 4)]), HUESO])
+    return marco('GM06', 'Geométrica', 'M06', 'Diamante', NEGRO, paths, [])
+
+# OM06 · Diamante orgánico: se queda el rombo de Figma y las flores de las esquinas pasan a ser hojas de papel recortado.
+def hoja_papel(cx, cy, largo, ancho, ang, rnd, n=40):
+    pts = []
+    for k in range(n):
+        t = 2 * math.pi * k / n
+        # hoja: punta aguda en ambos extremos
+        x = math.cos(t) * largo / 2
+        y = math.sin(t) * ancho / 2 * (1 - 0.35 * math.cos(t) ** 2)
+        y *= 1 + (rnd.random() - 0.5) * 0.08
+        x *= 1 + (rnd.random() - 0.5) * 0.03
+        ca, sa = math.cos(ang), math.sin(ang)
+        pts.append((cx + x * ca - y * sa, cy + x * sa + y * ca))
+    return poli(pts)
+
+def nervio(cx, cy, largo, ang, w=1.3):
+    ca, sa = math.cos(ang), math.sin(ang)
+    p = (cx - ca * largo * 0.38, cy - sa * largo * 0.38); q = (cx + ca * largo * 0.38, cy + sa * largo * 0.38)
+    nx, ny = -sa * w, ca * w
+    return poli([(p[0] + nx, p[1] + ny), (q[0], q[1]), (p[0] - nx, p[1] - ny)])
+
+def blob(cx, cy, r, rnd, n=36, pulso=0.12):
+    f1, f2 = rnd.random() * 6, rnd.random() * 6
+    return poli([(cx + math.cos(2 * math.pi * k / n) * r * (1 + pulso * math.sin(3 * 2 * math.pi * k / n + f1) * 0.5 + pulso * 0.3 * math.sin(5 * 2 * math.pi * k / n + f2)),
+                  cy + math.sin(2 * math.pi * k / n) * r * (1 + pulso * math.sin(3 * 2 * math.pi * k / n + f1) * 0.5 + pulso * 0.3 * math.sin(5 * 2 * math.pi * k / n + f2))) for k in range(n)])
+
+def diamante_organico(figma):
+    base = next(m for m in figma if m['id'] == 'OM06')
+    rombo = base['paths'][-3:]  # el rombo escalonado (amarillo, rosa, negro); las 4 flores eran las capas anteriores
+    rnd = random.Random(6)
+    verdes, claros, semillas = [], [], []
+    for (cx, cy, giro) in ((32, 32, 0), (208, 32, math.pi / 2), (208, 208, math.pi), (32, 208, -math.pi / 2)):
+        # ramita: tres hojas que salen de la esquina, y una semilla
+        for k, (dl, da) in enumerate(((0, -0.55), (6, 0), (0, 0.55))):
+            ang = giro + math.pi / 4 + da
+            hx, hy = cx - 14 * math.cos(giro + math.pi / 4) + math.cos(ang) * 16, cy - 14 * math.sin(giro + math.pi / 4) + math.sin(ang) * 16
+            largo = 30 if k == 1 else 24
+            verdes.append(hoja_papel(hx, hy, largo, 12, ang, rnd))
+            claros.append(nervio(hx, hy, largo, ang))
+        semillas.append(blob(cx + 8 * math.cos(giro + math.pi / 4), cy + 8 * math.sin(giro + math.pi / 4), 5, rnd, 20, 0.2))
+    paths = [[''.join(verdes), VERDE], [''.join(claros), '#9BD7A8'], [''.join(semillas), CELESTE]] + [list(p) for p in rombo]
+    m = dict(base); m.update({'paths': paths, 'generado': True, 'encima': base['encima']})
+    m['zona'], m['caja'] = base['zona'], base['caja']
+    m['ajustado'] = False  # usa el ajuste de Figma (rombo) de shared/marcos.ts
+    return m
+
+def leer_figma():
+    ruta = os.path.join(os.path.dirname(__file__), '..', 'shared', 'marcos-figma.ts')
+    s = open(ruta, encoding='utf-8').read()
+    return json.loads(s[s.index('['):s.rindex(']') + 1])
+
+if __name__ == '__main__':
+    figma = leer_figma()
+    marcos = [estallido(), diamante(), diamante_organico(figma), vinilo(), ventana(), metro(), senal()]
+    salida = os.path.join(os.path.dirname(__file__), '..', 'shared', 'marcos-generados.ts')
+    with open(salida, 'w', encoding='utf-8') as f:
+        f.write('// GENERADO por scripts/marcos-generados.py (plan 012, arte generado; no editar a mano).\n')
+        f.write('// Tienen prioridad sobre shared/marcos-figma.ts. Manifiesto: docs/plans/012-ui-herramientas/assets-fotomaton.manifest.md\n')
+        f.write('export const MARCOS_GENERADOS = ' + json.dumps(marcos, ensure_ascii=False, separators=(',', ':')).replace('},{', '},\n{') + ' as const;\n')
+    for m in marcos:
+        print(m['id'], m['name'], 'capas', len(m['paths']), 'encima', len(m['encima']), 'bytes', len(json.dumps(m)))
