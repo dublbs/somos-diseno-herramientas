@@ -171,19 +171,20 @@ const caleidoscopio: Escena = {
 
 // ---------------------------------------------------------------- Tejido
 // Un ecualizador en forma de tela: con poca energía la celda es un punto, con más le salen brazos (cruz) y al máximo
-// los brazos se tocan (tejido). La caja gira las celdas 90°, el bombo las agranda, la melodía corre el color y el
-// hi-hat enciende celdas sueltas.
+// los brazos se tocan (tejido). La caja gira las celdas 45° (de cruz a equis), el bombo las agranda, la melodía corre
+// el color y el hi-hat enciende celdas sueltas.
 const COLORES_TEJIDO = [C.Negro, C.Azul, C.Lapis, C.Morado, C.Verde, C.Rosa];
 const tejido: Escena = {
   id: 'tejido', nombre: 'Tejido', icono: 'texture', fondo: C.Celeste,
   linea: 'Puntos que se vuelven cruces y luego tela; cada columna escucha una banda.',
-  mapa: { bateria: 'Caja gira las celdas, bombo las agranda', bajo: 'Teje a la izquierda', acordes: 'Teje al centro', melodia: 'Corre el color' },
+  mapa: { bateria: 'Caja gira las cruces, bombo las agranda', bajo: 'Teje a la izquierda', acordes: 'Teje al centro', melodia: 'Corre el color' },
   crear: () => ({ vueltas: 0, objetivo: 0, fase: 0, hats: 0 }),
   dibujar(ctx, S, dt, r, e) {
-    if (r.nuevo.caja || r.nuevo.mano) e.objetivo += 1;
+    if (r.nuevo.caja || r.nuevo.mano) e.objetivo += 0.5;
     if (r.nuevo.hat) e.hats++;
     e.vueltas += (e.objetivo - e.vueltas) * Math.min(1, dt * (r.quieto ? 3 : 10));
     e.fase += dt * 0.3 + (r.nuevo.mel ? 1 : 0);
+    e.t = (e.t ?? 0) + dt;
     const n = 12, c = S / n;
     ctx.fillStyle = C.Celeste; ctx.fillRect(0, 0, S, S);
     for (let i = 0; i < n; i++) {
@@ -191,10 +192,11 @@ const tejido: Escena = {
       const banda = r.bandas[i] + extra;
       for (let j = 0; j < n; j++) {
         const altura = (n - 1 - j) / (n - 1);
-        const crece = Math.max(0, Math.min(1, banda * 1.15 + r.volumen * 0.25 - altura * 0.8 + r.bombo * 0.35));
+        const ola = 0.12 * Math.sin(e.t * 2.2 - i * 0.5 + j * 0.3); // la tela respira aunque suene poco
+        const crece = Math.max(0, Math.min(1, banda * 1.2 + r.volumen * 0.3 - altura * 0.75 + r.bombo * 0.5 + ola));
         const cx = (i + 0.5) * c, cy = (j + 0.5) * c;
         let color = COLORES_TEJIDO[Math.floor((i + j) * 0.5 + e.fase) % COLORES_TEJIDO.length];
-        if (r.hat > 0.08 && hash(i, j, e.hats) > 0.88) color = mezcla(color, C.Hueso, r.hat * 1.3);
+        if (r.hat > 0.08 && hash(i, j, e.hats) > 0.8) color = mezcla(color, C.Hueso, r.hat * 1.3);
         ctx.save(); ctx.translate(cx, cy);
         ctx.rotate(((i + j) % 2 ? 1 : -1) * e.vueltas * (Math.PI / 2));
         ctx.fillStyle = color;
@@ -203,7 +205,7 @@ const tejido: Escena = {
         if (crece > 0.25) {
           const largo = (c / 2) * Math.min(1, (crece - 0.25) / 0.6) * 1.02, grosor = punto * 0.5;
           ctx.fillRect(-largo, -grosor / 2, largo * 2, grosor);
-          ctx.fillRect(-grosor / 2, -largo, grosor, largo * 2);
+          ctx.fillRect(-grosor / 2, -largo * 0.6, grosor, largo * 1.2); // brazo corto: así se nota el giro
         }
         ctx.restore();
       }
@@ -225,7 +227,7 @@ const escalera: Escena = {
     if (r.notaMel >= 0) e.color = colorNota(r.notaMel);
     if (r.nuevo.hat) e.hats++;
     e.corre += dt * (0.3 + r.volumen * 0.5);
-    e.sube += ((0.1 + r.bajo * 0.5 + r.bajo * r.notaBajo * 0.35) - e.sube) * Math.min(1, dt * 6);
+    e.sube += ((0.06 + r.bajo * 0.24 + r.bajo * r.notaBajo * 0.22) - e.sube) * Math.min(1, dt * 6);
     const rise = h * e.sube;
     for (let i = 0; i < n; i++) e.alza[i] += ((i === r.paso ? 1 : 0) - e.alza[i]) * Math.min(1, dt * 14);
     const FR = [e.color, C.Hueso, C.Azul, C.Hueso, e.color, C.Hueso, C.Negro, C.Hueso];
@@ -236,12 +238,12 @@ const escalera: Escena = {
       const x = Math.floor(i * w), ancho = Math.ceil(w) + 1;
       const dy = (i - (n - 1) / 2) * -rise + (e.corre * h) % (h * FR.length) - salto * (0.6 + 0.4 * Math.sin(i * 0.7)) - e.alza[i] * h * 0.45;
       const v = r.bandas[Math.floor((i * 12) / n)];
-      const muesca = Math.max(0, Math.min(1, (v - 0.25) / 0.75) * 0.5 + r.acordes * 0.5);
+      const muesca = Math.max(0, Math.min(1, (v - 0.3) / 0.7) * 0.3 + r.acordes * 0.45);
       for (let j = -FR.length * 2; j < filas + FR.length; j++) {
         const y = j * h + dy;
         if (y > S || y + h < 0) continue;
         ctx.fillStyle = col(j); ctx.fillRect(x, y, ancho, h + 0.5);
-        if (muesca > 0.02) { ctx.fillStyle = col(j + 1); ctx.fillRect(x + w * 0.2, y + h * (1 - 0.6 * muesca), w * 0.6, h * 0.6 * muesca + 0.5); }
+        if (muesca > 0.02) { ctx.fillStyle = col(j + 1); ctx.fillRect(x + w * 0.3, y + h * (1 - 0.5 * muesca), w * 0.4, h * 0.5 * muesca + 0.5); }
         if (r.hat > 0.05 && j % 2 === 0 && hash(i, j, e.hats) > 0.7) {
           ctx.fillStyle = C.Hueso === col(j) ? C.Negro : C.Hueso; ctx.globalAlpha = Math.min(1, r.hat * 1.6);
           ctx.fillRect(x + w * 0.35, y + h * 0.08, w * 0.3, w * 0.3); ctx.globalAlpha = 1;
@@ -252,7 +254,7 @@ const escalera: Escena = {
     if (r.caja > 0.02) { // destello: invierte los colores un instante
       ctx.save();
       if (r.quieto) { ctx.globalAlpha = r.caja * 0.2; ctx.fillStyle = C.Hueso; }
-      else { ctx.globalCompositeOperation = 'difference'; ctx.globalAlpha = Math.min(1, r.caja * 1.1); ctx.fillStyle = '#FFFFFF'; }
+      else { ctx.globalCompositeOperation = 'difference'; ctx.globalAlpha = Math.min(0.8, r.caja * 0.9); ctx.fillStyle = '#FFFFFF'; }
       ctx.fillRect(0, 0, S, S); ctx.restore();
     }
   },

@@ -69,7 +69,7 @@ export function leerMelodia(compases: string[]): NotaMel[] {
 // ---------------------------------------------------------------- estilos
 const loFi: Estilo = {
   id: 'lofi', nombre: 'Lo-Fi Hip Hop', bajada: '80 bpm · tranquilo', color: '#7FC8F8',
-  bpm: 80, swing: 0.2, nivel: 1, eco: 0.75,
+  bpm: 80, swing: 0.2, nivel: 0.93, eco: 0.75,
   acordes: [ac('D2', 'F3', 'A3', 'C4', 'E4'), ac('G2', 'F3', 'A3', 'B3', 'E4'), ac('C2', 'E3', 'G3', 'B3', 'D4'), ac('A1', 'G3', 'B3', 'C4', 'E4'),
     ac('D2', 'F3', 'A3', 'C4', 'E4'), ac('G2', 'F3', 'A3', 'B3', 'E4'), ac('C2', 'E3', 'G3', 'B3', 'D4'), ac('A1', 'G3', 'B3', 'C#4', 'E4')],
   ritmoAcordes: 'x-------o-----..',
@@ -84,16 +84,16 @@ const loFi: Estilo = {
   timbre: {
     bombo: { f0: 110, f1: 45, caida: 0.32, clic: 0.15, vol: 0.9 },
     caja: { tono: 190, filtro: 2200, q: 0.8, caida: 0.16, cuerpo: 0.3, vol: 0.5, sala: 0.15 },
-    hat: { filtro: 6500, caida: 0.04, abierto: 0.2, vol: 0.16 },
-    bajo: { ondas: ['sine', 'triangle'], ataque: 0.01, caida: 0.4, sostener: 0.7, relajo: 0.12, filtro: 600, vol: 0.42 },
-    acordes: { ondas: ['triangle', 'sine'], desafinar: [-6, 5], ataque: 0.012, caida: 1.1, sostener: 0.35, relajo: 0.4, filtro: 1500, filtroEnv: 1.6, vol: 0.075, vibrato: [0.6, 12], sala: 0.3 },
-    melodia: { ondas: ['triangle'], ataque: 0.02, caida: 0.5, sostener: 0.45, relajo: 0.25, filtro: 2400, vol: 0.13, vibrato: [5, 6], eco: 0.4, sala: 0.25 },
+    hat: { filtro: 6500, caida: 0.045, abierto: 0.2, vol: 0.36 },
+    bajo: { ondas: ['sine', 'triangle'], ataque: 0.01, caida: 0.4, sostener: 0.7, relajo: 0.12, filtro: 700, vol: 0.2 },
+    acordes: { ondas: ['triangle', 'sine'], desafinar: [-6, 5], ataque: 0.012, caida: 1.1, sostener: 0.35, relajo: 0.4, filtro: 1700, filtroEnv: 1.6, vol: 0.12, vibrato: [0.6, 12], sala: 0.3 },
+    melodia: { ondas: ['triangle'], ataque: 0.02, caida: 0.5, sostener: 0.45, relajo: 0.25, filtro: 2600, vol: 0.184, vibrato: [5, 6], eco: 0.4, sala: 0.25 },
   },
 };
 
 const synthwave: Estilo = {
   id: 'synthwave', nombre: 'Synthwave', bajada: '100 bpm · de noche', color: '#7A2E8E',
-  bpm: 100, swing: 0, nivel: 1, eco: 0.75,
+  bpm: 100, swing: 0, nivel: 1.2, eco: 0.75,
   acordes: [ac('A1', 'A3', 'C4', 'E4', 'A4'), ac('F1', 'A3', 'C4', 'F4'), ac('C2', 'G3', 'C4', 'E4', 'G4'), ac('G1', 'G3', 'B3', 'D4', 'G4'),
     ac('A1', 'A3', 'C4', 'E4', 'A4'), ac('F1', 'A3', 'C4', 'F4'), ac('G1', 'G3', 'B3', 'D4', 'G4'), ac('E1', 'G#3', 'B3', 'E4')],
   ritmoAcordes: 'x---------------',
@@ -108,16 +108,16 @@ const synthwave: Estilo = {
   timbre: {
     bombo: { f0: 150, f1: 42, caida: 0.38, clic: 0.4, vol: 1 },
     caja: { tono: 180, filtro: 3000, q: 0.7, caida: 0.32, cuerpo: 0.45, vol: 0.55, sala: 0.55 },
-    hat: { filtro: 8000, caida: 0.035, abierto: 0.2, vol: 0.12 },
-    bajo: { ondas: ['sawtooth'], ataque: 0.004, caida: 0.18, sostener: 0.3, relajo: 0.06, filtro: 380, filtroEnv: 3, q: 4, vol: 0.32 },
-    acordes: { ondas: ['sawtooth', 'sawtooth'], desafinar: [-9, 9], ataque: 0.35, caida: 1, sostener: 0.8, relajo: 0.9, filtro: 1500, vol: 0.05, sala: 0.45 },
-    melodia: { ondas: ['square', 'sawtooth'], desafinar: [0, 7], ataque: 0.015, caida: 0.3, sostener: 0.6, relajo: 0.2, filtro: 2600, filtroEnv: 1.4, vol: 0.075, vibrato: [5.5, 10], eco: 0.45, sala: 0.3 },
+    hat: { filtro: 8000, caida: 0.035, abierto: 0.2, vol: 0.2 },
+    bajo: { ondas: ['sawtooth'], ataque: 0.004, caida: 0.18, sostener: 0.3, relajo: 0.06, filtro: 380, filtroEnv: 3, q: 4, vol: 0.26 },
+    acordes: { ondas: ['sawtooth', 'sawtooth'], desafinar: [-9, 9], ataque: 0.35, caida: 1, sostener: 0.8, relajo: 0.9, filtro: 1500, vol: 0.068, sala: 0.45 },
+    melodia: { ondas: ['square', 'sawtooth'], desafinar: [0, 7], ataque: 0.015, caida: 0.3, sostener: 0.6, relajo: 0.2, filtro: 2600, filtroEnv: 1.4, vol: 0.098, vibrato: [5.5, 10], eco: 0.45, sala: 0.3 },
   },
 };
 
 const buttonMash: Estilo = {
   id: 'chip', nombre: 'Button Mash', bajada: '150 bpm · 8 bits', color: '#00A651',
-  bpm: 150, swing: 0, nivel: 1, eco: 0.5,
+  bpm: 150, swing: 0, nivel: 1.08, eco: 0.5,
   acordes: [ac('C3', 'C4', 'E4', 'G4', 'C5'), ac('G2', 'B3', 'D4', 'G4', 'B4'), ac('A2', 'A3', 'C4', 'E4', 'A4'), ac('F2', 'A3', 'C4', 'F4', 'A4'),
     ac('C3', 'C4', 'E4', 'G4', 'C5'), ac('G2', 'B3', 'D4', 'G4', 'B4'), ac('F2', 'A3', 'C4', 'F4', 'A4'), ac('G2', 'B3', 'D4', 'G4', 'B4')],
   ritmoAcordes: 'aaaaaaaaaaaaaaaa',
@@ -132,16 +132,16 @@ const buttonMash: Estilo = {
   timbre: {
     bombo: { f0: 220, f1: 50, caida: 0.12, clic: 0.6, vol: 0.85 },
     caja: { tono: 240, filtro: 5000, q: 0.5, caida: 0.1, cuerpo: 0.2, vol: 0.45 },
-    hat: { filtro: 9000, caida: 0.025, abierto: 0.08, vol: 0.13 },
-    bajo: { ondas: ['triangle'], ataque: 0.002, caida: 0.1, sostener: 0.85, relajo: 0.03, filtro: 5000, vol: 0.4 },
-    acordes: { ondas: ['pulso25'], ataque: 0.002, caida: 0.06, sostener: 0.5, relajo: 0.02, filtro: 4500, vol: 0.045 },
-    melodia: { ondas: ['square'], ataque: 0.003, caida: 0.08, sostener: 0.7, relajo: 0.04, filtro: 3800, vol: 0.06, octava: -1, vibrato: [6, 8], eco: 0.2 },
+    hat: { filtro: 9000, caida: 0.025, abierto: 0.08, vol: 0.2 },
+    bajo: { ondas: ['triangle'], ataque: 0.002, caida: 0.1, sostener: 0.85, relajo: 0.03, filtro: 5000, vol: 0.28 },
+    acordes: { ondas: ['pulso25'], ataque: 0.002, caida: 0.06, sostener: 0.5, relajo: 0.02, filtro: 4500, vol: 0.058 },
+    melodia: { ondas: ['square'], ataque: 0.003, caida: 0.08, sostener: 0.7, relajo: 0.04, filtro: 3800, vol: 0.075, octava: -1, vibrato: [6, 8], eco: 0.2 },
   },
 };
 
 const friday: Estilo = {
   id: 'friday', nombre: "It's Friday", bajada: '118 bpm · funk y disco', color: '#FFC20E',
-  bpm: 118, swing: 0.06, nivel: 1, eco: 0.75,
+  bpm: 118, swing: 0.06, nivel: 1.32, eco: 0.75,
   acordes: [ac('E2', 'G3', 'B3', 'D4', 'F#4'), ac('E2', 'G3', 'B3', 'D4', 'F#4'), ac('A2', 'G3', 'C#4', 'F#4', 'B4'), ac('A2', 'G3', 'C#4', 'F#4', 'B4'),
     ac('E2', 'G3', 'B3', 'D4', 'F#4'), ac('E2', 'G3', 'B3', 'D4', 'F#4'), ac('C3', 'G3', 'B3', 'C4', 'E4'), ac('B2', 'A3', 'B3', 'D#4', 'F#4')],
   ritmoAcordes: '.x.x..x..x.x..x.',
@@ -156,16 +156,16 @@ const friday: Estilo = {
   timbre: {
     bombo: { f0: 130, f1: 48, caida: 0.26, clic: 0.35, vol: 0.95 },
     caja: { tono: 210, filtro: 1500, q: 0.9, caida: 0.18, cuerpo: 0.15, vol: 0.55, sala: 0.3 },
-    hat: { filtro: 7500, caida: 0.035, abierto: 0.22, vol: 0.14 },
-    bajo: { ondas: ['sawtooth', 'square'], ataque: 0.003, caida: 0.14, sostener: 0.25, relajo: 0.05, filtro: 500, filtroEnv: 2.5, q: 3, vol: 0.3 },
-    acordes: { ondas: ['square', 'sawtooth'], desafinar: [-4, 4], ataque: 0.002, caida: 0.09, sostener: 0.15, relajo: 0.05, filtro: 2000, filtroEnv: 1.5, q: 2, vol: 0.06 },
-    melodia: { ondas: ['sawtooth', 'sawtooth'], desafinar: [-7, 7], ataque: 0.03, caida: 0.2, sostener: 0.7, relajo: 0.1, filtro: 1800, filtroEnv: 2, q: 1.5, vol: 0.07, eco: 0.2, sala: 0.3 },
+    hat: { filtro: 7500, caida: 0.035, abierto: 0.22, vol: 0.22 },
+    bajo: { ondas: ['sawtooth', 'square'], ataque: 0.003, caida: 0.14, sostener: 0.25, relajo: 0.05, filtro: 500, filtroEnv: 2.5, q: 3, vol: 0.24 },
+    acordes: { ondas: ['square', 'sawtooth'], desafinar: [-4, 4], ataque: 0.002, caida: 0.09, sostener: 0.15, relajo: 0.05, filtro: 2000, filtroEnv: 1.5, q: 2, vol: 0.081 },
+    melodia: { ondas: ['sawtooth', 'sawtooth'], desafinar: [-7, 7], ataque: 0.03, caida: 0.2, sostener: 0.7, relajo: 0.1, filtro: 1800, filtroEnv: 2, q: 1.5, vol: 0.091, eco: 0.2, sala: 0.3 },
   },
 };
 
 const ambient: Estilo = {
   id: 'ambient', nombre: 'Acoustic Ambient', bajada: '72 bpm · calma', color: '#FF8FB1',
-  bpm: 72, swing: 0, nivel: 1, eco: 0.75,
+  bpm: 72, swing: 0, nivel: 0.9, eco: 0.75,
   acordes: [ac('D2', 'F#3', 'A3', 'C#4', 'E4'), ac('B1', 'A3', 'D4', 'E4', 'F#4'), ac('G2', 'F#3', 'A3', 'B3', 'D4'), ac('A2', 'E3', 'A3', 'B3', 'D4'),
     ac('D2', 'F#3', 'A3', 'C#4', 'E4'), ac('F#2', 'E3', 'A3', 'C#4', 'F#4'), ac('G2', 'F#3', 'A3', 'B3', 'D4'), ac('A2', 'E3', 'A3', 'B3', 'D4')],
   ritmoAcordes: 'x---------------',
@@ -178,12 +178,12 @@ const ambient: Estilo = {
   melodia: ['D4/2 A4/2 E5/2 F#5/2 A5/2 F#5/2 E5/2 C#5/2', 'B3/2 F#4/2 D5/2 E5/2 A5/2 E5/2 D5/2 F#4/2', 'G3/2 D4/2 A4/2 B4/2 F#5/2 B4/2 A4/2 D4/2', 'A3/2 E4/2 B4/2 D5/2 E5/4 ./4',
     'D4/2 A4/2 E5/2 F#5/2 A5/2 F#5/2 E5/2 C#5/2', 'F#3/2 C#4/2 E4/2 A4/2 C#5/2 A4/2 E4/2 C#4/2', 'G3/2 D4/2 A4/2 B4/2 F#5/2 B4/2 A4/2 D4/2', 'A3/2 E4/2 B4/2 E5/2 A5/8'],
   timbre: {
-    bombo: { f0: 90, f1: 42, caida: 0.4, clic: 0, vol: 0.6 },
+    bombo: { f0: 90, f1: 42, caida: 0.4, clic: 0.05, vol: 0.5 },
     caja: { tono: 700, filtro: 3500, q: 2, caida: 0.06, cuerpo: 0.5, vol: 0.28, sala: 0.5 },
-    hat: { filtro: 5000, caida: 0.06, abierto: 0.1, vol: 0.1 },
-    bajo: { ondas: ['sine'], ataque: 0.15, caida: 1, sostener: 0.8, relajo: 0.8, filtro: 400, vol: 0.38 },
-    acordes: { ondas: ['sine', 'triangle'], desafinar: [-5, 5], ataque: 1.2, caida: 1.5, sostener: 0.75, relajo: 1.8, filtro: 1600, vol: 0.06, vibrato: [0.3, 8], sala: 0.6 },
-    melodia: { ondas: ['triangle', 'sine'], desafinar: [0, 1200], ataque: 0.004, caida: 0.9, sostener: 0, relajo: 0.6, filtro: 3000, filtroEnv: 1.3, vol: 0.12, eco: 0.3, sala: 0.45 },
+    hat: { filtro: 5500, caida: 0.06, abierto: 0.1, vol: 0.26 },
+    bajo: { ondas: ['sine'], ataque: 0.15, caida: 1, sostener: 0.8, relajo: 0.8, filtro: 400, vol: 0.15 },
+    acordes: { ondas: ['sine', 'triangle'], desafinar: [-5, 5], ataque: 1.2, caida: 1.5, sostener: 0.75, relajo: 1.8, filtro: 1800, vol: 0.102, vibrato: [0.3, 8], sala: 0.6 },
+    melodia: { ondas: ['triangle', 'sine'], desafinar: [0, 1200], ataque: 0.004, caida: 0.9, sostener: 0, relajo: 0.6, filtro: 3200, filtroEnv: 1.3, vol: 0.184, eco: 0.3, sala: 0.45 },
   },
 };
 
