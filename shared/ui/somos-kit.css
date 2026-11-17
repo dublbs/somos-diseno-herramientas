@@ -175,3 +175,11 @@ html:has(.k-tutorial),body:has(.k-tutorial){height:100%;overflow:hidden}
 .k-juego-error{color:#C23B4E;font-weight:700}
 .k-juego-token{margin:4px 0!important;font:800 44px "IBM Plex Mono",monospace!important;letter-spacing:.12em;color:var(--accent)}
 .k-quiosco-cuenta .material-symbols-outlined{font-size:64px}
+/* «Llévatela» (plan 011): ventana con la vista previa y el QR, encima de la herramienta. Cabe sin scroll. */
+.k-llevatela{width:min(100%,460px);max-height:calc(100dvh - 32px);display:grid;justify-items:center;gap:12px;padding:22px;text-align:center;background:var(--surface);color:var(--ink);overflow:hidden}
+.k-llevatela h2{margin:0;font:800 26px var(--fuente-tit)}
+.k-llevatela .k-ayuda{margin:0;max-width:380px}
+.k-llevatela-previa{display:block;max-width:100%;max-height:min(40dvh,320px);width:auto;height:auto;border:2px solid var(--ink)}
+.k-llevatela-qr{background:#fff;padding:10px;border:2px solid var(--ink)}
+.k-llevatela-qr img{display:block;width:min(52dvh,300px);height:auto;image-rendering:pixelated}
+.k-llevatela-acciones{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
