@@ -3,39 +3,38 @@ import { PLANTILLAS, TEXTURA_RODILLO } from '../data/stencils';
 
 // largo: celdas en total; resta: las que faltan; t: tiempo acumulado para el próximo paso.
 export interface Chorro { x: number; y: number; color: number; resta: number; largo: number; ancho: 1 | 2; t: number }
-export interface Estampa { id: string; x: number; y: number }
+// Sticker pegado: centro en celdas del muro, escala (1 = su ancho base en STICKERS) y giro en grados (horario).
+export interface Estampa { id: string; x: number; y: number; escala: number; giro: number }
 export interface Dibujo { pintura: Uint8Array; stickers: Estampa[] }
 
 export const nuevoDibujo = (): Dibujo => ({ pintura: new Uint8Array(COLS * FILAS), stickers: [] });
 export const copiar = (d: Dibujo): Dibujo => ({ pintura: d.pintura.slice(), stickers: d.stickers.slice() });
 const dentro = (x: number, y: number) => x >= 0 && y >= 0 && x < COLS && y < FILAS;
 
-// Stencil puesto sobre el muro: plantilla, capa (1 base, 2 detalle), esquina superior izquierda y celdas del muro
-// por celda de la plantilla. La placa de cartón tiene un margen alrededor de la figura.
-export interface Puesta { id: string; capa: 1 | 2; x: number; y: number; escala: number }
-export const MARGEN_PLACA = 7; // el cartón es generoso, como una placa de verdad: el spray no se pasa por el borde
+// Stencil puesto sobre el muro: plantilla, capa (1 base, 2 detalle), centro en celdas del muro, celdas del muro por
+// celda de la plantilla (escala) y giro en grados (horario, como las manijas). La placa de cartón tiene un margen fijo
+// alrededor de la figura, para que el spray no se pase por el borde.
+export interface Puesta { id: string; capa: 1 | 2; x: number; y: number; escala: number; giro: number }
+export const MARGEN_PLACA = 8;
 // Máscara por celda del muro: TAPADO (cartón), BORDE (junto a un hueco: llega un poco de pintura), HUECO, LIBRE (fuera de la placa).
 export const TAPADO = 0, BORDE = 1, HUECO = 2, LIBRE = 3;
 export type Mascara = Uint8Array | null;
 
 export const plantilla = (id: string) => PLANTILLAS.find(p => p.id === id)!;
-export function placa(p: Puesta) {
-  const t = plantilla(p.id), m = MARGEN_PLACA * p.escala;
-  return { x: p.x - m, y: p.y - m, w: t.filas[0].length * p.escala + 2 * m, h: t.filas.length * p.escala + 2 * m };
-}
+export const medidas = (id: string) => { const t = plantilla(id); return { w: t.filas[0].length, h: t.filas.length }; };
 
 export function mascaraDe(p: Puesta | null): Mascara {
   if (!p) return null;
-  const t = plantilla(p.id), bit = p.capa === 1 ? 1 : 2, pl = placa(p);
+  const t = plantilla(p.id), bit = p.capa === 1 ? 1 : 2, w = t.filas[0].length, h = t.filas.length;
+  const a = (p.giro * Math.PI) / 180, cos = Math.cos(a), sin = Math.sin(a), mg = MARGEN_PLACA / p.escala;
   const m = new Uint8Array(COLS * FILAS).fill(LIBRE);
-  const hueco = (x: number, y: number) => {
-    const sx = Math.floor((x + 0.5 - p.x) / p.escala), sy = Math.floor((y + 0.5 - p.y) / p.escala);
-    const fila = t.filas[sy];
-    return !!fila && sx >= 0 && sx < fila.length && (Number(fila[sx]) & bit) > 0;
-  };
   for (let y = 0; y < FILAS; y++) for (let x = 0; x < COLS; x++) {
-    if (x + 0.5 < pl.x || y + 0.5 < pl.y || x + 0.5 > pl.x + pl.w || y + 0.5 > pl.y + pl.h) continue;
-    m[y * COLS + x] = hueco(x, y) ? HUECO : TAPADO;
+    // La celda del muro, llevada a la plantilla: se deshace el giro y la escala alrededor del centro.
+    const dx = x + 0.5 - p.x, dy = y + 0.5 - p.y;
+    const lx = (dx * cos + dy * sin) / p.escala + w / 2, ly = (-dx * sin + dy * cos) / p.escala + h / 2;
+    if (lx < -mg || ly < -mg || lx > w + mg || ly > h + mg) continue;
+    const fila = t.filas[Math.floor(ly)], sx = Math.floor(lx);
+    m[y * COLS + x] = fila && sx >= 0 && sx < w && (Number(fila[sx]) & bit) > 0 ? HUECO : TAPADO;
   }
   // El borde pulverizado: la pintura se cuela apenas por debajo del cartón junto a cada hueco.
   for (let y = 0; y < FILAS; y++) for (let x = 0; x < COLS; x++) {
@@ -47,7 +46,9 @@ export function mascaraDe(p: Puesta | null): Mascara {
 }
 
 // Probabilidad de que la pintura llegue a la celda según la plantilla.
-const paso = (mascara: Mascara, i: number) => !mascara ? 1 : mascara[i] === HUECO || mascara[i] === LIBRE ? 1 : mascara[i] === BORDE ? 0.12 : 0;
+// Bajo el canto del cartón (BORDE) solo se cuela el rocío suelto, no el chorro principal: el spray pasa muchas veces
+// por la misma celda y cualquier fuga se acumularía hasta tapar las partes finas de la plantilla.
+const paso = (mascara: Mascara, i: number, fuga = 0) => !mascara ? 1 : mascara[i] === HUECO || mascara[i] === LIBRE ? 1 : mascara[i] === BORDE ? fuga : 0;
 
 // Los tres pinceles (plan 009 §3, como los pinceles de Photoshop): cada uno deja una marca propia.
 // · Spray: gotitas al azar con distribución gaussiana (denso al centro, difuso al borde) y algo de rocío suelto
@@ -62,11 +63,14 @@ const gauss = (): [number, number] => {
 
 export function rociar(d: Dibujo, cx: number, cy: number, radio: number, color: number, mascara: Mascara, carga?: Float32Array) {
   const sigma = radio / 2, n = Math.round(radio * radio * 1.5) + 4;
+  // Si se pinta sobre la placa del stencil, el cartón ataja la pintura que se abre: no cae fuera de la placa.
+  const sobrePlaca = !!mascara && dentro(Math.round(cx), Math.round(cy)) && mascara[Math.round(cy) * COLS + Math.round(cx)] !== LIBRE;
   for (let k = 0; k < n; k++) {
     const [gx, gy] = gauss();
     const x = Math.round(cx + gx * sigma), y = Math.round(cy + gy * sigma);
     if (!dentro(x, y)) continue;
     const i = y * COLS + x;
+    if (sobrePlaca && mascara![i] === LIBRE) continue;
     if (Math.random() > paso(mascara, i)) continue;
     d.pintura[i] = color;
     if (carga) carga[i] += 1;
@@ -75,7 +79,8 @@ export function rociar(d: Dibujo, cx: number, cy: number, radio: number, color: 
   for (let k = 0; k < Math.ceil(radio / 2); k++) {
     const [gx, gy] = gauss();
     const x = Math.round(cx + gx * radio * 1.1), y = Math.round(cy + gy * radio * 1.1);
-    if (dentro(x, y) && Math.random() < 0.5 * paso(mascara, y * COLS + x)) d.pintura[y * COLS + x] = color;
+    if (!dentro(x, y) || (sobrePlaca && mascara![y * COLS + x] === LIBRE)) continue;
+    if (Math.random() < 0.5 * paso(mascara, y * COLS + x, 0.25)) d.pintura[y * COLS + x] = color;
   }
 }
 
@@ -109,6 +114,7 @@ export function rodillo(d: Dibujo, cx: number, cy: number, ux: number, uy: numbe
 export const tintaRodillo = (s: number) => Math.max(0.3, 1 - s / 260);
 
 export function borrar(d: Dibujo, cx: number, cy: number, radio: number) {
+  radio = Math.round(radio);
   for (let dy = -radio; dy <= radio; dy++) for (let dx = -radio; dx <= radio; dx++) {
     const x = cx + dx, y = cy + dy;
     if (dentro(x, y) && Math.hypot(dx, dy) <= radio + 0.5) d.pintura[y * COLS + x] = 0;
@@ -131,6 +137,7 @@ export function linea(x0: number, y0: number, x1: number, y1: number, cada: (x: 
 // Nace un chorro en la columna x: desde la celda más baja con pintura de ese color, cerca del spray.
 export function nacerChorro(d: Dibujo, chorros: Chorro[], x: number, cy: number, radio: number, color: number, largo: [number, number], anchoDoble: number): boolean {
   if (chorros.length >= MAX_CHORROS || x < 0 || x >= COLS) return false;
+  radio = Math.ceil(radio);
   let y = Math.min(FILAS - 1, cy + radio + 1);
   while (y >= Math.max(0, cy - radio) && d.pintura[y * COLS + x] !== color) y--;
   if (y < 0 || d.pintura[y * COLS + x] !== color || y >= FILAS - 1) return false;
