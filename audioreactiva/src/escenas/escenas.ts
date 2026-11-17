@@ -177,33 +177,38 @@ const COLORES_TEJIDO = [C.Negro, C.Azul, C.Lapis, C.Morado, C.Verde, C.Rosa];
 const tejido: Escena = {
   id: 'tejido', nombre: 'Tejido', icono: 'texture', fondo: C.Celeste,
   linea: 'Puntos que se vuelven cruces y luego tela; cada columna escucha una banda.',
-  mapa: { bateria: 'Caja gira las cruces, bombo las agranda', bajo: 'Teje a la izquierda', acordes: 'Teje al centro', melodia: 'Corre el color' },
-  crear: () => ({ vueltas: 0, objetivo: 0, fase: 0, hats: 0 }),
+  mapa: { bateria: 'Caja gira las cruces, bombo las agranda', bajo: 'Teje a la izquierda', acordes: 'Teje al centro', melodia: 'Suelta ondas y corre el color' },
+  crear: () => ({ vueltas: 0, objetivo: 0, fase: 0, hats: 0, t: 0, ondas: [] as { col: number; t: number }[] }),
   dibujar(ctx, S, dt, r, e) {
     if (r.nuevo.caja || r.nuevo.mano) e.objetivo += 0.5;
     if (r.nuevo.hat) e.hats++;
     e.vueltas += (e.objetivo - e.vueltas) * Math.min(1, dt * (r.quieto ? 3 : 10));
     e.fase += dt * 0.3 + (r.nuevo.mel ? 1 : 0);
-    e.t = (e.t ?? 0) + dt;
+    e.t += dt * (0.6 + r.volumen); // la tela respira más rápido mientras más suena
     const n = 12, c = S / n;
+    // cada nota de la melodía suelta una onda desde la columna de su nota (do a la izquierda, si a la derecha)
+    if (r.nuevo.mel && r.notaMel >= 0 && !r.quieto) e.ondas.push({ col: r.notaMel % 12, t: 0 });
+    e.ondas = e.ondas.filter((o: { t: number }) => (o.t += dt) < 0.9);
     ctx.fillStyle = C.Celeste; ctx.fillRect(0, 0, S, S);
     for (let i = 0; i < n; i++) {
       const extra = i < 4 ? r.bajo * 0.45 : i < 8 ? r.acordes * 0.35 : 0;
       const banda = r.bandas[i] + extra;
       for (let j = 0; j < n; j++) {
         const altura = (n - 1 - j) / (n - 1);
-        const ola = 0.12 * Math.sin(e.t * 2.2 - i * 0.5 + j * 0.3); // la tela respira aunque suene poco
-        const crece = Math.max(0, Math.min(1, banda * 1.2 + r.volumen * 0.3 - altura * 0.75 + r.bombo * 0.5 + ola));
+        const ola = 0.2 * Math.sin(e.t * 3.6 - i * 0.5 + j * 0.3); // la tela respira aunque suene poco
+        let onda = 0;
+        for (const o of e.ondas) { const d = Math.hypot(i - o.col, j - n / 2), radio = o.t * 16; onda += Math.max(0, 1 - Math.abs(d - radio) / 1.6) * (1 - o.t / 0.9); }
+        const crece = Math.max(0, Math.min(1, banda * 1.2 + r.volumen * 0.3 - altura * 0.75 + r.bombo * 0.5 + ola + onda * 0.7));
         const cx = (i + 0.5) * c, cy = (j + 0.5) * c;
         let color = COLORES_TEJIDO[Math.floor((i + j) * 0.5 + e.fase) % COLORES_TEJIDO.length];
         if (r.hat > 0.08 && hash(i, j, e.hats) > 0.8) color = mezcla(color, C.Hueso, r.hat * 1.3);
         ctx.save(); ctx.translate(cx, cy);
         ctx.rotate(((i + j) % 2 ? 1 : -1) * e.vueltas * (Math.PI / 2));
         ctx.fillStyle = color;
-        const punto = c * (0.12 + crece * 0.2);
+        const punto = c * (0.16 + crece * 0.26);
         ctx.fillRect(-punto / 2, -punto / 2, punto, punto);
-        if (crece > 0.25) {
-          const largo = (c / 2) * Math.min(1, (crece - 0.25) / 0.6) * 1.02, grosor = punto * 0.5;
+        if (crece > 0.2) {
+          const largo = (c / 2) * Math.min(1, (crece - 0.2) / 0.6) * 1.02, grosor = punto * 0.6;
           ctx.fillRect(-largo, -grosor / 2, largo * 2, grosor);
           ctx.fillRect(-grosor / 2, -largo * 0.6, grosor, largo * 1.2); // brazo corto: así se nota el giro
         }
