@@ -1,6 +1,6 @@
 # 009 · Juego Pixel «Hora punta» (reemplaza al Vagón)
 
-Fecha: 13 nov 2026 · Estado: **ronda 2 (17 nov): cruce isométrico, andén y jefe** (rama `amaro/hora-punta-iso`). Antes: 3 niveles decididos el 13 nov (rama `amaro/juego-pixel`, tarea T1 de `docs/tasks/009-pendientes.md`).
+Fecha: 13 nov 2026 · Estado: **ronda 2 (17–18 nov): cruce isométrico, andén y jefe; verificada en modo demo** (rama `amaro/hora-punta-iso`). Antes: 3 niveles decididos el 13 nov (rama `amaro/juego-pixel`, tarea T1 de `docs/tasks/009-pendientes.md`).
 Nombre de trabajo: «Hora punta» (se cambia en un solo lugar: `juego-pixel/src/App.tsx`).
 
 ## Idea
@@ -62,6 +62,8 @@ ambos lados** como Minecraft Pocket Edition. Solo se toman mecánicas: personaje
 - El personaje tiene sombra y **salta en arco** de una celda a otra. La entrada del metro es un pórtico azul con su
   letrero «METRO» y la escalera que baja.
 - Se dibuja de atrás hacia adelante; la cámara sigue suave al personaje y deja ver unas 9 filas hacia adelante.
+- Al llegar, la cámara muestra el pórtico y el personaje baja la escalera; al chocar queda aplastado en una mancha rosa
+  mientras el tránsito sigue. La tarjeta aparece 1,2 s después.
 
 ### Fuera La pared
 `pared.ts` y `dibujoPared.ts` se borran. `?nivel=2` parte en el andén y **`?nivel=3` abre el jefe** (con 3 latas y
@@ -85,10 +87,14 @@ primera casilla si venciste al jefe.
   3. Gotas en 3 columnas, manchas más seguido y Grises más rápidos.
 - **Avisos:** todo ataque avisa antes: el Inacapín se agacha y brilla (mancha), las columnas de gotas se marcan en el piso
   1 s antes y el Gris sale de su boca.
-- **Vidas:** 3. Si un Gris, una mancha, una gota o el Inacapín te tocan, pierdes una y quedas 2 s intocable.
+- **Vidas:** 3. Si un Gris, una mancha o una gota te tocan, pierdes una y quedas 2 s intocable. Si chocas con el
+  Inacapín **te empuja de un salto** sin quitarte vidas (18 nov: con bots, chocarlo al empujar la bola era la segunda
+  causa de derrota).
   **Perder no borra lo juntado:** el mural se queda con tus piezas y latas.
 - **Al ganar:** el Inacapín celebra a todo color y la pantalla dice «¡Le devolviste el color!». El mural suma el trofeo.
-- **Duración:** una persona que juega por primera vez lo vence en 60 a 90 s (medido con bots en las pruebas).
+- **Duración:** la meta era 60 a 90 s. Medido con bots (`npm --prefix juego-pixel run pruebas`): un bot atento gana
+  siempre en ~31 s; uno que reacciona en 0,35 s y se distrae el 25 % del tiempo gana 70 de 100, en 32 a 44 s (mediana
+  34 s). **Queda abierto:** si se quiere llegar a 60 s, subir a 8 golpes o espaciar los Grises (ver «Verificación ronda 2»).
 - **Puntaje:** +2 por bola, +5 por Gris arrastrado, **+10 por golpe** al Inacapín y **+30 al vencerlo**.
 
 ## Puntaje
@@ -135,8 +141,23 @@ Desde la ronda 2: barra superior delgada con los tokens neutros de la guía com�
 completa, con el HUD y los controles encima. Sin scroll en las 6 resoluciones de tablet. Tutorial de 3 pasos y quiosco a
 los 90 s.
 
-## Verificación ronda 2 (17 nov)
-- [ ] Pendiente: se completa al terminar la rama `amaro/hora-punta-iso`.
+## Verificación ronda 2 (18 nov, rama `amaro/hora-punta-iso`, modo demo)
+- [x] **Motor en Node** (`npm --prefix juego-pixel run pruebas`, 41 casos): cruce 14 (avanzar, lata, choques, aviso del
+  metro, quedarse quieto, meta, estación, latas en 50 tableros; un bot que mira el tránsito llega en 237 de 300 tableros,
+  mediana 11,8 s), andén 11 (100 partidas al azar sin errores) y jefe 16 (colores, 2 golpes, pintura directa, golpe con
+  bola, fases y esquinas, mancha, gotas, empujón, derrota, victoria +30; 300 peleas con bots sin errores).
+- [x] **Partida completa en Playwright** (1180 × 820, teclado y toques reales): el cruce llega al metro al primer intento
+  (19 s), el andén (2 piezas, multitáctil: mantener ▶ camina 2,2 celdas y Lanzar responde a la vez; al levantar el dedo se
+  suelta), el jefe se vence en 28 s con 6 golpes, «¡Le devolviste el color!», el mural trae el trofeo y «Llévatela» abre.
+  Sin errores de consola.
+- [x] **Cuadros por segundo** (Chromium sin GPU): 60 en el cruce, el andén y el jefe; con la CPU 4× más lenta el andén y el
+  jefe siguen en 59–60 y el cruce baja a ~38 (a 2× sigue en 60).
+- [x] **Pantalla** en 1024 × 768, 1180 × 820, 1280 × 720, 1366 × 768, 768 × 1024 y 820 × 1180, en 10 estados (entrada del
+  cruce, cruce, pausa, «Llegaste» con 12 latas, andén, «Llegó el Inacapín», jefe, fin, Llévatela y entrada del jefe): sin
+  scroll, nada fuera de vista, ningún panel con scroll ni tarjeta recortada, toques ≥ 44 px y controles ≥ 64 px.
+- [ ] En la tablet real: 60 fps del cruce isométrico y los controles táctiles a ambos lados.
+- [ ] El Inacapín Pixel lo valida el equipo (personaje propio, sin el logo de INACAP).
+- [ ] `dist/` compilado aquí sin `.env.local` (modo demo): recompilar con el `.env.local` antes de publicar.
 
 ## Verificación (13 nov 2026, versión por niveles; La pared salió el 17 nov)
 - [x] ~~Nivel 3~~ (Node, 20 casos): tus colores (3 a 4), el par aparece al centro, se mueve, la pared lo frena, gira y se
