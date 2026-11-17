@@ -26,7 +26,8 @@ type Etapa = Nivel | 'paso' | 'paso2' | 'fin';
 type Accion = 'arriba' | 'abajo' | 'izq' | 'der' | 'lanzar';
 const NOMBRE_NIVEL: Record<Nivel, string> = { cruce: 'Nivel 1 · El cruce', anden: 'Nivel 2 · El andén', jefe: 'Jefe · El Inacapín Pixel' };
 
-const quieto = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+const movimiento = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+const quieto = () => movimiento?.matches ?? false; // se consulta en cada cuadro: la consulta se crea una vez
 const cargarImagen = (ruta: string) => new Promise<HTMLImageElement | null>(res => {
   const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = `${import.meta.env.BASE_URL}figma/${ruta}`;
 });

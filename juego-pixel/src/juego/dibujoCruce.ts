@@ -36,6 +36,8 @@ export function sombra(hex: string, f: number) {
 // `fin`: cuándo terminó el cruce (llegada o choque), para animar la entrada al metro o el aplastón.
 interface Vista { camX: number; desdeX: number; desdeY: number; x: number; y: number; mira: 1 | -1; fin: number }
 const vistas = new WeakMap<Cruce, Vista>();
+// Piezas ya dibujadas, por tamaño de celda (se rehacen si cambia).
+const cache = { c: 0, piezas: new Map<string, { lienzo: HTMLCanvasElement; ax: number; ay: number }>() };
 
 type P = [number, number];
 
@@ -60,9 +62,11 @@ export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto:
   const c = Math.max(8, Math.floor(Math.min(alto / (FY * 13.5), ancho / 8.5)));
   const lw = Math.max(2, Math.round(c / 24));
   const camY = camara + 2.5, ox = ancho / 2, oy = alto * 0.7;
+  // P proyecta al lienzo; `estampa` la reapunta un momento a un canvas aparte (por eso usa variables).
+  let OX = ox, OY = oy, CX = v.camX, CY = camY;
   const P = (x: number, y: number, z: number): P => [
-    Math.round(ox + (x - v.camX) * c + (y - camY) * FX * c),
-    Math.round(oy + (x - v.camX) * KX * c - (y - camY) * FY * c - z * Z * c),
+    Math.round(OX + (x - CX) * c + (y - CY) * FX * c),
+    Math.round(OY + (x - CX) * KX * c - (y - CY) * FY * c - z * Z * c),
   ];
   const cara = (pts: P[], relleno: string, borde = true) => {
     ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
@@ -85,6 +89,32 @@ export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto:
   const enFrente = (x: number, y: number, z: number, dibujo: () => void) => {
     const [px, py] = P(x, y, z);
     ctx.save(); ctx.transform(1, KX, 0, 1, px, py); dibujo(); ctx.restore();
+  };
+
+  // Las piezas quietas (autos, micros, carros del metro, árboles, bancas, basureros) se dibujan una vez en un canvas
+  // aparte y después solo se estampan: la proyección es la misma en todo el tablero, solo cambia el lugar.
+  // `caja3`: lo que ocupa la pieza (x0, x1, y0, y1, z0, z1) respecto de su ancla (x, y, 0).
+  const estampa = (clave: string, x: number, y: number, caja3: number[], dibujar: () => void) => {
+    if (cache.c !== c || cache.piezas.size > 80) { cache.piezas.clear(); cache.c = c; }
+    let pz = cache.piezas.get(clave);
+    if (!pz) {
+      const [x0, x1, y0, y1, z0, z1] = caja3, xs: number[] = [], ys: number[] = [];
+      for (const dx of [x0, x1]) for (const dy of [y0, y1]) for (const dz of [z0, z1]) {
+        xs.push(dx * c + dy * FX * c); ys.push(dx * KX * c - dy * FY * c - dz * Z * c);
+      }
+      const borde = lw * 2 + 2, mx = Math.floor(Math.min(...xs)) - borde, my = Math.floor(Math.min(...ys)) - borde;
+      const lienzo = document.createElement('canvas');
+      lienzo.width = Math.ceil(Math.max(...xs)) + borde - mx; lienzo.height = Math.ceil(Math.max(...ys)) + borde - my;
+      const antes = { ctx, OX, OY, CX, CY };
+      ctx = lienzo.getContext('2d')!; ctx.imageSmoothingEnabled = false;
+      OX = -mx; OY = -my; CX = x; CY = y;
+      dibujar();
+      ({ ctx, OX, OY, CX, CY } = antes);
+      pz = { lienzo, ax: -mx, ay: -my };
+      cache.piezas.set(clave, pz);
+    }
+    const [px, py] = P(x, y, 0);
+    ctx.drawImage(pz.lienzo, px - pz.ax, py - pz.ay);
   };
 
   ctx.imageSmoothingEnabled = false;
@@ -123,9 +153,12 @@ export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto:
     }
     // Objetos de la fila, de izquierda a derecha (lo que está más a la derecha queda más cerca).
     const cosas: { x: number; dibujar: () => void }[] = [];
-    for (const [x, o] of f.obstaculos) cosas.push({ x, dibujar: () => obstaculo(x, y, h, o) });
+    for (const [x, o] of f.obstaculos) {
+      const alto2 = o === 'arbol' && (x * 7 + y * 3) % 3 === 0;
+      cosas.push({ x, dibujar: () => estampa(`${o}|${alto2}|${h}`, x, y, [0, 1.1, 0, 1, 0, h + 1.7], () => obstaculo(x, y, h, o, alto2)) });
+    }
     for (const [x, color] of f.latas) cosas.push({ x, dibujar: () => lata(x, y, h, color) });
-    for (const veh of f.vehiculos) cosas.push({ x: veh.x, dibujar: () => vehiculo(veh, y, f.dir) });
+    for (const veh of f.vehiculos) cosas.push({ x: veh.x, dibujar: () => estampa(`${veh.tipo}|${veh.color}|${veh.largo}|${f.dir}`, veh.x, y, [0, veh.largo + 0.2, 0, 1, 0, 1.1], () => vehiculo(veh, y, f.dir)) });
     if (f.tren?.activo) cosas.push({ x: f.tren.x, dibujar: () => tren(f.tren!.x, y) });
     if (y === Math.round(jy)) cosas.push({ x: e.fin === 'atropellado' || e.fin === 'tren' ? -99 : jx, dibujar: personaje }); // aplastado: queda en el suelo y el tránsito le pasa por encima
     cosas.sort((a, b) => a.x - b.x).forEach(k => k.dibujar());
@@ -179,9 +212,8 @@ export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto:
     void f;
   }
 
-  function obstaculo(x: number, y: number, h: number, o: string) {
+  function obstaculo(x: number, y: number, h: number, o: string, alto2: boolean) {
     if (o === 'arbol') {
-      const alto2 = (x * 7 + y * 3) % 3 === 0;
       sombraSuelo(x + 0.15, x + 0.85, y + 0.15, y + 0.85, h);
       caja(x + 0.36, x + 0.64, y + 0.36, y + 0.64, h, h + 0.55, '#7A5A3A');
       caja(x + 0.12, x + 0.88, y + 0.16, y + 0.84, h + 0.55, h + 1.15, '#00A651');
@@ -252,22 +284,27 @@ export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto:
   function tren(xt: number, y: number) {
     const LARGO = 3.34;
     for (let k = 0; k < 3; k++) {
-      const x0 = xt + k * LARGO + 0.04, x1 = x0 + LARGO - 0.08, lider = k === 2;
-      sombraSuelo(x0, x1, y + 0.1, y + 0.9, 0);
-      caja(x0, x1, y + 0.1, y + 0.9, 0.08, 1.1, '#F4EEE3', '#DDD5C6', lider ? '#FFC20E' : '#BDB4A3');
-      if (img.metro) enFrente(x0, y + 0.1, 1.1, () => {
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(img.metro!, 0, 0, Math.round((x1 - x0) * c), Math.round(1.02 * Z * c));
-      });
-      // Techo con rejillas.
-      plano(x0 + 0.3, x1 - 0.3, y + 0.35, y + 0.65, 1.101, '#C9C9C4');
-      if (lider) { // trompa amarilla con parabrisas y focos, como el afiche del Metro
-        cara([P(x1, y + 0.2, 0.62), P(x1, y + 0.8, 0.62), P(x1, y + 0.8, 0.98), P(x1, y + 0.2, 0.98)], NEGRO, false);
-        for (const yy of [0.3, 0.62]) cara([P(x1, y + yy, 0.75), P(x1, y + yy + 0.08, 0.75), P(x1, y + yy + 0.08, 0.86), P(x1, y + yy, 0.86)], '#FFC20E', false);
-        for (const yy of [0.18, 0.72]) cara([P(x1, y + yy, 0.2), P(x1, y + yy + 0.1, 0.2), P(x1, y + yy + 0.1, 0.32), P(x1, y + yy, 0.32)], '#FFF6C9', false);
-      }
+      const x0 = xt + k * LARGO + 0.04, lider = k === 2;
+      estampa(`tren|${lider}|${!!img.metro}`, x0, y, [0, LARGO, 0, 1, 0, 1.2], () => carro(x0, y, LARGO - 0.08, lider));
     }
   }
+  function carro(x0: number, y: number, largo: number, lider: boolean) {
+    const x1 = x0 + largo;
+    sombraSuelo(x0, x1, y + 0.1, y + 0.9, 0);
+    caja(x0, x1, y + 0.1, y + 0.9, 0.08, 1.1, '#F4EEE3', '#DDD5C6', lider ? '#FFC20E' : '#BDB4A3');
+    if (img.metro) enFrente(x0, y + 0.1, 1.1, () => {
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img.metro!, 0, 0, Math.round((x1 - x0) * c), Math.round(1.02 * Z * c));
+    });
+    // Techo con rejillas.
+    plano(x0 + 0.3, x1 - 0.3, y + 0.35, y + 0.65, 1.101, '#C9C9C4');
+    if (lider) { // trompa amarilla con parabrisas y focos, como el afiche del Metro
+      cara([P(x1, y + 0.2, 0.62), P(x1, y + 0.8, 0.62), P(x1, y + 0.8, 0.98), P(x1, y + 0.2, 0.98)], NEGRO, false);
+      for (const yy of [0.3, 0.62]) cara([P(x1, y + yy, 0.75), P(x1, y + yy + 0.08, 0.75), P(x1, y + yy + 0.08, 0.86), P(x1, y + yy, 0.86)], '#FFC20E', false);
+      for (const yy of [0.18, 0.72]) cara([P(x1, y + yy, 0.2), P(x1, y + yy + 0.1, 0.2), P(x1, y + yy + 0.1, 0.32), P(x1, y + yy, 0.32)], '#FFF6C9', false);
+    }
+  }
+
 
   function personaje() {
     const fz = altura(fila(e, Math.round(jy)));
