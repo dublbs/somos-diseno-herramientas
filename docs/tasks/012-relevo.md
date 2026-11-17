@@ -202,14 +202,67 @@ Si alguno se queda sin créditos, el otro toma sus ramas leyendo su `AVANCE.md`.
 - **Afiches de la cacería** impresos con su sello y probados con un iPhone y un Android.
 - **Escuchar** los 5 estilos de música, **validar** el Inacapín y **probar en las tablets reales**.
 
-## 7. Avance (17 nov, 18:00 UTC)
-| Rama | Estado |
+## 7. Estado al 17 nov, 22:00 UTC (Claude de Amaro sin créditos hasta las 22:40 UTC)
+**Para el agente de Felipe: empieza aquí.** Lo terminado está unido en el **PR #27** (`amaro/ronda-2`). Lo que falta son
+**3 ramas a medias**; cada una tiene su `AVANCE.md` con lo hecho y lo que falta. Retómalas en este orden (prioridad para el
+19 nov) y **con 2–3 agentes a la vez como máximo**.
+
+### Terminado (en el PR #27, falta que Amaro o Pipe lo mergee)
+| Rama | Qué trae |
 |---|---|
-| `amaro/kit-v2` | **Terminada**: kit v2 + README + Mosaicos migrado, `dist/` de Mosaicos |
-| `amaro/flyer-timbre-4` | **Terminada**: flyer, timbre 4, bienvenida, migración 006 probada, hoja del staff, `dist/` de credencial |
-| `amaro/fotomaton-ronda-2` | **Terminada**: barra solo con disparador, placas, triángulos, 6 marcos nuevos, `dist/` (aún con el kit actual) |
-| `amaro/graffiti-ronda-2` | **Terminada**: marco v2, 4 tamaños, stencil y sticker con manijas, metro nuevo, `dist/` |
-| `amaro/audioreactiva-tactil` | En curso |
-| `amaro/hora-punta-iso` | En curso |
-| `amaro/grabado-afiche` | **Terminada**: afiche por capas (vista previa con manijas, capas con tinta propia, «Se mezcla / Tapa», papel blanco y hueso, 15 marcos, 16 tacos), `dist/` |
-| `amaro/teatro-ronda-2` | En curso: lo retomó el Claude de Amaro a las 18:10 UTC porque seguía sin empezar. **Felipe: no lo lances en paralelo**; si quieres tomarlo, avisa a Amaro |
+| `amaro/kit-v2` | Kit v2 neutro (`shared/ui/Herramienta.tsx`, `herramienta.css`, `Manijas.tsx`, **`shared/ui/README.md`** con la API) + Mosaicos migrado |
+| `amaro/graffiti-ronda-2` | Graffiti en el kit v2: 4 tamaños, stencil y sticker con manijas, metro nuevo |
+| `amaro/grabado-afiche` | Grabado «afiche por capas» en el kit v2 |
+| `amaro/fotomaton-ronda-2` | Fotomatón: barra solo con disparador, placas, triángulos, 6 marcos nuevos (aún con el kit actual) |
+| `amaro/flyer-timbre-4` | «Tu flyer» (timbre 4), bienvenida, migración 006, hoja del staff |
+
+### A medias (para retomar)
+| Rama | Lo hecho | Lo que falta | Archivo de avance |
+|---|---|---|---|
+| **`amaro/hora-punta-iso`** (A6) | Plan actualizado; cruce isométrico; fuera La pared; mural 4×3 + trofeo; **jefe Inacapín Pixel** con 22 pruebas de motor; controles a ambos lados. ~1170 líneas | Pulir el cruce; **verificación Playwright en 6 tablets**; `dist/` de producción | `juego-pixel/AVANCE.md` |
+| **`amaro/audioreactiva-tactil`** (A2, base `kit-v2`) | Sin micrófono; **5 estilos de música generados** (`src/audio/estilos.ts`, `motor.ts`); Túnel y Escalera nuevos; pantalla táctil en el kit v2; foto y loop con audio. ~1070 líneas | **Medir** niveles por estilo y movimiento escena × estilo y ajustar; pantalla en 6 tablets; tabla en `docs/plans/009-refinamiento/audioreactiva.md`; `dist/` | `audioreactiva/AVANCE.md` |
+| **`amaro/teatro-ronda-2`** (A8) | Lectura de los planes 012 y 008; **motor de carga empezado** (`loops/src/escenario/carga.ts`, `recursos.ts`, cambios en `piezas.ts`, `dibujar.ts`, `EscenarioOrganico.tsx`) en un commit «wip» **sin probar** | Todo el feedback de Teatro (plan 012 §4) en el orden de su `AVANCE.md`: caché y carga diferida, pantalla de carga, tamaños por escenario, panel con scroll, sin duplicar, color del pez, arte (huemul, guanaco, 3 estados, aleteo, flor), verificación y `dist/` | `loops/AVANCE.md` |
+
+**Ojo con `amaro/hora-punta-iso`:** tiene un commit «wip» que deshace el trabajo (`367cbcd`) seguido de otro que lo
+restaura entero (`9642f80`). El contenido final es el correcto; no reviertas ninguno de los dos.
+
+### Encargo para retomar cada rama (copiar tal cual, uno por agente)
+> Trabajas en el repo `dublbs/somos-diseno-herramientas`. `git fetch origin && git checkout -B <RAMA> origin/<RAMA>`. Lee
+> `AGENTS.md`, `docs/tasks/012-relevo.md` y `docs/tasks/012-ronda-2.md` (la «Guía común para agentes» y la tarea
+> <TAREA>; si no están en tu rama: `git show origin/amaro/ronda-2:<ruta>`), el plan
+> `docs/plans/012-ui-de-herramienta-y-ronda-2.md` y el `AVANCE.md` de tu zona. Continúa desde lo que dice «Falta», sin
+> rehacer lo hecho. Empuja seguido (`git push origin <RAMA>`, cada trozo que compile) y actualiza `AVANCE.md`; bórralo en
+> el último commit. Termina con `tsc` y build en verde, la medición de pantalla en las 6 resoluciones de tablet con cada
+> herramienta activa, y el `dist/` de producción de tu app (con el `.env.local` de la app: pídeselo a Amaro o Pipe si no
+> lo tienes; nunca se sube). Mira tus capturas antes de dar algo por bueno. No abras PR ni mergees: deja un informe con
+> qué probaste, qué no y qué decisión queda abierta.
+
+| RAMA | TAREA | Zona |
+|---|---|---|
+| `amaro/hora-punta-iso` | A6 | `juego-pixel/` |
+| `amaro/audioreactiva-tactil` | A2 | `audioreactiva/` |
+| `amaro/teatro-ronda-2` | A8 | `loops/` |
+
+**El `.env.local`** de cada app (configuración pública de Supabase) no está en el repo. Sin él, el `dist/` sale en modo
+demo: sirve para probar, pero **no** para publicar.
+
+### Cuando las 3 terminen
+Un PR «Ronda 2 (parte 2)» desde una rama que una las 3 sobre `main` (después de mergear el #27), con los `dist/`
+recompilados y la prueba de humo de todas las apps. **Fotomatón** queda pendiente de pasar al kit v2: es cambiar el
+contenedor en `fotomaton/src/components/Camara.tsx` y `Editor.tsx`, porque `Panel` y `Disparador` ya están separados.
+
+## 8. Orden en GitHub (17 nov)
+- **PR abiertos que quedan:** #27 (ronda 2, parte 1; mergear), #12 y #10 (de Pipe), #5 (ImgBot: optimiza imágenes,
+  toca 297 archivos; revisar antes de mergear, puede pisar los `dist/`).
+- **Cerrados por estar ya en `main`:** #15 y #16. **#24** quedó incluido en el #27.
+- **Ramas ya contenidas enteras en `main`, para borrar** (desde esta sesión GitHub no deja borrar ramas; se borran en
+  GitHub → Branches): `amaro/auditoria-experiencias`, `amaro/caceria-afiches`, `amaro/fotomaton-como-el-resto`,
+  `amaro/graffiti-v2`, `amaro/hub-hora-punta`, `amaro/integracion`, `amaro/inventario-graffiti`, `amaro/juego-pixel`,
+  `amaro/llevatela-qr`, `amaro/plan-009-timbres-juego-pixel`, `amaro/timbres-finales`, `claude/cuentas-staff`,
+  `claude/fix-quien-soy`. Después de mergear el #27, también `amaro/kit-v2`, `amaro/graffiti-ronda-2`,
+  `amaro/grabado-afiche`, `amaro/fotomaton-ronda-2`, `amaro/flyer-timbre-4`, `amaro/plan-012-ui-herramientas` y
+  `amaro/ronda-2`.
+- **Ramas viejas con algo fuera de `main`** (revisar antes de borrar): `claude/backend-y-pc-madre` (un commit de
+  cuentas del staff, probablemente ya entró por el #8), `trabajo_activo_amaro` (del 4 nov, cámara de la credencial y vagón
+  al HUB; probablemente superado), `imgbot` (la del PR #5).
+- **De Pipe, no tocar:** `pipe/agentes-en-paralelo`, `pipe/plan-teatro`.
