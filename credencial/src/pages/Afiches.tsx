@@ -1,11 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { encontrarAfiche, miCredencial, progresoJuego } from '../lib/store';
+import { encontrarAfiche, miCredencial, progresoJuego, reconocerAfiche, type ResultadoAfiche } from '../lib/store';
 import { interpretar, useLectorQR } from '../lib/lector';
 import { nombreAfiche } from '../lib/afiches';
+import { useReconocerAfiche } from '../lib/reconocer-afiche';
 import type { Ir } from '../App';
 
 // Cámara de la cacería (plan 010): queda abierta mientras la persona busca. Cada afiche nuevo suma sin salir;
 // al completar la meta, la credencial muestra la ceremonia del timbre 3.
+// Reconoce el afiche de dos formas sobre la misma cámara: por su diseño (plan 013, lib/reconocer-afiche.ts)
+// o por el QR del sello (plan 010). Si nada funciona, queda escribir el código.
 export const Afiches: React.FC<{ ir: Ir }> = ({ ir }) => {
   const mia = miCredencial();
   const [cuenta, setCuenta] = useState<{ n: number; meta: number } | null>(null);
@@ -16,11 +19,12 @@ export const Afiches: React.FC<{ ir: Ir }> = ({ ir }) => {
   useEffect(() => { if (!mia) ir('#/crear'); else progresoJuego(mia).then(p => setCuenta({ n: p.afiches.length, meta: p.meta })).catch(() => { /* se ve al leer */ }); }, [mia, ir]);
   useEffect(() => { if (!aviso) return; const t = setTimeout(() => setAviso(null), 3500); return () => clearTimeout(t); }, [aviso]);
 
-  const probar = useCallback(async (secreto: string) => {
+  // buscar: cómo se timbra (con el secreto del QR o con el id que reconoció la cámara).
+  const probar = useCallback(async (buscar: (codigo: string) => Promise<ResultadoAfiche>) => {
     if (!mia || ocupado.current) return;
     ocupado.current = true;
     try {
-      const r = await encontrarAfiche(mia, secreto);
+      const r = await buscar(mia);
       if (r.nuevo) { ir(`#/c/${mia}`, { timbre: r.sello }); return; }
       setCuenta({ n: r.pasos, meta: r.meta });
       setCodigo('');
@@ -37,19 +41,21 @@ export const Afiches: React.FC<{ ir: Ir }> = ({ ir }) => {
 
   const { video, estado } = useLectorQR(texto => {
     const l = interpretar(texto);
-    if (l.tipo === 'afiche') probar(l.secreto);
+    if (l.tipo === 'afiche') probar(c => encontrarAfiche(c, l.secreto));
     else if (l.tipo === 'sello') ir(l.ruta);
     else setAviso({ texto: 'Ese código no es de un afiche de la cacería.', tipo: 'info' });
   });
+
+  useReconocerAfiche(video, estado === 'buscando', id => probar(c => reconocerAfiche(c, id)));
 
   const escrito = (e: React.FormEvent) => {
     e.preventDefault();
     const limpio = codigo.trim().toUpperCase();
     if (limpio.length < 4) { setAviso({ texto: 'Escribe el código que está bajo el sello del afiche.', tipo: 'error' }); return; }
-    probar(limpio);
+    probar(c => encontrarAfiche(c, limpio));
   };
 
-  const mensaje = estado === 'buscando' ? 'Ponte de frente al sello del afiche' :
+  const mensaje = estado === 'buscando' ? 'Encuadra el afiche completo, de frente' :
     estado === 'iniciando' ? 'Abriendo la cámara…' :
     estado === 'sin-camara' ? 'No pudimos abrir la cámara. Revisa el permiso del navegador o escribe el código.' :
     'No pudimos cargar el lector. Escribe el código que está bajo el sello.';
@@ -60,7 +66,7 @@ export const Afiches: React.FC<{ ir: Ir }> = ({ ir }) => {
         {(estado === 'iniciando' || estado === 'buscando') ? (
           <>
             <video ref={video} playsInline muted autoPlay />
-            <span className="mira" aria-hidden="true" />
+            <span className="mira afiche" aria-hidden="true" />
           </>
         ) : (
           <span className="material-symbols-outlined visor-icono" aria-hidden="true">wallpaper</span>
