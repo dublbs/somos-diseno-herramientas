@@ -32,7 +32,7 @@ export const App: React.FC = () => {
   const luces = useRef<Partial<Record<Pista, HTMLElement | null>>>({});
   const ultimo = useRef<Rasgos>(SILENCIO);
   const dedos = useRef(new Map<number, { x: number; y: number }>());
-  const manoX = useRef<number | null>(null);
+  const manoPos = useRef<{ x: number; y: number } | null>(null);
 
   const [visto, marcarVisto] = useTutorialVisto('audioreactiva');
   const [sonando, setSonando] = useState(false);
@@ -77,7 +77,20 @@ export const App: React.FC = () => {
   // Para medir con Playwright: ?medir=1 deja los rasgos y el nivel a mano.
   useEffect(() => {
     if (!new URLSearchParams(location.search).has('medir')) return;
-    (window as unknown as Record<string, unknown>).__ar = { rasgos: () => ultimo.current, medida: () => motor.current.medida, motor: motor.current };
+    // probar(escena, accion): dibuja la escena fuera de pantalla, en silencio y con dt fijo, con y sin la acción
+    // (Bum, Chas o el dedo en el cuadro 10) y devuelve los cuadros de ambas corridas, para comparar solo el efecto.
+    const probar = (id: string, accion: 'nada' | 'bum' | 'chas' | 'dedo', cuadros = 30, S = 256, quieto = false) => {
+      const esc = ESCENAS.find(e => e.id === id)!, c = document.createElement('canvas'); c.width = c.height = S;
+      const ctx = c.getContext('2d')!, comp = new Compositor(), est = esc.crear(), salida: string[] = [];
+      for (let k = 0; k < cuadros; k++) {
+        const golpe = k === 10 && (accion === 'bum' || accion === 'chas');
+        const r = { ...SILENCIO, quieto, manoTipo: golpe ? accion as 'bum' | 'chas' : null, nuevo: { ...SILENCIO.nuevo, mano: golpe } };
+        comp.dibujar(ctx, S, 1 / 30, r, esc, est, accion === 'dedo' && k >= 10 ? { x: 0.8, y: 0.25 } : null);
+        salida.push(c.toDataURL());
+      }
+      return salida;
+    };
+    (window as unknown as Record<string, unknown>).__ar = { rasgos: () => ultimo.current, medida: () => motor.current.medida, motor: motor.current, probar };
   }, []);
 
   // Bucle de dibujo (30 cuadros por segundo).
@@ -101,7 +114,7 @@ export const App: React.FC = () => {
       r.quieto = QUIETO;
       if (QUIETO) { r.bombo *= 0.4; r.caja *= 0.4; r.hat *= 0.5; r.mano *= 0.5; }
       ultimo.current = r;
-      comp.dibujar(ctx, c.width, QUIETO ? dt * 0.6 : dt, r, vivo.current.escena, vivo.current.estado, manoX.current);
+      comp.dibujar(ctx, c.width, QUIETO ? dt * 0.6 : dt, r, vivo.current.escena, vivo.current.estado, manoPos.current);
       for (const p of PISTAS) luces.current[p]?.style.setProperty('--v', String(Math.min(1, nivelPista(r, p)).toFixed(2)));
     };
     raf = requestAnimationFrame(cuadro);
@@ -111,9 +124,9 @@ export const App: React.FC = () => {
   // ---------------------------------------------------------------- dedos sobre la escena
   const actualizarMano = () => {
     const d = [...dedos.current.values()];
-    if (!d.length) { manoX.current = null; motor.current.mano(null); setTocando(false); return; }
+    if (!d.length) { manoPos.current = null; motor.current.mano(null); setTocando(false); return; }
     const x = d.reduce((s, p) => s + p.x, 0) / d.length, y = d.reduce((s, p) => s + p.y, 0) / d.length;
-    manoX.current = x; motor.current.mano(x, 1 - y); setTocando(true);
+    manoPos.current = { x, y }; motor.current.mano(x, 1 - y); setTocando(true);
     dedo.current?.style.setProperty('--x', (x * 100).toFixed(1) + '%');
     dedo.current?.style.setProperty('--y', (y * 100).toFixed(1) + '%');
   };
@@ -208,7 +221,11 @@ export const App: React.FC = () => {
         </SeccionPanel>
         <SeccionPanel titulo={`Escena · ${escena.nombre}`}>
           <p className="ar-linea">{escena.linea}</p>
-          <p className="ar-linea ar-suave"><Icono nombre="touch_app" /> Con el dedo: a la izquierda se apaga el brillo y se tiñe de azul; arriba suma eco y acerca la imagen.</p>
+          <ul className="ar-manos">
+            <li><Icono nombre="circle" /><b>Bum</b> {escena.manos.bum}</li>
+            <li><Icono nombre="auto_awesome" /><b>Chas</b> {escena.manos.chas}</li>
+            <li><Icono nombre="touch_app" /><b>Dedo</b> {escena.manos.dedo}. Suena: a la izquierda se apaga, a la derecha brilla, arriba suma eco.</li>
+          </ul>
         </SeccionPanel>
       </>}
     >
@@ -220,8 +237,8 @@ export const App: React.FC = () => {
           <span className="ar-eje ar-eje-y" aria-hidden="true">↑ eco</span>
         </div>
         {sonando && (<>
-          <button type="button" className="ar-pad ar-pad-izq" aria-label="Bum: golpe grave" {...pad('bum')}><Icono nombre="circle" />Bum</button>
-          <button type="button" className="ar-pad ar-pad-der" aria-label="Chas: platillo y acorde" {...pad('chas')}><Icono nombre="auto_awesome" />Chas</button>
+          <button type="button" className="ar-pad ar-pad-izq" aria-label={`Bum: golpe grave. ${escena.manos.bum}`} {...pad('bum')}><Icono nombre="circle" />Bum</button>
+          <button type="button" className="ar-pad ar-pad-der" aria-label={`Chas: platillo y acorde. ${escena.manos.chas}`} {...pad('chas')}><Icono nombre="auto_awesome" />Chas</button>
         </>)}
         {!sonando && (
           <div className="ar-empezar"><Boton icono="play_arrow" texto="Toca para que suene" variante="primario" onClick={empezar} /></div>

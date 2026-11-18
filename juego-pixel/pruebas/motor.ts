@@ -2,7 +2,7 @@
 // Los bots no son personas: sirven para ver que no hay errores y para comparar ajustes (plan 009-juego-pixel).
 import { ANCHO, META, QUIETO_FIN, avanzarCruce, fila, mover, nuevoCruce, type Cruce } from '../src/juego/cruce';
 import { ALTO_A, ANCHO_A, ANCHO_F, avanzarAnden, bajar, cuerpo, lanzarA, nuevoAnden, saltar, VIDAS, type Anden, type GrisA } from '../src/juego/anden';
-import { avanzarJefe, bajarJ, COLORES_JEFE, fase, GOLPES_JEFE, lanzarJ, nuevoJefe, proximoColor, saltarJ, xJefe, ANCHO_JEFE, type Jefe } from '../src/juego/jefe';
+import { avanzarJefe, ANCHO_JEFE, VIDAS_JEFE, GOLPES_FASE, GOLPES_JEFE, fase, lanzarJ, nuevoJefe, proximoColor, saltarJ, bajarJ, type Jefe } from '../src/juego/jefe';
 import { HUESO, PINTURAS, TIROS_POR_LATA } from '../src/juego/comun';
 
 let ok = 0, mal = 0;
@@ -161,8 +161,11 @@ caso('100 andenes al azar sin errores (bot que lanza y camina)', () => {
   return true;
 });
 
-// ——— Jefe · El Inacapín Pixel ———
-console.log('Jefe · El Inacapín Pixel');
+// ——— Jefe · El Inacapín (ronda 3) ———
+console.log('Jefe · El Inacapín');
+// Un Inacapín quieto (no decide nada por un rato) en el piso, en x.
+const quieto = (j: Jefe, x: number, y = ALTO_A - 1) => { Object.assign(j.jefe, { x, y, vx: 0, vy: 0, estado: 'camina', t: 1e9 }); j.caen = 1e9; };
+const bolaQueRueda = (x: number, mira: 1 | -1, y = ALTO_A - 1): GrisA => { const g = gris(x, y); g.bola = 6000; g.golpes = 2; g.color = '#FF8FB1'; g.rueda = { rebotes: 0, combo: 0 }; g.mira = mira; return g; };
 caso('tus colores, sin repetir y solo de la paleta', () => { const j = nuevoJefe(['#FF8FB1', '#FF8FB1', '#00A651', '#123456']); return j.colores.join() === '#FF8FB1,#00A651'; });
 caso('sin colores usa 3 de la paleta', () => nuevoJefe([]).colores.length === 3);
 caso('la pintura no se acaba: sale de tus colores en orden', () => {
@@ -170,117 +173,187 @@ caso('la pintura no se acaba: sale de tus colores en orden', () => {
   for (let i = 0; i < 6; i++) { vistos.push(proximoColor(j)); lanzarJ(j); j.tiros = []; }
   return vistos.join() === '#FF8FB1,#00A651,#FF8FB1,#00A651,#FF8FB1,#00A651';
 });
-caso('el primer ataque es un Gris que sale de su boca', () => {
-  const j = nuevoJefe(['#FF8FB1'], 1); correr(dt => avanzarJefe(j, dt), 2400); return j.grises.length === 1;
+caso('lo primero que hace es escupir un Gris (avisa antes, abriendo el libro)', () => {
+  const j = nuevoJefe(['#FF8FB1'], 1); let aviso = false;
+  for (let t = 0; t < 2600 && !j.grises.length; t += 16) { avanzarJefe(j, 16); if (j.jefe.estado === 'escupe') aviso = true; }
+  return aviso && j.grises.length === 1;
+});
+caso('se mueve todo el tiempo: camina, salta y pisa vigas en 40 s', () => {
+  const j = nuevoJefe(['#FF8FB1'], 2); j.jugador.y = -50; // fuera del alcance: nadie le pega
+  const xs = new Set<number>(); let salto = 0, enViga = false, quietoMax = 0, quietoT = 0, px = j.jefe.x, py = j.jefe.y;
+  for (let t = 0; t < 40000; t += 16) {
+    avanzarJefe(j, 16); j.vidas = VIDAS_JEFE; j.invulnerable = 1e9;
+    if (j.jefe.estado === 'salta' && j.jefe.vy < 0 && j.jefe.y === py) salto++;
+    if (j.jefe.y < ALTO_A - 1 - 0.01 && j.jefe.estado === 'camina') enViga = true;
+    xs.add(Math.round(j.jefe.x));
+    quietoT = j.jefe.x === px && j.jefe.y === py ? quietoT + 16 : 0; quietoMax = Math.max(quietoMax, quietoT);
+    px = j.jefe.x; py = j.jefe.y;
+  }
+  return (salto >= 6 && enViga && xs.size >= 10 && quietoMax <= 1300) || `saltos ${salto}, viga ${enViga}, columnas ${xs.size}, quieto ${quietoMax} ms`;
 });
 caso('2 golpes encierran al Gris (+2)', () => {
-  const j = nuevoJefe(['#FF8FB1'], 2); j.espera = 1e9; j.jugador = { ...cuerpo(4, ALTO_A - 1, 1), suelo: true };
+  const j = nuevoJefe(['#FF8FB1'], 3); quieto(j, 12.5); j.jugador = { ...cuerpo(4, ALTO_A - 1, 1), suelo: true };
   const g = gris(6.5); j.grises = [g]; avanzarJefe(j, 16);
   lanzarJ(j); correr(dt => avanzarJefe(j, dt), 300); lanzarJ(j); correr(dt => avanzarJefe(j, dt), 300);
-  return g.bola > 0 && j.puntos === 2;
+  return g.bola > 0 && j.puntos === 2 && j.eventos.some(v => v.tipo === 'bola');
 });
 caso('pintura directa no le hace nada (y avisa «¡Con una bola!»)', () => {
-  const j = nuevoJefe(['#FF8FB1'], 3); j.espera = 1e9; j.jugador = { ...cuerpo(11, ALTO_A - 1, 1), suelo: true };
+  const j = nuevoJefe(['#FF8FB1'], 4); quieto(j, 12); j.jugador = { ...cuerpo(9.5, ALTO_A - 1, 1), suelo: true };
   lanzarJ(j); correr(dt => avanzarJefe(j, dt), 500);
   return j.golpes === 0 && j.avisos.some(a => a.texto === '¡Con una bola!');
 });
-caso('una bola que rueda contra él es un golpe (+10) y devuelve un color', () => {
-  const j = nuevoJefe(['#FF8FB1'], 4); j.espera = 1e9; j.jugador = { ...cuerpo(7, ALTO_A - 1, 1), suelo: true };
-  const g = gris(8.5); g.bola = 6000; g.golpes = 2; j.grises = [g];
-  j.teclas.der = true; correr(dt => avanzarJefe(j, dt), 150); j.teclas.der = false;
-  j.jugador.x = 2; correr(dt => avanzarJefe(j, dt), 1500);
-  return j.golpes === 1 && j.puntos === 10;
+caso('una bola que rueda contra él es un golpe (+10): le duele y salta lejos', () => {
+  const j = nuevoJefe(['#FF8FB1'], 5); quieto(j, 12); j.jugador = { ...cuerpo(2, ALTO_A - 1, 1), suelo: true };
+  j.grises = [bolaQueRueda(8, 1)]; correr(dt => avanzarJefe(j, dt), 600);
+  return (j.golpes === 1 && j.puntos === 10 && j.herido > 0 && j.jefe.estado === 'salta') || `golpes ${j.golpes} estado ${j.jefe.estado}`;
 });
-caso('cada 2 golpes cambia de esquina y de fase', () => {
-  const j = nuevoJefe(['#FF8FB1'], 5); j.espera = 1e9; j.jugador = { ...cuerpo(7, ALTO_A - 1, 1), suelo: true };
-  const lado0 = j.lado;
-  for (let k = 0; k < 2; k++) {
-    const hacia = j.lado > 0 ? 1 : -1;
-    j.jugador.x = hacia > 0 ? 7 : 8; const g = gris(hacia > 0 ? 8.3 : 6.7); g.bola = 6000; g.golpes = 2; j.grises = [g];
-    if (hacia > 0) j.teclas.der = true; else j.teclas.izq = true;
-    correr(dt => avanzarJefe(j, dt), 150); j.teclas.der = j.teclas.izq = false; j.jugador.x = hacia > 0 ? 1 : 14;
-    correr(dt => avanzarJefe(j, dt), 1500);
+caso('le pega aunque esté en el aire (bola contra el libro que cae)', () => {
+  const j = nuevoJefe(['#FF8FB1'], 6); quieto(j, 10, ALTO_A - 1 - 0.5); j.jefe.estado = 'salta'; j.jefe.vy = 0.1; j.jugador.x = 1;
+  j.grises = [bolaQueRueda(8, 1)]; correr(dt => avanzarJefe(j, dt), 300);
+  return j.golpes === 1;
+});
+caso('recién golpeado (0,9 s) otra bola lo atraviesa', () => {
+  const j = nuevoJefe(['#FF8FB1'], 7); quieto(j, 12); j.herido = 900; j.jugador.x = 1;
+  j.grises = [bolaQueRueda(10.5, 1)]; correr(dt => avanzarJefe(j, dt), 150);
+  return j.golpes === 0;
+});
+caso(`cada ${GOLPES_FASE} golpes sube de fase y ruge`, () => {
+  const j = nuevoJefe(['#FF8FB1'], 8); quieto(j, 12); j.golpes = GOLPES_FASE - 1; j.jugador.x = 1;
+  j.grises = [bolaQueRueda(9, 1)]; correr(dt => avanzarJefe(j, dt), 400);
+  return fase(j) === 2 && j.jefe.estado === 'ruge' && j.avisos.some(a => a.texto === '¡Fase 2!');
+});
+caso('fase 3: al caer al piso levanta 2 ondas; quedarse quita una vida y saltarlas no', () => {
+  const prueba = (salta: boolean) => {
+    const j = nuevoJefe(['#FF8FB1'], 9); j.golpes = 2 * GOLPES_FASE; quieto(j, 13, 6); j.jefe.estado = 'salta'; j.jefe.vy = 5; j.caen = 1e9;
+    j.jugador = { ...cuerpo(4, ALTO_A - 1, 1), suelo: true };
+    for (let t = 0; t < 2600; t += 16) {
+      avanzarJefe(j, 16);
+      const o = j.ondas.find(w => w.dir < 0);
+      if (salta && o && o.x - (j.jugador.x + ANCHO_F / 2) < 1.6) saltarJ(j);
+      if (t < 200) j.jefe.t = 1e9;
+    }
+    return j;
+  };
+  const a = prueba(false), b = prueba(true);
+  return (a.vidas === VIDAS_JEFE - 1 && b.vidas === VIDAS_JEFE) || `quieto ${a.vidas}, saltando ${b.vidas}`;
+});
+caso('fases 1 y 2: caer al piso no levanta ondas', () => {
+  const j = nuevoJefe(['#FF8FB1'], 10); j.golpes = GOLPES_FASE; quieto(j, 13, 6); j.jefe.estado = 'salta'; j.jefe.vy = 5; j.jugador.x = 1;
+  correr(dt => avanzarJefe(j, dt), 600); return j.ondas.length === 0 && j.jefe.y === ALTO_A - 1;
+});
+caso('la embestida avisa ≥ 0,8 s, quita una vida en el piso y no en la viga; después queda mareado', () => {
+  const prueba = (enViga: boolean) => {
+    const j = nuevoJefe(['#FF8FB1'], 11); j.golpes = GOLPES_FASE; quieto(j, 12.5);
+    j.jefe.estado = 'carga'; j.jefe.t = 1000; j.jefe.mira = -1;
+    j.jugador = enViga ? { ...cuerpo(7, 8, 1), suelo: true } : { ...cuerpo(3, ALTO_A - 1, 1), suelo: true };
+    let movio = 0, mareado = false;
+    for (let t = 0; t < 3000; t += 16) { const x = j.jefe.x; avanzarJefe(j, 16); if (!movio && j.jefe.x !== x) movio = t; if (j.jefe.estado === 'mareado') mareado = true; }
+    return { j, movio, mareado };
+  };
+  const a = prueba(false), b = prueba(true);
+  return (a.movio >= 800 && a.j.vidas === VIDAS_JEFE - 1 && b.j.vidas === VIDAS_JEFE && b.mareado) || `movió ${a.movio} vidas ${a.j.vidas}/${b.j.vidas} mareado ${b.mareado}`;
+});
+caso('la embestida se puede saltar (con 1 a 2 celdas de distancia)', () => {
+  const res: string[] = [];
+  for (const dist of [0.8, 1.2, 1.6, 2.0]) {
+    const j = nuevoJefe(['#FF8FB1'], 17); j.golpes = GOLPES_FASE; quieto(j, 12.5); j.jefe.estado = 'embiste'; j.jefe.t = 4000; j.jefe.mira = -1;
+    j.jugador = { ...cuerpo(2, ALTO_A - 1, 1), suelo: true }; let salto = false;
+    for (let t = 0; t < 2500; t += 16) { const gap = j.jefe.x - (j.jugador.x + ANCHO_F); if (!salto && gap < dist) { saltarJ(j); salto = true; } avanzarJefe(j, 16); }
+    res.push(`${dist}:${j.vidas}`);
   }
-  correr(dt => avanzarJefe(j, dt), 1400);
-  return j.golpes === 2 && fase(j) === 2 && j.lado === -lado0 && xJefe(j) === 0;
+  return res.every(r => r.endsWith(':' + VIDAS_JEFE)) || res.join(' ');
 });
-caso('la mancha que rueda quita una vida; saltarla no', () => {
-  const a = nuevoJefe(['#FF8FB1'], 6); a.espera = 1e9; a.jugador = { ...cuerpo(6, ALTO_A - 1, 1), suelo: true };
-  a.manchas.push({ x: 9, dir: -1, vel: 6, fuera: false }); correr(dt => avanzarJefe(a, dt), 800);
-  const b = nuevoJefe(['#FF8FB1'], 6); b.espera = 1e9; b.jugador = { ...cuerpo(6, ALTO_A - 1, 1), suelo: true };
-  b.manchas.push({ x: 9, dir: -1, vel: 6, fuera: false }); correr(dt => avanzarJefe(b, dt), 200); saltarJ(b); correr(dt => avanzarJefe(b, dt), 600);
-  return a.vidas === VIDAS - 1 && b.vidas === VIDAS;
+caso('si te cae encima te aplasta (una vida)', () => {
+  const j = nuevoJefe(['#FF8FB1'], 12); quieto(j, 2, 7.5); j.jefe.estado = 'salta'; j.jefe.vy = 6;
+  j.jugador = { ...cuerpo(3, ALTO_A - 1, 1), suelo: true }; correr(dt => avanzarJefe(j, dt), 600);
+  return j.vidas === VIDAS_JEFE - 1;
 });
-caso('las gotas caen en columnas marcadas (fase 2 = 2 columnas, fuera del Inacapín)', () => {
-  const j = nuevoJefe(['#FF8FB1'], 7); j.golpes = 2;
-  for (let i = 0; i < 40; i++) {
-    j.grises = [gris(1, 2), gris(2, 2)]; j.ataque = null; j.espera = 0; avanzarJefe(j, 16);
-    if (j.ataque?.tipo === 'gotas') return j.ataque.columnas.length === 2 && j.ataque.columnas.every(c => c < xJefe(j) || c >= xJefe(j) + ANCHO_JEFE) || 'columnas ' + j.ataque.columnas;
+caso('caminando, tocarlo te empuja y no quita vidas', () => {
+  const j = nuevoJefe(['#FF8FB1'], 13); quieto(j, 10); j.jugador = { ...cuerpo(9, ALTO_A - 1, 1), suelo: true };
+  j.teclas.der = true; correr(dt => avanzarJefe(j, dt), 300); return j.vidas === VIDAS_JEFE && j.jugador.x < 10;
+});
+caso('del techo caen gotas (fase 2) y Grises (fase 3), siempre marcados antes', () => {
+  const j = nuevoJefe(['#FF8FB1'], 14); j.golpes = 2 * GOLPES_FASE; j.jugador.y = -50; let marcas = 0, sinMarca = 0;
+  const vistas = new Set<number>();
+  for (let t = 0; t < 30000; t += 16) {
+    const antes = j.gotas.length + j.grises.length;
+    const marcadas = new Set(j.marcas.map(m => m.x));
+    avanzarJefe(j, 16); j.vidas = VIDAS_JEFE; j.invulnerable = 1e9;
+    for (const m of j.marcas) vistas.add(m.x);
+    if (j.marcas.length) marcas++;
+    for (const g of j.gotas) if (g.y < 0 && !marcadas.has(g.x - 0.5) && j.gotas.length + j.grises.length > antes && !vistas.has(g.x - 0.5)) sinMarca++;
   }
-  return 'no salieron gotas';
+  return (marcas > 0 && sinMarca === 0) || `marcas ${marcas} sin marca ${sinMarca}`;
 });
-caso('tocar al Inacapín te empuja y no quita vidas', () => {
-  const j = nuevoJefe(['#FF8FB1'], 8); j.espera = 1e9; j.jugador = { ...cuerpo(xJefe(j) - 0.9, ALTO_A - 1, 1), suelo: true };
-  const x0 = j.jugador.x; j.teclas.der = true; correr(dt => avanzarJefe(j, dt), 300); return j.vidas === VIDAS && j.jugador.x < x0;
-});
-caso('3 vidas y pierdes; lo juntado se queda', () => {
-  const j = nuevoJefe(['#FF8FB1'], 9); j.espera = 1e9;
-  for (let i = 0; i < 3; i++) { j.invulnerable = 0; j.manchas.push({ x: j.jugador.x + 0.4, dir: 1, vel: 0.01, fuera: false }); j.jugador.y = ALTO_A - 1; avanzarJefe(j, 16); j.manchas = []; }
+caso(`${VIDAS_JEFE} vidas y pierdes; lo juntado se queda`, () => {
+  const j = nuevoJefe(['#FF8FB1'], 15); quieto(j, 12);
+  for (let i = 0; i < VIDAS_JEFE; i++) { j.invulnerable = 0; j.ondas = [{ x: j.jugador.x + 0.4, dir: 1, fuera: false }]; j.jugador.y = ALTO_A - 1; avanzarJefe(j, 1); j.ondas = []; }
   return j.fin === 'derrota' && j.vidas === 0;
 });
 caso(`${GOLPES_JEFE} golpes: celebra, +30 y gana`, () => {
-  const j = nuevoJefe(['#FF8FB1'], 10); j.golpes = GOLPES_JEFE - 1; j.espera = 1e9; j.jugador = { ...cuerpo(7, ALTO_A - 1, 1), suelo: true };
-  const g = gris(xJefe(j) - 1.5); g.bola = 6000; g.golpes = 2; g.rueda = { rebotes: 0, combo: 0 }; g.mira = 1; j.grises = [g];
+  const j = nuevoJefe(['#FF8FB1'], 16); quieto(j, 12); j.golpes = GOLPES_JEFE - 1; j.jugador.x = 1;
+  j.grises = [bolaQueRueda(9, 1)];
   correr(dt => avanzarJefe(j, dt), 400); const celebra = j.celebra > 0 && !j.fin;
   correr(dt => avanzarJefe(j, dt), 3000);
-  return celebra && j.fin === 'victoria' && j.puntos === 40 && COLORES_JEFE.length === GOLPES_JEFE;
+  return celebra && j.fin === 'victoria' && j.puntos === 40;
 });
 
 const causas: Record<string, number> = {};
-// Bot que juega al jefe como una persona atenta: atrapa Grises, empuja la bola contra él y esquiva.
+// Bot que juega al jefe como una persona: esquiva lo que se avisa, atrapa Grises y empuja la bola contra el Inacapín.
+// `reaccion`: ms entre decisiones; `fallo`: probabilidad de distraerse (no cambia nada ese rato).
 function botJefe(semilla: number, reaccion = 120, fallo = 0, colores = ['#FF8FB1', '#FFC20E', '#7FC8F8']) {
   const j: Jefe = nuevoJefe(colores, semilla); let t = 0, pensar = 0, r = semilla * 2654435761 >>> 0;
   const dado = () => ((r = (Math.imul(r, 1664525) + 1013904223) >>> 0) / 4294967296);
-  while (!j.fin && t < 240000) {
+  const PISO = ALTO_A - 1;
+  while (!j.fin && t < 300000) {
     pensar -= 16;
     if (pensar <= 0) {
       pensar = reaccion * (0.6 + dado() * 0.8);
-      if (dado() < fallo) { avanzarJefe(j, 16); t += 16; continue; } // se distrae: no cambia nada este rato
-      const yo = j.jugador, xj = xJefe(j), haciaJefe = j.lado > 0 ? 1 : -1;
+      if (dado() < fallo) { avanzarJefe(j, 16); t += 16; continue; } // se distrae
+      const yo = j.jugador, b = j.jefe, cx = b.x + ANCHO_JEFE / 2, px = yo.x + ANCHO_F / 2, enPiso = yo.y >= PISO - 0.01;
       j.teclas.izq = j.teclas.der = false;
       const ir = (x: number) => { if (x > yo.x + 0.15) j.teclas.der = true; else if (x < yo.x - 0.15) j.teclas.izq = true; };
-      const mancha = j.manchas.find(m => Math.abs(m.x - (yo.x + ANCHO_F / 2)) < 2.4 && Math.sign(yo.x - m.x) === m.dir);
-      const gotas = j.ataque?.tipo === 'gotas' ? j.ataque.columnas : j.gotas.map(g => Math.floor(g.x));
-      const bajoGota = gotas.some(c => Math.abs(c + 0.5 - (yo.x + ANCHO_F / 2)) < 1);
+      const lejosDe = (x: number) => ir(x > 8 ? Math.max(0.3, x - 6) : Math.min(15, x + 6));
+      const onda = j.ondas.find(o => Math.abs(o.x - px) < 2.6 && Math.abs(o.x - px) > 0.4 && Math.sign(px - o.x) === o.dir);
+      const columnas = [...j.marcas.filter(m => m.tipo === 'gota').map(m => m.x), ...j.gotas.map(g => Math.floor(g.x))];
+      const bajoGota = columnas.some(c => Math.abs(c + 0.5 - px) < 1);
+      const embiste = (b.estado === 'carga' || b.estado === 'embiste') && b.y === PISO && enPiso;
+      const caeCerca = (b.estado === 'agacha' || b.estado === 'salta') && b.destino && Math.abs(b.destino.x + ANCHO_JEFE / 2 - px) < 2.6 && Math.abs(b.destino.y - yo.y) < 0.5;
       const bola = j.grises.find(g => g.bola > 0 && !g.rueda && Math.abs(g.y - yo.y) < 0.5);
       const suelto = j.grises.find(g => g.bola === 0 && !g.rueda);
-      if (mancha && yo.y >= ALTO_A - 1.01) { if (dado() >= fallo) saltarJ(j); }
+      const haciaJefe = cx > px ? 1 : -1;
+      const cerca = j.grises.find(g => !g.rueda && g.bola === 0 && !g.aturde && ((Math.abs(g.y - yo.y) < 0.5 && Math.abs(g.x - yo.x) < 2.4 && Math.sign(g.vx || (yo.x - g.x)) === Math.sign(yo.x - g.x) || Math.abs(g.y - yo.y) < 0.5 && Math.abs(g.x - yo.x) < 1.4) || (g.y < yo.y && yo.y - g.y < 3.2 && Math.abs(g.x - yo.x) < 1.3 && !g.suelo)));
+      if (onda && enPiso) saltarJ(j);
+      else if (cerca && !embiste) { const d = yo.x - cerca.x; if ((d >= 0 && yo.x > 13.5) || (d < 0 && yo.x < 1.7)) { saltarJ(j); ir(yo.x - (d >= 0 ? 2 : -2)); } else ir(yo.x + (d >= 0 ? 2 : -2)); }
+      else if (embiste) { // a la viga del medio
+        const gap = b.mira > 0 ? yo.x - (b.x + ANCHO_JEFE) : b.x - (yo.x + ANCHO_F);
+        if (b.estado === 'embiste' && gap > 0.5 && gap < 2.2) saltarJ(j);
+        else if (b.estado === 'carga' && gap < 3) ir(b.mira > 0 ? yo.x + 2 : yo.x - 2);
+      } else if (caeCerca) lejosDe(b.destino!.x + ANCHO_JEFE / 2);
       else if (bajoGota) ir(yo.x + (yo.x < 8 ? 2 : -2));
-      else if (bola) {
-        const atras = bola.x - haciaJefe * 1.0; // ponerse del lado contrario al Inacapín
+      else if (bola && b.estado !== 'carga') {
+        const atras = bola.x - haciaJefe * 1.0; // del lado contrario al Inacapín
         if (Math.abs(yo.x - atras) > 0.5 && Math.sign(bola.x - yo.x) !== haciaJefe) ir(atras);
         else if (haciaJefe > 0) j.teclas.der = true; else j.teclas.izq = true;
       } else if (j.grises.find(g => g.bola > 0 && !g.rueda && g.y < yo.y - 0.5)) {
-        const b = j.grises.find(g => g.bola > 0 && !g.rueda)!; ir(b.x); // espera debajo a que caiga
+        ir(j.grises.find(g => g.bola > 0 && !g.rueda)!.x); // espera debajo a que caiga
       } else if (suelto) {
         if (Math.abs(suelto.y - yo.y) < 0.5) {
           const d = suelto.x - yo.x;
           if (Math.abs(d) < 1.3) ir(yo.x - Math.sign(d) * 2);
           else { yo.mira = d > 0 ? 1 : -1; if (Math.abs(d) < 4.5) lanzarJ(j); else ir(suelto.x - Math.sign(d) * 3); }
-        } else if (yo.y < ALTO_A - 1) bajarJ(j);
-        else { // en el aire o en una viga: esperarlo a 3,5 celdas, mirándolo
-          const lejos = suelto.x + (suelto.x > 8 ? -3.5 : 3.5);
-          ir(Math.max(0.5, Math.min(14.5, lejos))); yo.mira = suelto.x > yo.x ? 1 : -1;
-        }
-      } else ir(xj + (haciaJefe > 0 ? -5 : ANCHO_JEFE + 5));
-      if (Math.abs(yo.x - (xj + (haciaJefe > 0 ? 0 : ANCHO_JEFE))) < 1.2 && !bola) { j.teclas.izq = haciaJefe > 0; j.teclas.der = haciaJefe < 0; }
+        } else if (yo.y < PISO) bajarJ(j);
+        else { const lejos = suelto.x + (suelto.x > 8 ? -3.5 : 3.5); ir(Math.max(0.5, Math.min(14.5, lejos))); yo.mira = suelto.x > yo.x ? 1 : -1; }
+      } else if (Math.abs(cx - px) < 4 && Math.abs(b.y - yo.y) < 1) lejosDe(cx);
+      else if (yo.y < PISO && !embiste) bajarJ(j);
     }
-    const v0 = j.vidas, yo = j.jugador, px = yo.x + ANCHO_F / 2;
-    const causa = j.manchas.some(m => Math.abs(m.x - px) < 1.2) ? 'mancha' : j.gotas.some(g => Math.abs(g.x - px) < 1.2) ? 'gota'
-      : j.grises.some(g => !g.rueda && g.bola === 0 && Math.abs(g.x - yo.x) < 1.2 && Math.abs(g.y - yo.y) < 1.2) ? 'gris' : 'otro';
+    const v0 = j.vidas, yo = j.jugador, px = yo.x + ANCHO_F / 2, b = j.jefe;
+    const causa = j.ondas.some(o => Math.abs(o.x - px) < 1.2) && yo.y > ALTO_A - 1.6 ? 'onda' : j.gotas.some(g => Math.abs(g.x - px) < 1.2) ? 'gota'
+      : j.grises.some(g => !g.rueda && g.bola === 0 && Math.abs(g.x - yo.x) < 1.2 && Math.abs(g.y - yo.y) < 1.2) ? 'gris'
+      : b.estado === 'embiste' ? 'embestida' : b.estado === 'salta' ? 'aplastado' : 'otro';
     avanzarJefe(j, 16); t += 16;
-    if (j.vidas < v0) causas[causa] = (causas[causa] ?? 0) + 1;
-    if (!Number.isFinite(j.jugador.x)) throw new Error('posición inválida');
+    if (j.vidas < v0) { const k = process.env.FASES ? causa + fase(j) : causa; causas[k] = (causas[k] ?? 0) + 1; }
+    if (!Number.isFinite(j.jugador.x) || !Number.isFinite(j.jefe.x) || j.jefe.x < -0.01 || j.jefe.x > ANCHO_A - ANCHO_JEFE + 0.01) throw new Error('posición inválida');
   }
   return { fin: j.fin, t, golpes: j.golpes, vidas: j.vidas, puntos: j.puntos };
 }
@@ -290,7 +363,8 @@ for (const [nombre, reac, fallo] of [['atento (0,12 s)', 120, 0], ['primera vez 
     const v = r.filter(x => x.fin === 'victoria').map(x => x.t / 1000).sort((a, b) => a - b);
     const med = v.length ? v[Math.floor(v.length / 2)] : NaN;
     const golpesMedio = r.reduce((s, x) => s + x.golpes, 0) / r.length;
-    console.log(`     ${v.length}/100 ganan · mediana ${med.toFixed(1)} s · rango ${v[0]?.toFixed(1)}–${v.at(-1)?.toFixed(1)} s · golpes medios ${golpesMedio.toFixed(1)} · vidas perdidas por ${JSON.stringify(causas)}`);
+    const durMed = r.map(x => x.t / 1000).sort((a, b) => a - b)[50];
+    console.log(`     ${v.length}/100 ganan · mediana al ganar ${med.toFixed(1)} s · rango ${v[0]?.toFixed(1)}–${v.at(-1)?.toFixed(1)} s · duración mediana ${durMed.toFixed(1)} s · golpes medios ${golpesMedio.toFixed(1)} · vidas perdidas por ${JSON.stringify(causas)}`);
     for (const k in causas) delete causas[k];
     return r.every(x => x.fin !== null);
   });

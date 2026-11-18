@@ -1,8 +1,8 @@
-import { marcoListo, MARCOS, type Visual } from '../../../shared/marcos';
+import { marcoListo, MARCOS } from '../../../shared/marcos';
 import { mapaTinta, medidas, type TacoListo } from './tacos';
 
 // El afiche por capas: un papel (blanco u hueso), hasta 5 capas de estampas (cada una con su tinta, como las placas
-// de la risografía) y, si se quiere, un marco de la campaña bajo o sobre las estampas.
+// de la risografía) y, si se quiere, un marco Orgánica que rodea el papel (plan 014: nunca tapa el área de estampar).
 export const PAPEL = 1000; // el papel en unidades lógicas (cuadrado)
 export const TACO_BASE = 320; // lado mayor del taco con escala 1, en unidades del papel
 export const MAX_CAPAS = 5;
@@ -12,7 +12,7 @@ export type Papel = keyof typeof PAPELES;
 
 export interface Estampa { taco: string; x: number; y: number; escala: number; giro: number; semilla: number }
 export interface CapaAfiche { id: string; nombre: string; visible: boolean; tinta: string; mezcla: boolean; estampas: Estampa[] }
-export interface Afiche { capas: CapaAfiche[]; activa: string; papel: Papel; marco: string | null; marcoEncima: boolean; registro: boolean }
+export interface Afiche { capas: CapaAfiche[]; activa: string; papel: Papel; marco: string | null; registro: boolean }
 
 export function azar(semilla: number) {
   let s = semilla >>> 0;
@@ -99,33 +99,43 @@ function papel(color: string, px: number): HTMLCanvasElement {
   return c;
 }
 
-// Los marcos de la campaña (shared/marcos.ts), primero los de Orgánica.
-const ORDEN: Visual[] = ['Orgánica', 'Geométrica', 'Pixel'];
-export const MARCOS_AFICHE = [...MARCOS].sort((a, b) => ORDEN.indexOf(a.visual) - ORDEN.indexOf(b.visual));
+// Los marcos de Orgánica (shared/marcos.ts): el Taller de Grabado es de ese lenguaje (plan 014).
+export const MARCOS_AFICHE = MARCOS.filter(m => m.visual === 'Orgánica');
+export const marcoValido = (id: string | null | undefined) => (id && MARCOS_AFICHE.some(m => m.id === id) ? id : null);
+
+// El marco RODEA el papel: el papel completo va en la zona de foto de los marcos (el cuadro de 150 al centro del
+// viewBox de 240, ver ZONA en shared/marcos.ts) y del marco se muestra una franja de VENTANA_MARCO de lado alrededor.
+// Para un borde más ancho o más angosto basta cambiar VENTANA_MARCO (entre 150 y 240).
+const ZONA_MARCO = 150;
+export const VENTANA_MARCO = 210;
+const ORIGEN_MARCO = 120 - VENTANA_MARCO / 2;
+/** Fracción del lado del afiche que ocupa el borde del marco a cada lado (0 sin marco). */
+export const margenMarco = (marco: string | null) => (marco ? (VENTANA_MARCO - ZONA_MARCO) / 2 / VENTANA_MARCO : 0);
 
 const lum = (hex: string) => {
   let h = hex.replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join('');
   if (!/^[0-9a-f]{6}$/i.test(h)) return 0;
   const n = parseInt(h, 16); return (0.2126 * (n >> 16 & 255) + 0.7152 * (n >> 8 & 255) + 0.0722 * (n & 255)) / 255;
 };
-// Lo blanco o hueso del marco toma el color del papel, para que el marco y el papel sean uno.
+// Lo blanco o hueso del marco toma el color del papel, para que el marco y el papel sean de la misma familia.
 const alPapel = (c: string, p: string) => (lum(c) > 0.86 ? p : c);
 
 const marcos = new Map<string, HTMLCanvasElement>();
-// El marco a `px` de lado con su hueco transparente (ahí se ve el papel y lo estampado).
+// El marco a `px` de lado, con el cuadro del papel transparente al centro: la figura completa (también lo que en el
+// Fotomatón va encima de la foto, como las enredaderas) queda alrededor y por debajo del papel, nunca encima.
 export function lienzoMarco(id: string, px: number, colorPapel: string): HTMLCanvasElement {
   const k = `${id}|${px}|${colorPapel}`;
   let c = marcos.get(k);
   if (c) return c;
-  const m = marcoListo(id), s = px / 240;
+  const m = marcoListo(id), s = px / VENTANA_MARCO;
   c = document.createElement('canvas'); c.width = c.height = px;
   const x = c.getContext('2d')!;
-  x.scale(s, s);
+  x.scale(s, s); x.translate(-ORIGEN_MARCO, -ORIGEN_MARCO);
   x.fillStyle = alPapel(m.bg, colorPapel); x.fillRect(0, 0, 240, 240);
   m._p.forEach(([p, f]) => { x.fillStyle = alPapel(f, colorPapel); x.fill(p); });
-  x.globalCompositeOperation = 'destination-out'; x.fillStyle = '#000'; x.fill(m._clip.path);
-  x.globalCompositeOperation = 'source-over';
   m._encima.forEach(([p, f]) => { x.fillStyle = alPapel(f, colorPapel); x.fill(p); });
+  const z = 120 - ZONA_MARCO / 2;
+  x.globalCompositeOperation = 'destination-out'; x.fillStyle = '#000'; x.fillRect(z, z, ZONA_MARCO, ZONA_MARCO);
   marcos.set(k, c);
   if (marcos.size > 24) marcos.delete(marcos.keys().next().value!);
   return c;
@@ -157,14 +167,12 @@ export class CacheCapas {
   limpiar(vivas: string[]) { for (const k of [...this.m.keys()]) if (!vivas.includes(k)) this.m.delete(k); }
 }
 
-// El afiche completo en un cuadrado de `lado` px: papel → (marco bajo) → capas de atrás hacia adelante → (marco sobre).
-export function componer(ctx: CanvasRenderingContext2D, lado: number, a: Afiche, tacos: Record<string, TacoListo>, cache = new CacheCapas()) {
-  const px = Math.round(lado), s = px / PAPEL, colorPapel = PAPELES[a.papel];
+// El papel con sus capas en un cuadrado de `px`: papel → capas de atrás hacia adelante (sin marco).
+export function componerPapel(ctx: CanvasRenderingContext2D, lado: number, a: Afiche, tacos: Record<string, TacoListo>, cache = new CacheCapas()) {
+  const px = Math.round(lado), s = px / PAPEL;
   ctx.save();
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
-  ctx.drawImage(papel(colorPapel, px), 0, 0);
-  const marco = a.marco ? lienzoMarco(a.marco, px, colorPapel) : null;
-  if (marco && !a.marcoEncima) ctx.drawImage(marco, 0, 0);
+  ctx.drawImage(papel(PAPELES[a.papel], px), 0, 0);
   a.capas.forEach((capa, i) => {
     if (!capa.visible || !capa.estampas.length) return;
     const c = cache.obtener(capa, px, tacos);
@@ -178,9 +186,23 @@ export function componer(ctx: CanvasRenderingContext2D, lado: number, a: Afiche,
       ctx.globalCompositeOperation = 'source-over'; ctx.drawImage(c, dx * s, dy * s);
     }
   });
-  ctx.globalCompositeOperation = 'source-over';
-  if (marco && a.marcoEncima) ctx.drawImage(marco, 0, 0);
   ctx.restore();
+}
+
+// El afiche completo en un cuadrado de `lado` px: el marco (si hay) alrededor y el papel completo al centro, con una
+// sombra leve, como una hoja puesta sobre el marco. Sin marco, el papel ocupa todo el cuadrado.
+export function componer(ctx: CanvasRenderingContext2D, lado: number, a: Afiche, tacos: Record<string, TacoListo>, cache = new CacheCapas()) {
+  const marco = marcoValido(a.marco);
+  if (!marco) { componerPapel(ctx, lado, a, tacos, cache); return; }
+  const L = Math.round(lado), m = Math.round(L * margenMarco(marco)), p = L - 2 * m;
+  ctx.save();
+  ctx.drawImage(lienzoMarco(marco, L, PAPELES[a.papel]), 0, 0);
+  ctx.shadowColor = 'rgba(0,0,0,0.22)'; ctx.shadowBlur = L * 0.008; ctx.shadowOffsetY = L * 0.003;
+  ctx.fillStyle = PAPELES[a.papel]; ctx.fillRect(m, m, p, p);
+  ctx.restore();
+  const hoja = document.createElement('canvas'); hoja.width = hoja.height = p;
+  componerPapel(hoja.getContext('2d')!, p, a, tacos, cache);
+  ctx.drawImage(hoja, m, m);
 }
 
 // ---------------------------------------------------------------- tarjeta
