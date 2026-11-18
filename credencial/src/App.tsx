@@ -18,6 +18,7 @@ import './styles.css';
 //   #/crear · #/c/SD-XXXXX · #/sello/1..4?t=CODIGO&k=PASO · #/escanear · #/foto · #/canje
 //   #/juego (vista Juego) · #/afiches (cámara de la cacería) · #/afiche/SECRETO (QR de un afiche, plan 010)
 //   #/flyer (tu flyer: timbre 4, plan 012 §8)
+const CON_MENU = /[?&]staff(=|&|$)/.test(location.search);
 export type Ruta =
   | { vista: 'crear' }
   | { vista: 'carta'; codigo: string; aviso?: string; cara?: Cara; timbre?: number }
@@ -103,9 +104,12 @@ export const App: React.FC = () => {
   return (
     <div className="movil">
       <header className="barra-movil">
-        <a className="volver-hub" href="../../" aria-label="Volver a las experiencias">
-          <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
-        </a>
+        {/* Plan 016: en el celular no se va al menú de las tablets; el staff lo ve con ?staff. */}
+        {CON_MENU && (
+          <a className="volver-hub" href="../../" aria-label="Volver a las experiencias">
+            <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+          </a>
+        )}
         <span className="marca">Credencial</span>
         <span className="marca-sub"><span className="solo-ancho">Somos Diseño · </span>{tema.visual}</span>
         {!remoto && (

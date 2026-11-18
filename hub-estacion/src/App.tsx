@@ -85,7 +85,8 @@ export const App: React.FC = () => {
   return (
     <div className="estacion">
       <header className="cabecera">
-        <a className="volver" href="../../" aria-label="Volver a las experiencias">←</a>
+        {/* Plan 016: en la Flip no se vuelve al menú de las tablets; el staff lo ve con ?staff. La celda queda para la grilla. */}
+        {params.has('staff') ? <a className="volver" href="../../" aria-label="Volver a las experiencias">←</a> : <span aria-hidden="true" />}
         <h1>Estación</h1>
         <dl className="cifras">
           <div><dt>Personas</dt><dd>{resumen.personas}</dd></div>
