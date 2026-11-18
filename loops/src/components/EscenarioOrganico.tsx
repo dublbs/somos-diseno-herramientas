@@ -10,7 +10,6 @@ import { duracionLoop, grabarLoop, puedeGrabar } from '../lib/grabarLoop';
 import type { VideoLoop } from './ModalExportar';
 import { LineaDeTiempo } from './LineaDeTiempo';
 import { Carga } from './Carga';
-import { Confirmar } from '../../../shared/ui/Kit';
 import {
   BarritaSeleccion, Boton, FilaPropiedad, Icono, LienzoAjustado, MarcoHerramienta, Muestra, SeccionPanel, Segmento,
   useGestosHistorial,
@@ -71,6 +70,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
   const [borde, setBorde] = useState(true);
   const [grabando, setGrabando] = useState<number | null>(null);
   const [errorVideo, setErrorVideo] = useState('');
+  const [armadoVaciar, setArmadoVaciar] = useState(false);
   const [puedeDeshacer, setPuedeDeshacer] = useState(false);
   const [puedeRehacer, setPuedeRehacer] = useState(false);
   const [tiempoVisual, setTiempoVisual] = useState(0);
@@ -378,6 +378,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
   const ancla = caja ? { x: (caja.x + caja.w / 2) * k, y: Math.max(0, caja.y) * k, abajo: Math.min(ESCENARIO, caja.y + caja.h) * k } : undefined;
 
   const grabable = puedeGrabar();
+  useEffect(() => { if (!armadoVaciar) return; const t = setTimeout(() => setArmadoVaciar(false), 2500); return () => clearTimeout(t); }, [armadoVaciar]);
   const sinPiezas = items.length === 0;
 
   return (<>
@@ -458,13 +459,6 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
           </SeccionPanel>
         )}
 
-        <SeccionPanel titulo="Escenario">
-          <div className="escenarios">
-            <Segmento etiqueta="Escenario" valor={escId} onCambiar={id => { setEscId(id); setSel(null); }}
-              opciones={ESCENARIOS.map(e => ({ valor: e.id, icono: ICONO_ESC[e.id], texto: e.nombre, disabled: ocupado }))} />
-          </div>
-        </SeccionPanel>
-
         <SeccionPanel titulo={lleno ? `Biblioteca · tope de ${MAX_PIEZAS}` : 'Biblioteca'}
           ayuda={lleno ? `Llegaste a ${MAX_PIEZAS} piezas: quita una para sumar otra.` : 'Toca una pieza para sumarla o arrástrala al escenario.'}>
           <div className="bandeja">
@@ -488,8 +482,17 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
           </div>
         </SeccionPanel>
 
+        <SeccionPanel titulo="Escenario">
+          <div className="escenarios">
+            <Segmento etiqueta="Escenario" valor={escId} onCambiar={id => { setEscId(id); setSel(null); }}
+              opciones={ESCENARIOS.map(e => ({ valor: e.id, icono: ICONO_ESC[e.id], texto: e.nombre, disabled: ocupado }))} />
+          </div>
+        </SeccionPanel>
+
         <SeccionPanel titulo="Escena">
-          <Confirmar icono="restart_alt" texto="Vaciar el escenario" disabled={sinPiezas || ocupado} onConfirmar={vaciar} />
+          {/* Vaciar pide un segundo toque (kit v2: botón de peligro que confirma). */}
+          <Boton icono="restart_alt" variante="peligro" ancho texto={armadoVaciar ? '¿Seguro? Toca otra vez' : 'Vaciar el escenario'}
+            disabled={sinPiezas || ocupado} onClick={() => { if (armadoVaciar) { setArmadoVaciar(false); vaciar(); } else setArmadoVaciar(true); }} />
           {!grabable && <p className="h-ayuda">Este navegador no graba video: «Llévatelo» entrega la tarjeta en PNG.</p>}
           {errorVideo && <p className="h-ayuda ayuda-error" role="alert">{errorVideo}</p>}
         </SeccionPanel>

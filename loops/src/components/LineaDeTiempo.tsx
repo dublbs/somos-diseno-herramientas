@@ -89,7 +89,7 @@ export const LineaDeTiempo: React.FC<Props> = p => {
             </div>
           );
         })}
-        <span className="lt-cabezal" style={{ '--u': u } as React.CSSProperties} aria-hidden="true" />
+        {p.items.length > 0 && <span className="lt-cabezal" style={{ '--u': u } as React.CSSProperties} aria-hidden="true" />}
       </div>
     </div>
   );
