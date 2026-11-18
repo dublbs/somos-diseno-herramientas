@@ -12,8 +12,8 @@ import './styles.css';
 const params = new URLSearchParams(window.location.search);
 const HORA_FIJA = params.has('hora') ? Number(params.get('hora')) : null;
 const RAPIDO = Math.max(1, Number(params.get('rapido')) || 1);
-// ?prueba=0: solo las personas reales (sin la población ni los eventos de prueba).
-const PRUEBA = params.get('prueba') !== '0';
+// Personas de prueba: por defecto solo sin Supabase (este equipo). ?prueba=1 las fuerza, ?prueba=0 las quita.
+const PRUEBA = params.has('prueba') ? params.get('prueba') !== '0' : !remoto;
 const QUIETO = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
 interface Aviso { id: number; texto: string }
