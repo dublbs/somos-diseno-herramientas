@@ -41,6 +41,17 @@ Sigue al plan 012 (UI de herramienta, kit v2). Pedida para agentes: [`docs/tasks
   tiene que costar. Se mantiene la mecánica: se le pega con bolas de Grises y le devuelve el color.
 - **Tarjeta del hub**: la miniatura debe mostrar el juego como es ahora.
 
+### Fotomatón en la tablet (18 nov, tarde)
+- **En la tablet no se pudo dar permiso a la cámara.** Revisar por qué (permiso pedido sin un toque de la persona,
+  restricciones de `getUserMedia`, el error que se muestra) y que la cámara siempre se pueda abrir o, si no, explicar
+  qué hacer y ofrecer «Subir una foto».
+- **Cámara en modo retrato por defecto** (vista vertical, 3:4).
+- Optimizar el Fotomatón en la tablet (rendimiento de la vista en vivo).
+
+### Graffiti (18 nov, tarde)
+- En el modo Sticker, tocar un sticker ya pegado lo **selecciona para moverlo o eliminarlo** (hoy solo se quitan con
+  deshacer).
+
 ### Taller de Grabado
 - Solo **marcos de Orgánica**, y **alrededor** del papel, no encima.
 
