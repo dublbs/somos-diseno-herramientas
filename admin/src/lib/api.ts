@@ -99,6 +99,19 @@ export async function sesiones(): Promise<Sesion[]> {
   return (data as Sesion[]) ?? [];
 }
 
+// Configuración de las tablets desde el PC madre (plan 015, migración 008).
+export interface ConfigMesas { modo_juego: boolean; token2: string | null; reinicio: string | null; hay_pin: boolean }
+export async function configMesas(): Promise<ConfigMesas | null> {
+  const { data, error: e } = await exigir().rpc('config_mesas');
+  if (e) { if (/config_mesas|function/i.test(e.message)) return null; throw new Error(e.message); } // sin la migración 008
+  return data as ConfigMesas;
+}
+const ponerConfig = async (clave: string, valor: string) =>
+  error((await exigir().from('config').upsert({ clave, valor, actualizado: new Date().toISOString() })).error);
+export const guardarModoJuego = (si: boolean) => ponerConfig('mesas_modo_juego', si ? 'si' : 'no');
+// Las tablets que abrieron su sesión antes de este momento la borran y vuelven a pedir el código (en ~30 s).
+export const reiniciarMesas = (mesa?: string) => ponerConfig(mesa ? 'mesas_reinicio:' + mesa.toUpperCase() : 'mesas_reinicio', new Date().toISOString());
+
 // ---------- avisos ----------
 export async function enviarAviso(a: { titulo: string; cuerpo: string; url?: string; codigo?: string | null }): Promise<{ enviadas: number; fallidas: number }> {
   const { data, error: e } = await exigir().functions.invoke('notificar', { body: a });
