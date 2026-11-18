@@ -16,25 +16,29 @@ done
 ```
 **Si la rama tiene `AVANCE.md`, está a medias**: retómala desde su «Falta». Si no tiene, está terminada.
 
-## 2. Estado (18 nov, 17:00 UTC)
-Lo terminado se va sumando a la rama **`amaro/ronda-3`** (PR #37): para integrar algo nuevo, únelo ahí.
+## 2. Estado (18 nov, 16:25 UTC)
+Lo terminado está en la rama **`amaro/ronda-3`** = **PR #37** (para mergear). Lo que se termine después se une ahí.
 
-| Rama | Estado | Qué falta |
+| Rama | Estado | Qué queda |
 |---|---|---|
-| `amaro/audioreactiva-r3` | **Terminada, en el PR #37** | Túnel = C3, Bum/Chas/dedo propios por escena, `dist/` del evento. Falta probar con dedo y parlante |
-| `amaro/hora-punta-r3` | A medias (agente trabajando) | Inacapín de Figma, jefe que salta y se mueve (Snow Bros + Cuphead), Grises al estilo Inacapín, bola de pintura, andén más grande, personaje y vehículos Pixel. Ver su `AVANCE.md` |
-| `amaro/fotomaton-r3` | A medias (agente trabajando) | Kit v2, triángulos, ícono de usuario en previews, Señal con stickers de calle, Metro de L1. **Prioridad: permiso de cámara en la tablet, cámara en retrato, rendimiento** (plan 014 §1) |
-| `amaro/menu-y-grabado-r3` | **Terminada, en el PR #37** | Menú con el kit v2 y miniatura del cruce isométrico; Grabado con solo marcos Orgánica alrededor del papel (`VENTANA_MARCO = 210` en `grabado/src/lib/afiche.ts` para el ancho) |
-| `amaro/hub-r3` | En curso desde las 17:00 UTC (agente de Amaro); si tiene `AVANCE.md`, retomar | Encargo B5 abajo |
-| `amaro/teatro-r3` | **Sin empezar** | Encargo B6 abajo |
-| `amaro/graffiti-r3` | **Sin empezar** | Encargo B7 abajo |
+| `amaro/audioreactiva-r3` | **Terminada, en el PR #37** | Probar con dedo y parlante |
+| `amaro/menu-y-grabado-r3` | **Terminada, en el PR #37** | Menú con kit v2 y miniatura del cruce isométrico; Grabado con solo marcos Orgánica alrededor del papel (`VENTANA_MARCO = 210` en `grabado/src/lib/afiche.ts`) |
+| `amaro/hora-punta-r3` | **A medias** (4 commits) | Hecho: Inacapín de Figma (nodo `1002:29670`, en `juego-pixel/public/figma/inacapin.svg`), jefe nuevo (`jefe.ts`: camina, salta, escupe, embiste, ondas; 9 golpes, 3 fases), 48 pruebas de motor, personaje nuevo «Pinta», Grises, bola, efectos, andén y jefe a todo el alto, micro/taxi/autos/metro L1 en Pixel. **Falta:** controles más compactos en andén y jefe, Pinta en el cruce, tarjeta con Pinta, verificación Playwright (partida, fps, 6 resoluciones) y `dist/`. Ver `juego-pixel/AVANCE.md` |
+| `amaro/fotomaton-r3` | **A medias** (7 commits) | Hecho: efecto Geométrico nuevo (semitono de triángulos, elegido entre 4 ensayos), **cámara en la tablet** (permiso dentro del toque, mensajes y reintento), **retrato 3:4**, vista en vivo más fluida. **Falta** (según `fotomaton/AVANCE.md`, revisar contra los commits): kit v2 en cámara y editor, ícono clásico de usuario en las vistas previas, Señal con stickers de calle, Metro de L1, verificación y `dist/` |
+| `amaro/hub-r3` | **Recién lanzado** (puede no existir aún en origin) | Encargo B5: **modo galería** `?galeria` (respaldo de la Flip), personas de la plaza al andén, refinar |
+| `amaro/teatro-r3` | **Sin empezar** | Encargo B6 |
+| `amaro/graffiti-r3` | **Sin empezar** | Encargo B7 |
+
+**Si un agente de Amaro se cortó a mitad de una edición**, su rama puede no tener lo último: los cambios sin commit quedan
+en la sesión de Amaro, no en GitHub. Parte desde lo que está en `origin` y su `AVANCE.md`; revisa con `git log` qué ya está
+hecho aunque el `AVANCE.md` no lo marque.
 
 Referencias de Amaro (fotos del tren de Línea 1 y el metro Pixel de la web): estaban en la sesión de Amaro y **no están
 en el repo**. El metro Pixel de la web se parece a `juego-pixel/public/figma/metro-lateral.svg`. Si las necesitas, pídeselas.
 
 ## 3. Prioridad para el 19 (si no alcanza, lo de abajo queda fuera)
-1. Fotomatón: **cámara en la tablet** (sin esto no funciona la experiencia).
-2. Integrar lo terminado en `main` (§5).
+1. **Mergear el PR #37.**
+2. Fotomatón: terminar y verificar la **cámara en la tablet** (sin esto no funciona la experiencia) y sumarlo a `amaro/ronda-3`.
 3. Hora punta, menú + Grabado.
 4. HUB: **respaldo de la Flip** (galería, R3).
 5. Graffiti (stickers), Teatro en kit v2.
@@ -62,7 +66,7 @@ en el repo**. El metro Pixel de la web se parece a `juego-pixel/public/figma/met
 | **B7** `amaro/graffiti-r3` | `graffiti/` | En el modo Sticker, **tocar un sticker ya pegado lo selecciona** con las manijas del kit para moverlo, girarlo, escalarlo o **eliminarlo** (botón en la `BarritaSeleccion`). Hoy solo se quitan con deshacer: guardar los stickers como objetos (no pintados en el muro) hasta exportar |
 
 ## 5. Integrar y publicar
-1. Rama `amaro/ronda-3` desde `main`; unir las ramas **terminadas** (sin `AVANCE.md`).
+1. Unir cada rama **terminada** (sin `AVANCE.md`) a `amaro/ronda-3` (o, si el #37 ya se mergeó, a una rama nueva `amaro/ronda-3b` desde `main`). Los conflictos en `dist/` se resuelven recompilando la app.
 2. `npx tsc --noEmit` en las 11 apps; si `shared/` cambió, recompilar `dist/` de las apps que lo usan.
 3. Prueba de humo: servir la raíz del repo y abrir cada `<app>/dist/` y el hub; sin errores de consola.
 4. Un PR a `main` con lo probado y lo no probado. El merge lo aprieta Amaro o Pipe (GitHub Pages publica en 1–2 min).
