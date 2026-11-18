@@ -30,12 +30,13 @@ en vivo, Graffiti v2 y el Fotomatón conectado.
 
 ### H1 · Correr las migraciones en `somos-diseno` · **hoy**
 - En el SQL Editor, **en este orden**: `shared/supabase/migraciones/001-afiches.sql`, `002-eventos-graffiti.sql`,
-  `003-timbres-finales.sql`, `004-eventos-foto.sql` y `005-eventos-juego.sql` (el mural de «Hora punta» al inventario). Cada una se puede correr dos veces sin daño.
+  `003-timbres-finales.sql`, `004-eventos-foto.sql`, `005-eventos-juego.sql` (el mural de «Hora punta» al inventario) y
+  `006-timbre-flyer.sql` (timbre 4 «Flyer», `sellar_flyer()` y el sello de respaldo del staff; plan 012 §8). Cada una se puede correr dos veces sin daño.
 - Anotar en `shared/supabase/migraciones/README.md` (PR #10) quién y cuándo.
 - Fotomatón **y el QR de todas las experiencias** (plan 011; para que el QR abra en otros celulares): correr `fotomaton/supabase/migrations/0001_fotomaton.sql` **una
   sola vez** (crea políticas sin `drop … if exists`: una segunda corrida da error, sin daño) y desplegar las funciones
   `tarjeta` y `limpiar` (`supabase functions deploy`). Sin esto el Fotomatón igual funciona: la tarjeta queda en la tablet.
-- Aceptación: `select id, nombre, meta from sellos_def order by id;` muestra Inscripción 1, Creación 4, Cacería 3, Secreto 1.
+- Aceptación: `select id, nombre, meta from sellos_def order by id;` muestra Inscripción 1, Creación 4, Cacería 3, Flyer 1.
 
 ### H2 · Sellos de los afiches e impresión · **14 nov**
 - Sacar los secretos: `select string_agg(id || ':' || secreto || ':' || lenguaje, ',' order by id) from afiches where activo;`
@@ -44,7 +45,11 @@ en vivo, Graffiti v2 y el Fotomatón conectado.
   ≥ 10 cm, tinta oscura sobre fondo claro).
 - **Imprimir uno de prueba y leerlo** con un iPhone y un Android, con la luz de la sede, antes de imprimir los 6.
 
-### H3 · Plan B del Secreto · **decidir el 17 nov**
+### H3 · Plan B del Secreto · **decidido el 17 nov: el timbre 4 es «Tu flyer» (plan 012 §8)**
+- El sello del staff queda como **respaldo** del timbre 4: la 006 ya crea el afiche `SECRETO` (sello 4, nombre «Flyer»).
+  Sacar su secreto con `select id || ':' || secreto || ':' || lenguaje from afiches where sello = 4;`, generar el sello
+  con `sellos:afiches` e imprimirlo en tarjetas para el staff. Guion: `docs/staff/guion-del-recorrido.md`.
+- Lo de abajo queda como antecedente:
 - Si el jefe final no está jugable el 17, el timbre 4 se gana con el **sello secreto que muestra el staff**.
 - `insert into afiches (id, nombre, lenguaje, sello) values ('SECRETO', 'Secreto', 'Pixel', 4);`, sacar su secreto y
   generar su sello (como H2). Imprimirlo en tarjetas para el staff.

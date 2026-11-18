@@ -1,21 +1,23 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useCamara } from '../hooks/useCamara';
+import { useEffect, useRef, useState, type MutableRefObject, type ReactNode } from 'react';
+import { useCamara, type Lado } from '../hooks/useCamara';
 import type { Cara } from '../lib/cara';
 import { Lienzo } from './Lienzo';
-import { BarraSuperior, BotonAccion, PantallaHerramienta } from '../../../shared/ui/Kit';
+import { Disparador } from './Disparador';
+import { BarraSuperior, PantallaHerramienta } from '../../../shared/ui/Kit';
 
 interface Props {
-  marco: string; celda: number; tinta: string;
+  lado: Lado; marco: string; celda: number; tinta: string; apagadas: readonly string[];
+  vivo: MutableRefObject<{ c: HTMLCanvasElement; cara: Cara | null } | null>;
   alFoto: (foto: HTMLCanvasElement, cara: Cara | null) => void;
   alSubir: () => void;
   cambiando: boolean; textoCambio: string;
-  volver: string; acciones: ReactNode; lateral: ReactNode; carrete: ReactNode;
+  volver: string; acciones: ReactNode; lateral: ReactNode;
 }
 
-export function Camara({ marco, celda, tinta, alFoto, alSubir, cambiando, textoCambio, volver, acciones, lateral, carrete }: Props) {
-  const { video, lienzo, setLado, error, personas, capturar } = useCamara({ marco, celda, tinta });
+export function Camara({ lado, marco, celda, tinta, apagadas, vivo, alFoto, alSubir, cambiando, textoCambio, volver, acciones, lateral }: Props) {
+  const { video, lienzo, error, personas, capturar } = useCamara({ lado, marco, celda, tinta, apagadas, vivo });
   const [cuenta, setCuenta] = useState(0), [flash, setFlash] = useState(false);
-  // Timers de la cuenta regresiva: se limpian si la persona sale (Inicio) antes de que termine.
+  // Timers de la cuenta regresiva: se limpian si la persona sale (Restablecer) antes de que termine.
   const intervalo = useRef<number | undefined>(undefined), espera = useRef<number | undefined>(undefined);
   useEffect(() => () => { window.clearInterval(intervalo.current); window.clearTimeout(espera.current); }, []);
 
@@ -33,17 +35,10 @@ export function Camara({ marco, celda, tinta, alFoto, alSubir, cambiando, textoC
   const estado = error ? 'Sin cámara: puedes subir una foto' : personas > 1 ? `Grupo de ${personas} personas ✓` : personas === 1 ? 'Cara centrada ✓' : 'Mira a la cámara, solo o en grupo';
   return (
     <PantallaHerramienta
-      anchoLateral={300}
+      anchoLateral={320}
       superior={<BarraSuperior titulo="Fotomatón" bajada={`${estado} · Tu foto se procesa en este dispositivo`} volver={volver}>{acciones}</BarraSuperior>}
       lateral={lateral}
-      inferior={<>
-        {carrete}
-        <div className="k-grupo disparo">
-          <BotonAccion icono="ios_share" etiqueta="Subir una foto" onClick={alSubir} />
-          <button type="button" className="obturador" onClick={disparar} disabled={!!error || !!cuenta || cambiando} aria-label="Sacar foto"></button>
-          <BotonAccion icono="flip" etiqueta="Cambiar cámara" onClick={() => setLado(l => (l === 'user' ? 'environment' : 'user'))} />
-        </div>
-      </>}
+      inferior={<Disparador texto="Foto" etiqueta="Sacar foto" onClick={disparar} disabled={!!error || !!cuenta || cambiando} />}
     >
       <video ref={video} className="oculto" playsInline muted autoPlay></video>
       <div className="escenario-fit">

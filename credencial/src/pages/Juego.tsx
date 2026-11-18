@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { escucharCreaciones, obtener, progresoJuego, remoto, sumarCreacion, type ProgresoJuego } from '../lib/store';
+import { escucharCreaciones, faltaParaFlyer, obtener, progresoJuego, remoto, sumarCreacion, textoFaltaCanje, textoFaltaFlyer, type ProgresoJuego } from '../lib/store';
+import { Bienvenida } from '../components/Bienvenida';
+import type { Tema } from '../temas';
 import { HACIA_JUEGO, tomarEntrada, useDeslizar } from '../lib/deslizar';
 import { AFICHES, aficheDe } from '../lib/afiches';
 import type { DatosCarta } from '../pixel/render';
@@ -18,13 +20,14 @@ export const EXPERIENCIAS = [
 ];
 const nombreExperiencia = (app: string) => EXPERIENCIAS.find(x => x.app === app)?.nombre ?? 'creación';
 
-export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema: PonerTema }> = ({ codigo, aviso, ir, ponerTema }) => {
+export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema: PonerTema; tema: Tema }> = ({ codigo, aviso, ir, ponerTema, tema }) => {
   const [datos, setDatos] = useState<DatosCarta | null>(null);
   const [progreso, setProgreso] = useState<ProgresoJuego | null>(null);
   const [estado, setEstado] = useState(aviso || '');
   const [error, setError] = useState('');
   const [nuevo, setNuevo] = useState(''); // la casilla que acaba de llenarse
   const [entra] = useState(tomarEntrada);
+  const [comoSeJuega, setComoSeJuega] = useState(false);
   useDeslizar(dir => { if (dir === -HACIA_JUEGO) ir(`#/c/${codigo}`); });
 
   const cargar = useCallback(() => Promise.all([obtener(codigo), progresoJuego(codigo)])
@@ -59,6 +62,9 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
   const encontrados = afiches.length, conTimbre3 = datos.sellos.includes(3), conTimbre2 = datos.sellos.includes(2);
   const extra = Math.max(0, encontrados - meta);
   const llenas = EXPERIENCIAS.filter(x => creaciones[x.app]).length;
+  // Timbre 4 · «Tu flyer»: se abre con al menos 1 creación y 1 afiche (plan 012 §8).
+  const falta = faltaParaFlyer(progreso), abierto = falta.length === 0, conFlyer = datos.sellos.includes(4);
+  const abrirFlyer = () => (abierto ? ir('#/flyer') : setEstado(textoFaltaFlyer(falta)));
 
   return (
     <main className={'pantalla juego' + (entra ? ` entra-${entra}` : '')}>
@@ -84,7 +90,7 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
         </ol>
         <p className="ayuda">
           {conTimbre3
-            ? `¡Timbre de Portales listo! Colección: ${encontrados} de ${AFICHES.length} afiches.`
+            ? `¡Timbre de Cacería listo! Colección: ${encontrados} de ${AFICHES.length} afiches.`
             : 'Busca los afiches con el sello de la cacería por la sede y apúntales con la cámara.'}
         </p>
         <button type="button" className="btn primario" onClick={() => ir('#/afiches')}>
@@ -112,15 +118,26 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
         <p className="ayuda">Crea en {creacion.meta} experiencias distintas con tu código <b>{codigo}</b>: cada una llega aquí al momento.</p>
       </section>
 
-      <p className="progreso" role="status">{estado || 'Desliza a la izquierda para volver.'}</p>
+      <button type="button" className={'panel-juego tarjeta-flyer' + (abierto ? ' abierta' : '')} onClick={abrirFlyer} aria-disabled={!abierto}>
+        <span className="material-symbols-outlined tarjeta-flyer-icono" aria-hidden="true">{abierto ? 'auto_awesome' : 'image'}</span>
+        <span className="tarjeta-flyer-texto">
+          <b>Tu flyer</b>
+          <small>{abierto ? (conFlyer ? 'Timbre listo · arma otro cuando quieras' : 'Ármalo con lo que juntaste y gana el timbre 4') : textoFaltaFlyer(falta)}</small>
+        </span>
+        <span className="cuenta">{conFlyer ? 'Listo' : abierto ? 'Abrir' : '4'}</span>
+      </button>
+
+      <p className="progreso" role="status">{estado || textoFaltaCanje(datos, progreso)}</p>
       <div className="acciones-movil">
         <button type="button" className="btn" onClick={() => ir(`#/c/${codigo}`)}>
-          <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Mi credencial
+          <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Credencial
         </button>
         <button type="button" className="btn" onClick={() => ir('#/escanear')}>
           <span className="material-symbols-outlined" aria-hidden="true">highlight_alt</span>Código
         </button>
+        <button type="button" className="btn" onClick={() => setComoSeJuega(true)}>¿Cómo se juega?</button>
       </div>
+      {comoSeJuega && <Bienvenida codigo={codigo} tema={tema} onCerrar={() => setComoSeJuega(false)} />}
     </main>
   );
 };
