@@ -6,8 +6,8 @@ import { enVivo, listaImagen } from './vivo';
 import { ACTIVAS } from '../../../shared/juego';
 
 // Estación Somos Diseño: corte de una estación en tres niveles.
-//   Plaza Orgánica (arriba) · Mezanine Geométrico (medio) · Andén Pixel (abajo).
-// Las personas llegan a la plaza y cada timbre las baja un nivel (plan 014 §0): 1 plaza → 2 mezanine → 3 andén →
+//   Plaza Orgánica (arriba) · Mezanina Geométrica (medio) · Andén Pixel (abajo).
+// Las personas llegan a la plaza y cada timbre las baja un nivel (plan 014 §0): 1 plaza → 2 mezanina → 3 andén →
 // 4 andén con aureola.
 // Todo se dibuja en pixeles CSS a partir del tamaño de la pantalla (sirve en horizontal y vertical).
 
@@ -51,12 +51,12 @@ export function disponer(W: number, H: number): Disposicion {
     W, H, u, e: Math.min(u, W / 1500), // e: escala del mobiliario (más chico si la pantalla es angosta)
     plaza, mezz, anden,
     via: anden.y + anden.h * 0.9,
-    escA: W * 0.06, // pie de la escalera andén → mezanine (izquierda, sube hacia la derecha)
-    escB: W * 0.94, // pie de la escalera mezanine → plaza (derecha, sube hacia la izquierda)
+    escA: W * 0.06, // pie de la escalera andén → mezanina (izquierda, sube hacia la derecha)
+    escB: W * 0.94, // pie de la escalera mezanina → plaza (derecha, sube hacia la izquierda)
     tramoA: tramo(anden, mezz), tramoB: tramo(mezz, plaza),
   };
 }
-// 0 andén · 1 mezanine · 2 plaza
+// 0 andén · 1 mezanina · 2 plaza
 const nivelDe = (timbres: number) => (timbres >= 3 ? 0 : timbres === 2 ? 1 : 2);
 
 // ---------- personas en escena ----------
@@ -159,7 +159,7 @@ export class Estacion {
         a.subiendo.t += dt / 3.2;
         if (a.subiendo.t >= 1) {
           a.nivel = a.subiendo.nivel; a.x = a.subiendo.hasta[0]; a.subiendo = undefined;
-          a.dir = a.nivel === 1 ? -1 : 1; // al mezanine se llega por la derecha; al andén, por la izquierda
+          a.dir = a.nivel === 1 ? -1 : 1; // a la mezanina se llega por la derecha; al andén, por la izquierda
           if (nivelDe(a.p.timbres) < a.nivel) a.objetivo = this.bajada(a.nivel);
         }
         continue;
@@ -192,7 +192,7 @@ export class Estacion {
   dibujar(ctx: CanvasRenderingContext2D, hora: number) {
     ctx.save();
     this.plaza(ctx, hora);
-    this.mezanine(ctx);
+    this.mezanina(ctx);
     this.andenPixel(ctx);
     this.escaleras(ctx);
     const visibles = this.avatares.map(a => ({ a, pos: this.posicion(a) })).sort((p, q) => p.pos[1] - q.pos[1]);
@@ -281,10 +281,10 @@ export class Estacion {
     this.textoPixel(ctx, 'ESTACION', tx - ancho / 2, ty, tam, C.Hueso);
   }
 
-  // ---------- MEZANINE · Geométrica ----------
+  // ---------- MEZANINA · Geométrica ----------
   // Boletería, máquinas de carga, paneles MetroArte con los mosaicos de la gente, la pantalla C3, el mapa de la red,
   // letreros colgantes, torniquetes y el piso de damero.
-  private mezanine(ctx: CanvasRenderingContext2D) {
+  private mezanina(ctx: CanvasRenderingContext2D) {
     const { W, u, e, mezz } = this.d;
     const techo = mezz.y + 10 * u, piso = mezz.suelo, muro = piso - techo;
     ctx.fillStyle = C.Hueso; ctx.fillRect(0, mezz.y, W, mezz.h);
@@ -323,7 +323,7 @@ export class Estacion {
       ctx.fillRect(x, y0 + f * alto, lado, alto);
     }
     ctx.fillStyle = C.Negro; ctx.fillRect(0, mezz.y + mezz.h - 6 * u, W, 6 * u);
-    this.cartel(ctx, 'Mezanine · Geométrica', W * 0.015, mezz.y + 20 * u, C.Azul);
+    this.cartel(ctx, 'Mezanina · Geométrica', W * 0.015, mezz.y + 20 * u, C.Azul);
   }
 
   // Panel tipo aviso de metro: muestra un mosaico de la gente y cada 7 s lo cambia con un barrido de arriba hacia abajo.

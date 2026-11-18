@@ -5,12 +5,12 @@ Pantalla para la **pantalla flip** y los **Mac** del evento. Es el corte de una 
 | Nivel | Lenguaje | Qué hay |
 |---|---|---|
 | Plaza (arriba) | Orgánica | Cielo según la hora (10:00 → 20:00), araucarias y plantas de Teatro de Papel |
-| Mezanine (medio) | Geométrica | Torniquetes, piso de damero y la **pantalla de la Estación Audioreactiva** |
+| Mezanina (medio) | Geométrica | Torniquetes, piso de damero y la **pantalla de la Estación Audioreactiva** |
 | Andén (abajo) | Pixel | Letrero pixel y el Metro. Cada 3er tren pasa el **vagón pintado** (easter egg de la experiencia Vagón) |
 
 **Cada persona con credencial es un personaje.** El cuerpo es del lenguaje de su marco y la cabeza es su foto o su personaje. Llega a la plaza y cada timbre lo baja un nivel por las escaleras mecánicas (plan 014 §0):
 - 1 timbre: entra caminando a la plaza;
-- 2 timbres: baja al mezanine;
+- 2 timbres: baja a la mezanina;
 - 3 timbres: baja al andén;
 - 4 timbres: lleva aureola y hay confeti.
 

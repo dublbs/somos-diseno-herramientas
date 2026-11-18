@@ -98,7 +98,7 @@ export const App: React.FC = () => {
         <time className="hora">{(HORA_FIJA != null ? `${String(Math.floor(HORA_FIJA)).padStart(2, '0')}:00` : hora.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false }))}</time>
         <button type="button" className="completa" onClick={pantallaCompleta} aria-label="Pantalla completa">⛶</button>
       </header>
-      <canvas ref={lienzo} className="escena" role="img" aria-label={`Estación con ${resumen.personas} personas: andén Pixel, mezanine Geométrico y plaza Orgánica`} />
+      <canvas ref={lienzo} className="escena" role="img" aria-label={`Estación con ${resumen.personas} personas: andén Pixel, mezanina Geométrica y plaza Orgánica`} />
       {!listo && <p className="cargando">Abriendo la estación…</p>}
       <span className="demo">{remoto ? 'En vivo' : 'Este equipo'}{PRUEBA ? ' · con personas de prueba' : ''}</span>
     </div>
