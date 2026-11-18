@@ -72,7 +72,7 @@ export const App: React.FC = () => {
       <main className="contenido">
         {vista === 'personas' && <Personas staff={staff} />}
         {vista === 'canje' && <CanjePanel staff={staff} />}
-        {vista === 'mesas' && <Mesas />}
+        {vista === 'mesas' && <Mesas staff={staff} />}
         {vista === 'avisos' && <Avisos />}
         {vista === 'config' && <Config staff={staff} />}
       </main>
@@ -269,20 +269,43 @@ const CanjePanel: React.FC<{ staff: api.Staff }> = ({ staff }) => {
 };
 
 // ---------- mesas ----------
-const Mesas: React.FC = () => {
+const Mesas: React.FC<{ staff: api.Staff }> = ({ staff }) => {
   const [lista, setLista] = useState<api.Sesion[]>([]);
+  const [conf, setConf] = useState<api.ConfigMesas | null | undefined>(undefined);
   const [aviso, setAviso] = useAviso();
   const cargar = useCallback(() => api.sesiones().then(setLista).catch(e => setAviso((e as Error).message)), [setAviso]);
-  useEffect(() => { cargar(); const id = setInterval(cargar, 8000); return () => clearInterval(id); }, [cargar]);
+  const cargarConf = useCallback(() => api.configMesas().then(setConf).catch(e => setAviso((e as Error).message)), [setAviso]);
+  useEffect(() => { cargar(); cargarConf(); const id = setInterval(cargar, 8000); return () => clearInterval(id); }, [cargar, cargarConf]);
+  const admin = staff.rol === 'admin';
+  const hacer = async (f: () => Promise<void>, ok: string) => { try { await f(); await cargarConf(); setAviso(ok); } catch (e) { setAviso((e as Error).message); } };
   const porMesa = new Map<string, api.Sesion>();
   for (const s of lista) if (!porMesa.has(s.mesa)) porMesa.set(s.mesa, s);
   return (
     <section>
-      <header className="cabecera"><div><h1>Mesas</h1><p className="ayuda">Qué credencial entró en modo juego en cada tablet. La tablet se identifica con 4 letras (se ven en <code>?staff</code>).</p></div></header>
+      <header className="cabecera"><div><h1>Mesas</h1><p className="ayuda">Las tablets se configuran desde aquí (plan 015) y lo aplican en ~30 s. Cada tablet se identifica con 4 letras.</p></div></header>
       {aviso && <p className="aviso" role="status">{aviso}</p>}
+      <div className="dos">
+        <div className="tarjeta">
+          <p className="etq">Todas las tablets</p>
+          {conf === undefined ? <p className="ayuda">Cargando…</p> : conf === null ? (
+            <p className="ayuda">Falta correr <code>shared/supabase/migraciones/008-config-mesas.sql</code> en Supabase. Mientras tanto, cada tablet se configura en <code>?staff</code>.</p>
+          ) : (<>
+            <label className="fila-check"><input type="checkbox" checked={conf.modo_juego} disabled={!admin}
+              onChange={e => { const si = e.target.checked; hacer(() => api.guardarModoJuego(si), si ? 'Modo juego encendido en todas las tablets.' : 'Modo juego apagado: las tablets dejan de pedir el código.'); }} />
+              Modo juego: las tablets piden el código de la credencial</label>
+            <p className="ayuda">Código de la estación 2 (lo usan las tablets solas; debe coincidir con los QR impresos): <b className="mono">{conf.token2 ?? '—'}</b></p>
+            <p className="ayuda">{conf.hay_pin ? 'El PIN del canje (Configuración) también abre ?staff en las tablets.' : 'Sin PIN: defínelo en Configuración (también abre ?staff en las tablets).'}</p>
+            {admin ? <button type="button" className="btn" onClick={() => { if (confirm('¿Reiniciar todas las tablets? Se borra el código de quien esté jugando y vuelven a pedirlo.')) hacer(() => api.reiniciarMesas(), 'Reinicio enviado a todas las tablets.'); }}>Reiniciar todas las tablets</button>
+              : <p className="ayuda">Solo un admin puede cambiar esto.</p>}
+            {conf.reinicio && <p className="ayuda">Último reinicio general: {hora(conf.reinicio)}</p>}
+          </>)}
+        </div>
+      </div>
       <div className="fichas">
         {[...porMesa.values()].map(s => (
-          <div key={s.mesa} className="tarjeta"><p className="etq">Mesa {s.mesa} · {s.app}</p><p className="mono grande">{s.codigo}</p><p className="ayuda">desde las {hora(s.inicio)}</p></div>
+          <div key={s.mesa} className="tarjeta"><p className="etq">Mesa {s.mesa} · {s.app}</p><p className="mono grande">{s.codigo}</p><p className="ayuda">desde las {hora(s.inicio)}</p>
+            {admin && conf && <button type="button" className="btn" onClick={() => hacer(() => api.reiniciarMesas(s.mesa), `Reinicio enviado a la mesa ${s.mesa}.`)}>Reiniciar esta mesa</button>}
+          </div>
         ))}
         {!porMesa.size && <p className="vacio">Ninguna tablet ha abierto una sesión de juego todavía.</p>}
       </div>
@@ -371,7 +394,7 @@ const Config: React.FC<{ staff: api.Staff }> = ({ staff }) => {
           <p className="ayuda">{hay === null ? 'Comprobando…' : hay ? 'Hay un PIN configurado. Guardar uno nuevo lo reemplaza.' : 'Todavía no hay PIN: nadie puede canjear desde el celular hasta que lo definas.'}</p>
           <label>Nuevo PIN (4 a 8 números)<input className="mono grande" inputMode="numeric" value={pin} disabled={staff.rol !== 'admin'} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 8))} /></label>
           {staff.rol === 'admin' ? <button className="btn primario" disabled={pin.length < 4}>Guardar PIN</button> : <p className="ayuda">Solo un admin puede cambiarlo.</p>}
-          <p className="ayuda">Si las tablets usan <code>VITE_STAFF_PIN_SHA256</code>, ponles el mismo PIN para que el equipo recuerde uno solo.</p>
+          <p className="ayuda">Con la migración 008, este PIN también abre <code>?staff</code> en las tablets: el equipo recuerda uno solo.</p>
         </form>
         <Cuentas staff={staff} />
       </div>
