@@ -56,7 +56,8 @@ export const Crear: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTem
     <main className="pantalla crear">
       <section className="vista-previa" aria-label="Tu credencial en su marco">
         <MarcoVivo marco={marco} retrato={retrato} modo={modo} className="marco-vivo" />
-        <p className="vista-info"><span className="etq">{m.visual}</span> {m.code} · {m.name}</p>
+        {/* Lo primero que lee quien llega: para qué es la credencial (el marco elegido se ve arriba). */}
+        <p className="vista-info"><span className="etq">{m.visual}</span> Junta 4 timbres y gana tu bolsa</p>
       </section>
 
       <section className="panel-movil" aria-label="Arma tu credencial">

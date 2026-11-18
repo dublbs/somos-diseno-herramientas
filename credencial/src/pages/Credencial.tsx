@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Carta, useRecursos } from '../components/Pixel';
 import { Timbrado } from '../components/Timbrado';
-import { obtener, sellar, remoto, guardarMiCredencial, olvidarMiCredencial, miCredencial, fotoDe } from '../lib/store';
+import { obtener, sellar, remoto, progresoJuego, guardarMiCredencial, olvidarMiCredencial, miCredencial, fotoDe } from '../lib/store';
 import { guardarArchivo } from '../lib/descargar';
 import { cartaEnLienzo, aBlob, ranuraTimbre, CARTA, type Cara, type DatosCarta } from '../pixel/render';
 import { TIMBRES, type Tema } from '../temas';
@@ -39,6 +39,16 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
   };
 
   const cargar = useCallback(() => obtener(codigo).then(d => { setDatos(d); ponerTema(d.marco); }).catch(e => setError((e as Error).message)), [codigo, ponerTema]);
+  // El álbum muestra el avance de los timbres que faltan (Creación y Cacería), para no tener que buscarlo en «Jugar».
+  // Se pide al abrir y al girar hacia el álbum, no en cada refresco (con Supabase son 3 consultas).
+  const [avance, setAvance] = useState<DatosCarta['avance']>();
+  const cargarAvance = useCallback(() => progresoJuego(codigo).then(p => {
+    const hechas = Math.max(p.creacion.pasos, Object.keys(p.creaciones).length);
+    setAvance({ 2: `${Math.min(hechas, p.creacion.meta)} de ${p.creacion.meta} hechas`, 3: `${Math.min(p.afiches.length, p.meta)} de ${p.meta} encontrados` });
+  }).catch(() => { /* sin avance: el álbum dice cómo se gana cada timbre */ }), [codigo]);
+  useEffect(() => { cargarAvance(); }, [cargarAvance]);
+  useEffect(() => { if (lado === 'album') cargarAvance(); }, [lado, cargarAvance]);
+  const datosCarta = useMemo(() => (datos && avance ? { ...datos, avance } : datos), [datos, avance]);
   useEffect(() => { cargar(); if (!miCredencial()) guardarMiCredencial(codigo); }, [cargar, codigo]);
   // Con Supabase, la credencial se refresca sola para mostrar timbres nuevos.
   useEffect(() => { if (!remoto) return; const id = setInterval(cargar, 8000); return () => clearInterval(id); }, [cargar]);
@@ -91,7 +101,7 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
       <button type="button" className="giro" onClick={girar}
         aria-label={`Girar credencial. Ahora: ${lado === 'frente' ? 'credencial' : 'álbum de timbres'}`}>
         <span className={'carta-caja' + (volteando ? ' volteando' : '')}>
-          <Carta datos={datos} recursos={recursos} tema={tema} cara={lado} ocultarTimbre={poniendo} className="carta" />
+          <Carta datos={datosCarta || datos} recursos={recursos} tema={tema} cara={lado} ocultarTimbre={poniendo} className="carta" />
           {poniendo > 0 && (() => {
             const r = ranuraTimbre(poniendo);
             return (
@@ -112,7 +122,7 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
         </button>
       )}
       <p className="progreso" role="status">
-        {estado || (datos.canjeado ? 'Premio canjeado. ¡Gracias por jugar!' : llena ? '¡Credencial completa! Canjea tu premio con el equipo.' : `${completos} de ${ACTIVAS.length} timbres · toca para ${lado === 'frente' ? 'ver el álbum' : 'volver'}`)}
+        {estado || (datos.canjeado ? 'Premio canjeado. ¡Gracias por jugar!' : llena ? '¡Credencial completa! Canjea tu premio con el equipo.' : (lado === 'frente' ? `${completos} de ${ACTIVAS.length} timbres · toca para ver el álbum` : `${completos} de ${ACTIVAS.length} timbres · tu inventario está en «Jugar»`))}
       </p>
       <div className="acciones-movil">
         {llena && (

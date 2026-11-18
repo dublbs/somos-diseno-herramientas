@@ -276,7 +276,11 @@ export function textoFaltaCanje(d: { sellos: number[]; canjeado?: boolean }, p: 
   if (d.canjeado) return 'Bolsa canjeada. ¡Gracias por jugar!';
   const partes: string[] = [];
   const pl = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
-  if (!d.sellos.includes(2)) { const n = Math.max(1, p.creacion.meta - Math.max(p.creacion.pasos, Object.keys(p.creaciones).length)); partes.push(pl(n, 'creación', 'creaciones')); }
+  if (!d.sellos.includes(2)) {
+    // Con la meta cumplida en el inventario pero sin el timbre (sin red, la tablet no timbró sola), falta timbrarla.
+    const hechas = Math.max(p.creacion.pasos, Object.keys(p.creaciones).length);
+    partes.push(hechas >= p.creacion.meta ? 'timbrar tu Creación' : pl(p.creacion.meta - hechas, 'creación', 'creaciones'));
+  }
   if (!d.sellos.includes(3)) { const n = Math.max(1, p.meta - p.afiches.length); partes.push(pl(n, 'afiche', 'afiches')); }
   if (!d.sellos.includes(SELLO_FLYER)) partes.push('tu flyer');
   if (!partes.length) return '¡Completaste todo! Canjea tu bolsa con el equipo.';
