@@ -7,7 +7,6 @@ import { precargar } from './escenario/carga';
 // La carga parte apenas se abre la app, también mientras se lee el tutorial.
 precargar();
 import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
-import '../../shared/ui/somos-kit.css';
 import './styles.css';
 
 const NOMBRE = 'Teatro de Papel';
@@ -16,6 +15,7 @@ export const App: React.FC = () => {
   const [blobTarjeta, setBlobTarjeta] = useState<Blob | null>(null);
   const [videoLoop, setVideoLoop] = useState<VideoLoop | null>(null);
   const [aviso, setAviso] = useState('');
+  const [grabando, setGrabando] = useState(false);
   const [visto, marcarVisto] = useTutorialVisto('teatro');
   useEffect(() => { if (!aviso) return; const t = setTimeout(() => setAviso(''), 3500); return () => clearTimeout(t); }, [aviso]);
 
@@ -43,6 +43,8 @@ export const App: React.FC = () => {
       <EscenarioOrganico
         onExportar={exportarPng}
         onVideo={(png, v) => { setVideoLoop(v); setBlobTarjeta(png); }}
+        onGrabando={setGrabando}
+        aviso={aviso}
       />
 
       {blobTarjeta && (
@@ -53,8 +55,8 @@ export const App: React.FC = () => {
           nombreModo={NOMBRE}
         />
       )}
-      {aviso && <div className="aviso" role="status">{aviso}</div>}
-      <Quiosco app="teatro" />
+      {/* Mientras se graba el video no corre la cuenta del quiosco (plan 008, T-003). */}
+      <Quiosco app="teatro" activo={!grabando} />
     </>
   );
 };
