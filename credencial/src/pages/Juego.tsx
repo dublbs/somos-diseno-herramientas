@@ -13,7 +13,7 @@ export const EXPERIENCIAS = [
   { app: 'juego', nombre: 'Hora punta', icono: 'route' }, // reemplaza al Vagón (plan 009 §2)
   { app: 'graffiti', nombre: 'Graffiti', icono: 'format_paint' },
   { app: 'mosaicos', nombre: 'Mosaicos', icono: 'grid_view' },
-  { app: 'audioreactiva', nombre: 'Audioreactiva', icono: 'graphic_eq' },
+  { app: 'audioreactiva', nombre: 'Audio\u00ADreactiva', icono: 'graphic_eq' },
   { app: 'teatro', nombre: 'Teatro', icono: 'movie' },
   { app: 'grabado', nombre: 'Grabado', icono: 'texture' },
   { app: 'fotomaton', nombre: 'Fotomatón', icono: 'photo_camera' },

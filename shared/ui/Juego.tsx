@@ -29,7 +29,7 @@ export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string
   if (config.modoJuego && !codigo && !libre) return <Desbloqueo titulo={titulo} alEntrar={c => { entrarJugador(c, app); setCodigo(c); setRecien(c); }} alSinCredencial={() => { entrarSinCredencial(); setLibre(true); }} alStaff={() => setStaff(true)} />;
   return (<>
     {children}
-    {recien && <p className="k-juego-aviso" role="status"><Icono nombre="approval" />Juegas con <b>{recien}</b>: lo que te lleves de aquí suma a tu credencial.</p>}
+    {recien && <p className="k-juego-aviso" role="status"><Icono nombre="approval" /><span>Juegas con <b>{recien}</b>: lo que te lleves de aquí suma a tu credencial.</span></p>}
     {ganado && (
       <div className="k-quiosco" role="dialog" aria-modal="true" aria-labelledby="timbre-t">
         <div className="k-panel k-quiosco-caja">

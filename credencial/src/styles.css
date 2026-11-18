@@ -241,7 +241,7 @@ label.btn { cursor: pointer; }
 .ranuras-afiche li > b { font: 700 13px "IBM Plex Mono", monospace; color: var(--ink); }
 .recursos { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .recursos li { min-height: 50px; min-width: 0; display: grid; place-items: center; align-content: center; gap: 2px; padding: 4px 2px; border: 2px dashed var(--line); border-radius: var(--rb); color: var(--muted); font: 600 11px/1.1 "DM Sans", sans-serif; text-align: center; }
-.recursos li > span:not(.material-symbols-outlined) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recursos li > span:not(.material-symbols-outlined) { max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; hyphens: manual; }
 .recursos li.lleno { border: 2px solid var(--ink); background: var(--accent); color: var(--on-accent); }
 [data-visual="Pixel"] .recursos li { font: 400 9px/1.1 "Silkscreen", monospace; }
 .recursos li.con-imagen { position: relative; overflow: hidden; padding: 0; align-content: end; background: var(--ink); }
