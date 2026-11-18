@@ -20,6 +20,8 @@
 
 - **Tejido (AF01) no se reconocía en pantalla:** los negros de una pantalla o una cámara se ven azulados y la prueba de color lo descartaba. Ahora la forma pesa más la luz que los canales de color, los bloques oscuros casi no cuentan en el color y se perdona un tinte general leve de la luz. Banco de condiciones duras (afiche al 40–90 % de la guía; luz de pantalla, cálida y oscura; ruido y compresión): 119 de 120. Banco anterior: 78 de 78; 0 de 85 no-afiches aceptados.
 
+- **18 nov · afiches A3 actualizados:** las miniaturas salen de Figma (sección «afiches», 1044:12794): AF02 Ven a ver, AF03 Diseño con raíces (pingüino, reemplaza al Sol), AF04 Ven a crear, AF05 Metro, AF06 Ven a jugar. **Tejido (AF01) salió.** La prueba de color vuelve a ser un promedio pesado (lo oscuro pesa menos, pero un afiche casi negro como Metro se juzga por sus partes de color): con el ajuste anterior, piezas negras sobre fondo claro pasaban por Metro. Con los 5 afiches nuevos: condiciones duras 99 de 100, banco normal 65 de 65, no-afiches 0 de 87 (incluidos el Tejido y el Sol viejos).
+
 ## Pruebas (simuladas)
 - 78 fotos simuladas de los 6 afiches: de frente, más grande, más chico, corrido, inclinado 20° y 35°, desde abajo, girado 8°, poca luz, luz cálida, desenfocado, reflejo y en la pared con otros afiches. Reconoce 77 sin confundir ninguno; Tejido con muy poca luz queda bajo el umbral.
 - 85 imágenes que no son afiches (piezas de las experiencias, personajes, estampillas, pared): ninguna pasa.
