@@ -37,6 +37,19 @@ export function medidaSticker(id: string): { w: number; h: number } | null {
   return { w: s.ancho, h: (s.ancho * im.naturalHeight) / im.naturalWidth };
 }
 
+// Índice del sticker pegado bajo el punto (celdas del muro, con decimales), mirando primero el de más arriba. -1 si no hay.
+export function stickerEn(stickers: Estampa[], fx: number, fy: number): number {
+  for (let i = stickers.length - 1; i >= 0; i--) {
+    const e = stickers[i], m = medidaSticker(e.id);
+    if (!m) continue;
+    const a = (-e.giro * Math.PI) / 180, dx = fx - e.x, dy = fy - e.y;
+    const lx = dx * Math.cos(a) - dy * Math.sin(a), ly = dx * Math.sin(a) + dy * Math.cos(a);
+    // un poco de holgura: el dedo es más grueso que el troquel
+    if (Math.abs(lx) <= (m.w * e.escala) / 2 + 1 && Math.abs(ly) <= (m.h * e.escala) / 2 + 1) return i;
+  }
+  return -1;
+}
+
 export function dibujarSticker(ctx: CanvasRenderingContext2D, c: number, e: Estampa) {
   const s = STICKERS.find(k => k.id === e.id), m = medidaSticker(e.id);
   if (!s || !m) return;
