@@ -18,6 +18,8 @@
 - **Solo reconocer:** la pantalla de la cacería ya no tiene campo de código; basta apuntar al afiche. El QR del sello se sigue leyendo en silencio.
 - **Diagnóstico:** `#/afiches?ver` muestra en vivo los dos afiches más parecidos y sus puntajes, para ajustar el umbral con los impresos.
 
+- **Tejido (AF01) no se reconocía en pantalla:** los negros de una pantalla o una cámara se ven azulados y la prueba de color lo descartaba. Ahora la forma pesa más la luz que los canales de color, los bloques oscuros casi no cuentan en el color y se perdona un tinte general leve de la luz. Banco de condiciones duras (afiche al 40–90 % de la guía; luz de pantalla, cálida y oscura; ruido y compresión): 119 de 120. Banco anterior: 78 de 78; 0 de 85 no-afiches aceptados.
+
 ## Pruebas (simuladas)
 - 78 fotos simuladas de los 6 afiches: de frente, más grande, más chico, corrido, inclinado 20° y 35°, desde abajo, girado 8°, poca luz, luz cálida, desenfocado, reflejo y en la pared con otros afiches. Reconoce 77 sin confundir ninguno; Tejido con muy poca luz queda bajo el umbral.
 - 85 imágenes que no son afiches (piezas de las experiencias, personajes, estampillas, pared): ninguna pasa.

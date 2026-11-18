@@ -17,10 +17,11 @@ const ESCALAS = [0.78, 0.86, 0.94, 1.02, 1.1];
 const GUIAS = [0.55, 0.72, 0.9]; // ancho de la guía respecto de lo visible; la gente no encuadra exacto
 export const UMBRAL = 0.34;      // puntaje mínimo del mejor afiche
 export const MARGEN = 0.12;      // ventaja mínima sobre el segundo
+const TINTE = 0.05;             // tinte general de la luz que se perdona (en cromaticidad)
 const SEGUIDOS = 3;              // cuadros seguidos con el mismo afiche antes de darlo por encontrado
 
 type Canales = Float32Array[];
-interface Plantilla { tw: number; th: number; c: Canales; cr: Float32Array; cg: Float32Array }
+interface Plantilla { tw: number; th: number; c: Canales; cr: Float32Array; cg: Float32Array; luz: Float32Array }
 export interface Preparado { id: string; plantillas: Plantilla[] }
 export interface Puntaje { id: string; puntaje: number }
 
@@ -58,7 +59,7 @@ export function prepararAfiches(afiches: { id: string; rgba: ArrayLike<number>; 
     plantillas: ESCALAS.map(s => {
       const tw = Math.round(guiaW * s), th = Math.round(guiaW * s * (a.h / a.w));
       const ch = canales(a.rgba, a.w, a.h, 0, 0, a.w, a.h, tw, th);
-      return { tw, th, c: ch.slice(0, 3).map(normalizar), cr: ch[3], cg: ch[4] };
+      return { tw, th, c: ch.slice(0, 3).map(normalizar), cr: ch[3], cg: ch[4], luz: ch[0] };
     }),
   }));
 }
@@ -68,7 +69,7 @@ function puntuarGuia(preparados: Preparado[], rgba: ArrayLike<number>, w: number
   const gw = w * guia, gh = gw * 4 / 3;
   const cw = gw * AIRE, ch = gh * AIRE, x0 = (w - cw) / 2, y0 = (h - ch) / 2;
   const cam = canales(rgba, w, h, x0, y0, cw, ch, GW, GH);
-  const pesos = [1, 0.6, 0.6], sumaPesos = 2.2;
+  const pesos = [1, 0.35, 0.35], sumaPesos = 1.7; // la luz manda: los canales de color cambian con el balance de la cámara
   return preparados.map(p => {
     let mejor = -1, donde: { t: Plantilla; dx: number; dy: number } | null = null;
     for (const t of p.plantillas) {
@@ -94,20 +95,28 @@ function puntuarGuia(preparados: Preparado[], rgba: ArrayLike<number>, w: number
         }
     }
     if (!donde || mejor <= 0) return { id: p.id, puntaje: mejor };
-    // Color en una grilla de 4 × 4 sobre el afiche encontrado.
+    // Color en una grilla de 4 × 4 sobre el afiche encontrado. Las zonas oscuras pesan menos (ahí el color de una
+    // cámara o de una pantalla no es confiable: el negro se ve azulado) y se descuenta un tinte general leve de la
+    // luz (azulada, cálida), con tope, para que un amarillo nunca pase por un blanco.
     const { t, dx, dy } = donde;
-    let d = 0, nb = 0;
+    const bloques: { dr: number; dg: number; peso: number }[] = [];
     for (let by = 0; by < 4; by++) for (let bx = 0; bx < 4; bx++) {
-      let tr = 0, tg = 0, kr = 0, kg = 0, m = 0;
+      let tr = 0, tg = 0, kr = 0, kg = 0, luz = 0, m = 0;
       for (let y = Math.floor(by * t.th / 4); y < Math.floor((by + 1) * t.th / 4); y++) {
         const cy = y + dy; if (cy < 0 || cy >= GH) continue;
         for (let x = Math.floor(bx * t.tw / 4); x < Math.floor((bx + 1) * t.tw / 4); x++) {
-          tr += t.cr[y * t.tw + x]; tg += t.cg[y * t.tw + x]; kr += cam[3][cy * GW + x + dx]; kg += cam[4][cy * GW + x + dx]; m++;
+          tr += t.cr[y * t.tw + x]; tg += t.cg[y * t.tw + x]; kr += cam[3][cy * GW + x + dx]; kg += cam[4][cy * GW + x + dx];
+          luz += t.luz[y * t.tw + x]; m++;
         }
       }
-      if (m) { d += Math.hypot(tr / m - kr / m, tg / m - kg / m); nb++; }
+      if (m) bloques.push({ dr: kr / m - tr / m, dg: kg / m - tg / m, peso: Math.min(1, Math.max(0.1, luz / m / 200)) });
     }
-    const color = Math.max(0, 1 - (d / nb) / 0.12);
+    const mediana = (v: number[]) => { const o = [...v].sort((a, b) => a - b); return o[Math.floor(o.length / 2)] ?? 0; };
+    const tope = (v: number) => Math.max(-TINTE, Math.min(TINTE, v));
+    const or = tope(mediana(bloques.map(b => b.dr))), og = tope(mediana(bloques.map(b => b.dg)));
+    let d = 0;
+    for (const b of bloques) { d += b.peso * Math.hypot(b.dr - or, b.dg - og); }
+    const color = Math.max(0, 1 - (d / bloques.length) / 0.12); // los bloques oscuros casi no cuentan
     return { id: p.id, puntaje: mejor * (0.4 + 0.6 * color) };
   });
 }
