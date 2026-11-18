@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CODIGO, EVENTO_TIMBRE, entrarJugador, entrarSinCredencial, sinCredencial, guardarConfig, hashPin, jugador, leerConfig, normalizarCodigo, pinDeDemo, verificarPin, type ConfigMesa, type DetalleCreacion } from '../juego';
+import { CODIGO, EVENTO_TIMBRE, configRemota, entrarJugador, entrarSinCredencial, sinCredencial, guardarConfig, hashPin, idMesa, jugador, leerConfig, normalizarCodigo, pideReinicio, pinDeDemo, traerConfigRemota, verificarPin, type ConfigMesa, type DetalleCreacion } from '../juego';
 import { BotonAccion, Interruptor } from './Kit';
 import { QrEncargado } from './QrEncargado';
 
@@ -22,6 +22,18 @@ export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string
     const alGanar = (e: Event) => setGanado((e as CustomEvent<DetalleCreacion>).detail);
     window.addEventListener(EVENTO_TIMBRE, alGanar);
     return () => window.removeEventListener(EVENTO_TIMBRE, alGanar);
+  }, []);
+  // Plan 015: el PC madre manda (modo juego, código de la estación 2, reinicios). Se pregunta al abrir y cada 30 s.
+  useEffect(() => {
+    let vivo = true;
+    const preguntar = () => traerConfigRemota().then(c => {
+      if (!vivo || !c) return;
+      if (pideReinicio(c)) { try { sessionStorage.clear(); } catch { /* nada */ } location.reload(); return; }
+      setConfig(leerConfig());
+    });
+    preguntar();
+    const id = setInterval(preguntar, 30000);
+    return () => { vivo = false; clearInterval(id); };
   }, []);
 
   if (staff) return <PanelStaff app={app} alSalir={() => { setConfig(leerConfig()); setStaff(false); history.replaceState(null, '', location.pathname); }} />;
@@ -91,7 +103,9 @@ const PanelStaff: React.FC<{ app: string; alSalir: () => void }> = ({ app, alSal
   const [config, setConfig] = useState<ConfigMesa>(leerConfig);
   const [nuevo, setNuevo] = useState('');
   const [aviso, setAviso] = useState('');
-  const cambiar = (c: Partial<ConfigMesa>) => { const n = { ...config, ...c }; setConfig(n); guardarConfig(n); setAviso('Guardado en esta tablet.'); };
+  const pc = configRemota();
+  const cambiar = (c: Partial<ConfigMesa>) => { const n = { ...config, ...c, manual: !!pc || config.manual }; setConfig(n); guardarConfig(n); setAviso(pc ? 'Guardado solo en esta tablet: ya no sigue al PC madre hasta que lo pidas.' : 'Guardado en esta tablet.'); };
+  const seguirPc = () => { const n = { ...config, manual: false }; guardarConfig(n); setConfig(leerConfig()); setAviso('Esta tablet vuelve a seguir al PC madre.'); };
 
   return (
     <div className="k-tutorial">
@@ -107,10 +121,14 @@ const PanelStaff: React.FC<{ app: string; alSalir: () => void }> = ({ app, alSal
           </form>
         ) : (
           <div className="k-juego-form">
+            <p className="k-ayuda">Mesa <b>{idMesa()}</b>. {pc
+              ? (config.manual ? 'Esta tablet tiene una configuración propia (respaldo): no sigue al PC madre.' : 'Esta tablet sigue al PC madre (Mesas): el modo juego y el código de la estación 2 se cambian allá. Cambiarlos aquí es solo un respaldo para esta tablet.')
+              : 'Sin conexión con el PC madre: la configuración queda en esta tablet.'}</p>
+            {pc && config.manual && <div className="k-tutorial-acciones"><BotonAccion icono="refresh" texto="Volver a seguir al PC madre" onClick={seguirPc} /></div>}
             <Interruptor id="modo-juego" texto="Modo juego: pedir el código de la credencial" activo={config.modoJuego} onCambiar={v => cambiar({ modoJuego: v })} />
             <label className="k-etq" htmlFor="token-2">Código de la estación 2 (el mismo de los QR impresos)</label>
             <input id="token-2" className="k-juego-input" value={config.token2} autoComplete="off" onChange={e => cambiar({ token2: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4) })} />
-            <label className="k-etq" htmlFor="pin-nuevo">PIN nuevo para esta tablet (4 a 8 números)</label>
+            <label className="k-etq" htmlFor="pin-nuevo">{pc ? 'PIN de respaldo, solo para cuando esta tablet no tenga conexión (4 a 8 números)' : 'PIN nuevo para esta tablet (4 a 8 números)'}</label>
             <div className="k-tutorial-acciones">
               <input id="pin-nuevo" className="k-juego-input" type="password" inputMode="numeric" autoComplete="off" value={nuevo} onChange={e => setNuevo(e.target.value.replace(/\D/g, '').slice(0, 8))} />
               <BotonAccion icono="check" texto="Cambiar PIN" disabled={nuevo.length < 4} onClick={async () => { cambiar({ pinHash: await hashPin(nuevo) }); setNuevo(''); }} />
