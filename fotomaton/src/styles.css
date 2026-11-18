@@ -1,8 +1,6 @@
-@import '../../shared/somos-ui.css';
-@import '../../shared/somos-fonts.css';
-@import '../../shared/somos-icons.css';
+@import '../../shared/somos-ui.css'; /* solo para la página de descarga /f/:id */
+@import '../../shared/ui/herramienta.css';
 
-/* Solo lo propio del Fotomatón; lo demás vive en shared/somos-ui.css */
 .carga{position:absolute;inset:0;display:grid;place-items:center;background:var(--bg);overflow:hidden;animation:aparece .25s ease-out}
 .carga::before{content:"";position:absolute;inset:-30%;transform:rotate(15deg);background-image:radial-gradient(circle,var(--accent) var(--p),transparent calc(var(--p) + 1.5%));background-size:20px 20px;animation:puntos 1.4s ease-in-out infinite alternate}
 .carga span{position:relative;background:var(--surface);color:var(--ink);padding:12px 18px;border-radius:var(--rb);border:var(--borde);font-family:var(--fuente-etq);font-weight:700;font-size:15px}
@@ -27,78 +25,56 @@ video.oculto{position:absolute;width:1px;height:1px;opacity:0;pointer-events:non
 .descarga img{width:100%;height:auto;border-radius:var(--r);box-shadow:var(--sombra);border:var(--borde)}
 .link-btn{text-decoration:none}
 
-/* --- Herramienta (plan 012): abajo solo el disparador; todo lo demás en el panel derecho, que hace scroll solo --- */
-.btn-inicio{min-height:44px;padding:0 18px;font-size:15px}
-.k-lienzo .escenario-fit{width:100%;height:100%;display:grid;place-items:center}
-.k-lateral{overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;-webkit-overflow-scrolling:touch}
-.panel-foto{display:grid;gap:18px;align-content:start;min-width:0}
-.panel-foto .k-seccion{gap:10px}
-.panel-foto .k-seccion>.k-btn{width:100%;justify-content:center;min-height:48px}
-.panel-foto .k-seg>button{min-height:48px}
-[data-visual="Pixel"] .panel-foto .k-seg>button{font-size:12px;padding:0 4px}
+/* --- Herramienta sobre el kit v2 (plan 014): la pantalla, las barras y el panel vienen de shared/ui/herramienta.css.
+   Aquí solo lo propio del Fotomatón, siempre con tokens --h-*. --- */
+.foto-lienzo{overflow:hidden;border-radius:var(--h-radio-chico)}
+.foto-lienzo .lienzo-wrap{position:absolute;inset:0;width:100%;aspect-ratio:auto;border:0;border-radius:0;box-shadow:none;margin:0;background:var(--h-superficie-2)}
+.foto-lienzo .lienzo-wrap canvas{width:100%;height:100%;display:block}
+.foto-lienzo .carga span{background:var(--h-superficie);color:var(--h-texto);border:var(--h-trazo) solid var(--h-borde);border-radius:var(--h-radio);font:600 15px var(--h-fuente)}
+.foto-lienzo .carga::before{background-image:radial-gradient(circle,var(--h-acento) var(--p),transparent calc(var(--p) + 1.5%))}
+.foto-lienzo .error-cam{background:var(--h-superficie-2);color:var(--h-texto)}
+.acciones-cam{display:flex;gap:var(--h-e2);flex-wrap:wrap;justify-content:center}
 
-/* Disparador: redondo, grande, con ícono y texto */
-.k-inferior{justify-content:center;padding:8px 12px}
-.disparador{width:88px;height:88px;border-radius:50%;border:4px solid var(--ink);background:var(--accent);color:var(--on-accent,#fff);
-  display:grid;place-content:center;justify-items:center;gap:0;cursor:pointer;box-shadow:0 0 0 4px var(--surface),0 0 0 7px var(--ink);
-  transition:transform .12s;-webkit-tap-highlight-color:transparent;margin:6px}
-.disparador .material-symbols-outlined{font-size:34px;line-height:1}
-.disparador-texto{font:800 14px/1.1 "DM Sans",sans-serif;letter-spacing:.01em;white-space:nowrap}
-[data-visual="Pixel"] .disparador-texto{font:400 11px/1.1 "Silkscreen",monospace;text-transform:uppercase}
+/* Abajo, al centro: solo el disparador (acción flotante grande); el estado de la cara a su izquierda */
+.pie-foto{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:var(--h-e3);width:100%}
+.estado-foto{margin:0;justify-self:end;text-align:right;font:600 var(--h-tam-chico)/1.25 var(--h-fuente);color:var(--h-texto-2);max-width:24ch}
+.disparador{width:80px;height:80px;border-radius:50%;border:0;background:var(--h-acento);color:var(--h-sobre-acento);
+  display:grid;place-content:center;justify-items:center;gap:0;cursor:pointer;box-shadow:0 0 0 4px var(--h-superficie),0 0 0 5px var(--h-borde),var(--h-sombra-flotante);
+  transition:transform var(--h-mov);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.disparador .material-symbols-outlined{font-size:32px;line-height:1}
+.disparador-texto{font:700 13px/1.1 var(--h-fuente);white-space:nowrap}
 .disparador:active:not(:disabled){transform:scale(.93)}
 .disparador:disabled{opacity:.45;cursor:default}
-.disparador:focus-visible{outline:3px solid var(--accent);outline-offset:8px}
+.disparador:focus-visible{outline:2px solid var(--h-acento);outline-offset:8px}
+@media (max-height:740px) and (orientation:landscape){.disparador{width:68px;height:68px}.disparador .material-symbols-outlined{font-size:26px}.disparador-texto{font-size:12px}}
+@media (orientation:portrait){.disparador{width:72px;height:72px}}
 
 /* Marcos: miniaturas grandes con su nombre */
-.marcos-grilla{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.marco-op{display:grid;gap:4px;justify-items:center;padding:4px 4px 6px;min-height:48px;border:2px solid transparent;border-radius:var(--rb);background:transparent;color:var(--ink);cursor:pointer;font:600 11.5px/1.15 "DM Sans",sans-serif;text-align:center;-webkit-tap-highlight-color:transparent}
-.marco-op img{width:100%;aspect-ratio:1;display:block;border-radius:min(var(--r),10px);box-shadow:0 0 0 1px rgba(0,0,0,.18)}
-.marco-op[aria-checked="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
-.marco-op[aria-checked="true"] span{font-weight:800}
-[data-visual="Pixel"] .marco-op{border-radius:0;font-size:11px}
-[data-visual="Pixel"] .marco-op img{border-radius:0;image-rendering:pixelated}
-[data-visual="Pixel"] .marco-op[aria-checked="true"]{border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);background:#FFC20E}
-[data-visual="Orgánica"] .marco-op{border-radius:22px}
-[data-visual="Orgánica"] .marco-op img{border-radius:16px}
+.marcos-grilla{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--h-e2)}
+.marco-op{display:grid;gap:var(--h-e1);justify-items:center;padding:var(--h-e1) var(--h-e1) var(--h-e2);min-height:var(--h-toque);border:2px solid transparent;border-radius:var(--h-radio);background:transparent;color:var(--h-texto);cursor:pointer;font:600 12px/1.15 var(--h-fuente);text-align:center;-webkit-tap-highlight-color:transparent}
+.marco-op img{width:100%;aspect-ratio:1;display:block;border-radius:var(--h-radio-chico);box-shadow:0 0 0 1px var(--h-borde)}
+.marco-op:hover{background:var(--h-superficie-2)}
+.marco-op[aria-checked="true"]{border-color:var(--h-acento);background:var(--h-acento-suave);color:var(--h-acento)}
+.marco-op[aria-checked="true"] span{font-weight:700}
 
-/* Paleta: muestra grande de las tintas sobre su papel + nombre */
-.tintas{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.tinta-op{min-width:0;min-height:56px;display:grid;gap:5px;padding:6px;border:2px solid var(--line,#D4D4D2);border-radius:var(--rb);background:var(--surface);color:var(--ink);cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
-[data-visual="Orgánica"] .tinta-op{border-radius:18px}
-.tinta-op .muestra{display:flex;gap:3px;padding:4px;height:30px;box-sizing:border-box;border-radius:min(var(--r),8px);box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
-.tinta-op .muestra i{flex:1;border-radius:min(var(--rt),50%)}
-[data-visual="Geométrica"] .tinta-op .muestra i{border-radius:0}
-[data-visual="Pixel"] .tinta-op .muestra i{border-radius:0;box-shadow:inset -3px -3px 0 rgba(0,0,0,.25)}
-.tinta-op .nombre{font:700 13px/1.15 "DM Sans",sans-serif}
-[data-visual="Pixel"] .tinta-op .nombre{font:400 10px/1.2 "Silkscreen",monospace;text-transform:uppercase}
-.tinta-op[aria-checked="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 2px var(--accent),0 0 0 2px var(--accent)}
-[data-visual="Pixel"] .tinta-op{border:3px solid var(--ink);border-radius:0}
-[data-visual="Pixel"] .tinta-op[aria-checked="true"]{background:#FFC20E;box-shadow:4px 4px 0 var(--ink)}
+/* Paleta: muestra de las tintas sobre su papel + nombre */
+.tintas{display:grid;grid-template-columns:1fr 1fr;gap:var(--h-e2)}
+.tinta-op{min-width:0;min-height:56px;display:grid;gap:5px;padding:6px;border:var(--h-trazo) solid var(--h-borde);border-radius:var(--h-radio);background:var(--h-superficie);color:var(--h-texto);cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+.tinta-op .muestra{display:flex;gap:3px;padding:4px;height:30px;box-sizing:border-box;border-radius:var(--h-radio-chico);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.tinta-op .muestra i{flex:1;border-radius:2px}
+.tinta-op .nombre{font:600 13px/1.15 var(--h-fuente)}
+.tinta-op[aria-checked="true"]{border-color:var(--h-acento);box-shadow:0 0 0 1px var(--h-acento);background:var(--h-acento-suave)}
 
 /* Placas de impresión: se apagan y prenden como el ojo de un canal en Photoshop */
-.placas{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.placas{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--h-e2)}
 .placas[data-n="2"]{grid-template-columns:repeat(2,minmax(0,1fr))}
 .placas[data-n="1"]{grid-template-columns:minmax(0,1fr);max-width:50%}
-.placa{margin:0;padding:0;display:grid;gap:4px;justify-items:stretch;border:0;background:transparent;color:var(--ink);cursor:pointer;min-height:48px;-webkit-tap-highlight-color:transparent}
-.placa canvas{width:100%;aspect-ratio:1;display:block;border:3px solid var(--c);background:#fff;transition:opacity .15s,filter .15s}
-.placa-pie{display:flex;align-items:center;justify-content:center;gap:4px;font:800 13px/1 "DM Sans",sans-serif;min-height:24px}
+.placa{margin:0;padding:0;display:grid;gap:4px;justify-items:stretch;border:0;background:transparent;color:var(--h-texto);cursor:pointer;min-height:var(--h-toque);-webkit-tap-highlight-color:transparent}
+.placa canvas{width:100%;aspect-ratio:1;display:block;border:3px solid var(--c);border-radius:var(--h-radio-chico);background:#fff;transition:opacity var(--h-mov),filter var(--h-mov)}
+.placa-pie{display:flex;align-items:center;justify-content:center;gap:4px;font:700 13px/1 var(--h-fuente);min-height:24px}
 .placa .ojo{width:20px;height:20px;flex:none}
 .placa[aria-pressed="false"] canvas{opacity:.22;filter:grayscale(1);border-style:dashed}
-.placa[aria-pressed="false"] .placa-pie{color:var(--muted)}
-.placa:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
-
-@media (max-width:1100px) and (min-aspect-ratio:1/1){.k-bajada{display:none}}
-@media (max-height:740px) and (min-aspect-ratio:1/1){.disparador{width:76px;height:76px}.disparador .material-symbols-outlined{font-size:28px}}
-/* En vertical: lienzo arriba, el panel debajo (con su scroll, en dos columnas) y el disparador al final */
-@media (max-aspect-ratio:1/1){
-  .k-cuerpo{grid-template-rows:minmax(0,1fr) minmax(0,38dvh) auto}
-  .k-lateral{display:block}
-  .panel-foto{display:block;columns:2;column-gap:16px}
-  .panel-foto>.k-seccion{break-inside:avoid;margin-bottom:16px}
-  .disparador{width:80px;height:80px}
-  .disparador-texto{font-size:12px}
-}
-@media (prefers-reduced-motion:reduce){.disparador,.placa canvas{transition:none}}
+.placa[aria-pressed="false"] .placa-pie{color:var(--h-texto-2)}
 
 /* Portada: texto a la izquierda, demo a la derecha; todo cabe por alto */
 .portada .hero-texto{min-width:0;min-height:0;display:flex;align-items:center}
@@ -126,3 +102,6 @@ video.oculto{position:absolute;width:1px;height:1px;opacity:0;pointer-events:non
 .caja-qr .qr-caja { width: min(100%, 300px, 42dvh); padding: 12px; }
 .caja-qr .k-ayuda { margin: 0; text-align: center; }
 .acciones-qr { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+/* somos-ui.css (solo para /f/:id) trae un h1 gigante por lenguaje: en la herramienta manda el título del kit v2 */
+.h-marco .h-titulo{font:700 var(--h-tam-titulo)/1.15 var(--h-fuente-titulo);letter-spacing:0;margin:0}
