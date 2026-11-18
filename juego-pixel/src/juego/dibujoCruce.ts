@@ -266,21 +266,24 @@ export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto:
     ctx.fillStyle = '#FFFFFF'; ctx.fillRect(ox + 2 * p, oy + 2 * p, 2 * p, p);
   }
 
+  const ROJO_RED = '#D7262E'; // rojo de las micros de la red (excepción de paleta, solo aquí)
   function vehiculo(veh: Vehiculo, y: number, dir: 1 | -1) {
     const x0 = veh.x, x1 = veh.x + veh.largo, p = u();
     sombraSuelo(x0 + 0.05, x1 - 0.05, y + 0.14, y + 0.86, 0);
     if (veh.tipo === 'micro') {
-      // Micro de Santiago: hueso, franja azul y lapislázuli, ventanas en fila, puerta, aire acondicionado y letrero.
+      // Micro de la red de transporte de Santiago (pedido de Pipe, 18 nov): blanca, faldón rojo y franja roja bajo
+      // las ventanas, como las micros eléctricas de la red. Sin logo (es una marca). El rojo es una excepción a la
+      // paleta «Línea azul», que lo reserva al isotipo INACAP.
       for (const rx of [0.35, veh.largo - 0.75]) rueda(x0 + rx, y);
-      caja(x0, x1, y + 0.12, y + 0.88, 0.14, 1.02, '#F4EEE3', '#E2D9C9', '#C9BFAE');
+      caja(x0, x1, y + 0.12, y + 0.88, 0.14, 1.02, '#FFFFFF', '#E9E9E6', '#D2D2CE');
       enFrente(x0, y + 0.12, 1.02, () => {
         const L = Math.round((x1 - x0) * c), H = Math.round(0.88 * Z * c);
         ctx.fillStyle = NEGRO; ctx.fillRect(0, Math.round(H * 0.1), L, Math.round(H * 0.38));
         const n = 5, w = Math.round((L - 2 * p) / n);
         for (let k = 0; k < n; k++) vidrio(w - p, Math.round(H * 0.34), p + k * w, Math.round(H * 0.12));
-        ctx.fillStyle = '#0062B8'; ctx.fillRect(0, Math.round(H * 0.56), L, Math.round(H * 0.14));
-        ctx.fillStyle = '#2B4BD8'; ctx.fillRect(0, Math.round(H * 0.72), L, 2 * p);
-        ctx.fillStyle = '#8F8F8A'; ctx.fillRect(0, Math.round(H * 0.86), L, Math.round(H * 0.14));
+        ctx.fillStyle = ROJO_RED; ctx.fillRect(0, Math.round(H * 0.52), L, 2 * p); // franja bajo las ventanas
+        ctx.fillStyle = ROJO_RED; ctx.fillRect(0, Math.round(H * 0.74), L, Math.round(H * 0.26)); // faldón
+        ctx.fillStyle = '#9E1A1F'; ctx.fillRect(0, Math.round(H * 0.74), L, p);
         // puerta (cerca del frente)
         const px = dir > 0 ? L - Math.round(c * 0.7) : Math.round(c * 0.25);
         ctx.fillStyle = NEGRO; ctx.fillRect(px, Math.round(H * 0.1), Math.round(c * 0.42), Math.round(H * 0.86));
@@ -290,6 +293,7 @@ export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto:
       caja(x0 + 0.8, x1 - 0.9, y + 0.3, y + 0.7, 1.02, 1.14, '#B9B9B3'); // aire acondicionado
       enCostado(x1, y + 0.12, 1.02, () => {
         const L = Math.round(0.76 * c), H = Math.round(0.88 * Z * c);
+        ctx.fillStyle = ROJO_RED; ctx.fillRect(0, Math.round(H * 0.66), L, Math.round(H * 0.24)); // frente rojo
         if (dir > 0) { // frente: parabrisas, letrero LED y focos
           ctx.fillStyle = NEGRO; ctx.fillRect(p, Math.round(H * 0.06), L - 2 * p, Math.round(H * 0.12));
           ctx.fillStyle = '#FFC20E'; for (let k = 0; k < 4; k++) ctx.fillRect(3 * p + k * 3 * p, Math.round(H * 0.09), 2 * p, p);
