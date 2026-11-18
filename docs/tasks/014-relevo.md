@@ -16,14 +16,16 @@ done
 ```
 **Si la rama tiene `AVANCE.md`, está a medias**: retómala desde su «Falta». Si no tiene, está terminada.
 
-## 2. Estado (18 nov, 16:20 UTC)
+## 2. Estado (18 nov, 17:00 UTC)
+Lo terminado se va sumando a la rama **`amaro/ronda-3`** (PR #37): para integrar algo nuevo, únelo ahí.
+
 | Rama | Estado | Qué falta |
 |---|---|---|
-| `amaro/audioreactiva-r3` | **Terminada** | Túnel = C3, Bum/Chas/dedo propios por escena, `dist/` del evento. Falta probar con dedo y parlante |
+| `amaro/audioreactiva-r3` | **Terminada, en el PR #37** | Túnel = C3, Bum/Chas/dedo propios por escena, `dist/` del evento. Falta probar con dedo y parlante |
 | `amaro/hora-punta-r3` | A medias (agente trabajando) | Inacapín de Figma, jefe que salta y se mueve (Snow Bros + Cuphead), Grises al estilo Inacapín, bola de pintura, andén más grande, personaje y vehículos Pixel. Ver su `AVANCE.md` |
 | `amaro/fotomaton-r3` | A medias (agente trabajando) | Kit v2, triángulos, ícono de usuario en previews, Señal con stickers de calle, Metro de L1. **Prioridad: permiso de cámara en la tablet, cámara en retrato, rendimiento** (plan 014 §1) |
-| `amaro/menu-y-grabado-r3` | A medias (agente trabajando) | Menú del hub con el kit v2 y miniatura nueva de Hora punta; Grabado con solo marcos Orgánica que **rodean** el papel |
-| `amaro/hub-r3` | **Sin empezar** | Encargo B5 abajo |
+| `amaro/menu-y-grabado-r3` | **Terminada, en el PR #37** | Menú con el kit v2 y miniatura del cruce isométrico; Grabado con solo marcos Orgánica alrededor del papel (`VENTANA_MARCO = 210` en `grabado/src/lib/afiche.ts` para el ancho) |
+| `amaro/hub-r3` | En curso desde las 17:00 UTC (agente de Amaro); si tiene `AVANCE.md`, retomar | Encargo B5 abajo |
 | `amaro/teatro-r3` | **Sin empezar** | Encargo B6 abajo |
 | `amaro/graffiti-r3` | **Sin empezar** | Encargo B7 abajo |
 
