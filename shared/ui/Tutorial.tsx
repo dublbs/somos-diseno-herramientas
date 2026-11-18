@@ -7,6 +7,11 @@ const Icono: React.FC<{ nombre: string }> = ({ nombre }) => <span className="mat
 
 // Pedido de terminar la sesión de la mesa ya (lo atiende el Quiosco; si no hay Quiosco, se recarga).
 export const EVENTO_TERMINAR = 'sd:terminar-mesa';
+// Termina la sesión de la mesa: el Quiosco borra la credencial asociada y lo creado y vuelve al inicio.
+export function terminarMesa() {
+  const atendido = !window.dispatchEvent(new Event(EVENTO_TERMINAR, { cancelable: true }));
+  if (!atendido) { try { sessionStorage.clear(); } catch { /* nada */ } location.reload(); }
+}
 export interface PasoTutorial { icono: string; texto: React.ReactNode }
 export interface AccionTutorial { texto: string; icono: string; alTocar: () => void }
 

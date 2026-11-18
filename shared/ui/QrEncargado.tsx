@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { enlaceJugar, entrarJugador, jugador, leerConfig, leerEmparejamiento, nuevoNonce, pinDeDemo, verificarPin } from '../juego';
 import { remoto } from '../datos';
-import { EVENTO_TERMINAR } from './Tutorial';
+import { terminarMesa } from './Tutorial';
 
 // Botón del encargado (plan 013 §QR): para quien ya está jugando sin haber puesto su credencial. El staff toca el
 // botón chico de arriba al centro (arriba al centro, la franja libre de las barras superiores; una app la corre con `x` si ahí tiene algo), escribe su PIN y la tablet muestra un QR del timbre 2 de esta experiencia
@@ -74,11 +74,6 @@ export const QrEncargado: React.FC<{ app: string; x?: string }> = ({ app, x = '5
     if (await verificarPin(pin)) { try { sessionStorage.setItem(LLAVE, String(Date.now())); } catch { /* nada */ } setListo(true); setError(''); }
     else setError('PIN incorrecto.');
     setPin('');
-  };
-  // Termina la sesión: el Quiosco borra la credencial asociada y lo creado y vuelve al inicio. Sin Quiosco, se recarga.
-  const terminarMesa = () => {
-    const atendido = !window.dispatchEvent(new Event(EVENTO_TERMINAR, { cancelable: true }));
-    if (!atendido) { try { sessionStorage.clear(); } catch { /* nada */ } location.reload(); }
   };
   const cerrar = () => { setAbierto(false); setVista('menu'); setError(''); setPin(''); };
 
