@@ -7,11 +7,11 @@ export const ANCHO = 13;
 export const VISIBLES = 9; // filas que se ven
 export const META = 30; // la entrada del metro
 export const QUIETO_AVISO = 6000, QUIETO_FIN = 9000;
-const COLORES_AUTO = ['#FFC20E', '#00A651', '#2B4BD8', '#FF8FB1', '#7A2E8E'];
+const COLORES_AUTO = ['#FFC20E', '#00A651', '#2B4BD8', '#FF8FB1', '#7A2E8E', 'taxi', 'taxi']; // 'taxi': negro con techo amarillo (ronda 3)
 
 export type TipoFila = 'vereda' | 'plaza' | 'calle' | 'metro' | 'estacion';
 export type Obstaculo = 'arbol' | 'banca' | 'basurero';
-export interface Vehiculo { x: number; largo: number; tipo: 'auto' | 'micro'; color: string }
+export interface Vehiculo { x: number; largo: number; tipo: 'auto' | 'taxi' | 'micro'; color: string }
 export interface Fila {
   tipo: TipoFila;
   obstaculos: Map<number, Obstaculo>;
@@ -48,7 +48,7 @@ function nuevaFila(e: Cruce, y: number): Fila {
     const micro = azar(e) < 0.3;
     const largo = micro ? 3 : 2, hueco = Math.round(entre(e, 3.4, 6) - d) + largo;
     for (let x = entre(e, -2, 2); x < ANCHO + 4; x += hueco + Math.round(entre(e, 0, 3)))
-      f.vehiculos.push({ x, largo, tipo: micro ? 'micro' : 'auto', color: elegir(e, COLORES_AUTO) });
+      for (const color of [elegir(e, COLORES_AUTO)]) f.vehiculos.push({ x, largo, tipo: micro ? 'micro' : color === 'taxi' ? 'taxi' : 'auto', color: color === 'taxi' ? '#1E1C19' : color });
     if (azar(e) < 0.3) f.latas.set(Math.floor(entre(e, 1, ANCHO - 1)), elegir(e, PINTURAS)); // más riesgo, más pintura
   } else if (f.tipo === 'metro') {
     f.esperaTren = entre(e, 1500, 5000);
