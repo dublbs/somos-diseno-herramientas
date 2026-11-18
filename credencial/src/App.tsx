@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Crear } from './pages/Crear';
 import { Credencial } from './pages/Credencial';
 import { Sello } from './pages/Sello';
+import { Mesa } from './pages/Mesa';
 import { Escanear } from './pages/Escanear';
 import { Foto } from './pages/Foto';
 import { Canje } from './pages/Canje';
@@ -29,7 +30,8 @@ export type Ruta =
   | { vista: 'juego'; codigo: string; aviso?: string }
   | { vista: 'afiches' }
   | { vista: 'afiche'; secreto: string }
-  | { vista: 'flyer'; codigo: string };
+  | { vista: 'flyer'; codigo: string }
+  | { vista: 'mesa'; mesa: string; nonce: string; app?: string };
 
 export function leerRuta(hash: string): Ruta {
   const [camino, consulta = ''] = hash.replace(/^#/, '').split('?');
@@ -38,6 +40,7 @@ export function leerRuta(hash: string): Ruta {
   if ((m = p.match(/^\/c\/([A-Za-z0-9-]+)$/))) return { vista: 'carta', codigo: m[1].toUpperCase() };
   if ((m = p.match(/^\/sello\/(\d+)$/))) { const q = new URLSearchParams(consulta); return { vista: 'sello', sello: Number(m[1]), token: q.get('t') || '', clave: q.get('k') || undefined }; }
   if ((m = p.match(/^\/afiche\/([A-Za-z0-9]+)$/))) return { vista: 'afiche', secreto: m[1].toUpperCase() };
+  if (p === '/mesa') { const q = new URLSearchParams(consulta); return { vista: 'mesa', mesa: q.get('m') || '', nonce: q.get('n') || '', app: q.get('a') || undefined }; }
   if (p === '/escanear') return { vista: 'escanear' };
   if (p === '/foto') return { vista: 'foto' };
   if (p === '/canje') return { vista: 'canje' };
@@ -127,6 +130,7 @@ export const App: React.FC = () => {
       {ruta.vista === 'crear' && <Crear ir={ir} ponerTema={ponerTema} />}
       {ruta.vista === 'carta' && <Credencial key={ruta.codigo + (ruta.cara || '') + (ruta.timbre || '')} codigo={ruta.codigo} aviso={ruta.aviso} cara={ruta.cara} timbre={ruta.timbre} ir={ir} ponerTema={ponerTema} tema={tema} />}
       {ruta.vista === 'sello' && <Sello sello={ruta.sello} token={ruta.token} clave={ruta.clave} ir={ir} />}
+      {ruta.vista === 'mesa' && <Mesa mesa={ruta.mesa} nonce={ruta.nonce} app={ruta.app} ir={ir} />}
       {ruta.vista === 'escanear' && <Escanear ir={ir} />}
       {ruta.vista === 'foto' && <Foto ir={ir} ponerTema={ponerTema} />}
       {ruta.vista === 'canje' && <Canje ir={ir} ponerTema={ponerTema} />}

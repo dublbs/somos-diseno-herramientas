@@ -105,6 +105,28 @@ export function jugador(): { codigo: string; ganado: string[] } | null {
 export function entrarJugador(codigo: string, app = 'mesa') {
   try { sessionStorage.setItem(LLAVE_JUGADOR, JSON.stringify({ codigo, ganado: [] })); } catch { /* nada */ }
   abrirSesionMesa(idMesa(), app, codigo);
+  // Si la persona ya había exportado antes de asociarse (escaneó el QR después), esa creación suma ahora.
+  const previas = creadasSinJugador();
+  try { sessionStorage.removeItem(LLAVE_CREADAS); } catch { /* nada */ }
+  previas.forEach(a => otorgarCreacion(a));
+}
+// Lo exportado en esta sesión antes de que hubiera una credencial asociada (dura la sesión, como el jugador).
+const LLAVE_CREADAS = 'sd:creadas-sin-jugador';
+function creadasSinJugador(): string[] { try { const v = JSON.parse(sessionStorage.getItem(LLAVE_CREADAS) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } }
+
+// ---------- Jugar con QR (plan 014): la tablet muestra un QR y la credencial lo escanea ----------
+// El QR lleva la mesa y un número de un solo uso; la tablet pregunta a la base hasta que alguien lo escanea.
+export const nuevoNonce = () => Array.from(crypto.getRandomValues(new Uint8Array(10)), b => 'abcdefghijkmnpqrstuvwxyz23456789'[b % 32]).join('');
+export const enlaceJugar = (app: string, nonce: string) =>
+  new URL(`../../credencial/dist/#/mesa?m=${idMesa()}&n=${nonce}&a=${encodeURIComponent(app)}`, location.href).href;
+export async function leerEmparejamiento(nonce: string): Promise<string | null> {
+  if (!remoto) return null;
+  try {
+    const r = await fetch(`${URL_SB}/rest/v1/rpc/leer_emparejamiento`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({ p_mesa: idMesa(), p_nonce: nonce }) });
+    if (!r.ok) return null;
+    const c = await r.json();
+    return typeof c === 'string' && CODIGO.test(c) ? c : null;
+  } catch { return null; }
 }
 // Jugar sin credencial (plan 011): la persona juega y se lleva su creación por QR, sin timbres. Dura la sesión, como el
 // código: el quiosco la borra y la mesa vuelve a preguntar.
@@ -130,7 +152,13 @@ export const EVENTO_TIMBRE = 'sd:timbre-ganado';
 export interface DetalleCreacion { codigo: string; avance: Avance | null }
 export function otorgarCreacion(app: string) {
   const j = jugador();
-  if (!leerConfig().modoJuego || !j || j.ganado.includes(app)) return;
+  if (!j) {
+    // Sin credencial todavía: se recuerda por si la persona escanea el QR para jugar después de exportar.
+    const v = creadasSinJugador();
+    if (!v.includes(app)) try { sessionStorage.setItem(LLAVE_CREADAS, JSON.stringify([...v, app])); } catch { /* nada */ }
+    return;
+  }
+  if (j.ganado.includes(app)) return;
   try { sessionStorage.setItem(LLAVE_JUGADOR, JSON.stringify({ ...j, ganado: [...j.ganado, app] })); } catch { /* sin almacenamiento */ }
   publicar('timbre', { sello: 2, app }, j.codigo).catch(() => { /* queda el código para timbrar a mano */ });
   // Con Supabase la credencial queda timbrada al tiro; si falla (o sin conexión), la persona usa el código.

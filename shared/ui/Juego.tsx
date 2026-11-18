@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { CODIGO, EVENTO_TIMBRE, configRemota, entrarJugador, entrarSinCredencial, sinCredencial, guardarConfig, hashPin, idMesa, jugador, leerConfig, normalizarCodigo, pideReinicio, pinDeDemo, traerConfigRemota, verificarPin, type ConfigMesa, type DetalleCreacion } from '../juego';
 import { BotonAccion, Interruptor } from './Kit';
-import { QrEncargado } from './QrEncargado';
+import { QrEncargado, QrJugar } from './QrEncargado';
 
 // Modo juego en las mesas: la tablet pide el código de la credencial (o se juega sin ella, plan 011), otorga el timbre 2 al exportar y el staff
 // la configura con su PIN (?staff en la URL). Envuelve la experiencia completa.
@@ -37,7 +37,7 @@ export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string
   }, []);
 
   if (staff) return <PanelStaff app={app} alSalir={() => { setConfig(leerConfig()); setStaff(false); history.replaceState(null, '', location.pathname); }} />;
-  if (config.modoJuego && !codigo && !libre) return <Desbloqueo titulo={titulo} alEntrar={c => { entrarJugador(c, app); setCodigo(c); }} alSinCredencial={() => { entrarSinCredencial(); setLibre(true); }} alStaff={() => setStaff(true)} />;
+  if (config.modoJuego && !codigo && !libre) return <Desbloqueo app={app} titulo={titulo} alEscanear={c => setCodigo(c)} alEntrar={c => { entrarJugador(c, app); setCodigo(c); }} alSinCredencial={() => { entrarSinCredencial(); setLibre(true); }} alStaff={() => setStaff(true)} />;
   return (<>
     {children}
     <QrEncargado app={app} x={encargadoX} />
@@ -63,7 +63,7 @@ export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string
   </>);
 };
 
-const Desbloqueo: React.FC<{ titulo: string; alEntrar: (codigo: string) => void; alSinCredencial: () => void; alStaff: () => void }> = ({ titulo, alEntrar, alSinCredencial, alStaff }) => {
+const Desbloqueo: React.FC<{ app: string; titulo: string; alEscanear: (codigo: string) => void; alEntrar: (codigo: string) => void; alSinCredencial: () => void; alStaff: () => void }> = ({ app, titulo, alEscanear, alEntrar, alSinCredencial, alStaff }) => {
   const [valor, setValor] = useState('SD-');
   const [error, setError] = useState('');
   const entrar = (e: React.FormEvent) => {
@@ -77,9 +77,13 @@ const Desbloqueo: React.FC<{ titulo: string; alEntrar: (codigo: string) => void;
       <a className="volver" href="../../"><Icono nombre="arrow_back" />Experiencias</a>
       <main className="k-tutorial-cuerpo">
         <p className="k-tutorial-etq">Modo juego · {titulo}</p>
-        <h1 className="k-tutorial-titulo">Escribe el código de tu credencial</h1>
+        <h1 className="k-tutorial-titulo">Escanea para jugar con tu credencial</h1>
+        <div style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
+          <QrJugar app={app} tam={220} alEntrar={alEscanear} />
+          <p className="k-ayuda" style={{ maxWidth: 360, margin: 0 }}>En tu credencial toca <b>Timbrar</b> y apunta a este QR. ¿No tienes credencial? Escanéalo con la cámara del celular: te lleva a crearla y quedas jugando aquí.</p>
+        </div>
         <form className="k-juego-form" onSubmit={entrar}>
-          <label className="k-etq" htmlFor="codigo-credencial">Código (está bajo tu nombre, en la credencial del celular)</label>
+          <label className="k-etq" htmlFor="codigo-credencial">O escribe tu código (está bajo tu nombre, en la credencial)</label>
           <input id="codigo-credencial" className="k-juego-input" value={valor} autoComplete="off" autoCapitalize="characters" spellCheck={false}
             onChange={e => { setValor(e.target.value.toUpperCase()); setError(''); }} aria-invalid={!!error} aria-describedby="codigo-error" />
           {error && <p id="codigo-error" className="k-ayuda k-juego-error" role="alert">{error}</p>}
