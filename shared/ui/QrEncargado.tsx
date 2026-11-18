@@ -12,6 +12,9 @@ const ABIERTO_MS = 10 * 60 * 1000; // después de un PIN correcto, el encargado 
 const LLAVE = 'sd:encargado';
 const desbloqueado = () => { try { return Date.now() - Number(sessionStorage.getItem(LLAVE) || 0) < ABIERTO_MS; } catch { return false; } };
 
+// QR para crear la credencial (sin PIN: no da timbres), para quien llega a la mesa sin credencial.
+export const enlaceCrear = () => new URL('../../credencial/dist/#/crear', location.href).href;
+
 // La credencial se sirve en el mismo hub: <hub>/credencial/dist/ (las apps viven en <hub>/<app>/dist/).
 export const enlaceTimbre = (app: string, token: string) =>
   new URL(`../../credencial/dist/#/sello/2?t=${encodeURIComponent(token)}&k=${encodeURIComponent(app)}`, location.href).href;
@@ -22,6 +25,8 @@ const boton: React.CSSProperties = { minHeight: 48, padding: '0 18px', borderRad
 
 export const QrEncargado: React.FC<{ app: string; x?: string }> = ({ app, x = '50%' }) => {
   const [abierto, setAbierto] = useState(false);
+  // vista: 'menu' (elegir), 'crear' (QR para crear credencial, sin PIN) o 'timbre' (pide PIN).
+  const [vista, setVista] = useState<'menu' | 'crear' | 'timbre'>('menu');
   const [listo, setListo] = useState(desbloqueado);
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
@@ -29,10 +34,11 @@ export const QrEncargado: React.FC<{ app: string; x?: string }> = ({ app, x = '5
   const token = leerConfig().token2;
 
   useEffect(() => {
-    if (!abierto || !listo) return;
-    QRCode.toDataURL(enlaceTimbre(app, token), { width: 560, margin: 1, errorCorrectionLevel: 'M', color: { dark: '#000000', light: '#FFFFFF' } })
+    if (!abierto || vista === 'menu' || (vista === 'timbre' && !listo)) return;
+    setQr('');
+    QRCode.toDataURL(vista === 'crear' ? enlaceCrear() : enlaceTimbre(app, token), { width: 560, margin: 1, errorCorrectionLevel: 'M', color: { dark: '#000000', light: '#FFFFFF' } })
       .then(setQr).catch(() => setError('No se pudo dibujar el QR.'));
-  }, [abierto, listo, app, token]);
+  }, [abierto, listo, vista, app, token]);
 
   const entrar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,10 +46,10 @@ export const QrEncargado: React.FC<{ app: string; x?: string }> = ({ app, x = '5
     else setError('PIN incorrecto.');
     setPin('');
   };
-  const cerrar = () => { setAbierto(false); setError(''); setPin(''); };
+  const cerrar = () => { setAbierto(false); setVista('menu'); setError(''); setPin(''); };
 
   return (<>
-    <button type="button" aria-label="Encargado: QR del timbre Creación" title="Encargado: QR del timbre"
+    <button type="button" aria-label="QR: crear credencial o timbre Creación" title="QR de la credencial"
       onClick={() => { setListo(desbloqueado()); setAbierto(true); }}
       style={{ position: 'fixed', left: x, top: 4, transform: 'translateX(-50%)', zIndex: 999, width: 44, height: 44, borderRadius: 22, border: '2px solid #000', background: '#F4EEE3', color: '#000', opacity: 0.55, display: 'grid', placeItems: 'center', padding: 0, cursor: 'pointer', fontSize: 22 }}>
       <Icono nombre="qr_code_2" />
@@ -51,7 +57,17 @@ export const QrEncargado: React.FC<{ app: string; x?: string }> = ({ app, x = '5
     {abierto && (
       <div style={capa} role="dialog" aria-modal="true" aria-labelledby="encargado-t" onClick={e => { if (e.target === e.currentTarget) cerrar(); }}>
         <div style={caja}>
-          {!listo ? (
+          {vista === 'menu' ? (<>
+            <h2 id="encargado-t" style={{ margin: 0, fontSize: 22 }}>Credencial</h2>
+            <button type="button" style={{ ...boton, background: '#000', color: '#F4EEE3' }} onClick={() => setVista('crear')}><Icono nombre="qr_code_2" />Crear mi credencial</button>
+            <button type="button" style={boton} onClick={() => setVista('timbre')}><Icono nombre="lock" />Timbre Creación (encargado)</button>
+            <button type="button" style={{ ...boton, border: 0, background: 'transparent' }} onClick={cerrar}>Cerrar</button>
+          </>) : vista === 'crear' ? (<>
+            <h2 id="encargado-t" style={{ margin: 0, fontSize: 22 }}>Crea tu credencial</h2>
+            <p style={{ margin: 0 }}>Escanea con la cámara de tu celular, crea tu credencial y vuelve a jugar.</p>
+            {qr ? <img src={qr} alt="QR para crear la credencial" style={{ width: '100%', maxWidth: 320, justifySelf: 'center', imageRendering: 'pixelated' }} /> : <p>Dibujando el QR…</p>}
+            <button type="button" style={{ ...boton, justifySelf: 'center' }} onClick={cerrar}><Icono nombre="check" />Listo</button>
+          </>) : !listo ? (
             <form onSubmit={entrar} style={{ display: 'grid', gap: 12 }}>
               <h2 id="encargado-t" style={{ margin: 0, fontSize: 22 }}>Encargado</h2>
               <label htmlFor="encargado-pin">PIN del staff{pinDeDemo() ? ' (demo: 0000)' : ''}</label>
