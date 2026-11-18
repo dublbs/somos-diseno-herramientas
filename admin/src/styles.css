@@ -83,3 +83,24 @@ input:focus-visible, textarea:focus-visible, button:focus-visible { outline: 3px
   .contenido { padding: 20px 16px 40px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Plan 017: resumen, pantalla HUB, ficha y empezar de cero. */
+.acciones { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.numero { display: grid; gap: 4px; padding: 16px; background: var(--surface); border: 2px solid var(--ink); color: var(--ink); text-align: left; font: 500 13px "DM Sans", sans-serif; }
+button.numero { cursor: pointer; }
+button.numero:hover { background: var(--chip); }
+.numero b { font-size: 34px; line-height: 1; }
+.numero span { color: var(--muted); }
+.alerta { border-color: #E2001A; margin-bottom: 20px; }
+.lista { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+.pill.falta { background: #E2001A; border-color: #E2001A; color: #fff; }
+.evento img { width: 100%; aspect-ratio: 1; object-fit: contain; background: var(--chip); image-rendering: pixelated; }
+.evento p { margin: 0; }
+.grande { font-size: 22px; font-weight: 700; }
+.ficha-persona { margin-bottom: 20px; border-color: var(--accent); }
+.ficha-persona .cabecera { margin: 0; }
+.peligro { border-color: #E2001A; }
+.btn.peligro { background: #E2001A; border-color: #E2001A; color: #fff; }
+.fichas { align-items: start; }
+.acciones .seg button { white-space: nowrap; padding: 0 12px; }
