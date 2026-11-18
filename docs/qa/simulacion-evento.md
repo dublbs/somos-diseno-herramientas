@@ -10,6 +10,12 @@ Objetivo: encontrar lo que falta antes del 19 nov.
   pestañas del mismo navegador, así que comparten `localStorage` y `BroadcastChannel`, como el modo demo de `shared/datos.ts`.
 - El staff deja las tablets en modo juego (`sd:config-mesa` con `modoJuego: true`); eso se configuró por fuera.
 - Cada paso guarda una captura; las más útiles están en `docs/qa/simulacion/`.
+- **El visitante no sabe que existe Supabase.** En el evento real la red y la base funcionan y él nunca ve el modo demo.
+  Por eso los hallazgos se separan en: lo que ve cualquier visitante (A), lo que solo ve si se cae la red, que es lo que
+  muestra el modo demo de esta simulación (B), y lo que es trabajo del equipo y el visitante no ve (C).
+- Simulador: `servidor.cjs` (Playwright manejado por HTTP, una pestaña por equipo). Para la cacería, una cámara falsa
+  (`--use-file-for-fake-video-capture`) que muestra los afiches AF05, AF01 y AF03 de `credencial/public/figma/afiches/`,
+  5 s cada uno, sobre una pared gris. Entre medio se reinició el navegador conservando el `localStorage` del celular.
 
 ## Bitácora
 
@@ -98,22 +104,71 @@ Objetivo: encontrar lo que falta antes del 19 nov.
 - PC madre (`admin/`): «Este panel necesita el proyecto de Supabase del evento». Sin Supabase no hay panel: no se pudo
   simular el lado del staff (cuentas, mesas, stock, avisos).
 
-## Resumen: lo que falta, por prioridad
+## Resumen de hallazgos
 
+### A · Lo que ve cualquier visitante (con red y sin red)
 | # | Qué | Dónde | Prioridad |
 |---|---|---|---|
-| 1 | Correr las migraciones `001`–`007` + Fotomatón, desplegar funciones y compilar los `dist/` con `.env.local`. Sin eso no hay timbres entre equipos, ni QR entre celulares, ni panel del staff. | Personas (H1) | ❗ Bloquea |
-| 2 | El aviso de la tablet pide «toca Timbrar», pero el botón se llama «Código». | `shared/ui/Juego.tsx:41`, `credencial/src/pages/Juego.tsx` | ❗ |
-| 3 | Sin red: inventario «4 de 4» y «Te faltan: 1 creación» a la vez; el timbre 2 no cae solo. | `credencial/src/lib/store.ts:279` | ❗ (respaldo) |
-| 4 | El inventario no se encuentra; el reverso no muestra avance de cada timbre. | `credencial/` (álbum) | ⚠️ |
-| 5 | La credencial no dice para qué sirve ni que hay premio antes de crearla. | `credencial/` (portada) | ⚠️ |
-| 6 | En la tablet no se ve que juego con credencial ni que «Llévatelo» suma la creación. | `shared/ui/Juego.tsx` o barra de cada app | ⚠️ |
-| 7 | La tablet no confirma de quién es el código (un error de tipeo suma a otra persona). | `shared/ui/Juego.tsx` + Supabase | ⚠️ |
-| 8 | El flyer dice «3 creaciones y 1 afiche» cuando fueron 4 y 3; falta el Graffiti. | `credencial/src/pages/Flyer.tsx` | 🔸 |
-| 9 | «Tu recorrido» dice «afiches con un sello», pero ahora se reconocen por su diseño. | `credencial/src/components/Bienvenida.tsx` | 🔸 |
-| 10 | Nombres distintos: «Juego Pixel» / «Audio» en el inventario; «Hora punta» / «Audioreactiva» en el hub. | `credencial/` | 🔸 |
-| 11 | Recuadro amarillo desplazado sobre el timbre 1 de la credencial. | `credencial/` | 🔸 |
+| A1 | **El inventario no se encuentra.** Lo natural es buscarlo en el reverso de la credencial («toca para ver el álbum»), pero ahí está el álbum de timbres, sin avance: Creación dice «Crea en 4 experiencias» aunque ya llevo 3. El avance real solo está en «Jugar». Propuesta: avance por timbre en el reverso («3 de 4», «1 de 3 afiches») y enlace «Ver mi inventario», o el inventario en el reverso. | `credencial/` (álbum y vista Juego) | ⚠️ |
+| A2 | Antes de crear la credencial nada dice para qué sirve ni que hay un juego con premio (la bolsa). Se entiende recién en «Tu recorrido». | `credencial/` (pantalla de creación) | ⚠️ |
+| A3 | En la tablet no se ve que juego con mi credencial (ni mi código) ni que «Llévatelo» es lo que suma la creación. | `shared/ui/Juego.tsx` o barra superior de cada app | ⚠️ |
+| A4 | La tablet no confirma de quién es el código (no dice «Hola, Camila»): con una letra equivocada sumo a otra persona sin enterarme. Por verificar qué pasa con Supabase si el código no existe. | `shared/ui/Juego.tsx` | ⚠️ |
+| A5 | El flyer dice «Hecho con 3 creaciones y 1 afiche» cuando fueron 4 creaciones y 3 afiches; muestra 4 piezas y falta el Graffiti. Que el texto cuente lo hecho, no lo que cabe. | `credencial/src/pages/Flyer.tsx` | 🔸 |
+| A6 | «Tu recorrido» (tarjeta 2) dice «afiches con un sello… apúntales», pero desde el PR #29 se reconocen por su diseño. | `credencial/src/components/Bienvenida.tsx` | 🔸 |
+| A7 | Nombres distintos: el inventario dice «Juego Pixel» y «Audio»; el hub, «Hora punta» y «Estación Audioreactiva». | `credencial/` (inventario) | 🔸 |
+| A8 | Recuadro amarillo desplazado sobre el timbre 1 del frente de la credencial; se sale del borde de la tarjeta. | `credencial/` | 🔸 |
+| A9 | «Tu recorrido» aparece un momento después de cerrar el timbre de Inscripción, no junto con él. Funciona, solo anotarlo. | `credencial/src/pages/Credencial.tsx:140` | — |
+| A10 | El botón de exportar dice «Llévatelo» y el diálogo «Llévatela al celular»; el hub y los planes dicen «Llévatela». | apps con el kit | 🔸 |
 
+### B · Solo si se cae la red (lo que mostró el modo demo)
+Es el respaldo del evento: si la tablet no logra timbrar sola, la persona timbra a mano. Hoy ese camino confunde.
+| # | Qué | Dónde | Prioridad |
+|---|---|---|---|
+| B1 | La tablet dice «En tu credencial toca **Timbrar**, elige la estación 2 y escribe el código», pero en la credencial ese botón se llama **«Código»** (vista Juego → `#/escanear`). | `shared/ui/Juego.tsx:41`, `credencial/src/pages/Juego.tsx` | ❗ |
+| B2 | El aviso aparece en cada experiencia aunque la creación ya llegó sola al inventario: pide un paso que en ese caso sobra. | `shared/ui/Juego.tsx` | ⚠️ |
+| B3 | Con 4 creaciones, el inventario dice «4 de 4» y al lado «Te faltan: 1 creación»; el timbre Creación no cae hasta timbrar a mano. Propuesta: que la credencial otorgue el timbre 2 sola al llegar a 4 de 4 sin red, o que el texto diga «Timbra con el código de la estación 2». | `credencial/src/lib/store.ts:279` | ❗ |
+| B4 | El QR de «Llévatela» avisa «Sin conexión al servidor: este QR solo abre en esta tablet». Correcto y honesto. | `shared/ui/Llevatela.tsx` | — |
+| B5 | En demo, el botón ↻ «Reiniciar la demo» deja crear otra credencial y canjear de nuevo. Con Supabase lo frenan `canjear()`, el PIN en el servidor y el stock. | `credencial/` | — |
+
+### C · Para el equipo (el visitante no lo ve)
+| # | Qué | Prioridad |
+|---|---|---|
+| C1 | Supabase del evento: migraciones `001`–`007` en orden, `fotomaton/supabase/migrations/0001_fotomaton.sql` una vez, funciones `tarjeta`, `limpiar` y `notificar`. Sin eso no hay timbres entre equipos, QR entre celulares ni PC madre (tarea H1). | ❗ Bloquea |
+| C2 | Los `dist/` de `juego-pixel`, `audioreactiva` y `loops` de las ramas de la ronda 2 están en modo demo. Si se mergean así, Teatro **pierde** la conexión que hoy tiene en `main`. Recompilar con cada `.env.local` antes de mergear. | ❗ |
+| C3 | PC madre (`admin/`): sin Supabase solo dice «Este panel necesita el proyecto de Supabase». No se pudo simular el lado del staff: cuentas, mesas, stock, avisos ni canje desde el panel. | ⚠️ |
+| C4 | PIN real del staff (en demo es `0000`) y stock del premio (tarea H4). | ❗ |
+| C5 | El HUB «Estación» muestra «con personas de prueba» (40 inventadas). Confirmar que con Supabase salen solo las reales. | ⚠️ |
+| C6 | Las tablets se dejan en modo juego desde «Staff» con el PIN; en la simulación se hizo por fuera. Probar ese paso en la prueba general. | ⚠️ |
+
+## QA general del 18 nov (integración `main` + las 3 ramas, antes de la simulación)
+- Las 3 ramas (`amaro/hora-punta-iso`, `amaro/audioreactiva-tactil`, `amaro/teatro-ronda-2`) se unen a `main` sin
+  conflictos. Las 11 apps pasan `tsc` y `vite build`. Pruebas de motor de Hora punta: 41 de 41.
+- Pantalla en 1024×768, 1180×820, 1280×720, 1366×768, 768×1024 y 820×1180: sin scroll de página, sin controles fuera
+  de vista y con toques ≥ 44 px en todas las apps. Mosaicos, Graffiti, Audioreactiva y Grabado, con cada herramienta
+  activa (7–18 estados por resolución). Fotomatón, Teatro y Hora punta: al entrar, revisados por captura.
+- Credencial en 390×844, 412×915 y 360×740: sin scroll.
+- Sin errores de consola ni archivos rotos en ninguna app, tampoco en el HUB «Estación», el PC madre y el Vagón.
+- Detalles:
+  - El **hub** (`index.html`) tiene scroll en las 6 tablets: la mitad de los «Entrar» queda bajo el borde. Viene de
+    `main` (el archivo no cambió). Decidir si se acepta como portada o se compacta.
+  - La flecha «Volver a las experiencias» de la credencial mide 40×40 (la regla pide ≥ 44). Viene de `main`.
+  - Teatro en vertical (768×1024): los botones «Cordillera» y «Mar» se tocan.
+  - HUB «Estación»: líneas blancas finas entre los carros del tren.
+- No probado: recorrido de modo juego de Audioreactiva, Teatro y Fotomatón; tablets, celulares y Safari reales.
+
+## Decisiones abiertas que dejaron las ramas
+- **Audioreactiva:** nadie ha escuchado los 5 estilos (Lo-Fi, Synthwave, Button Mash, It's Friday, Ambient). Medidos:
+  RMS entre −16,5 y −18,6 dBFS, sin saturar. Apagar el bajo o los acordes cambia la forma pero casi no la cantidad de
+  movimiento; cambiarlo afecta todas las escenas.
+- **Hora punta:** el jefe dura 31–44 s (el plan pedía 60–90); un jugador distraído gana 70 de 100; el Inacapín ahora
+  empuja en vez de quitar vidas (validar); el personaje del Inacapín lo debe validar el equipo (no se buscó en Figma).
+  En CPU lenta el cruce baja a ~37 cuadros por segundo: probar en la tablet.
+- **Teatro:** sigue con el modal antiguo de exportar (pasar a «Llévatela», plan 008 T-006); el guanaco no pasta (cuello
+  de una pieza); el huemul parte café en vez de morado (confirmar); el arte nuevo son bocetos generados; elecciones del
+  elenco pendientes (Chagual o Cochayuyo, Carpintero o Chucao, Luna o Lluvia); la paloma no aparece en ningún escenario.
+- **Fotomatón:** falta pasarlo al kit v2 (`Camara.tsx` y `Editor.tsx`).
+
+## Cierre
 **Lo que funcionó bien:** crear la credencial, «Tu recorrido», el ingreso con código (acepta minúsculas y avisa si está
 incompleto), las 4 experiencias, que perder en Hora punta igual cuente, la llegada al inventario en tiempo real, el
 reconocimiento de afiches por cámara, el flyer, el canje sin doble entrega y el HUB mostrando a la persona.
