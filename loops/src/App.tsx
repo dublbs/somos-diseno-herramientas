@@ -2,6 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { EscenarioOrganico } from './components/EscenarioOrganico';
 import { ModalExportar, type VideoLoop } from './components/ModalExportar';
 import { exportarTarjetaMotion } from './lib/exportarTarjeta';
+import { precargar } from './escenario/carga';
+
+// La carga parte apenas se abre la app, también mientras se lee el tutorial.
+precargar();
 import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
 import '../../shared/ui/somos-kit.css';
 import './styles.css';

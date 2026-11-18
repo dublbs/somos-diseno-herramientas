@@ -4,8 +4,8 @@
 import { azar, entre, FORMAS, HUESO, TIROS_POR_LATA, type Aviso, type Forma, type Pieza } from './comun';
 
 export const ANCHO_A = 16, ALTO_A = 12;
-const G = 42, SALTO = 16.6, VEL_J = 5.2, VEL_GRIS = 2.1, VEL_BOLA = 10;
-const ANCHO_F = 0.8; // ancho de cada figura
+export const G = 42, SALTO = 16.6, VEL_J = 5.2, VEL_GRIS = 2.1, VEL_BOLA = 10;
+export const ANCHO_F = 0.8; // ancho de cada figura
 export const GOLPES_COLOR = 3, GOLPES_HUESO = 5;
 export const VIDAS = 3;
 const BOLA_MS = 6000, PIEZA_MS = 5000, PRISA_MS = 60000;
@@ -19,7 +19,7 @@ export const VIGAS: Viga[] = [
   { y: 2, x0: 0, x1: 5 }, { y: 2, x0: 11, x1: 16 },
 ];
 
-interface Cuerpo { x: number; y: number; vx: number; vy: number; suelo: boolean; ignora: number; mira: 1 | -1 }
+export interface Cuerpo { x: number; y: number; vx: number; vy: number; suelo: boolean; ignora: number; mira: 1 | -1 }
 export interface GrisA extends Cuerpo {
   id: number; golpes: number; color: string; bola: number; // bola: ms que le quedan encerrado (0 = suelto)
   rueda: { rebotes: number; combo: number } | null; salta: number; seca: number; fuera: boolean; // seca: ms hasta perder una capa
@@ -40,7 +40,7 @@ const OLEADAS: [number, number][][] = [
   [[1, 2], [14, 2], [5, 5], [11, 5]],
 ];
 
-const cuerpo = (x: number, y: number, mira: 1 | -1 = 1): Cuerpo => ({ x, y, vx: 0, vy: 0, suelo: false, ignora: -1, mira });
+export const cuerpo = (x: number, y: number, mira: 1 | -1 = 1): Cuerpo => ({ x, y, vx: 0, vy: 0, suelo: false, ignora: -1, mira });
 
 export function nuevoAnden(latas: string[], semilla = Date.now() % 100000): Anden {
   const e: Anden = {
@@ -61,16 +61,16 @@ function soltarOleada(e: Anden) {
 }
 
 function avisar(e: Anden, texto: string, x: number, y: number) { e.avisos.push({ texto, x, y, t: 900 }); }
-const toca = (a: Cuerpo, b: Cuerpo, holgura = 0) => Math.abs(a.x - b.x) < ANCHO_F - holgura && Math.abs(a.y - b.y) < 0.85 - holgura;
+export const toca = (a: Cuerpo, b: Cuerpo, holgura = 0) => Math.abs(a.x - b.x) < ANCHO_F - holgura && Math.abs(a.y - b.y) < 0.85 - holgura;
 
 // Gravedad y vigas: un cuerpo que cae se apoya en la primera viga que cruza con los pies.
-function fisica(c: Cuerpo, dt: number) {
+export function fisica(c: Cuerpo, dt: number, vigas: Viga[] = VIGAS) {
   const antes = c.y;
   c.vy = Math.min(c.vy + G * dt, 24);
   c.x += c.vx * dt; c.y += c.vy * dt;
   c.suelo = false;
   if (c.vy >= 0) {
-    for (const v of VIGAS) {
+    for (const v of vigas) {
       if (v.y === c.ignora) continue;
       if (antes <= v.y + 0.01 && c.y >= v.y && c.x + ANCHO_F > v.x0 + 0.15 && c.x < v.x1 - 0.15) {
         c.y = v.y; c.vy = 0; c.suelo = true; break;
@@ -80,8 +80,8 @@ function fisica(c: Cuerpo, dt: number) {
   if (c.y > ALTO_A - 1 + 0.001 && c.ignora !== ALTO_A - 1) { c.y = ALTO_A - 1; c.vy = 0; c.suelo = true; }
   if (c.suelo) c.ignora = -1;
 }
-const enBorde = (c: Cuerpo) => {
-  const v = VIGAS.find(w => w.y === c.y && c.x + ANCHO_F > w.x0 && c.x < w.x1);
+export const enBorde = (c: Cuerpo, vigas: Viga[] = VIGAS) => {
+  const v = vigas.find(w => w.y === c.y && c.x + ANCHO_F > w.x0 && c.x < w.x1);
   if (!v || v.y === ALTO_A - 1) return false;
   return (c.mira > 0 && c.x + ANCHO_F + 0.05 >= v.x1) || (c.mira < 0 && c.x - 0.05 <= v.x0);
 };

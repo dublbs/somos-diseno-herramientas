@@ -198,6 +198,6 @@ Correcciones y resultados al detalle en [`docs/tasks/013-correcciones-qa.md`](..
     por cualquiera (T-19): para el equipo.
   - Fotomatón dice «Llévatela» y el resto «Llévatelo» (T-13).
   - Al publicar, un celular que ya abrió la credencial puede quedarse con la versión vieja hasta recargar (en la
-    simulación pasó por la caché del navegador). Probar en la prueba general que Vercel no deje el `index.html` en caché.
+    simulación pasó por la caché del navegador). Probar en la prueba general que GitHub Pages (que publica `main`) no deje el `index.html` viejo en caché del celular.
 - **Lo que sigue sin comprobar:** PC madre (necesita Supabase Auth), equipos reales, Safari, afiches impresos con la
   luz de la sede, y escuchar los 5 estilos de Audioreactiva.

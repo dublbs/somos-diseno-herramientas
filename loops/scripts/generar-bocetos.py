@@ -225,7 +225,9 @@ guardar('chucao', {'cola': cola_ch, 'cuerpo': cuerpo_ch})
 def pezuna(x, y):
     return [(x - 4, y - 6), (x + 4, y - 6), (x + 5.5, y), (x - 5.5, y)]
 
-def cuadrupedo(pieza, color, color_lejano, patas_x, cadera_y, suelo_y, partes, pata_ancho=8, semilla=60, bajar=0):
+def cuadrupedo(pieza, color, color_lejano, patas_x, cadera_y, suelo_y, partes, cabeza=(), cola=(), pata_ancho=8, semilla=60, bajar=0):
+    """Capas: cola, 4 patas (giran en la cadera), cuerpo y cabeza (cuello y cabeza juntos: giran en la base del cuello).
+    Así cada animal puede caminar, bajar la cabeza a pastar y mirar moviendo la cola."""
     capas = {}
     for i, x in enumerate(patas_x):
         c = Capa()
@@ -234,48 +236,69 @@ def cuadrupedo(pieza, color, color_lejano, patas_x, cadera_y, suelo_y, partes, p
               color_lejano if lejana else color, semilla + i)
         c.add(pezuna(x, suelo_y), NEGRO, semilla + 10 + i, 0.3)
         capas[f'pata{i + 1}'] = c
-    cuerpo = Capa()
-    for k, (pts, col) in enumerate(partes): cuerpo.add(mover(pts, 0, bajar), col, semilla + 20 + k)
-    guardar(pieza, {'pata1': capas['pata1'], 'pata2': capas['pata2'], 'pata3': capas['pata3'], 'pata4': capas['pata4'], 'cuerpo': cuerpo})
+    def capa(lista, s):
+        c = Capa()
+        for k, (pts, col) in enumerate(lista): c.add(mover(pts, 0, bajar), col, s + k)
+        return c
+    guardar(pieza, {'cola': capa(cola, semilla + 40), 'pata1': capas['pata1'], 'pata2': capas['pata2'], 'pata3': capas['pata3'],
+                    'pata4': capas['pata4'], 'cuerpo': capa(partes, semilla + 20), 'cabeza': capa(cabeza, semilla + 60)})
+
+def ojo_amable(x, y, r=3.4):
+    """Ojo redondo y tranquilo: blanco hueso, pupila grande y un brillo. Nada de cejas ni rayas que lo enojen."""
+    return [(elipse(x, y, r, r * 1.05), HUESO), (elipse(x + r * 0.15, y + r * 0.1, r * 0.66, r * 0.72), NEGRO),
+            (elipse(x - r * 0.12, y - r * 0.25, r * 0.24, r * 0.24), HUESO)]
 
 # Huemul (macho): ciervo del sur, robusto y de patas cortas. Orejas largas «de burro» con el interior claro,
-# mancha oscura en Y sobre el hocico, garganta clara y astas que se bifurcan una sola vez (la punta de atrás más larga).
+# hocico oscuro, garganta clara y astas que se bifurcan una sola vez. Versión amable (ronda 2): ojo grande y
+# redondo, sin la raya en Y que le hacía ceño, la cabeza un poco más alta y las orejas relajadas hacia atrás.
 ASTA = mezcla(AMARILLO, HUESO, 0.35)
 MORADO_LEJ = mezcla(MORADO, NEGRO, 0.25)
+MORADO_CLARO = mezcla(MORADO, HUESO, 0.45)
 astas = []
 for dx in (0, 7):
-    astas += [(trazo([(168 + dx, 88), (169 + dx, 74), (168 + dx, 64)], [3.6, 3.2, 3]), ASTA),
-              (trazo([(168 + dx, 66), (162 + dx, 52), (160 + dx, 40)], [3, 2.6, 2]), ASTA),
-              (trazo([(168.5 + dx, 70), (176 + dx, 60), (179 + dx, 53)], [2.8, 2.4, 1.8]), ASTA)]
+    astas += [(trazo([(166 + dx, 86), (167 + dx, 72), (166 + dx, 62)], [3.6, 3.2, 3]), ASTA),
+              (trazo([(166 + dx, 64), (160 + dx, 50), (158 + dx, 40)], [3, 2.6, 2]), ASTA),
+              (trazo([(166.5 + dx, 68), (174 + dx, 58), (177 + dx, 51)], [2.8, 2.4, 1.8]), ASTA)]
 cuadrupedo('huemul', MORADO, MORADO_LEJ, [92, 104, 136, 148], 160, 206, [
-    ([(80, 126), (72, 120), (70, 130), (76, 138)], MORADO),                                        # cola corta
-    ([(76, 132), (72, 126), (74, 136)], HUESO),
     (elipse(120, 138, 44, 21, -3), MORADO),                                                        # cuerpo robusto
-    (elipse(122, 154, 30, 5), mezcla(MORADO, HUESO, 0.45)),                                        # vientre
-    ([(146, 126), (156, 104), (164, 94), (176, 100), (170, 116), (162, 134)], MORADO),            # cuello grueso
-    (elipse(168, 116, 6, 4, -40), HUESO),                                                          # garganta clara
+    (elipse(122, 154, 30, 5), MORADO_CLARO),                                                       # vientre
+], cabeza=[
+    ([(140, 140), (146, 120), (154, 102), (164, 92), (176, 98), (172, 116), (164, 136)], MORADO),  # cuello grueso
+    (elipse(168, 114, 6, 4, -40), HUESO),                                                          # garganta clara
     *astas[3:],                                                                                    # el asta de atrás queda detrás de la oreja
-    (elipse(160, 84, 13, 5, -55), MORADO_LEJ),                                                     # oreja de atrás
-    ([(160, 96), (170, 88), (180, 92), (194, 103), (196, 109), (190, 113), (176, 110), (164, 106)], MORADO),  # cabeza, hocico afinado
-    (elipse(194, 108, 3.2, 2.6), NEGRO),                                                           # nariz
-    (trazo([(191, 106), (182, 99), (175, 93)], 2.2), NEGRO), (trazo([(182, 99), (182, 91)], 2), NEGRO),  # la Y
-    (elipse(176, 97, 2.1, 2.1), NEGRO),
+    (elipse(156, 84, 13, 5, -25), MORADO_LEJ),                                                     # oreja de atrás, relajada
+    ([(158, 94), (168, 85), (180, 87), (193, 97), (196, 104), (191, 109), (178, 109), (164, 104)], MORADO),  # cabeza, hocico redondeado
+    (elipse(191, 103, 6, 5), mezcla(MORADO, NEGRO, 0.45)),                                         # hocico oscuro
+    (elipse(195, 101, 2.6, 2.1), NEGRO),                                                           # nariz
+    *ojo_amable(176, 95, 3.6),
     *astas[:3],
-    (elipse(166, 82, 14, 5.5, -70), MORADO), (elipse(166, 82, 9, 2.6, -70), HUESO),             # oreja larga
+    (elipse(162, 82, 14, 5.5, -35), MORADO), (elipse(162, 82, 9, 2.6, -35), HUESO),               # oreja larga, hacia atrás
+], cola=[
+    ([(80, 126), (70, 118), (68, 130), (76, 140)], MORADO),                                        # cola corta
+    ([(76, 132), (70, 124), (72, 136)], HUESO),
 ], pata_ancho=9, semilla=61, bajar=10)
 
-# Guanaco: narigón, cuello largo y curvo, vientre blanco, cara gris; orejas en punta y cola que cae.
+# Guanaco: cuello largo y curvo, vientre blanco, cara gris con ojo amable, orejas en punta y cola que cae.
+# Ronda 2: el cuello sale más adelante del pecho (no de la cruz), la cabeza tiene hocico redondeado y labio partido,
+# y el cuello con la cabeza es una capa aparte para pastar y mirar.
 AMARILLO_LEJ = mezcla(AMARILLO, MORADO, 0.2)
+GRIS_CARA = mezcla(NEGRO, HUESO, 0.5)
 cuadrupedo('guanaco', AMARILLO, AMARILLO_LEJ, [84, 96, 128, 140], 146, 210, [
-    (trazo([(74, 124), (68, 130), (67, 140)], [7, 5.5, 3.5]), AMARILLO_LEJ),                       # cola que cae
     (elipse(110, 132, 42, 18, -2), AMARILLO),                                                      # cuerpo
     (elipse(114, 144, 30, 5.5), HUESO),                                                            # vientre blanco
-    ([(132, 124), (138, 100), (144, 78), (150, 62), (164, 62), (160, 82), (154, 106), (150, 128)], AMARILLO),  # cuello
-    (elipse(156, 45, 9, 3.4, -78), AMARILLO_LEJ), (elipse(162, 44, 9, 3.4, -96), AMARILLO),       # orejas
-    ([(150, 60), (158, 50), (170, 51), (180, 56), (187, 62), (185, 70), (172, 71), (160, 68)], AMARILLO),  # cabeza
-    ([(168, 54), (180, 56), (187, 62), (185, 70), (172, 71), (166, 64)], mezcla(NEGRO, HUESO, 0.5)),  # cara gris
-    (elipse(184, 65, 5.5, 5), NEGRO),                                                              # la nariz grande
-    (elipse(165, 56, 1.9, 1.9), NEGRO),
+    (elipse(140, 140, 8, 10, 10), HUESO),                                                          # pecho claro
+], cabeza=[
+    ([(130, 130), (136, 104), (142, 82), (148, 66), (160, 62), (162, 80), (156, 104), (152, 130)], AMARILLO),  # cuello curvo
+    ([(150, 112), (156, 104), (158, 92), (154, 120)], AMARILLO_LEJ),                               # sombra del cuello
+    (elipse(152, 46, 9, 3.4, -70), AMARILLO_LEJ), (elipse(159, 45, 9, 3.4, -92), AMARILLO),       # orejas en punta
+    (elipse(159, 45, 5, 1.6, -92), mezcla(AMARILLO, HUESO, 0.5)),
+    ([(146, 62), (152, 51), (166, 50), (178, 55), (186, 62), (186, 70), (176, 73), (160, 70)], AMARILLO),  # cabeza
+    ([(166, 53), (178, 55), (186, 62), (186, 70), (176, 73), (164, 66)], GRIS_CARA),              # cara gris
+    (elipse(184, 63, 3, 2.4), NEGRO),                                                              # nariz
+    (trazo([(186, 69), (181, 70), (177, 69)], 1.3), NEGRO),                                        # labio partido (sonrisa leve)
+    *ojo_amable(163, 57, 3.2),
+], cola=[
+    (trazo([(74, 124), (68, 130), (67, 140)], [7, 5.5, 3.5]), AMARILLO_LEJ),                       # cola que cae
 ], pata_ancho=6.5, semilla=71)
 
 # ---------- plantas y objetos (una capa que se mece) ----------
@@ -437,6 +460,33 @@ for k, (x, y) in enumerate([(90, 92), (112, 104), (134, 90), (156, 102), (100, 1
     g1.add(gota(x, y), LAPIS, 530 + k, 0.2)
     g2.add(gota(x + 11, y + 18), AZUL, 540 + k, 0.2)
 guardar('lluvia', {'gotas-a': g1, 'gotas-b': g2, 'nube': nube})
+
+# Añañuca (reemplaza a la Flor, ronda 2): flor del desierto florido. Tallos finos que salen de un manojo de hojas
+# angostas, cada uno con una flor de seis tépalos en embudo, rojo rosado con la garganta amarilla.
+ANANUCA = mezcla(ROSA, MORADO, 0.18); ANANUCA_OSC = mezcla(ROSA, MORADO, 0.5)
+c = Capa()
+for k, (dx, a) in enumerate([(-16, -120), (-8, -100), (0, -86), (8, -72), (16, -58), (-4, -140), (6, -40)]):
+    ra = math.radians(a)
+    c.add(trazo([(120 + dx * 0.3, 216), (120 + dx + math.cos(ra) * 30, 216 + math.sin(ra) * 26)], [3.4, 1.2]), VERDE if k % 2 else VERDE_OSC, 700 + k)
+def ananuca(x, y, ang, tam, s):
+    """Flor en embudo vista de lado: seis tépalos redondeados abiertos en abanico hacia `ang` (se ven cinco),
+    los de atrás más oscuros, la garganta amarilla y tres estambres."""
+    for k, f in enumerate((-1.0, 1.0, -0.5, 0.5, 0.0)):
+        g = ang + f * 34; ra = math.radians(g)
+        c.add(elipse(x + math.cos(ra) * tam * 0.52, y + math.sin(ra) * tam * 0.52, tam * 0.52, tam * 0.22, g),
+              ANANUCA_OSC if k < 2 else ANANUCA, s + k)
+    a = math.radians(ang); ux, uy = math.cos(a), math.sin(a); vx, vy = -uy, ux
+    c.add(elipse(x + ux * tam * 0.22, y + uy * tam * 0.22, tam * 0.24, tam * 0.16, ang), AMARILLO, s + 9)
+    for k, f in enumerate((-0.25, 0, 0.25)):
+        c.add(trazo([(x + ux * tam * 0.25, y + uy * tam * 0.25), (x + ux * tam * 0.8 + vx * tam * f, y + uy * tam * 0.8 + vy * tam * f)], 1.1), AMARILLO, s + 12 + k, 0.1)
+for k, (pts, ang, tam) in enumerate([
+    ([(120, 214), (110, 172), (94, 134)], -130, 30),
+    ([(120, 214), (122, 164), (126, 112)], -85, 34),
+    ([(120, 214), (134, 180), (152, 150)], -40, 28),
+]):
+    c.add(trazo(pts, [3.6, 3, 2.4]), VERDE_OSC, 720 + k)
+    ananuca(*pts[-1], ang, tam, 740 + k * 20)
+una('ananuca', c)
 
 # ---------- fondo Bosque (cielo húmedo, cerros con bosque y suelo de musgo) ----------
 def fondo(nombre, capa):
