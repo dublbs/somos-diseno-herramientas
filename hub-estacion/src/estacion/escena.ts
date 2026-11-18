@@ -7,7 +7,8 @@ import { ACTIVAS } from '../../../shared/juego';
 
 // Estación Somos Diseño: corte de una estación en tres niveles.
 //   Plaza Orgánica (arriba) · Mezanine Geométrico (medio) · Andén Pixel (abajo).
-// Cada timbre sube a la persona un nivel: 1 andén → 2 mezanine → 3 plaza → 4 plaza con aureola.
+// Las personas llegan a la plaza y cada timbre las baja un nivel (plan 014 §0): 1 plaza → 2 mezanine → 3 andén →
+// 4 andén con aureola.
 // Todo se dibuja en pixeles CSS a partir del tamaño de la pantalla (sirve en horizontal y vertical).
 
 export const C = {
@@ -55,7 +56,8 @@ export function disponer(W: number, H: number): Disposicion {
     tramoA: tramo(anden, mezz), tramoB: tramo(mezz, plaza),
   };
 }
-const nivelDe = (timbres: number) => (timbres >= 3 ? 2 : timbres === 2 ? 1 : 0);
+// 0 andén · 1 mezanine · 2 plaza
+const nivelDe = (timbres: number) => (timbres >= 3 ? 0 : timbres === 2 ? 1 : 2);
 
 // ---------- personas en escena ----------
 interface Avatar {
@@ -66,10 +68,10 @@ interface Avatar {
   dir: 1 | -1;
   vel: number;
   fase: number;
-  subiendo?: { t: number; desde: [number, number]; hasta: [number, number]; nivel: number };
-  objetivo?: number; // x de la escalera a la que camina para subir
+  subiendo?: { t: number; desde: [number, number]; hasta: [number, number]; nivel: number }; // en la escalera (hoy, bajando)
+  objetivo?: number; // x de la escalera a la que camina para bajar
   destacado: number; // ms hasta el que se muestra su nombre
-  esperaTren?: boolean; // recién llegada: aparece cuando el tren abre puertas
+  entrando?: boolean; // recién llegada: entra caminando a la plaza desde un costado
 }
 interface Particula { x: number; y: number; vx: number; vy: number; vida: number; color: string; r: number }
 
@@ -89,13 +91,19 @@ export class Estacion {
     for (const p of gente) this.avatares.push(this.nuevo(p, false));
   }
 
-  private nuevo(p: Persona, enTren: boolean): Avatar {
-    const r = this.azar;
-    return {
-      p, nivel: nivelDe(p.timbres), x: enTren ? 0 : this.d.W * (0.15 + r() * 0.7), hondo: r(), dir: r() < 0.5 ? 1 : -1,
-      vel: (18 + r() * 22) * this.d.u, fase: r() * 10, destacado: 0, esperaTren: enTren,
+  private nuevo(p: Persona, llega: boolean): Avatar {
+    const r = this.azar, W = this.d.W;
+    // Quien llega aparece en la plaza (por la izquierda, lejos del acceso al metro) y entra caminando.
+    const a: Avatar = {
+      p, nivel: llega ? 2 : nivelDe(p.timbres), x: llega ? -30 * this.d.u : W * (0.15 + r() * 0.7), hondo: r(), dir: llega ? 1 : r() < 0.5 ? 1 : -1,
+      vel: (18 + r() * 22) * this.d.u, fase: r() * 10, destacado: 0, entrando: llega,
     };
+    if (llega && nivelDe(p.timbres) < 2) a.objetivo = this.bajada(2); // ya traía timbres: baja de una
+    return a;
   }
+
+  // x donde empieza la escalera para bajar desde el nivel n (arriba de la escalera).
+  private bajada(n: number) { return n === 2 ? this.d.escB - this.d.tramoB : this.d.escA + this.d.tramoA; }
 
   redimensionar(d: Disposicion) {
     const k = d.W / this.d.W;
@@ -110,8 +118,7 @@ export class Estacion {
     if (!a) return;
     a.p = { ...a.p, timbres };
     a.destacado = this.reloj + 8000;
-    const meta = nivelDe(timbres);
-    if (meta > a.nivel) a.objetivo = a.nivel === 0 ? this.d.escA : this.d.escB;
+    if (nivelDe(timbres) < a.nivel && !a.subiendo) a.objetivo = this.bajada(a.nivel);
     if (timbres >= ACTIVAS.length) this.confeti(a);
   }
 
@@ -146,33 +153,34 @@ export class Estacion {
 
   paso(dtMs: number) {
     this.reloj += dtMs;
-    const dt = dtMs / 1000, d = this.d, tren = this.tren();
+    const dt = dtMs / 1000, d = this.d;
     for (const a of this.avatares) {
-      if (a.esperaTren) {
-        if (tren.abierto) { a.esperaTren = false; a.x = tren.x + tren.largo * (0.15 + this.azar() * 0.7); a.nivel = 0; }
-        continue;
-      }
-      if (a.subiendo) { // en la escalera mecánica no se camina: la escalera los sube
+      if (a.subiendo) { // en la escalera mecánica no se camina: la escalera los baja
         a.subiendo.t += dt / 3.2;
-        if (a.subiendo.t >= 1) { a.nivel = a.subiendo.nivel; a.x = a.subiendo.hasta[0]; a.subiendo = undefined; a.dir = a.nivel === 1 ? 1 : -1; if (nivelDe(a.p.timbres) > a.nivel) a.objetivo = d.escB; }
+        if (a.subiendo.t >= 1) {
+          a.nivel = a.subiendo.nivel; a.x = a.subiendo.hasta[0]; a.subiendo = undefined;
+          a.dir = a.nivel === 1 ? -1 : 1; // al mezanine se llega por la derecha; al andén, por la izquierda
+          if (nivelDe(a.p.timbres) < a.nivel) a.objetivo = this.bajada(a.nivel);
+        }
         continue;
       }
       a.fase += dt * 6;
       if (a.objetivo != null) {
         const falta = a.objetivo - a.x;
         a.dir = falta > 0 ? 1 : -1;
-        a.x += a.dir * Math.min(Math.abs(falta), a.vel * 1.6 * dt);
+        a.x += a.dir * Math.min(Math.abs(falta), Math.max(a.vel * 3, 70 * d.u) * dt); // va decidida a la escalera
         if (Math.abs(falta) < 2) {
-          const sube = a.nivel + 1, n = this.nivel(a.nivel), m = this.nivel(sube);
-          const arriba = a.nivel === 0 ? d.escA + d.tramoA : d.escB - d.tramoB;
-          a.hondo = 0.5;
-          a.subiendo = { t: 0, desde: [a.x, n.suelo + n.fondo / 2], hasta: [arriba, m.suelo + m.fondo / 2], nivel: sube };
+          const baja = a.nivel - 1, n = this.nivel(a.nivel), m = this.nivel(baja);
+          const abajo = a.nivel === 2 ? d.escB : d.escA;
+          a.hondo = 0.5; a.entrando = false;
+          a.subiendo = { t: 0, desde: [a.x, n.suelo + n.fondo / 2], hasta: [abajo, m.suelo + m.fondo / 2], nivel: baja };
           a.objetivo = undefined;
         }
         continue;
       }
-      a.x += a.dir * a.vel * dt;
+      a.x += a.dir * a.vel * (a.entrando ? 1.4 : 1) * dt;
       const min = d.W * 0.03, max = d.W * 0.97;
+      if (a.entrando) { if (a.x > d.W * 0.08) a.entrando = false; continue; }
       if (a.x < min) { a.x = min; a.dir = 1; } else if (a.x > max) { a.x = max; a.dir = -1; }
       if (this.azar() < dt * 0.08) a.dir = (a.dir * -1) as 1 | -1;
     }
@@ -187,7 +195,7 @@ export class Estacion {
     this.mezanine(ctx);
     this.andenPixel(ctx);
     this.escaleras(ctx);
-    const visibles = this.avatares.filter(a => !a.esperaTren).map(a => ({ a, pos: this.posicion(a) })).sort((p, q) => p.pos[1] - q.pos[1]);
+    const visibles = this.avatares.map(a => ({ a, pos: this.posicion(a) })).sort((p, q) => p.pos[1] - q.pos[1]);
     for (const { a, pos } of visibles) this.avatar(ctx, a, pos);
     this.trenDibujo(ctx);
     for (const q of this.particulas) { ctx.globalAlpha = Math.min(1, q.vida); ctx.fillStyle = q.color; ctx.fillRect(q.x - q.r, q.y - q.r, q.r * 2, q.r * 2); }
@@ -470,8 +478,8 @@ export class Estacion {
       ctx.fillStyle = 'rgba(127,200,248,.35)'; ctx.strokeStyle = C.Negro; ctx.lineWidth = 1.5 * e;
       ctx.beginPath(); ctx.moveTo(xa + dir * 8 * e, y0); ctx.lineTo(x0, y0); ctx.lineTo(x1, y1); ctx.lineTo(xb - dir * 8 * e, y1);
       ctx.lineTo(xb - dir * 8 * e, y1 - alto); ctx.lineTo(x1, y1 - alto); ctx.lineTo(x0, y0 - alto); ctx.lineTo(xa + dir * 8 * e, y0 - alto); ctx.closePath(); ctx.fill(); ctx.stroke();
-      // peldaños: huella y contrahuella, corren hacia arriba
-      const fase = this.quieto ? 0 : ((this.reloj / 900) % 1);
+      // peldaños: huella y contrahuella, corren hacia abajo (la gente baja de la plaza al andén)
+      const fase = this.quieto ? 0 : 1 - ((this.reloj / 900) % 1);
       ctx.save();
       ctx.beginPath(); ctx.moveTo(xa, y0 + 2); ctx.lineTo(x0, y0 + 2); ctx.lineTo(x1, y1 + 2); ctx.lineTo(xb, y1 + 2); ctx.lineTo(xb, y1 - Math.abs(h) * 1.4); ctx.lineTo(x1, y1 - Math.abs(h) * 1.4); ctx.lineTo(x0, y0 - Math.abs(h) * 1.4); ctx.lineTo(xa, y0 - Math.abs(h) * 1.4); ctx.closePath(); ctx.clip();
       ctx.fillStyle = '#E7E1D6'; ctx.strokeStyle = C.Negro; ctx.lineWidth = 1.6 * e;
