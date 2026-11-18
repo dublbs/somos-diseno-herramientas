@@ -1,0 +1,14 @@
+<!doctype html><html><body style="margin:0;background:#ddd"><div id="r" style="display:flex;flex-wrap:wrap;gap:8px;padding:8px"></div>
+<script type="module">
+import { marcoListo, MARCOS } from '../shared/marcos.ts';
+for (const m0 of MARCOS.filter(m => m.visual === 'Orgánica')) {
+  const m = marcoListo(m0.id), c = document.createElement('canvas'); c.width = c.height = 360;
+  const x = c.getContext('2d'); x.scale(1.5, 1.5);
+  x.fillStyle = m.bg; x.fillRect(0, 0, 240, 240);
+  m._p.forEach(([p, f]) => { x.fillStyle = f; x.fill(p); });
+  x.save(); x.globalCompositeOperation = 'destination-out'; x.fill(m._clip.path); x.restore();
+  m._encima.forEach(([p, f]) => { x.fillStyle = f; x.fill(p); });
+  x.strokeStyle = 'red'; x.lineWidth = 1; x.strokeRect(45, 45, 150, 150);
+  const d = document.createElement('div'); d.textContent = m.id + ' ' + m.name + ' bg ' + m.bg; d.prepend(c); d.style.display='grid'; document.getElementById('r').append(d);
+}
+</script></body></html>
