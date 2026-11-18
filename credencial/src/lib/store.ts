@@ -156,6 +156,28 @@ export async function reconocerAfiche(codigo: string, afiche: string): Promise<R
   return { pasos: r.pasos, meta: r.meta, otorgado: r.sello_otorgado, nuevo: r.nuevo, afiche: r.afiche, repetido: r.repetido, sello };
 }
 
+// Jugar en una mesa con QR (plan 014, migraciones/009-jugar-con-qr.sql): deja la mesa asociada a esta credencial.
+export interface MesaPendiente { mesa: string; nonce: string; app?: string }
+const LLAVE_MESA = 'sd:mesa-pendiente';
+export function guardarMesaPendiente(m: MesaPendiente) { try { localStorage.setItem(LLAVE_MESA, JSON.stringify({ ...m, t: Date.now() })); } catch { /* nada */ } }
+// El pedido vale 30 minutos (lo que tarda en crear la credencial y volver a la mesa).
+export function tomarMesaPendiente(): MesaPendiente | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(LLAVE_MESA) || 'null');
+    localStorage.removeItem(LLAVE_MESA);
+    return v && Date.now() - v.t < 30 * 60 * 1000 ? { mesa: v.mesa, nonce: v.nonce, app: v.app } : null;
+  } catch { return null; }
+}
+export async function emparejarMesa(codigo: string, mesa: string, nonce: string, app?: string): Promise<void> {
+  if (!sb) throw new Error('Sin conexión a la base: en la tablet escribe tu código ' + codigo + '.');
+  const { error } = await sb.rpc('emparejar_mesa', { p_mesa: mesa, p_nonce: nonce, p_codigo: codigo, p_app: app ?? null });
+  if (!error) return;
+  if (error.message.includes('mesa_ocupada')) throw new Error('Esa mesa ya está jugando con otra credencial. Pide en la tablet un QR nuevo.');
+  if (error.message.includes('credencial_no_existe')) throw new Error('No encontramos tu credencial.');
+  if (/emparejar_mesa|function/i.test(error.message)) throw new Error('La base todavía no tiene esta función. En la tablet escribe tu código ' + codigo + '.');
+  throw new Error(error.message);
+}
+
 // Lo que muestra la vista Juego: afiches encontrados (en orden), la meta de la cacería y el inventario de
 // creación: lo que la persona hizo en cada mesa con su código, según los eventos que publican las mesas (plan 010 §2b).
 export interface Creacion { app: string; png?: string; escena?: string; creado: number }
