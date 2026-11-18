@@ -35,6 +35,8 @@ const LATAS_PRUEBA = ['#FF8FB1', '#FFC20E', '#7FC8F8'];
 const PIEZAS_PRUEBA: Pieza[] = [{ color: '#00A651', forma: 'corazon' }, { color: '#FF8FB1', forma: 'estrella' }, { color: '#FFC20E', forma: 'rayo' }, { color: '#00A651', forma: 'gota' }];
 const andenDePrueba = () => Object.assign(nuevoAnden(LATAS_PRUEBA), NIVEL === 3 ? { juntadas: PIEZAS_PRUEBA, limpio: true } : {});
 const coloresJefe = (latas: string[], piezas: Pieza[]) => [...latas, ...piezas.map(p => p.color)];
+// Densidades del lienzo (px por px CSS), de la mejor a la más liviana: la de la pantalla (hasta 2), 1 y 0,75.
+const densidades = () => { const d = Math.min(window.devicePixelRatio || 1, 2); return [...new Set([d, 1.5, 1, 0.75])].filter(x => x <= d); };
 const plural = (n: number, uno: string, varios = uno + 's') => `${n} ${n === 1 ? uno : varios}`;
 const leerMejor = () => { try { return Number(sessionStorage.getItem('sd:juego:mejor')) || 0; } catch { return 0; } };
 
@@ -111,6 +113,9 @@ export const App: React.FC = () => {
   const camara = useRef(0);
   const espera = useRef(0); // ms desde que el cruce terminó (choque o llegada)
   const img = useRef<Imagenes>({ personaje: null, metro: null });
+  const calidad = useRef(0); // paso de densidad del lienzo (0 = la de la pantalla); ver `densidades`
+  const rinde = useRef({ n: 0, suma: 0 });
+  const redimensionar = useRef(() => {});
   const [etapa, setEtapa] = useState<Etapa>(NIVEL === 3 ? 'jefe' : NIVEL === 2 ? 'anden' : 'cruce');
   const [intro, setIntro] = useState(true); // tarjeta «Cómo se juega» al empezar cada nivel
   const [puntos, setPuntos] = useState(0);
@@ -125,7 +130,7 @@ export const App: React.FC = () => {
   useEffect(() => { document.documentElement.dataset.visual = 'Pixel'; }, []);
   // `?bot=1`: deja los motores a la vista de las pruebas automáticas (Playwright). No cambia el juego.
   useEffect(() => {
-    if (new URLSearchParams(location.search).get('bot') === '1') Object.assign(window, { horaPunta: { cruce, anden, jefe, acciones } });
+    if (new URLSearchParams(location.search).get('bot') === '1') Object.assign(window, { horaPunta: { cruce, anden, jefe, acciones, calidad } });
   }, []);
   useEffect(() => {
     img.current = { personaje: lienzoPinta('quieto'), metro: null }; // Pinta y el metro se dibujan en código (ronda 3)
@@ -170,9 +175,18 @@ export const App: React.FC = () => {
       if (!vivo) return;
       const c = lienzo.current, dt = t - previo;
       previo = t;
+      // Rendimiento: con el juego corriendo, promedia 90 cuadros (tras 30 de gracia); bajo ~45 fps, menos densidad.
+      const r = rinde.current;
+      if (corre && dt < 250 && ++r.n > 30) {
+        r.suma += dt;
+        if (r.n >= 120) {
+          if (r.suma / (r.n - 30) > 1000 / 45 && calidad.current < densidades().length - 1) { calidad.current++; redimensionar.current(); }
+          r.n = 0; r.suma = 0;
+        }
+      }
       const ctx = c && c.width ? c.getContext('2d')! : null;
       const a = anden.current, j = jefe.current, q = quieto();
-      const mando = Math.round(190 * Math.min(window.devicePixelRatio || 1, 2)); // alto de los controles (en vertical van bajo la arena)
+      const mando = Math.round(190 * (c && c.clientWidth ? c.width / c.clientWidth : 1)); // alto de los controles (en vertical van bajo la arena)
       if (j && nivel === 'jefe' && etapa !== 'paso2') {
         if (corre && etapa === 'jefe') {
           avanzarJefe(j, dt);
@@ -217,14 +231,17 @@ export const App: React.FC = () => {
     return () => { vivo = false; };
   }, [visto, corre, etapa, nivel, terminar]);
 
-  // El canvas toma la resolución de su caja (hasta 2× en pantallas densas).
+  // El canvas toma la resolución de su caja (hasta 2× en pantallas densas). Si el equipo no alcanza ~45 cuadros por
+  // segundo (tablets de gama media con DPR 1,5), el bucle baja la densidad un paso (`calidad`) y no vuelve a subirla.
   useEffect(() => {
     const c = lienzo.current;
     if (!c) return;
-    const ro = new ResizeObserver(() => {
-      const d = Math.min(window.devicePixelRatio || 1, 2);
+    const medir = () => {
+      const d = densidades()[Math.min(calidad.current, densidades().length - 1)];
       c.width = Math.round(c.clientWidth * d); c.height = Math.round(c.clientHeight * d);
-    });
+    };
+    redimensionar.current = medir;
+    const ro = new ResizeObserver(medir);
     ro.observe(c);
     return () => ro.disconnect();
   }, [visto]);
