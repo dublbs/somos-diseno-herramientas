@@ -6,7 +6,7 @@ import { demoDe } from '../lib/demo';
 import type { Cara } from '../lib/cara';
 import type { Lado } from '../hooks/useCamara';
 import type { FotoEditable } from './Editor';
-import { BotonAccion, Deslizador, Seccion, Segmentado } from '../../../shared/ui/Kit';
+import { Boton, Deslizador, SeccionPanel, Segmento } from '../../../shared/ui/Herramienta';
 
 // Panel derecho del Fotomatón (plan 012): todo lo que no es capturar vive aquí y el panel hace scroll solo.
 // Es solo presentación: el estado vive en App.tsx, así la pantalla se puede pasar al marco v2 sin tocar la lógica.
@@ -26,19 +26,13 @@ export interface PanelProps {
 
 export function Panel(p: PanelProps) {
   const fx = EFECTOS[p.visual];
+  // Lo más usado arriba (lenguaje y marco); la cámara frontal o trasera y subir una foto, al final.
   return (
-    <div className="panel-foto">
-      {p.camara && (
-        <Seccion titulo="Foto">
-          <Segmentado etiqueta="Cámara" valor={p.camara.lado} onCambiar={p.camara.setLado}
-            opciones={[{ valor: 'user', texto: 'Frontal' }, { valor: 'environment', texto: 'Trasera' }]} />
-          <BotonAccion icono="image" texto="Subir una foto" onClick={p.camara.alSubir} />
-        </Seccion>
-      )}
-      <Seccion titulo="Lenguaje">
-        <Segmentado etiqueta="Lenguaje" valor={p.visual} onCambiar={p.elegirVisual} opciones={VISUALES.map(v => ({ valor: v, texto: v }))} />
-      </Seccion>
-      <Seccion titulo="Marco">
+    <>
+      <SeccionPanel titulo="Lenguaje">
+        <Segmento etiqueta="Lenguaje" valor={p.visual} onCambiar={p.elegirVisual} opciones={VISUALES.map(v => ({ valor: v, texto: v }))} />
+      </SeccionPanel>
+      <SeccionPanel titulo="Marco">
         <div className="marcos-grilla" role="radiogroup" aria-label="Marco">
           {MARCOS.filter(m => m.visual === p.visual).map(m => (
             <button key={m.id} type="button" role="radio" aria-checked={m.id === p.marcoId} className="marco-op" onClick={() => p.setMarcoId(m.id)}>
@@ -47,12 +41,11 @@ export function Panel(p: PanelProps) {
             </button>
           ))}
         </div>
-      </Seccion>
-      <Seccion titulo={`Efecto · ${fx.nombre}`}>
-        <Deslizador id="celda" etiqueta={`Tamaño de ${fx.control.toLowerCase()}`} min={1} max={4} paso={0.25} valor={p.celda} onCambiar={p.setCelda} extremos={['Fino', 'Grueso']} />
-        <p className="k-ayuda">{fx.ayuda}</p>
-      </Seccion>
-      <Seccion titulo={fx.paleta}>
+      </SeccionPanel>
+      <SeccionPanel titulo={`Efecto · ${fx.nombre}`} ayuda={fx.ayuda}>
+        <Deslizador etiqueta={`Tamaño de ${fx.control.toLowerCase()}`} min={1} max={4} paso={0.25} valor={p.celda} onCambiar={p.setCelda} extremos={['Fino', 'Grueso']} formato={v => v.toLocaleString('es-CL')} />
+      </SeccionPanel>
+      <SeccionPanel titulo={fx.paleta}>
         <div className="tintas" role="radiogroup" aria-label={fx.paleta}>
           {Object.entries(TINTAS).map(([k, t]) => (
             <button key={k} type="button" role="radio" aria-checked={k === p.tinta} className="tinta-op" onClick={() => p.setTinta(k)}>
@@ -61,9 +54,16 @@ export function Panel(p: PanelProps) {
             </button>
           ))}
         </div>
-      </Seccion>
+      </SeccionPanel>
       {tienePlacas(p.visual) && <Placas {...p} />}
-    </div>
+      {p.camara && (
+        <SeccionPanel titulo="Foto">
+          <Segmento etiqueta="Cámara" valor={p.camara.lado} onCambiar={p.camara.setLado}
+            opciones={[{ valor: 'user', texto: 'Frontal' }, { valor: 'environment', texto: 'Trasera' }]} />
+          <Boton icono="image" texto="Subir una foto" onClick={p.camara.alSubir} ancho />
+        </SeccionPanel>
+      )}
+    </>
   );
 }
 
@@ -94,7 +94,7 @@ function Placas({ foto, vivo, celda, tinta, apagadas, alternarPlaca }: PanelProp
     return () => window.clearInterval(iv);
   }, [foto, vivo, celda, tinta]);
   return (
-    <Seccion titulo="Placas de impresión">
+    <SeccionPanel titulo="Placas de impresión" ayuda="Cada tinta se imprime por separado. Toca una placa para apagarla o prenderla.">
       <div className="placas" data-n={placas.length}>
         {placas.map((pl, i) => {
           const prendida = !apagadas.includes(pl.canal);
@@ -107,7 +107,6 @@ function Placas({ foto, vivo, celda, tinta, apagadas, alternarPlaca }: PanelProp
           );
         })}
       </div>
-      <p className="k-ayuda">Cada tinta se imprime por separado. Toca una placa para apagarla o prenderla.</p>
-    </Seccion>
+    </SeccionPanel>
   );
 }

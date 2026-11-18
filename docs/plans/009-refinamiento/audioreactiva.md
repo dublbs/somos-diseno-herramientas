@@ -107,3 +107,47 @@ movimiento: al apagarlos, el analizador reescala las otras bandas y el total cas
 pico (o normalizar contra el pico de toda la mezcla) para que una pista apagada deje su hueco; cambia cómo responde todo,
 por eso no se hizo sin escucharlo.
 
+
+## Ronda 3 (plan 014 §1): Túnel del C3 y manos propias de cada escena
+Pedido de Amaro (18 nov): que el **Túnel** se parezca a la referencia original y que **Bum**, **Chas** y el **arrastre**
+sobre la escena tengan un efecto propio de cada escena (antes los tres eran genéricos: cuadrados y rayos encima, giro,
+zoom, estela de eco y tinte azul iguales en todas).
+
+**Túnel = C3.** `audioreactiva/src/escenas/tunel.ts` es una copia ampliada de `dibujarC3` (`shared/c3-tunel.js`, Figma
+`449:86016`, que no se tocó): mismo damero azul y hueso de 16 sectores, mismo cuadro negro al frente, misma razón entre
+anillos (1,32), velocidad base (0,75 anillos/s) y loop de 4 s con el estallido (se redondea y tuerce en espiral y vuelve
+a cuadrado). La música mueve parámetros de esa figura: el bombo acelera y hace latir, la caja gira el cuadro del centro,
+el hi-hat apura el giro, el bajo redondea, los acordes tuercen y la melodía suma anillos. Comparado lado a lado con la
+referencia en los mismos instantes del loop: se reconoce como el mismo.
+
+**Bum, Chas y dedo por escena.** El compositor ya no dibuja nada encima: solo lleva la cuenta de las manos (segundos
+desde cada pad y posición del dedo, que entra y sale suave) y cada escena decide. El sonido del dedo no cambia: a la
+izquierda se apaga (filtro), a la derecha brilla, arriba suma eco. El panel «Escena» dice qué hace cada mano.
+
+| Escena | Bum | Chas | Arrastre (dedo) |
+|---|---|---|---|
+| Túnel | El túnel salta hacia adelante (avanza ~1,5 anillos de golpe, se acerca y late) | Los anillos invierten su color de adentro hacia afuera, en anillos alternos: el damero se vuelve rayos y vuelve | Mueve el punto de fuga: los anillos del fondo se van hacia el dedo y los de afuera quedan centrados |
+| Acordeón | El fuelle se comprime y rebota (resorte) y las columnas se inflan | Un pliegue se abre: una columna se ensancha, se oscurece por dentro y sus listas se separan y se vuelven amarillas | Estira el fuelle: las columnas bajo el dedo se ensanchan, separan sus listas y suben hasta la altura del dedo |
+| Caleidoscopio | El espejo gira de golpe medio gajo y da un golpe de zoom | Cambia la cantidad de gajos (4 → 6 → 8) con un pulso | Mueve el centro del espejo (y la estrella) hacia el dedo |
+| Tejido | Una onda amarilla sale del centro y teje la tela a su paso | Los hilos se cruzan: las filas se corren en sentidos opuestos y todas las celdas se vuelven cruces largas | Pellizca la trama: las celdas cerca del dedo se juntan hacia él y se tejen |
+| Escalera | Los escalones suben en cadena, de izquierda a derecha | Destella un peldaño: una columna se invierte, se levanta y aparece un cuadro amarillo que crece | Inclina la escalera (a la derecha sube, a la izquierda baja) y la corre hacia arriba o abajo |
+
+`prefers-reduced-motion`: los mismos efectos más chicos y lentos, sin inversiones de pantalla completa (el Chas del Túnel
+solo invierte los anillos del fondo; el de Escalera aclara el peldaño en vez de invertirlo).
+
+**Medición** (18 nov, Chromium headless, `?medir=1` → `__ar.probar`): cada escena corre en silencio con dt fijo
+(30 cuadros/s), con y sin la acción en el cuadro 10, y se compara cuadro a cuadro (diferencia media máxima en 0,8 s, en %
+del rango de color; lienzo de 256 px reducido a 96). «Bum vs Chas»: cuánto difieren entre sí las dos corridas.
+
+| Escena | Bum | Chas | Dedo | Bum vs Chas | Reducido: Bum · Chas |
+|---|---|---|---|---|---|
+| Túnel | 27,1 | 31,4 | 24,7 | 32,0 | 46,0 · 4,1 |
+| Acordeón | 12,4 | 19,2 | 7,9 | 27,0 | 7,7 · 7,6 |
+| Caleidoscopio | 21,1 | 20,3 | 24,2 | 19,0 | 20,1 · 14,7 |
+| Tejido | 4,8 | 17,3 | 3,7 | 18,2 | 0,9 · 3,6 |
+| Escalera | 41,0 | 2,8 | 37,6 | 40,9 | 32,5 · 1,4 |
+
+En silencio el Tejido son puntos chicos sobre celeste y el Chas de Escalera toca una de 16 columnas: por eso sus cifras
+son bajas, pero en las capturas se ven. Con música los pads suenan y además mueven la escena por el analizador. El Bum
+del Túnel en modo reducido mide alto porque mover un damero cambia muchos píxeles, aunque el salto es la cuarta parte.
+**Falta:** probarlo con el dedo en la tablet (el arrastre se probó con mouse en Playwright).

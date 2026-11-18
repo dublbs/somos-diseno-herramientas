@@ -80,17 +80,20 @@ export function dibujarEncuadre(ctx: CanvasRenderingContext2D, src: Fuente, w: n
 }
 
 // solo: dibuja una sola placa (canal) · apagadas: placas que la persona apagó (no se imprimen).
+// Memoria de trabajo de la trama (se reutiliza entre cuadros de la vista en vivo).
+let bufTrama = new Float32Array(0), bufRadios = new Float32Array(0);
 export function trama(src: Fuente, w: number, h: number, celda: number, tinta: Tinta, cara: Cara | null, solo?: string, apagadas?: readonly string[]) {
   w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h)); celda = Math.max(3, celda);
   const paso = Math.max(1, celda / 2), mw = Math.ceil(w / paso), mh = Math.ceil(h / paso);
   const m = lienzoTmp('muestra', mw, mh), mx = m.getContext('2d', { willReadFrequently: true })!;
   mx.clearRect(0, 0, mw, mh); dibujarEncuadre(mx, src, mw, mh, cara);
   const px = mx.getImageData(0, 0, mw, mh).data;
+  // Se rasteriza a mano (ImageData) en vez de dibujar miles de arcos: en la tablet, rellenar ~30 000 círculos por cuadro
+  // con mezcla «multiply» era lo que dejaba la vista en vivo de Orgánica a pocos cuadros por segundo. Mismo dibujo:
+  // cada punto es un círculo de radio rmax·√v con borde suavizado de 1 px.
   const out = lienzoTmp('trama', w, h), o = out.getContext('2d')!;
-  o.globalCompositeOperation = 'source-over'; o.fillStyle = tinta.papel; o.fillRect(0, 0, w, h);
   // 'opaca': los puntos tapan lo de abajo (colores puros). 'multiply': tintas translúcidas, como imprenta.
   const opaca = tinta.mezcla === 'opaca';
-  o.globalCompositeOperation = opaca ? 'source-over' : 'multiply';
   const cx = w / 2, cy = h / 2, n = Math.ceil(Math.hypot(w, h) / celda / 2) + 1, rmax = celda * 0.5 * (opaca ? 1.1 : 1.42), vmin = opaca ? 0.1 : 0.04;
   const ajustar = (v: number) => Math.min(1, Math.max(0, (v - 0.5) * 1.18 + 0.52));
   const canales: [string, number, string][] = tinta.modo === 'cmyk'
@@ -98,10 +101,19 @@ export function trama(src: Fuente, w: number, h: number, celda: number, tinta: T
     : tinta.modo === 'duo' ? [['b', 75, tinta.b!], ['a', 45, tinta.a!]] : [['l', 45, tinta.a!]];
   // Opaca: de lo más claro a lo más oscuro, así los puntos oscuros siempre quedan arriba.
   if (opaca) canales.sort((p, q) => lum(q[2]) - lum(p[2]));
+  const N = w * h;
+  if (bufTrama.length < N * 3) bufTrama = new Float32Array(N * 3);
+  const R = bufTrama.subarray(0, N), G = bufTrama.subarray(N, 2 * N), B = bufTrama.subarray(2 * N, 3 * N);
+  const [pr, pg, pb] = rgb(tinta.papel).map(v => v / 255);
+  R.fill(pr); G.fill(pg); B.fill(pb);
+  const lado = 2 * n + 1;
+  if (bufRadios.length < lado * lado) bufRadios = new Float32Array(lado * lado);
+  const radios = bufRadios.subarray(0, lado * lado);
   for (const [ch, ang, color] of canales) {
     if (solo ? ch !== solo : apagadas?.includes(ch)) continue;
     const a = ang * Math.PI / 180, co = Math.cos(a), si = Math.sin(a);
-    o.fillStyle = color; o.beginPath();
+    // radio de cada punto de la grilla girada
+    radios.fill(0);
     for (let i = -n; i <= n; i++) for (let j = -n; j <= n; j++) {
       const gx = i * celda, gy = j * celda, x = cx + gx * co - gy * si, y = cy + gx * si + gy * co;
       if (x < -celda || y < -celda || x > w + celda || y > h + celda) continue;
@@ -114,22 +126,43 @@ export function trama(src: Fuente, w: number, h: number, celda: number, tinta: T
       else if (ch === 'k') v = k * 0.9;
       else { if (k > 0.995) continue; const base = ch === 'c' ? r : ch === 'm' ? g : b; v = (1 - base - k) / (1 - k); }
       if (v < vmin) continue;
-      const rad = rmax * Math.sqrt(v);
-      o.moveTo(x + rad, y); o.arc(x, y, rad, 0, Math.PI * 2);
+      radios[(i + n) * lado + (j + n)] = rmax * Math.sqrt(v);
     }
-    o.fill();
+    // cada píxel: cobertura del punto más cercano entre los 4 de su celda girada
+    const [tr, tg, tb] = rgb(color).map(v => v / 255), du = co / celda, dv = -si / celda;
+    for (let y = 0; y < h; y++) {
+      const dy = y + 0.5 - cy, dx0 = 0.5 - cx;
+      let u = (dx0 * co + dy * si) / celda + n, v = (-dx0 * si + dy * co) / celda + n;
+      let q = y * w;
+      for (let x = 0; x < w; x++, q++, u += du, v += dv) {
+        const i0 = Math.floor(u), j0 = Math.floor(v);
+        if (i0 < 0 || j0 < 0 || i0 + 1 >= lado || j0 + 1 >= lado) continue;
+        const fu = u - i0, fv = v - j0, b0 = i0 * lado + j0;
+        let cov = 0, rr: number, d: number, c: number;
+        rr = radios[b0]; d = celda * celda * (fu * fu + fv * fv); if (rr > 0 && d < (rr + 0.5) * (rr + 0.5)) { d = Math.sqrt(d); c = rr - d + 0.5; if (c > cov) cov = c; }
+        rr = radios[b0 + lado]; d = celda * celda * ((1 - fu) * (1 - fu) + fv * fv); if (rr > 0 && d < (rr + 0.5) * (rr + 0.5)) { d = Math.sqrt(d); c = rr - d + 0.5; if (c > cov) cov = c; }
+        rr = radios[b0 + 1]; d = celda * celda * (fu * fu + (1 - fv) * (1 - fv)); if (rr > 0 && d < (rr + 0.5) * (rr + 0.5)) { d = Math.sqrt(d); c = rr - d + 0.5; if (c > cov) cov = c; }
+        rr = radios[b0 + lado + 1]; d = celda * celda * ((1 - fu) * (1 - fu) + (1 - fv) * (1 - fv)); if (rr > 0 && d < (rr + 0.5) * (rr + 0.5)) { d = Math.sqrt(d); c = rr - d + 0.5; if (c > cov) cov = c; }
+        if (cov <= 0) continue;
+        if (cov > 1) cov = 1;
+        if (opaca) { R[q] += (tr - R[q]) * cov; G[q] += (tg - G[q]) * cov; B[q] += (tb - B[q]) * cov; }
+        else { R[q] *= 1 - cov * (1 - tr); G[q] *= 1 - cov * (1 - tg); B[q] *= 1 - cov * (1 - tb); }
+      }
+    }
   }
-  o.globalCompositeOperation = 'source-over';
+  const im = o.createImageData(w, h), dd = im.data;
+  for (let q = 0, z = 0; q < N; q++, z += 4) { dd[z] = R[q] * 255; dd[z + 1] = G[q] * 255; dd[z + 2] = B[q] * 255; dd[z + 3] = 255; }
+  o.putImageData(im, 0, 0);
   return out;
 }
 
 
 // --- Efectos por lenguaje -------------------------------------------------
-// Orgánica = trama CMYK (arriba) · Pixel = pantalla CRT · Geométrica = mosaico de triángulos de tinta plana.
+// Orgánica = trama CMYK (arriba) · Pixel = pantalla CRT · Geométrica = semitono de triángulos.
 export const EFECTOS = {
   Orgánica: { nombre: 'Trama CMYK', control: 'Trama', paleta: 'Tinta', ayuda: 'Con la trama fina se reconoce mejor la cara.' },
   Pixel: { nombre: 'Pantalla CRT', control: 'Píxel', paleta: 'Paleta', ayuda: 'Con píxeles chicos se reconoce mejor la cara.' },
-  'Geométrica': { nombre: 'Mosaico de triángulos', control: 'Triángulo', paleta: 'Paleta', ayuda: 'Los triángulos se achican solos donde hay detalle: ojos, boca y contorno.' },
+  'Geométrica': { nombre: 'Semitono de triángulos', control: 'Triángulo', paleta: 'Paleta', ayuda: 'Cada triángulo crece con la sombra. Con triángulos chicos se reconoce mejor la cara.' },
 } as const;
 
 // Foto reducida a una grilla: un pixel por bloque.
@@ -177,65 +210,73 @@ export function crt(src: Fuente, w: number, h: number, celda: number, tinta: Tin
   return out;
 }
 
-// Geométrica · mosaico de triángulos adaptativo (plan 012): una grilla de triángulos equiláteros que se parten en
-// cuatro donde la foto tiene detalle (ojos, boca, contorno de la cara) y quedan grandes donde es pareja (fondo, ropa).
-// Cada triángulo es un tono plano de la paleta según su luz; con la tinta CMYK, su color real posterizado.
+// Geométrica · semitono de triángulos (ronda 3, plan 014): una grilla regular de triángulos equiláteros, alternados
+// arriba y abajo. Cada celda lleva de fondo el tono claro y encima un triángulo del tono oscuro que crece con la sombra,
+// como un semitono de imprenta hecho con triángulos: la gradación es continua y la cara se lee por luces y sombras.
+// Los tonos salen de la paleta por bandas de luz (ver bandasDe); con la tinta CMYK, cada triángulo va con su color real.
+// Se eligió entre cuatro ensayos (grilla de tono plano, semitono, truchet de cuartos de círculo y cuadros partidos por
+// la diagonal) por ser el que mejor deja reconocer la cara en todas las paletas y tamaños.
+const bandasCache = new Map<string, { n: number; de: (i: number, r: number, g: number, b: number) => string }>();
+// Paleta por bandas de luz: las tintas de luz parecida forman una banda (en Línea azul, rosa, celeste y amarillo casi
+// no se distinguen en gris) y dentro de cada banda se elige la de color más parecido a la foto. Así las luces y
+// sombras quedan ordenadas y el color sigue a la foto (piel rosa, fondo celeste…).
+function bandasDe(t: Tinta) {
+  let r = bandasCache.get(t.label);
+  if (r) return r;
+  const inks = tintasDe(t), g: string[][] = [];
+  for (const c of inks) { const u = g[g.length - 1]; if (u && lum(c) - lum(u[u.length - 1]) < 0.1) u.push(c); else g.push([c]); }
+  if (g.length > 1 && lum(t.papel) - lum(inks[inks.length - 1]) < 0.1) g[g.length - 1].push(t.papel); else g.push([t.papel]);
+  const info = g.map(b => b.map(h => { const [x, y, z] = rgb(h).map(v => v / 255), l = 0.299 * x + 0.587 * y + 0.114 * z; return { h, c: [x - l, y - l, z - l] }; }));
+  r = {
+    n: g.length,
+    de(i, x, y, z) {
+      const banda = info[Math.max(0, Math.min(info.length - 1, i))];
+      if (banda.length === 1) return banda[0].h;
+      const l = 0.299 * x + 0.587 * y + 0.114 * z, c = [x - l, y - l, z - l];
+      let mejor = banda[0].h, dm = Infinity;
+      for (const e of banda) { const d = (e.c[0] - c[0]) ** 2 + (e.c[1] - c[1]) ** 2 + (e.c[2] - c[2]) ** 2; if (d < dm) { dm = d; mejor = e.h; } }
+      return mejor;
+    },
+  };
+  bandasCache.set(t.label, r);
+  return r;
+}
+// Color real (tinta CMYK): un poco más saturado y en pocos niveles, para que cada pieza sea un color plano y limpio.
+function colorPlano(r: number, g: number, b: number) {
+  const l = 0.299 * r + 0.587 * g + 0.114 * b;
+  const f = (v: number) => Math.round(Math.round(Math.min(1, Math.max(0, (l + (v - l) * 1.25 - 0.5) * 1.15 + 0.5)) * 6) / 6 * 255);
+  return `rgb(${f(r)},${f(g)},${f(b)})`;
+}
 export function mosaico(src: Fuente, w: number, h: number, celda: number, tinta: Tinta, cara: Cara | null) {
   w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h));
-  const T = Math.max(18, celda * 8), minimo = Math.max(3.2, T / 9);
-  const paso = Math.max(1, minimo / 2), { mw, mh, px } = reducir(src, w, h, paso, cara);
+  const T = Math.max(7, celda * 2.6), paso = Math.max(1, T / 5);
+  const { mw, mh, px } = reducir(src, w, h, paso, cara);
+  // niveles automáticos (percentiles 2 y 98 de la luz): la cara usa toda la escala aunque la foto esté apagada
+  const n = mw * mh, L = new Float32Array(n), hist = new Uint32Array(256);
+  for (let i = 0; i < n; i++) { L[i] = (0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2]) / 255; hist[Math.min(255, (L[i] * 255) | 0)]++; }
+  const pct = (p: number) => { let a = 0; for (let i = 0; i < 256; i++) { a += hist[i]; if (a >= n * p) return i / 255; } return 1; };
+  const lo = pct(0.02), hi = Math.max(lo + 0.1, pct(0.98));
   const out = lienzoTmp('mosaico', w, h), o = out.getContext('2d')!;
   o.globalCompositeOperation = 'source-over'; o.globalAlpha = 1; o.fillStyle = tinta.papel; o.fillRect(0, 0, w, h);
-  const rampa = [...tintasDe(tinta), tinta.papel], n = rampa.length;
-  const muestra = (x: number, y: number) => {
-    const sx = Math.min(mw - 1, Math.max(0, (x / paso) | 0)), sy = Math.min(mh - 1, Math.max(0, (y / paso) | 0)), p = (sy * mw + sx) * 4;
-    return [px[p] / 255, px[p + 1] / 255, px[p + 2] / 255];
-  };
-  type P = [number, number];
-  // Juntas de papel entre las piezas, más finas en las piezas chicas: así se lee el mosaico aunque dos vecinas
-  // tengan el mismo tono.
-  const juntas: [P, P, P, number][] = [];
-  const pintar = (a: P, b: P, c: P, color: string) => {
-    o.fillStyle = color; o.strokeStyle = color; o.lineWidth = 0.6;
-    o.beginPath(); o.moveTo(a[0], a[1]); o.lineTo(b[0], b[1]); o.lineTo(c[0], c[1]); o.closePath(); o.fill(); o.stroke();
-    juntas.push([a, b, c, Math.hypot(b[0] - a[0], b[1] - a[1])]);
-  };
-  const tri = (a: P, b: P, c: P, nivel: number) => {
-    const gx = (a[0] + b[0] + c[0]) / 3, gy = (a[1] + b[1] + c[1]) / 3;
-    if (gx < -T || gy < -T || gx > w + T || gy > h + T) return;
-    // 7 muestras: el centro, hacia los vértices y hacia los lados
-    const pts: P[] = [[gx, gy], ...[a, b, c].map(v => [gx + (v[0] - gx) * 0.62, gy + (v[1] - gy) * 0.62] as P),
-      ...[[a, b], [b, c], [c, a]].map(([u, v]) => [gx + ((u[0] + v[0]) / 2 - gx) * 0.7, gy + ((u[1] + v[1]) / 2 - gy) * 0.7] as P)];
-    let r = 0, g = 0, bl = 0, lmin = 1, lmax = 0;
-    for (const [x, y] of pts) { const [pr, pg, pb] = muestra(x, y), l = 0.299 * pr + 0.587 * pg + 0.114 * pb; r += pr; g += pg; bl += pb; lmin = Math.min(lmin, l); lmax = Math.max(lmax, l); }
-    r /= 7; g /= 7; bl /= 7;
-    const lado = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    if (lmax - lmin > 0.16 && lado / 2 >= minimo && nivel < 3) {
-      const ab: P = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], bc: P = [(b[0] + c[0]) / 2, (b[1] + c[1]) / 2], ca: P = [(c[0] + a[0]) / 2, (c[1] + a[1]) / 2];
-      tri(a, ab, ca, nivel + 1); tri(ab, b, bc, nivel + 1); tri(ca, bc, c, nivel + 1); tri(ab, bc, ca, nivel + 1);
-      return;
-    }
-    if (tinta.colorReal) {
-      const q = (v: number) => Math.round(Math.round(realce(v) * 4) / 4 * 255);
-      pintar(a, b, c, `rgb(${q(r)},${q(g)},${q(bl)})`);
-    } else {
-      const L = realce(0.299 * r + 0.587 * g + 0.114 * bl);
-      pintar(a, b, c, rampa[Math.min(n - 1, Math.max(0, Math.round(L * (n - 1))))]);
-    }
-  };
+  const bn = bandasDe(tinta);
   const H = T * Math.sqrt(3) / 2, cols = Math.ceil(w / (T / 2)) + 3, filas = Math.ceil(h / H) + 1;
   const ox = (w - (cols - 1) * T / 2) / 2 - T / 2, oy = (h - filas * H) / 2;
+  const tri = (ax: number, ay: number, bx: number, by: number, cx: number, cy: number) => { o.beginPath(); o.moveTo(ax, ay); o.lineTo(bx, by); o.lineTo(cx, cy); o.closePath(); o.fill(); };
   for (let j = 0; j < filas; j++) for (let i = 0; i < cols; i++) {
-    const x = ox + i * T / 2, y0 = oy + j * H, y1 = y0 + H;
-    if ((i + j) % 2 === 0) tri([x, y1], [x + T / 2, y0], [x + T, y1], 0);
-    else tri([x, y0], [x + T / 2, y1], [x + T, y0], 0);
+    const x = ox + i * T / 2, arriba = (i + j) % 2 === 0, yb = oy + j * H + (arriba ? H : 0), yp = oy + j * H + (arriba ? 0 : H);
+    // base (x, yb)–(x+T, yb) y punta (x+T/2, yp); centro a un tercio de la altura desde la base
+    const gx = x + T / 2, gy = yb + (yp - yb) / 3;
+    if (gx < -T || gy < -T || gx > w + T || gy > h + T) continue;
+    const sx = Math.min(mw - 1, Math.max(0, (gx / paso) | 0)), sy = Math.min(mh - 1, Math.max(0, (gy / paso) | 0)), q = sy * mw + sx;
+    const r = px[q * 4] / 255, g = px[q * 4 + 1] / 255, b = px[q * 4 + 2] / 255;
+    if (tinta.colorReal) { o.fillStyle = colorPlano(r, g, b); tri(x, yb, x + T, yb, gx, yp); continue; }
+    const t = Math.min(1, Math.max(0, (L[q] - lo) / (hi - lo))) * (bn.n - 1), banda = Math.min(bn.n - 2, Math.floor(t)), f = t - banda;
+    o.fillStyle = bn.de(banda + 1, r, g, b); tri(x - 0.3, yb, x + T + 0.3, yb, gx, yp);
+    const e = Math.sqrt(1 - f) * 0.98;
+    if (e < 0.08) continue;
+    o.fillStyle = bn.de(banda, r, g, b);
+    tri(gx + (x - gx) * e, gy + (yb - gy) * e, gx + (x + T - gx) * e, gy + (yb - gy) * e, gx, gy + (yp - gy) * e);
   }
-  o.strokeStyle = tinta.papel; o.globalAlpha = 0.55; o.lineJoin = 'round';
-  for (const [a, b, c, lado] of juntas) {
-    o.lineWidth = Math.max(0.5, lado / 26);
-    o.beginPath(); o.moveTo(a[0], a[1]); o.lineTo(b[0], b[1]); o.lineTo(c[0], c[1]); o.closePath(); o.stroke();
-  }
-  o.globalAlpha = 1;
   return out;
 }
 
@@ -270,21 +311,44 @@ export function dibujarPlaca(ctx: CanvasRenderingContext2D, lado: number, src: F
 
 // Compone marco: fondo → figura → foto en trama dentro de su zona → lo que en Figma va sobre la foto.
 export interface OpcionesComponer { apagadas?: readonly string[] }
+// Las capas fijas del marco (fondo + figura, y lo que va encima) se dibujan una vez por marco, tinta y tamaño y se
+// guardan: los marcos de Orgánica traen trazados de Figma muy pesados y, en la vista en vivo, redibujarlos en cada cuadro
+// era lo que más costaba en la tablet.
+const capasCache = new Map<string, { bajo: HTMLCanvasElement; sobre: HTMLCanvasElement | null }>();
+function capasMarco(m: ReturnType<typeof marcoListo>, marco: { bg: string; fills: string[]; encima: string[] }, tinta: Tinta, size: number) {
+  const key = m.id + '|' + tinta.label + '|' + size;
+  let r = capasCache.get(key);
+  if (r) return r;
+  if (capasCache.size > 24) capasCache.clear();
+  const s = size / 240, nuevo = () => { const c = document.createElement('canvas'); c.width = c.height = size; return c; };
+  const bajo = nuevo(), x = bajo.getContext('2d')!;
+  x.fillStyle = marco.bg; x.fillRect(0, 0, size, size);
+  x.setTransform(s, 0, 0, s, 0, 0);
+  m._p.forEach(([p], i) => { x.fillStyle = marco.fills[i]; x.fill(p); });
+  let sobre: HTMLCanvasElement | null = null;
+  if (m._encima.length) {
+    sobre = nuevo(); const y = sobre.getContext('2d')!; y.setTransform(s, 0, 0, s, 0, 0);
+    m._encima.forEach(([p], i) => { y.fillStyle = marco.encima[i]; y.fill(p); });
+  }
+  r = { bajo, sobre };
+  capasCache.set(key, r);
+  return r;
+}
+
 export function componer(ctx: CanvasRenderingContext2D, size: number, marcoId: string, src: Fuente, celda: number, tinta: Tinta, cara?: Cara | null, op: OpcionesComponer = {}) {
-  const m = marcoListo(marcoId), s = size / 240, marco = marcoConTinta(m, tinta);
+  const m = marcoListo(marcoId), s = size / 240, marco = marcoConTinta(m, tinta), capas = capasMarco(m, marco, tinta, size);
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'source-over';
-  ctx.fillStyle = marco.bg; ctx.fillRect(0, 0, size, size);
-  ctx.setTransform(s, 0, 0, s, 0, 0);
-  m._p.forEach(([p], i) => { ctx.fillStyle = marco.fills[i]; ctx.fill(p); });
+  ctx.drawImage(capas.bajo, 0, 0);
   const [bx, by, bw, bh] = m._clip.box;
   const t = efectoDe(m.visual)(src, bw * s, bh * s, celdaRelativa(src, bw, bh, celda, cara ?? null) * s, tinta, cara ?? null, op.apagadas);
   ctx.save();
+  ctx.setTransform(s, 0, 0, s, 0, 0);
   ctx.clip(m._clip.path);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.drawImage(t, Math.round(bx * s), Math.round(by * s));
   ctx.restore();
-  m._encima.forEach(([p], i) => { ctx.fillStyle = marco.encima[i]; ctx.fill(p); });
+  if (capas.sobre) ctx.drawImage(capas.sobre, 0, 0);
   ctx.restore();
 }
 
@@ -301,14 +365,17 @@ export const DEMO = (() => {
   return c;
 })();
 
+// Cuadro de la cámara en retrato 3:4 (recortado al centro si la cámara entrega apaisado), espejado en la selfie.
+// `max` es el alto en px.
 export function pintarVideo(canvas: HTMLCanvasElement, v: HTMLVideoElement, espejo: boolean, max: number) {
   const vw = v.videoWidth, vh = v.videoHeight; if (!vw) return false;
-  const s = Math.min(1, max / Math.max(vw, vh)), w = Math.round(vw * s), h = Math.round(vh * s);
+  const sw = Math.min(vw, vh * 3 / 4), sh = Math.min(vh, vw * 4 / 3), sx = (vw - sw) / 2, sy = (vh - sh) / 2;
+  const h = Math.round(Math.min(max, sh)), w = Math.round(h * 3 / 4);
   if (canvas.width !== w) canvas.width = w;
   if (canvas.height !== h) canvas.height = h;
   const x = canvas.getContext('2d')!; x.save();
   if (espejo) { x.translate(w, 0); x.scale(-1, 1); }
-  x.drawImage(v, 0, 0, w, h); x.restore(); return true;
+  x.drawImage(v, sx, sy, sw, sh, 0, 0, w, h); x.restore(); return true;
 }
 
 export function leerArchivo(file: File): Promise<HTMLCanvasElement> {

@@ -1,11 +1,13 @@
 import { ANCHO, META, QUIETO_AVISO, fila, type Cruce, type Fila, type Vehiculo } from './cruce';
 import { LATA, sprite } from './sprites';
+import { lienzoCarro, lienzoFuelle, lienzoTrompa } from './metro';
+import { lienzoPinta } from './personajes';
 
 // Dibuja el nivel 1 (El cruce) en vista isométrica 3/4 (plan 009-juego-pixel, ronda 2): el motor no cambia, solo el dibujo.
 // Mundo: x crece a lo largo del carril, y hacia adelante (filas) y z hacia arriba, todo en celdas.
 // Se ven el techo, el frente (cara y = y0) y el costado derecho (cara x = x1) de cada caja, en 3 tonos y con contorno negro.
 // Las imágenes de Figma (personaje y lateral del metro) llegan ya cargadas.
-export interface Imagenes { personaje: HTMLImageElement | null; metro: HTMLImageElement | null }
+export interface Imagenes { personaje: CanvasImageSource | null; metro: CanvasImageSource | null }
 
 // Proyección: un paso en x baja un poco (las filas son bandas inclinadas); un paso en y sube y se corre a la derecha.
 const KX = 0.2, FX = 0.42, FY = 0.8, Z = 0.75;
@@ -158,7 +160,7 @@ export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto:
       cosas.push({ x, dibujar: () => estampa(`${o}|${alto2}|${h}`, x, y, [0, 1.1, 0, 1, 0, h + 1.7], () => obstaculo(x, y, h, o, alto2)) });
     }
     for (const [x, color] of f.latas) cosas.push({ x, dibujar: () => lata(x, y, h, color) });
-    for (const veh of f.vehiculos) cosas.push({ x: veh.x, dibujar: () => estampa(`${veh.tipo}|${veh.color}|${veh.largo}|${f.dir}`, veh.x, y, [0, veh.largo + 0.2, 0, 1, 0, 1.1], () => vehiculo(veh, y, f.dir)) });
+    for (const veh of f.vehiculos) cosas.push({ x: veh.x, dibujar: () => estampa(`${veh.tipo}|${veh.color}|${veh.largo}|${f.dir}`, veh.x, y, [0, veh.largo + 0.2, 0, 1, 0, 1.25], () => vehiculo(veh, y, f.dir)) });
     if (f.tren?.activo) cosas.push({ x: f.tren.x, dibujar: () => tren(f.tren!.x, y) });
     if (y === Math.round(jy)) cosas.push({ x: e.fin === 'atropellado' || e.fin === 'tren' ? -99 : jx, dibujar: personaje }); // aplastado: queda en el suelo y el tránsito le pasa por encima
     cosas.sort((a, b) => a.x - b.x).forEach(k => k.dibujar());
@@ -241,70 +243,122 @@ export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto:
     sprite(ctx, LATA, px - w / 2, py - t, w, t, color, giro < 0);
   }
 
+  // ——— Vehículos (ronda 3): Pixel con volumen, contorno negro, colores planos y detalles pixel en cada cara ———
+  // Calco sobre el costado (cara x = x): eje u a lo largo de y, eje v hacia abajo en z.
+  function enCostado(x: number, y: number, z: number, dibujo: () => void) {
+    const [px, py] = P(x, y, z);
+    ctx.save(); ctx.transform(FX, -FY, 0, 1, px, py); dibujo(); ctx.restore();
+  }
+  function u() { return Math.max(1, Math.round(c / 16)); } // un «pixel» del dibujo
+  function rueda(x: number, y: number) { // rueda en la cara del frente: neumático negro y tapa gris
+    caja(x, x + 0.34, y + 0.1, y + 0.16, 0, 0.26, NEGRO, NEGRO, NEGRO);
+    enFrente(x, y + 0.1, 0.26, () => {
+      const p = u(), w = Math.round(0.34 * c), h = Math.round(0.26 * Z * c);
+      ctx.fillStyle = '#5A5A55'; ctx.fillRect(Math.round(w / 2 - 2 * p), Math.round(h / 2 - 2 * p), 4 * p, 4 * p);
+      ctx.fillStyle = '#B9B9B3'; ctx.fillRect(Math.round(w / 2 - p), Math.round(h / 2 - p), 2 * p, 2 * p);
+    });
+  }
+  function vidrio(w: number, h: number, ox: number, oy: number) { // ventana pixel: marco negro, vidrio y brillo
+    const p = u();
+    ctx.fillStyle = NEGRO; ctx.fillRect(ox, oy, w, h);
+    ctx.fillStyle = '#2B4BD8'; ctx.fillRect(ox + p, oy + p, w - 2 * p, h - 2 * p);
+    ctx.fillStyle = '#7FC8F8'; ctx.fillRect(ox + p, oy + p, w - 2 * p, Math.max(p, Math.round((h - 2 * p) * 0.45)));
+    ctx.fillStyle = '#FFFFFF'; ctx.fillRect(ox + 2 * p, oy + 2 * p, 2 * p, p);
+  }
+
   function vehiculo(veh: Vehiculo, y: number, dir: 1 | -1) {
-    const x0 = veh.x, x1 = veh.x + veh.largo;
+    const x0 = veh.x, x1 = veh.x + veh.largo, p = u();
     sombraSuelo(x0 + 0.05, x1 - 0.05, y + 0.14, y + 0.86, 0);
     if (veh.tipo === 'micro') {
-      // Micro: hueso con franja azul y ventanas celeste.
-      for (const rx of [0.4, veh.largo - 0.6]) caja(x0 + rx, x0 + rx + 0.3, y + 0.08, y + 0.14, 0, 0.18, NEGRO, NEGRO, NEGRO);
-      caja(x0, x1, y + 0.12, y + 0.88, 0.1, 1.0, '#F4EEE3', '#DDD5C6', '#BDB4A3');
-      enFrente(x0, y + 0.12, 1.0, () => {
-        const L = (x1 - x0) * c, H = 0.9 * Z * c;
-        ctx.fillStyle = '#0062B8'; ctx.fillRect(0, Math.round(H * 0.55), Math.round(L), Math.round(H * 0.16));
-        ctx.fillStyle = NEGRO; ctx.fillRect(0, Math.round(H * 0.12), Math.round(L), Math.round(H * 0.32));
-        ctx.fillStyle = '#7FC8F8';
-        for (let k = 0; k < veh.largo * 2; k++) ctx.fillRect(Math.round(k * c * 0.5 + c * 0.08), Math.round(H * 0.15), Math.round(c * 0.36), Math.round(H * 0.24));
+      // Micro de Santiago: hueso, franja azul y lapislázuli, ventanas en fila, puerta, aire acondicionado y letrero.
+      for (const rx of [0.35, veh.largo - 0.75]) rueda(x0 + rx, y);
+      caja(x0, x1, y + 0.12, y + 0.88, 0.14, 1.02, '#F4EEE3', '#E2D9C9', '#C9BFAE');
+      enFrente(x0, y + 0.12, 1.02, () => {
+        const L = Math.round((x1 - x0) * c), H = Math.round(0.88 * Z * c);
+        ctx.fillStyle = NEGRO; ctx.fillRect(0, Math.round(H * 0.1), L, Math.round(H * 0.38));
+        const n = 5, w = Math.round((L - 2 * p) / n);
+        for (let k = 0; k < n; k++) vidrio(w - p, Math.round(H * 0.34), p + k * w, Math.round(H * 0.12));
+        ctx.fillStyle = '#0062B8'; ctx.fillRect(0, Math.round(H * 0.56), L, Math.round(H * 0.14));
+        ctx.fillStyle = '#2B4BD8'; ctx.fillRect(0, Math.round(H * 0.72), L, 2 * p);
+        ctx.fillStyle = '#8F8F8A'; ctx.fillRect(0, Math.round(H * 0.86), L, Math.round(H * 0.14));
+        // puerta (cerca del frente)
+        const px = dir > 0 ? L - Math.round(c * 0.7) : Math.round(c * 0.25);
+        ctx.fillStyle = NEGRO; ctx.fillRect(px, Math.round(H * 0.1), Math.round(c * 0.42), Math.round(H * 0.86));
+        ctx.fillStyle = '#7FC8F8'; ctx.fillRect(px + p, Math.round(H * 0.14), Math.round(c * 0.2) - 2 * p, Math.round(H * 0.5));
+        ctx.fillRect(px + Math.round(c * 0.21) + p, Math.round(H * 0.14), Math.round(c * 0.2) - 2 * p, Math.round(H * 0.5));
       });
-      plano(x0 + 0.3, x1 - 0.3, y + 0.3, y + 0.7, 1.001, '#C9C9C4');
-      if (dir > 0) luces(x1, y + 0.12, y + 0.88, 0.25, 0.55, true);
+      caja(x0 + 0.8, x1 - 0.9, y + 0.3, y + 0.7, 1.02, 1.14, '#B9B9B3'); // aire acondicionado
+      enCostado(x1, y + 0.12, 1.02, () => {
+        const L = Math.round(0.76 * c), H = Math.round(0.88 * Z * c);
+        if (dir > 0) { // frente: parabrisas, letrero LED y focos
+          ctx.fillStyle = NEGRO; ctx.fillRect(p, Math.round(H * 0.06), L - 2 * p, Math.round(H * 0.12));
+          ctx.fillStyle = '#FFC20E'; for (let k = 0; k < 4; k++) ctx.fillRect(3 * p + k * 3 * p, Math.round(H * 0.09), 2 * p, p);
+          vidrio(L - 2 * p, Math.round(H * 0.4), p, Math.round(H * 0.2));
+          ctx.fillStyle = '#FFF6C9'; ctx.fillRect(2 * p, Math.round(H * 0.74), 3 * p, 2 * p); ctx.fillRect(L - 5 * p, Math.round(H * 0.74), 3 * p, 2 * p);
+        } else { // atrás: ventana chica y focos rosados
+          vidrio(L - 6 * p, Math.round(H * 0.28), 3 * p, Math.round(H * 0.12));
+          ctx.fillStyle = '#FF8FB1'; ctx.fillRect(2 * p, Math.round(H * 0.68), 3 * p, 3 * p); ctx.fillRect(L - 5 * p, Math.round(H * 0.68), 3 * p, 3 * p);
+        }
+        ctx.fillStyle = NEGRO; ctx.fillRect(0, Math.round(H * 0.88), L, Math.round(H * 0.12));
+      });
       return;
     }
-    // Auto: carrocería, cabina con ventanas, ruedas y focos.
-    const color = veh.color;
-    for (const rx of [0.3, veh.largo - 0.55]) caja(x0 + rx, x0 + rx + 0.26, y + 0.12, y + 0.18, 0, 0.2, NEGRO, NEGRO, NEGRO);
-    caja(x0, x1, y + 0.16, y + 0.84, 0.12, 0.5, color);
-    const cx0 = dir > 0 ? x0 + 0.35 : x0 + 0.65, cx1 = cx0 + 1.0;
-    caja(cx0, cx1, y + 0.24, y + 0.76, 0.5, 0.82, color);
-    enFrente(cx0, y + 0.24, 0.82, () => {
-      ctx.fillStyle = '#7FC8F8'; const H = 0.32 * Z * c;
-      ctx.fillRect(Math.round(c * 0.08), Math.round(H * 0.18), Math.round(c * 0.38), Math.round(H * 0.6));
-      ctx.fillRect(Math.round(c * 0.54), Math.round(H * 0.18), Math.round(c * 0.38), Math.round(H * 0.6));
+    // Auto y taxi: carrocería, cabina con ventanas, ruedas, parachoques y focos.
+    const taxi = veh.tipo === 'taxi', color = veh.color, techo = taxi ? '#FFC20E' : sombra(color, 1);
+    for (const rx of [0.25, veh.largo - 0.6]) rueda(x0 + rx, y);
+    caja(x0, x1, y + 0.16, y + 0.84, 0.14, 0.48, color, sombra(color, taxi ? 1 : 0.82), sombra(color, taxi ? 1 : 0.64));
+    enFrente(x0, y + 0.16, 0.48, () => {
+      const L = Math.round((x1 - x0) * c), H = Math.round(0.34 * Z * c);
+      ctx.fillStyle = taxi ? '#FFC20E' : 'rgba(255,255,255,0.45)'; ctx.fillRect(p, p, L - 2 * p, p); // filo de luz (o franja amarilla del taxi)
+      ctx.fillStyle = NEGRO; ctx.fillRect(Math.round(L / 2), 2 * p, p, H - 4 * p); // línea de las puertas
+      ctx.fillRect(Math.round(L / 2) - 4 * p, Math.round(H * 0.4), 2 * p, p); ctx.fillRect(Math.round(L / 2) + 3 * p, Math.round(H * 0.4), 2 * p, p);
+      ctx.fillRect(0, H - 2 * p, L, 2 * p); // parachoques
     });
-    if (dir > 0) { // costado derecho = parabrisas
-      cara([P(cx1, y + 0.3, 0.55), P(cx1, y + 0.7, 0.55), P(cx1, y + 0.7, 0.78), P(cx1, y + 0.3, 0.78)], '#7FC8F8', false);
-      luces(x1, y + 0.16, y + 0.84, 0.22, 0.4, true);
-    } else luces(x1, y + 0.16, y + 0.84, 0.22, 0.4, false);
-  }
-  // Focos en la cara derecha: delanteros (hueso) o traseros (rosa).
-  function luces(x: number, y0: number, y1: number, z0: number, z1: number, delante: boolean) {
-    const col = delante ? '#FFF6C9' : '#FF8FB1';
-    for (const yy of [y0 + 0.06, y1 - 0.2]) cara([P(x, yy, z0), P(x, yy + 0.14, z0), P(x, yy + 0.14, z1 - 0.06), P(x, yy, z1 - 0.06)], col, false);
+    const cx0 = dir > 0 ? x0 + 0.3 : x0 + 0.62, cx1 = cx0 + 1.05;
+    caja(cx0, cx1, y + 0.24, y + 0.76, 0.48, 0.8, techo, sombra(color, taxi ? 1 : 0.82), sombra(color, taxi ? 1 : 0.64));
+    enFrente(cx0, y + 0.24, 0.8, () => {
+      const L = Math.round(1.05 * c), H = Math.round(0.32 * Z * c), w = Math.round((L - 3 * p) / 2);
+      vidrio(w, H - 2 * p, p, p); vidrio(w, H - 2 * p, 2 * p + w, p);
+    });
+    enCostado(cx1, y + 0.24, 0.8, () => vidrio(Math.round(0.52 * c), Math.round(0.32 * Z * c) - p, 0, Math.round(p / 2)));
+    enCostado(x1, y + 0.16, 0.48, () => {
+      const L = Math.round(0.68 * c), H = Math.round(0.34 * Z * c);
+      ctx.fillStyle = dir > 0 ? '#FFF6C9' : '#FF8FB1';
+      ctx.fillRect(p, Math.round(H * 0.25), 3 * p, 2 * p); ctx.fillRect(L - 4 * p, Math.round(H * 0.25), 3 * p, 2 * p);
+      ctx.fillStyle = NEGRO; ctx.fillRect(0, H - 2 * p, L, 2 * p);
+    });
+    if (taxi) { // letrero «TAXI» en el techo
+      caja(cx0 + 0.3, cx0 + 0.75, y + 0.4, y + 0.6, 0.8, 0.95, '#FFC20E');
+      enFrente(cx0 + 0.3, y + 0.4, 0.95, () => {
+        ctx.fillStyle = NEGRO; ctx.font = `700 ${Math.max(6, Math.round(c * 0.13))}px "Silkscreen", monospace`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('TAXI', Math.round(0.225 * c), Math.round(0.075 * Z * c));
+      });
+    }
   }
 
   function tren(xt: number, y: number) {
     const LARGO = 3.34;
     for (let k = 0; k < 3; k++) {
       const x0 = xt + k * LARGO + 0.04, lider = k === 2;
-      estampa(`tren|${lider}|${!!img.metro}`, x0, y, [0, LARGO, 0, 1, 0, 1.2], () => carro(x0, y, LARGO - 0.08, lider));
+      estampa(`tren3|${lider}`, x0, y, [0, LARGO, 0, 1, 0, 1.3], () => carro(x0, y, LARGO - 0.08, lider));
     }
   }
+  // Carro de la Línea 1 (ronda 3): el costado pixel de la web (metro.ts) y, adelante, la trompa con su parabrisas.
   function carro(x0: number, y: number, largo: number, lider: boolean) {
     const x1 = x0 + largo;
     sombraSuelo(x0, x1, y + 0.1, y + 0.9, 0);
-    caja(x0, x1, y + 0.1, y + 0.9, 0.08, 1.1, '#F4EEE3', '#DDD5C6', lider ? '#FFC20E' : '#BDB4A3');
-    if (img.metro) enFrente(x0, y + 0.1, 1.1, () => {
+    caja(x0, x1, y + 0.1, y + 0.9, 0.04, 1.14, '#F4EEE3', '#E2D9C9', '#C9BFAE');
+    enFrente(x0, y + 0.1, 1.3, () => {
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(img.metro!, 0, 0, Math.round((x1 - x0) * c), Math.round(1.02 * Z * c));
+      ctx.drawImage(lienzoCarro(), 0, 0, Math.round(largo * c), Math.round(1.3 * Z * c));
     });
-    // Techo con rejillas.
-    plano(x0 + 0.3, x1 - 0.3, y + 0.35, y + 0.65, 1.101, '#C9C9C4');
-    if (lider) { // trompa amarilla con parabrisas y focos, como el afiche del Metro
-      cara([P(x1, y + 0.2, 0.62), P(x1, y + 0.8, 0.62), P(x1, y + 0.8, 0.98), P(x1, y + 0.2, 0.98)], NEGRO, false);
-      for (const yy of [0.3, 0.62]) cara([P(x1, y + yy, 0.75), P(x1, y + yy + 0.08, 0.75), P(x1, y + yy + 0.08, 0.86), P(x1, y + yy, 0.86)], '#FFC20E', false);
-      for (const yy of [0.18, 0.72]) cara([P(x1, y + yy, 0.2), P(x1, y + yy + 0.1, 0.2), P(x1, y + yy + 0.1, 0.32), P(x1, y + yy, 0.32)], '#FFF6C9', false);
-    }
+    plano(x0 + 0.1, x1 - 0.1, y + 0.2, y + 0.8, 1.141, '#C9BFAE');
+    for (const rx of [0.6, largo - 1]) caja(x0 + rx, x0 + rx + 0.45, y + 0.35, y + 0.65, 1.14, 1.24, '#8F8F8A');
+    enCostado(x1, y + 0.1, 1.3, () => {
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(lider ? lienzoTrompa() : lienzoFuelle(), 0, 0, Math.round(0.8 * c), Math.round(1.3 * Z * c));
+    });
   }
-
 
   function personaje() {
     const fz = altura(fila(e, Math.round(jy)));
@@ -314,7 +368,7 @@ export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto:
     plano(jx + 0.5 - 0.28 * enc, jx + 0.5 + 0.28 * enc, jy + 0.5 - 0.2 * enc, jy + 0.5 + 0.2 * enc, fz + 0.002, NEGRO);
     ctx.globalAlpha = 1;
     const [px, py] = P(jx + 0.5, jy + 0.45, fz + arco - entra * 0.4);
-    const t = Math.round(c * 0.98);
+    const t = Math.round(c * 1.05);
     // Si te atropellan o pasa el metro, quedas aplastado (ancho y bajito) con una mancha de pintura.
     const choque = e.fin === 'atropellado' || e.fin === 'tren';
     const sx = choque ? 1.35 : 1, sy = choque ? 0.32 : 1;
@@ -322,8 +376,9 @@ export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto:
     ctx.save();
     if (entra > 0.55) ctx.globalAlpha = Math.max(0, 1 - (entra - 0.55) / 0.45);
     ctx.translate(px, py); ctx.scale(sx * v!.mira, sy);
-    if (img.personaje) ctx.drawImage(img.personaje, -t / 2, -t * 0.9, t, t);
-    else { ctx.fillStyle = '#00A651'; ctx.fillRect(-t / 3, -t * 0.7, t * 0.66, t * 0.66); }
+    ctx.imageSmoothingEnabled = false;
+    const pose = choque ? 'golpe' : s > 0.05 && !quieto ? 'salta' : entra ? (Math.floor(ahora / 130) % 2 ? 'camina1' : 'camina2') : 'quieto';
+    ctx.drawImage(lienzoPinta(pose), -t / 2, -t * 0.92, t, t);
     ctx.restore();
   }
 
