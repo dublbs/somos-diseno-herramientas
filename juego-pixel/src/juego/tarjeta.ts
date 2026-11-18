@@ -2,7 +2,8 @@ import { NOMBRE_PINTURA } from './comun';
 import { dibujarMural, type Mural } from './mural';
 
 // Lo que deja una partida: el puntaje y lo que juntaste en cada nivel.
-export interface Resumen extends Mural { puntos: number; filas: number; bolas: number; arrastrados: number; nivel: 1 | 2 | 3; limpio: boolean; borradas: number; cadena: number }
+// nivel 3 = llegaste al jefe; `golpes` son los colores que le devolviste (de 6) y `trofeo` si lo venciste.
+export interface Resumen extends Mural { puntos: number; filas: number; bolas: number; arrastrados: number; nivel: 1 | 2 | 3; limpio: boolean; golpes: number }
 
 // Tarjeta 1080 × 1350 con la franja negra común: tu mural, el personaje y el puntaje.
 export async function crearTarjeta(r: Resumen, personaje: HTMLImageElement | null): Promise<Blob> {
@@ -31,7 +32,7 @@ export async function crearTarjeta(r: Resumen, personaje: HTMLImageElement | nul
   const colores = [...new Set(r.latas)].map(k => NOMBRE_PINTURA[k]).filter(Boolean);
   const pl = (n: number, uno: string, varios = uno + 's') => `${n} ${n === 1 ? uno : varios}`;
   x.fillText(`${pl(r.filas, 'fila')} · ${pl(r.latas.length, 'lata')}`, 990, 920);
-  x.fillText(r.nivel === 3 ? `${pl(r.borradas, 'pintada', 'pintadas')}${r.cadena > 1 ? ` · ×${r.cadena}` : ''}` : r.nivel === 2 ? `${pl(r.arrastrados, 'Gris', 'Grises')} · ${pl(r.piezas.length, 'pieza')}` : 'Llegaste a la calle', 990, 964);
+  x.fillText(r.trofeo ? '¡Le devolviste el color!' : r.nivel === 3 ? `Inacapín: ${r.golpes} de 6 colores` : r.nivel === 2 ? `${pl(r.arrastrados, 'Gris', 'Grises')} · ${pl(r.piezas.length, 'pieza')}` : 'Llegaste a la calle', 990, 964);
   x.fillText(colores.length ? colores.slice(0, 3).join(', ') + (colores.length > 3 ? '…' : '') : 'Sin color', 990, 1008);
 
   x.fillStyle = '#000'; x.fillRect(0, 1080, 1080, 270);

@@ -1,173 +1,217 @@
-import type { Rasgos } from '../audio/oido';
-import { C3_LOOP_MS, dibujarC3, estallidoDelCiclo } from '../../../shared/c3-tunel.js';
+import type { Rasgos } from '../audio/motor';
+import type { Pista } from '../audio/estilos';
 
-// Escenas de la Estación Audioreactiva, hechas con los movimientos de Geométrica · Motion (Figma, sección 664:273897):
-// «Geométrica se mueve como una sola red de celdas que se deforma: se inclina, se curva, se desplaza, gira o se refleja.
-//  Nada aparece de la nada.» Acá el sonido decide cuánto y cuándo se deforma la red.
+// Escenas de la Estación Audioreactiva, con los movimientos de Geométrica · Motion (Figma, sección 664:273897):
+// una red de celdas que se deforma. Cada pista de la música mueve algo distinto y se nota al apagarla:
+// la batería golpea (el bombo late, la caja destella, el hi-hat titila), el bajo deforma, los acordes tuercen o
+// llenan y la melodía pone el color.
 
 export const C = {
   Hueso: '#F4EEE3', Negro: '#000000', Azul: '#0062B8', Lapis: '#2B4BD8', Celeste: '#7FC8F8',
   Amarillo: '#FFC20E', Verde: '#00A651', Rosa: '#FF8FB1', Morado: '#7A2E8E',
 };
+const VIVOS = [C.Azul, C.Amarillo, C.Rosa, C.Verde, C.Celeste, C.Morado, C.Lapis];
+// Cada nota tiene su color: se recorren por quintas para que dos notas vecinas de la escala no se parezcan.
+export const colorNota = (m: number) => VIVOS[(((m % 12) * 7) % 12) % VIVOS.length];
 
-// Estado que cada escena guarda entre cuadros (fases que avanzan, giros que se acumulan).
-export interface Estado { fase: number; giro: number; simetria: number; vueltas: number; objetivoVueltas: number; desplaza: number; ciclo: number; corre: number }
-export const estadoInicial = (): Estado => ({ fase: 0, giro: 0, simetria: 8, vueltas: 0, objetivoVueltas: 0, desplaza: 0, ciclo: 0, corre: 0 });
-
-// Canales de la consola: cada uno se puede silenciar para ver qué mueve en la escena.
-export type Canal = 'volumen' | 'graves' | 'medios' | 'agudos' | 'tono' | 'golpe';
-export const CANALES: { id: Canal; nombre: string }[] = [
-  { id: 'volumen', nombre: 'Volumen' }, { id: 'graves', nombre: 'Graves' }, { id: 'medios', nombre: 'Medios' },
-  { id: 'agudos', nombre: 'Agudos' }, { id: 'tono', nombre: 'Tono' }, { id: 'golpe', nombre: 'Golpe' },
-];
-// Los rasgos con los canales silenciados en cero (las bandas siguen a su canal: 0–3 graves, 4–7 medios, 8–11 agudos).
-export function mezclar(r: Rasgos, mudos: Set<Canal>): Rasgos {
-  if (!mudos.size) return r;
-  const m = (c: Canal, v: number) => (mudos.has(c) ? 0 : v);
-  return {
-    volumen: m('volumen', r.volumen), graves: m('graves', r.graves), medios: m('medios', r.medios), agudos: m('agudos', r.agudos),
-    tono: mudos.has('tono') ? 0.3 : r.tono, golpe: mudos.has('golpe') ? false : r.golpe, pulso: m('golpe', r.pulso),
-    bandas: r.bandas.map((v, i) => m(i < 4 ? 'graves' : i < 8 ? 'medios' : 'agudos', v)),
-  };
+const rgb = (h: string) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+export function mezcla(a: string, b: string, t: number) {
+  const x = rgb(a), y = rgb(b), k = Math.max(0, Math.min(1, t));
+  return `rgb(${x.map((v, i) => Math.round(v + (y[i] - v) * k)).join(',')})`;
 }
+// pseudoazar estable (para que el hi-hat encienda celdas distintas en cada golpe sin parpadeo aleatorio)
+const hash = (a: number, b: number, c: number) => { const s = Math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453; return s - Math.floor(s); };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Estado = Record<string, any>;
 export interface Escena {
   id: string;
   nombre: string;
-  base: string; // movimientos de Figma en los que se basa
-  sonido: string; // qué hace el sonido (texto para el panel)
-  mapa: Partial<Record<Canal, string>>; // la consola: qué mueve cada parte del sonido en esta escena
+  icono: string;
+  linea: string;               // qué es, en una línea
+  mapa: Record<Pista, string>; // qué mueve cada pista en esta escena (va en los pads de pistas)
   fondo: string;
+  crear: () => Estado;
   dibujar: (ctx: CanvasRenderingContext2D, S: number, dt: number, r: Rasgos, e: Estado) => void;
 }
 
-// Túnel · C3 «Túnel → estallido → túnel», el mismo loop de la tarjeta del hub y de la pantalla del HUB (shared/c3-tunel.js).
-// Sin sonido corre su loop de 4 s. El volumen acelera el avance, los graves lo hacen latir y cada golpe dispara el estallido.
+// ---------------------------------------------------------------- Túnel
+// Anillos que vienen hacia ti. Cada anillo nuevo toma el color de la nota que suena; el bombo empuja el viaje y lo
+// hace latir; la caja enciende los anillos oscuros; el hi-hat hace brillar las esquinas; el bajo los ondula (más
+// lóbulos mientras más agudo) y los acordes tuercen el túnel.
 const tunel: Escena = {
-  id: 'tunel', nombre: 'Túnel', base: 'C3 · M3', fondo: C.Hueso,
-  sonido: 'El volumen acelera el túnel, los graves lo hacen latir y cada golpe lo hace estallar en espiral.',
-  mapa: { volumen: 'Velocidad del túnel', graves: 'Latido de los anillos', tono: 'Giro', golpe: 'Estallido en espiral' },
+  id: 'tunel', nombre: 'Túnel', icono: 'blur_on', fondo: C.Negro,
+  linea: 'Viajas por un túnel de anillos: el bombo te empuja y la melodía pinta cada anillo nuevo.',
+  mapa: { bateria: 'Bombo empuja, caja enciende, hi-hat brilla', bajo: 'Ondula los anillos', acordes: 'Tuerce el túnel', melodia: 'Pinta los anillos nuevos' },
+  crear: () => ({ anillos: Array.from({ length: 18 }, (_, i) => ({ z: (i + 0.5) / 18, k: i, color: VIVOS[i % VIVOS.length] })), cuenta: 18, giro: 0, t: 0, torsion: 0, ola: 0 }),
   dibujar(ctx, S, dt, r, e) {
-    e.fase += dt * (0.5 + r.volumen * 3.2);
-    e.ciclo += dt * (1000 / C3_LOOP_MS) * (0.6 + r.volumen * 0.8);
-    e.desplaza = Math.max(e.desplaza * Math.pow(0.004, dt), r.pulso); // estallido por golpe, se apaga en ~0,3 s
-    e.giro += dt * (0.08 + (r.tono - 0.3) * 0.8);
-    const estallido = Math.min(1, estallidoDelCiclo(e.ciclo) * 0.45 + e.desplaza * e.desplaza * 0.9);
-    dibujarC3(ctx, S, S, { fase: e.fase, estallido, latido: Math.max(r.graves, r.pulso), giro: e.giro });
-  },
-};
-
-// Acordeón · M5 «Acordeón» y M4 «Acordeón que corre», como ecualizador.
-// Doce columnas, una por banda del sonido (graves a la izquierda, agudos a la derecha). En cada columna las listas
-// se comprimen con la energía de su banda y se pintan desde abajo hasta su nivel; las listas corren hacia abajo
-// según el volumen y cada golpe las hace saltar una posición.
-const LISTAS_ACORDEON = [C.Verde, C.Azul, C.Amarillo, C.Rosa];
-const acordeon: Escena = {
-  id: 'acordeon', nombre: 'Acordeón', base: 'M5 · M4', fondo: C.Hueso,
-  sonido: 'Cada columna es una banda del sonido: se llena desde abajo y comprime sus listas. Los golpes las hacen saltar.',
-  mapa: { volumen: 'Las listas corren', graves: 'Columnas de la izquierda', medios: 'Columnas del centro', agudos: 'Columnas de la derecha', golpe: 'Saltan de color' },
-  dibujar(ctx, S, dt, r, e) {
-    e.corre += dt * (0.4 + r.volumen * 3);
-    if (r.golpe) e.desplaza += 1;
-    ctx.fillStyle = C.Hueso; ctx.fillRect(0, 0, S, S);
-    const n = r.bandas.length, w = S / n;
-    for (let i = 0; i < n; i++) {
-      const nivel = Math.min(1, r.bandas[i] * 1.05);
-      const paso = S * (0.085 - nivel * 0.06);                 // la lista se comprime con la energía (M5)
-      const grosor = paso * (0.5 + nivel * 0.2);
-      const alto = S * (0.08 + nivel * 0.92);                   // hasta dónde llega pintado (ecualizador)
-      const corre = ((e.corre + e.desplaza * 0.5) * paso * (i % 2 ? 1 : -1)) % paso;
-      const x = i * w + w * 0.06, ancho = w * 0.88;
-      ctx.save(); ctx.beginPath(); ctx.rect(x, 0, ancho, S); ctx.clip();
-      // la parte apagada: listas finas y claras
-      ctx.fillStyle = 'rgba(0,0,0,0.08)';
-      for (let y = -paso + corre; y < S; y += paso) ctx.fillRect(x, y, ancho, grosor * 0.35);
-      // la parte encendida, desde abajo
-      ctx.beginPath(); ctx.rect(x, S - alto, ancho, alto); ctx.clip();
-      ctx.fillStyle = LISTAS_ACORDEON[(i + e.desplaza) % LISTAS_ACORDEON.length];
-      for (let y = -paso + corre; y < S; y += paso) ctx.fillRect(x, y, ancho, grosor);
-      ctx.restore();
-      // la tapa negra del nivel, que golpea con el pulso
-      ctx.fillStyle = C.Negro; ctx.fillRect(x, S - alto - S * 0.012 * (1 + r.pulso), ancho, S * 0.012 * (1 + r.pulso));
+    e.t += dt;
+    const vel = 0.13 + r.volumen * 0.1 + r.bombo * 0.55 + r.mano * 0.6;
+    const color = r.notaMel >= 0 ? colorNota(r.notaMel) : C.Azul;
+    e.giro += dt * (0.12 + r.acordes * 1.1);
+    e.ola += dt * (1 + r.bajo * 7); // el bajo hace correr la onda por los anillos
+    e.torsion += ((0.2 + r.acordes * 1.8) - e.torsion) * Math.min(1, dt * 3);
+    for (const a of e.anillos) { a.z -= vel * dt; if (a.z <= 0.03) { a.z += 1; a.k = e.cuenta++; a.color = color; } }
+    ctx.fillStyle = C.Negro; ctx.fillRect(0, 0, S, S);
+    const fx = S / 2 + Math.sin(e.t * 0.37) * S * 0.07, fy = S / 2 + Math.cos(e.t * 0.29) * S * 0.07; // punto de fuga
+    const lob = 2 + Math.round(r.notaBajo * 4), def = r.bajo * 0.14;
+    const caja = r.quieto ? r.caja * 0.25 : r.caja;
+    const orden = [...e.anillos].sort((a, b) => a.z - b.z);
+    for (const a of orden) {
+      const R = (S * 0.075) / (a.z + 0.02) * (1 + r.bombo * 0.12 * (1 - a.z));
+      const cx = S / 2 + (fx - S / 2) * a.z, cy = S / 2 + (fy - S / 2) * a.z;
+      const oscuro = a.k % 2 === 1;
+      const col = oscuro ? mezcla(C.Negro, C.Hueso, caja * 0.9 * (1 - a.z * 0.6)) : mezcla(a.color, C.Negro, a.z * 0.75);
+      const rot = e.giro + a.z * e.torsion;
+      ctx.fillStyle = col; ctx.beginPath();
+      for (let j = 0; j <= 64; j++) {
+        const th = (j / 64) * Math.PI * 2, cuadrado = 1 / Math.max(Math.abs(Math.cos(th)), Math.abs(Math.sin(th)));
+        const rad = R * (cuadrado * 0.8 + 0.2) * (1 + def * Math.sin(lob * th + e.ola + a.k));
+        const x = cx + rad * Math.cos(th + rot), y = cy + rad * Math.sin(th + rot);
+        j ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.fill();
+      if (!oscuro && r.hat > 0.02 && a.z < 0.85) { // esquinas que brillan con el hi-hat
+        const l = Math.max(2, R * 0.06);
+        ctx.fillStyle = C.Hueso; ctx.globalAlpha = Math.min(1, r.hat * 1.4) * (1 - a.z);
+        for (let q = 0; q < 4; q++) {
+          const th = Math.PI / 4 + (q * Math.PI) / 2, rad = R * 1.13 * (1 + def * Math.sin(lob * th + e.ola + a.k));
+          ctx.fillRect(cx + rad * Math.cos(th + rot) - l / 2, cy + rad * Math.sin(th + rot) - l / 2, l, l);
+        }
+        ctx.globalAlpha = 1;
+      }
     }
   },
 };
 
-// Caleidoscopio · C5 «Caleidoscopio de rombos» (y el espejo fijo de C4).
-// Un damero inclinado se refleja en gajos. El tono lo gira, el volumen lo acerca y cada golpe cambia la simetría (4 → 6 → 8).
+// ---------------------------------------------------------------- Acordeón
+// Doce columnas, una por banda del sonido (graves a la izquierda, agudos a la derecha). Las listas se comprimen con
+// la energía de su banda y se pintan desde abajo hasta su nivel. La caja hace saltar el color; el bombo engorda las
+// tapas; la melodía pinta las tapas y el hi-hat las hace brillar.
+const LISTAS_ACORDEON = [C.Verde, C.Azul, C.Amarillo, C.Rosa, C.Lapis];
+const acordeon: Escena = {
+  id: 'acordeon', nombre: 'Acordeón', icono: 'view_week', fondo: C.Hueso,
+  linea: 'Doce columnas, una por banda del sonido: graves a la izquierda, agudos a la derecha.',
+  mapa: { bateria: 'Bombo engorda las tapas, caja cambia el color', bajo: 'Llena las columnas de la izquierda', acordes: 'Llena el centro', melodia: 'Pinta las tapas' },
+  crear: () => ({ corre: 0, desplaza: 0 }),
+  dibujar(ctx, S, dt, r, e) {
+    e.corre += dt * (0.4 + r.volumen * 2.2);
+    if (r.nuevo.caja || r.nuevo.mano) e.desplaza += 1;
+    ctx.fillStyle = C.Hueso; ctx.fillRect(0, 0, S, S);
+    const n = r.bandas.length, w = S / n;
+    const tapa = r.notaMel >= 0 ? colorNota(r.notaMel) : C.Negro;
+    for (let i = 0; i < n; i++) {
+      const extra = i < 3 ? r.bajo * 0.25 : i >= 4 && i < 8 ? r.acordes * 0.18 : 0;
+      const nivel = Math.min(1, r.bandas[i] * 0.95 + extra);
+      const paso = S * (0.085 - nivel * 0.06);
+      const grosor = paso * (0.5 + nivel * 0.2);
+      const alto = S * (0.06 + nivel * 0.9);
+      const corre = ((e.corre + e.desplaza * 0.5) * paso * (i % 2 ? 1 : -1)) % paso;
+      const x = i * w + w * 0.06, ancho = w * 0.88;
+      ctx.save(); ctx.beginPath(); ctx.rect(x, 0, ancho, S); ctx.clip();
+      ctx.fillStyle = 'rgba(0,0,0,0.08)';
+      for (let y = -paso + corre; y < S; y += paso) ctx.fillRect(x, y, ancho, grosor * 0.35);
+      ctx.beginPath(); ctx.rect(x, S - alto, ancho, alto); ctx.clip();
+      ctx.fillStyle = LISTAS_ACORDEON[(i + e.desplaza) % LISTAS_ACORDEON.length];
+      for (let y = -paso + corre; y < S; y += paso) ctx.fillRect(x, y, ancho, grosor);
+      ctx.restore();
+      const gt = S * 0.014 * (1 + r.bombo * 2.2);
+      ctx.fillStyle = tapa; ctx.fillRect(x, S - alto - gt, ancho, gt);
+      if (r.hat > 0.05 && hash(i, e.desplaza, Math.round(e.corre * 4)) > 0.5) {
+        ctx.fillStyle = C.Hueso; ctx.globalAlpha = Math.min(1, r.hat * 1.5);
+        ctx.fillRect(x + ancho * 0.2, S - alto - gt * 0.65, ancho * 0.6, gt * 0.3); ctx.globalAlpha = 1;
+      }
+    }
+  },
+};
+
+// ---------------------------------------------------------------- Caleidoscopio
+// Un damero inclinado se refleja en gajos. En cada compás nuevo (si suenan los acordes) cambia la simetría: 4, 6, 8.
+// El bombo lo acerca de golpe, la caja invierte sus colores, el bajo lo inclina y la melodía colorea las celdas.
 const ORDEN_SIMETRIA = [4, 6, 8];
 let tesela: HTMLCanvasElement | null = null;
 const caleidoscopio: Escena = {
-  id: 'caleidoscopio', nombre: 'Caleidoscopio', base: 'C5 · C4', fondo: C.Lapis,
-  sonido: 'El tono gira el caleidoscopio y el volumen lo acerca. Cada golpe cambia la simetría: 4, 6 u 8 gajos.',
-  mapa: { volumen: 'Acerca el damero', graves: 'Inclina el damero', medios: 'Ondula las celdas', tono: 'Gira el caleidoscopio', golpe: 'Cambia la simetría' },
+  id: 'caleidoscopio', nombre: 'Caleidoscopio', icono: 'auto_awesome', fondo: C.Lapis,
+  linea: 'Un damero reflejado en gajos: los acordes cambian la simetría en cada compás.',
+  mapa: { bateria: 'Bombo acerca, caja invierte, hi-hat hace brillar la estrella', bajo: 'Inclina el damero', acordes: 'Gira y cambia los gajos', melodia: 'Colorea las celdas' },
+  crear: () => ({ simetria: 6, giro: 0, fase: 0, compas: -1, inv: false, color: C.Rosa }),
   dibujar(ctx, S, dt, r, e) {
-    if (r.golpe) e.simetria = ORDEN_SIMETRIA[(ORDEN_SIMETRIA.indexOf(e.simetria) + 1) % ORDEN_SIMETRIA.length];
-    e.giro += dt * (0.1 + r.tono * 0.9);
-    e.fase += dt * (0.2 + r.medios);
+    if (r.compas !== e.compas) { if (e.compas >= 0 && r.acordes > 0.05) e.simetria = ORDEN_SIMETRIA[(ORDEN_SIMETRIA.indexOf(e.simetria) + 1) % 3]; e.compas = r.compas; }
+    if (r.nuevo.caja && !r.quieto) e.inv = !e.inv;
+    if (r.notaMel >= 0) e.color = colorNota(r.notaMel) === C.Lapis ? C.Celeste : colorNota(r.notaMel);
+    e.giro += dt * (0.08 + r.acordes * 0.35 + r.tono * 0.3);
+    e.fase += dt * (0.25 + r.medios * 0.8);
     const N = e.simetria, gajo = (Math.PI * 2) / N, R = S * 0.75 / Math.cos(gajo / 2);
-    // La tesela es más grande que la escena para que los gajos lleguen a las esquinas.
     const T = Math.round(S * 1.7);
     if (!tesela || tesela.width !== T) { tesela = document.createElement('canvas'); tesela.width = tesela.height = T; }
-    // damero inclinado y curvado (C1 → C5): la inclinación sigue a los graves
-    const t = tesela.getContext('2d')!, lado = S * (0.07 - r.volumen * 0.03);
+    const [a, b] = e.inv ? [C.Lapis, e.color] : [e.color, C.Lapis];
+    const t = tesela.getContext('2d')!, lado = S * (0.075 - r.volumen * 0.025);
     t.setTransform(1, 0, 0, 1, 0, 0);
-    t.fillStyle = C.Rosa; t.fillRect(0, 0, T, T);
-    t.translate(T / 2, T / 2); t.rotate(e.fase * 0.3); t.transform(1, 0, Math.sin(e.fase) * 0.4 + r.graves * 0.6, 1, 0, 0);
-    t.fillStyle = C.Lapis;
+    t.fillStyle = a; t.fillRect(0, 0, T, T);
+    t.translate(T / 2, T / 2); t.rotate(e.fase * 0.3); t.transform(1, 0, Math.sin(e.fase) * 0.3 + r.bajo * 0.8, 1, 0, 0);
+    t.fillStyle = b;
     const m = Math.ceil(T / lado);
     for (let i = -m; i < m; i++) for (let j = -m; j < m; j++) if ((i + j) % 2 === 0) t.fillRect(i * lado, j * lado + Math.sin(i * 0.4 + e.fase) * lado * 0.3, lado, lado);
     ctx.fillStyle = C.Lapis; ctx.fillRect(0, 0, S, S);
-    ctx.save(); ctx.translate(S / 2, S / 2); ctx.rotate(e.giro); ctx.scale(1 + r.pulso * 0.12, 1 + r.pulso * 0.12);
+    const z = 1 + r.bombo * 0.14 + r.mano * 0.1;
+    ctx.save(); ctx.translate(S / 2, S / 2); ctx.rotate(e.giro); ctx.scale(z, z);
     for (let k = 0; k < N; k++) {
       ctx.save();
-      // Los gajos impares son el espejo del par: giran un gajo más y se reflejan, así cubren el círculo completo.
       if (k % 2) { ctx.rotate((k + 1) * gajo); ctx.scale(1, -1); } else ctx.rotate(k * gajo);
       ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(R, 0); ctx.lineTo(R * Math.cos(gajo), R * Math.sin(gajo)); ctx.closePath(); ctx.clip();
       ctx.drawImage(tesela, -T / 2, -T / 2);
       ctx.restore();
     }
-    // estrella central que respira
-    const a = S * (0.05 + r.volumen * 0.08);
+    const est = S * (0.05 + r.volumen * 0.04) * (1 + r.hat * 0.6);
     ctx.fillStyle = C.Amarillo; ctx.beginPath();
-    for (let k = 0; k < N * 2; k++) { const rr = k % 2 ? a * 0.45 : a, an = (k / (N * 2)) * Math.PI * 2; k ? ctx.lineTo(Math.cos(an) * rr, Math.sin(an) * rr) : ctx.moveTo(rr, 0); }
+    for (let k = 0; k < N * 2; k++) { const rr = k % 2 ? est * 0.45 : est, an = (k / (N * 2)) * Math.PI * 2; k ? ctx.lineTo(Math.cos(an) * rr, Math.sin(an) * rr) : ctx.moveTo(rr, 0); }
     ctx.closePath(); ctx.fill();
     ctx.restore();
   },
 };
 
-// Tejido · C10 «Puntos → cruces → tejido», con C8 «el color corre» y C6 «las celdas giran».
-// Es un ecualizador en forma de tela: cada columna escucha una banda. Con poca energía la celda es un punto,
-// con más le salen brazos (cruz) y al máximo los brazos se tocan con los de al lado (tejido).
-// El volumen sube toda la tela; el tono hace correr el color y cada golpe gira las celdas 90°.
+// ---------------------------------------------------------------- Tejido
+// Un ecualizador en forma de tela: con poca energía la celda es un punto, con más le salen brazos (cruz) y al máximo
+// los brazos se tocan (tejido). La caja gira las celdas 45° (de cruz a equis), el bombo las agranda, la melodía corre
+// el color y el hi-hat enciende celdas sueltas.
 const COLORES_TEJIDO = [C.Negro, C.Azul, C.Lapis, C.Morado, C.Verde, C.Rosa];
 const tejido: Escena = {
-  id: 'tejido', nombre: 'Tejido', base: 'C10 · C8 · C6', fondo: C.Celeste,
-  sonido: 'Cada columna escucha una banda: los puntos se vuelven cruces y luego tejido. El tono corre el color; los golpes giran las celdas.',
-  mapa: { volumen: 'Sube toda la tela', graves: 'Teje a la izquierda', medios: 'Teje al centro', agudos: 'Teje a la derecha', tono: 'El color corre', golpe: 'Las celdas giran 90°' },
+  id: 'tejido', nombre: 'Tejido', icono: 'texture', fondo: C.Celeste,
+  linea: 'Puntos que se vuelven cruces y luego tela; cada columna escucha una banda.',
+  mapa: { bateria: 'Caja gira las cruces, bombo las agranda', bajo: 'Teje a la izquierda', acordes: 'Teje al centro', melodia: 'Suelta ondas y corre el color' },
+  crear: () => ({ vueltas: 0, objetivo: 0, fase: 0, hats: 0, t: 0, ondas: [] as { col: number; t: number }[] }),
   dibujar(ctx, S, dt, r, e) {
-    if (r.golpe) e.objetivoVueltas += 1;
-    e.vueltas += (e.objetivoVueltas - e.vueltas) * Math.min(1, dt * 9);
-    e.fase += dt * (0.3 + r.tono * 2.5 + r.pulso * 3);
+    if (r.nuevo.caja || r.nuevo.mano) e.objetivo += 0.5;
+    if (r.nuevo.hat) e.hats++;
+    e.vueltas += (e.objetivo - e.vueltas) * Math.min(1, dt * (r.quieto ? 3 : 10));
+    e.fase += dt * 0.3 + (r.nuevo.mel ? 1 : 0);
+    e.t += dt * (0.6 + r.volumen); // la tela respira más rápido mientras más suena
     const n = 12, c = S / n;
+    // cada nota de la melodía suelta una onda desde la columna de su nota (do a la izquierda, si a la derecha)
+    if (r.nuevo.mel && r.notaMel >= 0 && !r.quieto) e.ondas.push({ col: r.notaMel % 12, t: 0 });
+    e.ondas = e.ondas.filter((o: { t: number }) => (o.t += dt) < 0.9);
     ctx.fillStyle = C.Celeste; ctx.fillRect(0, 0, S, S);
     for (let i = 0; i < n; i++) {
-      const banda = r.bandas[i % r.bandas.length];
+      const extra = i < 4 ? r.bajo * 0.45 : i < 8 ? r.acordes * 0.35 : 0;
+      const banda = r.bandas[i] + extra;
       for (let j = 0; j < n; j++) {
-        // de abajo hacia arriba la tela necesita más energía para tejerse (se ve como un ecualizador)
         const altura = (n - 1 - j) / (n - 1);
-        const crece = Math.max(0, Math.min(1, banda * 1.25 + r.volumen * 0.35 - altura * 0.75 + r.pulso * 0.25));
+        const ola = 0.2 * Math.sin(e.t * 3.6 - i * 0.5 + j * 0.3); // la tela respira aunque suene poco
+        let onda = 0;
+        for (const o of e.ondas) { const d = Math.hypot(i - o.col, j - n / 2), radio = o.t * 16; onda += Math.max(0, 1 - Math.abs(d - radio) / 1.6) * (1 - o.t / 0.9); }
+        const crece = Math.max(0, Math.min(1, banda * 1.2 + r.volumen * 0.3 - altura * 0.75 + r.bombo * 0.5 + ola + onda * 0.7));
         const cx = (i + 0.5) * c, cy = (j + 0.5) * c;
-        const color = COLORES_TEJIDO[Math.floor((i + j) * 0.5 + e.fase) % COLORES_TEJIDO.length];
+        let color = COLORES_TEJIDO[Math.floor((i + j) * 0.5 + e.fase) % COLORES_TEJIDO.length];
+        if (r.hat > 0.08 && hash(i, j, e.hats) > 0.8) color = mezcla(color, C.Hueso, r.hat * 1.3);
         ctx.save(); ctx.translate(cx, cy);
         ctx.rotate(((i + j) % 2 ? 1 : -1) * e.vueltas * (Math.PI / 2));
         ctx.fillStyle = color;
-        const punto = c * (0.12 + crece * 0.2);
+        const punto = c * (0.16 + crece * 0.26);
         ctx.fillRect(-punto / 2, -punto / 2, punto, punto);
-        if (crece > 0.25) {
-          const largo = (c / 2) * Math.min(1, (crece - 0.25) / 0.6) * 1.02, grosor = punto * 0.5;
+        if (crece > 0.2) {
+          const largo = (c / 2) * Math.min(1, (crece - 0.2) / 0.6) * 1.02, grosor = punto * 0.6;
           ctx.fillRect(-largo, -grosor / 2, largo * 2, grosor);
-          ctx.fillRect(-grosor / 2, -largo, grosor, largo * 2);
+          ctx.fillRect(-grosor / 2, -largo * 0.6, grosor, largo * 1.2); // brazo corto: así se nota el giro
         }
         ctx.restore();
       }
@@ -175,36 +219,97 @@ const tejido: Escena = {
   },
 };
 
-// Escalera · C7 «Franjas → muescas → escalera». Franjas horizontales de la Línea azul; cada columna escucha una banda.
-// Con poca energía son franjas lisas; con más, a cada franja le sale una muesca; con volumen alto las columnas se
-// corren una tras otra y las franjas se vuelven escalera. El volumen hace bajar las franjas y cada golpe invierte los colores.
-const FRANJAS = [C.Azul, C.Hueso, C.Amarillo, C.Hueso, C.Lapis, C.Hueso, C.Verde, C.Hueso];
+// ---------------------------------------------------------------- Escalera
+// Dieciséis columnas, una por semicorchea del compás: la que suena se levanta (se ve el secuenciador). Las franjas
+// bajan; el bajo empina la escalera (más mientras más agudo), el bombo la hace saltar, la caja la destella, el hi-hat
+// hace titilar los peldaños, los acordes abren muescas y la melodía cambia el color de las franjas de acento.
 const escalera: Escena = {
-  id: 'escalera', nombre: 'Escalera', base: 'C7', fondo: C.Amarillo,
-  sonido: 'Las bandas le sacan muescas a las franjas; con volumen alto las franjas se vuelven escalera. Cada golpe invierte los colores.',
-  mapa: { volumen: 'Escalera y caída de las franjas', graves: 'Muescas a la izquierda', medios: 'Muescas al centro', agudos: 'Muescas a la derecha', golpe: 'Invierte los colores' },
+  id: 'escalera', nombre: 'Escalera', icono: 'stairs', fondo: C.Amarillo,
+  linea: 'Franjas que se vuelven escalera; la columna que se levanta marca el paso del compás.',
+  mapa: { bateria: 'Bombo salta, caja destella, hi-hat titila', bajo: 'Empina la escalera', acordes: 'Abre muescas', melodia: 'Cambia el color de las franjas' },
+  crear: () => ({ corre: 0, sube: 0, color: C.Azul, hats: 0, alza: Array(16).fill(0) }),
   dibujar(ctx, S, dt, r, e) {
-    e.corre += dt * (0.15 + r.volumen * 1.6);
-    if (r.golpe) e.vueltas += 1;
-    // la escalera se arma y se desarma suave
-    e.objetivoVueltas += ((Math.min(1, Math.max(0, (r.volumen - 0.25) / 0.55))) - e.objetivoVueltas) * Math.min(1, dt * 4);
-    const filas = 9, h = S / filas, n = r.bandas.length, w = S / n, inv = e.vueltas % 2 === 1;
-    const color = (j: number) => { const c = FRANJAS[((j % FRANJAS.length) + FRANJAS.length) % FRANJAS.length]; return inv ? (c === C.Hueso ? C.Negro : C.Hueso) : c; };
-    ctx.fillStyle = color(0); ctx.fillRect(0, 0, S, S);
+    const filas = 8, h = S / filas, n = 16, w = S / n;
+    if (r.notaMel >= 0) e.color = colorNota(r.notaMel);
+    if (r.nuevo.hat) e.hats++;
+    e.corre += dt * (0.3 + r.volumen * 0.5);
+    e.sube += ((0.06 + r.bajo * 0.24 + r.bajo * r.notaBajo * 0.22) - e.sube) * Math.min(1, dt * 6);
+    const rise = h * e.sube;
+    for (let i = 0; i < n; i++) e.alza[i] += ((i === r.paso ? 1 : 0) - e.alza[i]) * Math.min(1, dt * 14);
+    const FR = [e.color, C.Hueso, C.Azul, C.Hueso, e.color, C.Hueso, C.Negro, C.Hueso];
+    const col = (j: number) => FR[((j % FR.length) + FR.length) % FR.length];
+    ctx.fillStyle = C.Hueso; ctx.fillRect(0, 0, S, S);
+    const salto = r.bombo * h * 0.45 + r.mano * h * 0.4;
     for (let i = 0; i < n; i++) {
-      const v = Math.min(1, r.bandas[i] * 1.1 + r.pulso * 0.2);
-      const desfase = e.objetivoVueltas * h * 0.5 * (i - (n - 1) / 2) / ((n - 1) / 2) * 2; // escalera: cada columna más corrida
-      const baja = (e.corre * h) % (h * FRANJAS.length);
       const x = Math.floor(i * w), ancho = Math.ceil(w) + 1;
-      const muesca = Math.max(0, (v - 0.15) / 0.85); // de lisa a muesca
-      for (let j = -FRANJAS.length - 2; j < filas + 3; j++) {
-        const y = j * h + baja + desfase;
+      const dy = (i - (n - 1) / 2) * -rise + (e.corre * h) % (h * FR.length) - salto * (0.6 + 0.4 * Math.sin(i * 0.7)) - e.alza[i] * h * 0.45;
+      const v = r.bandas[Math.floor((i * 12) / n)];
+      const muesca = Math.max(0, Math.min(1, (v - 0.3) / 0.7) * 0.3 + r.acordes * 0.45);
+      for (let j = -FR.length * 2; j < filas + FR.length; j++) {
+        const y = j * h + dy;
         if (y > S || y + h < 0) continue;
-        ctx.fillStyle = color(j); ctx.fillRect(x, y, ancho, h + 0.5);
-        if (muesca > 0) { ctx.fillStyle = color(j + 1); ctx.fillRect(x + w * 0.22, y + h * (1 - 0.7 * muesca), w * 0.56, h * 0.7 * muesca + 0.5); }
+        ctx.fillStyle = col(j); ctx.fillRect(x, y, ancho, h + 0.5);
+        if (muesca > 0.02) { ctx.fillStyle = col(j + 1); ctx.fillRect(x + w * 0.3, y + h * (1 - 0.5 * muesca), w * 0.4, h * 0.5 * muesca + 0.5); }
+        if (r.hat > 0.05 && j % 2 === 0 && hash(i, j, e.hats) > 0.7) {
+          ctx.fillStyle = C.Hueso === col(j) ? C.Negro : C.Hueso; ctx.globalAlpha = Math.min(1, r.hat * 1.6);
+          ctx.fillRect(x + w * 0.35, y + h * 0.08, w * 0.3, w * 0.3); ctx.globalAlpha = 1;
+        }
       }
+      if (e.alza[i] > 0.05) { ctx.fillStyle = C.Negro; ctx.globalAlpha = e.alza[i]; ctx.fillRect(x, S - h * 0.12 * e.alza[i], ancho, h * 0.12 * e.alza[i]); ctx.globalAlpha = 1; }
+    }
+    if (r.caja > 0.02) { // destello: invierte los colores un instante
+      ctx.save();
+      if (r.quieto) { ctx.globalAlpha = r.caja * 0.2; ctx.fillStyle = C.Hueso; }
+      else { ctx.globalCompositeOperation = 'difference'; ctx.globalAlpha = Math.min(0.8, r.caja * 0.9); ctx.fillStyle = '#FFFFFF'; }
+      ctx.fillRect(0, 0, S, S); ctx.restore();
     }
   },
 };
 
 export const ESCENAS: Escena[] = [tunel, acordeon, caleidoscopio, tejido, escalera];
+
+// ---------------------------------------------------------------- compositor
+// Encima de cada escena: lo que hace el dedo (giro, zoom, eco visual y color) y el estallido de los pads.
+export class Compositor {
+  private capa = document.createElement('canvas');
+  private previo = document.createElement('canvas');
+  private giro = 0;
+  private estallidos: { t: number; tipo: 'bum' | 'chas'; color: string }[] = [];
+
+  dibujar(ctx: CanvasRenderingContext2D, S: number, dt: number, r: Rasgos, escena: Escena, e: Estado, x: number | null) {
+    for (const c of [this.capa, this.previo]) if (c.width !== S) { c.width = c.height = S; }
+    const k = this.capa.getContext('2d')!;
+    escena.dibujar(k, S, dt, r, e);
+    // giro con el dedo a izquierda o derecha; zoom con el eco (arriba)
+    this.giro += (((x === null ? 0.5 : x) - 0.5) * 0.7 - this.giro) * Math.min(1, dt * 5);
+    const g = this.giro, cubre = Math.abs(Math.cos(g)) + Math.abs(Math.sin(g)), z = cubre * (1 + r.eco * 0.3);
+    ctx.save();
+    ctx.fillStyle = escena.fondo; ctx.fillRect(0, 0, S, S);
+    ctx.translate(S / 2, S / 2); ctx.rotate(g); ctx.scale(z, z); ctx.drawImage(this.capa, -S / 2, -S / 2);
+    ctx.restore();
+    if (r.eco > 0.02) { // eco visual: el cuadro anterior, un poco más grande, se queda como estela
+      ctx.save(); ctx.globalAlpha = r.eco * 0.6;
+      ctx.translate(S / 2, S / 2); ctx.scale(1.05, 1.05); ctx.drawImage(this.previo, -S / 2, -S / 2);
+      ctx.restore();
+    }
+    if (r.filtro < 0.98) { // filtro cerrado: el sonido se apaga y el color se va al azul
+      ctx.save(); ctx.globalCompositeOperation = 'color'; ctx.globalAlpha = (1 - r.filtro) * 0.9;
+      ctx.fillStyle = C.Azul; ctx.fillRect(0, 0, S, S); ctx.restore();
+    }
+    if (r.nuevo.mano && r.manoTipo) this.estallidos.push({ t: 0, tipo: r.manoTipo, color: r.manoTipo === 'bum' ? C.Amarillo : C.Rosa });
+    this.estallidos = this.estallidos.filter(b => (b.t += dt) < 0.7);
+    for (const b of this.estallidos) {
+      const p = b.t / 0.7, a = 1 - p;
+      ctx.save(); ctx.translate(S / 2, S / 2); ctx.globalAlpha = r.quieto ? a * 0.4 : a;
+      ctx.strokeStyle = b.color; ctx.fillStyle = b.color; ctx.lineWidth = S * 0.03 * a + 2;
+      if (b.tipo === 'bum') { // cuadrados que se abren
+        for (let q = 0; q < 3; q++) { const l = S * (0.1 + p * 0.9) * (1 - q * 0.25); ctx.rotate(Math.PI / 12); ctx.strokeRect(-l / 2, -l / 2, l, l); }
+      } else { // rayos que giran
+        ctx.rotate(p * 1.2);
+        for (let q = 0; q < 12; q++) { ctx.rotate(Math.PI / 6); ctx.fillRect(S * (0.08 + p * 0.3), -S * 0.012, S * 0.16 * a + 4, S * 0.024); }
+      }
+      ctx.restore();
+    }
+    const pk = this.previo.getContext('2d')!; pk.clearRect(0, 0, S, S); pk.drawImage(ctx.canvas, 0, 0, S, S);
+  }
+}

@@ -21,42 +21,6 @@ export const PALETA: Record<string, string> = {
 
 const S = (filas: string[]) => filas;
 
-// Auto visto desde arriba (2 celdas de largo = 16 × 8). El color de carrocería se reemplaza con 'B'.
-export const AUTO = S([
-  '..kkkkkkkkkkkk..',
-  '.kBBBBBBBBBBBBk.',
-  'kkBBccBBBBccBBkk',
-  'kBBBccBBBBccBBBk',
-  'kBBBccBBBBccBBBk',
-  'kkBBccBBBBccBBkk',
-  '.kBBBBBBBBBBBBk.',
-  '..kkkkkkkkkkkk..',
-]);
-
-// Micro (3 celdas = 24 × 8): hueso con franja azul y ventanas.
-export const MICRO = S([
-  'kkkkkkkkkkkkkkkkkkkkkkkk',
-  'khhhhhhhhhhhhhhhhhhhhhhk',
-  'khccchccchccchccchccchck',
-  'kaaaaaaaaaaaaaaaaaaaaaak',
-  'kaaaaaaaaaaaaaaaaaaaaaak',
-  'khccchccchccchccchccchck',
-  'khhhhhhhhhhhhhhhhhhhhhhk',
-  'kkkkkkkkkkkkkkkkkkkkkkkk',
-]);
-
-// Gris: la mancha que borra el color. Ojos que miran.
-export const GRIS = S([
-  '..kkkk..',
-  '.kggggk.',
-  'kgwkgwkk',
-  'kgwkgwgk',
-  'kggggggk',
-  'kgGggGgk',
-  '.kgGGgk.',
-  '..kkkk..',
-]);
-
 // Bola de pintura con un Gris adentro (el color 'B' es la pintura).
 export const BOLA = S([
   '..kkkk..',
@@ -66,52 +30,6 @@ export const BOLA = S([
   'kBBBBBBk',
   'kBBBBBBk',
   '.kBBBBk.',
-  '..kkkk..',
-]);
-
-export const ARBOL = S([
-  '..kkkk..',
-  '.kvvvvk.',
-  'kvvdvvvk',
-  'kvdvvdvk',
-  'kvvvvvvk',
-  '.kvddvk.',
-  '..kTTk..',
-  '...kk...',
-]);
-
-export const BANCA = S([
-  '........',
-  'kkkkkkkk',
-  'kttttttk',
-  'kTTTTTTk',
-  'kttttttk',
-  'kkkkkkkk',
-  '.k....k.',
-  '.k....k.',
-]);
-
-// Contenedor de reciclaje (verde, con tapa y ranura): no se confunde con un auto visto desde arriba.
-export const BASURERO = S([
-  '........',
-  '.kkkkkk.',
-  'kddddddk',
-  'kkkkkkkk',
-  '.kvvvvk.',
-  '.kvkkvk.',
-  '.kvvvvk.',
-  '.kkkkkk.',
-]);
-
-// Señal del metro (luz de aviso): 'B' parpadea en amarillo.
-export const SENAL = S([
-  '..kkkk..',
-  '.kBBBBk.',
-  '.kBwBBk.',
-  '.kBBBBk.',
-  '..kkkk..',
-  '...kk...',
-  '...kk...',
   '..kkkk..',
 ]);
 
@@ -198,3 +116,37 @@ export const PIEZAS: Record<'corazon' | 'estrella' | 'rayo' | 'gota', string[]> 
     '.kkkkk.',
   ]),
 };
+
+// Trofeo (8 × 8): va en la primera casilla del mural si venciste al Inacapín Pixel.
+export const TROFEO = S([
+  'kkkkkkkk',
+  'kyywyyyk',
+  'kyywyyyk',
+  '.kyyyyk.',
+  '..kyyk..',
+  '...kk...',
+  '..kyyk..',
+  '.kkkkkk.',
+]);
+
+// El Inacapín Pixel (16 × 16), diseño propuesto, a validar: personaje original de la familia del personaje Pixel
+// (antenas, ojos cuadrados, cuerpo de bloque), sin logo ni colores de INACAP. Los dígitos son las partes que recuperan
+// color: 1 antenas, 2 cabeza, 3 cara, 4 brazos, 5 panza, 6 pies. 'r' son las mejillas (rosa cuando la cara tiene color).
+export const INACAPIN = S([
+  '..kk........kk..',
+  '..k11k....k11k..',
+  '...kk1k..k1kk...',
+  '..kkkkkkkkkkkk..',
+  '.k222222222222k.',
+  'k22222222222222k',
+  'k22wwwk22wwwk22k',
+  'k22wwkk22wwkk22k',
+  'k33333333333333k',
+  'k3rr3kkkkkk3rr3k',
+  'k33333333333333k',
+  '.kk3333333333kk.',
+  'k44k55555555k44k',
+  'k44k55555555k44k',
+  '.kkk66kkkk66kkk.',
+  '...kkkk..kkkk...',
+]);
