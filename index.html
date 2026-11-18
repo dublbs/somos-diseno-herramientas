@@ -1,219 +1,233 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-ui="v2">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Experiencias Interactivas · Somos Diseño 2026</title>
-<link rel="stylesheet" href="shared/somos-fonts.css">
-<link rel="stylesheet" href="shared/somos-ui.css">
+<link rel="icon" href="data:,">
+<!-- Kit v2 «herramienta» (plan 012/014): tokens --h-*, fuentes, íconos y componentes h-. El menú no es una herramienta:
+     usa los tokens y los componentes (botones, segmentado, superficies) sin la anatomía de lienzo y panel. -->
+<link rel="stylesheet" href="shared/ui/herramienta.css">
 <style>
-/* Solo lo propio del hub; tokens, tema por lenguaje y componentes base viven en shared/ */
-.contenedor{max-width:1240px;margin:0 auto;padding:0 20px max(28px,env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:clamp(18px,3vh,30px);min-height:100dvh}
-.contenedor .top{padding-inline:0;max-width:none;width:100%;margin:0}
-.brand-simbolo{width:34px;height:34px;display:grid;grid-template-columns:1fr 1fr;border:2px solid var(--ink);box-shadow:3px 3px 0 var(--accent);flex:none;border-radius:calc(var(--rt) * .35);overflow:hidden}
-.brand-simbolo span:nth-child(1){background:#2B4BD8}.brand-simbolo span:nth-child(2){background:#F4EEE3}.brand-simbolo span:nth-child(3){background:#FFC20E}.brand-simbolo span:nth-child(4){background:#FF8FB1}
-.brand-sub{display:block;font:500 12px "DM Sans",sans-serif;color:var(--muted);letter-spacing:.01em}
-.btn.chico{min-height:44px;padding:0 16px;font-size:14px}
+/* Solo lo propio del menú; todo sale de los tokens --h-* del kit v2 (shared/ui/herramienta.css). */
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0}
+body{min-height:100dvh;font:400 var(--h-tam-texto)/1.4 var(--h-fuente);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+:focus-visible{outline:2px solid var(--h-acento);outline-offset:2px}
 
-.intro{display:grid;gap:16px}
-.intro h1{font:800 clamp(34px,5vw,58px)/1.02 var(--fuente-tit);letter-spacing:-.03em;margin:0;text-wrap:balance}
-[data-visual="Pixel"] .intro h1{font-size:clamp(24px,3.6vw,42px);line-height:1.2;letter-spacing:0}
-.intro p{margin:0;max-width:62ch;font-size:clamp(16px,1.8vw,19px);line-height:1.45;color:var(--muted);text-wrap:pretty}
-.filtros{display:grid;gap:8px;max-width:560px}
-.filtros .label{margin:0}
+/* barra superior delgada, como la de las experiencias */
+.m-barra{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:var(--h-e3);min-height:64px;
+  padding:var(--h-e2) max(var(--h-e5),env(safe-area-inset-right,0px)) var(--h-e2) max(var(--h-e5),env(safe-area-inset-left,0px));
+  background:var(--h-superficie);border-bottom:var(--h-trazo) solid var(--h-borde)}
+.m-marca{display:flex;align-items:center;gap:var(--h-e3);min-width:0}
+.m-simbolo{width:32px;height:32px;display:grid;grid-template-columns:1fr 1fr;border-radius:var(--h-radio-chico);overflow:hidden;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.m-simbolo span:nth-child(1){background:#2B4BD8}.m-simbolo span:nth-child(2){background:#F4EEE3}.m-simbolo span:nth-child(3){background:#FFC20E}.m-simbolo span:nth-child(4){background:#FF8FB1}
+.m-marca-nombre{margin:0;font:700 var(--h-tam-titulo)/1.15 var(--h-fuente-titulo);white-space:nowrap}
+.m-marca-sub{margin:0;font-size:var(--h-tam-chico);color:var(--h-texto-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m-marca>div{display:grid;min-width:0}
 
-.experiencias-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:clamp(16px,2.2vw,24px);list-style:none;margin:0;padding:0}
-.tarjeta{position:relative;display:flex;flex-direction:column;background:var(--surface);color:var(--ink);border:var(--borde);border-radius:var(--r);box-shadow:var(--sombra),0 0 0 1px var(--line);overflow:hidden;transition:transform .15s,box-shadow .15s,border-radius .4s}
+.m-contenido{max-width:1320px;margin:0 auto;padding:clamp(20px,3.5vh,36px) max(var(--h-e5),env(safe-area-inset-right,0px)) max(var(--h-e5),env(safe-area-inset-bottom,0px)) max(var(--h-e5),env(safe-area-inset-left,0px));display:grid;gap:clamp(18px,3vh,28px)}
+
+/* cabecera: título, bajada y filtro (segmentado del kit) */
+.m-intro{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--h-e4) var(--h-e5)}
+.m-intro>div{display:grid;gap:var(--h-e2);max-width:64ch}
+.m-intro h1{margin:0;font:700 clamp(28px,3.4vw,40px)/1.08 var(--h-fuente-titulo);letter-spacing:-.02em;text-wrap:balance}
+.m-intro p{margin:0;font-size:clamp(15px,1.5vw,17px);line-height:1.45;color:var(--h-texto-2);text-wrap:pretty}
+.m-filtro{display:grid;gap:var(--h-e2);flex:0 1 520px;min-width:min(100%,320px)}
+.m-filtro .h-etq{margin:0}
+.m-filtro .h-seg>button{font-size:var(--h-tam-texto)}
+.m-punto{width:10px;height:10px;border-radius:50%;flex:none;background:var(--c)}
+
+/* grilla de tarjetas */
+.experiencias-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr));gap:var(--h-e4);list-style:none;margin:0;padding:0}
+.tarjeta{position:relative;display:flex;flex-direction:column;min-width:0;background:var(--h-superficie);color:var(--h-texto);border:var(--h-trazo) solid var(--h-borde);
+  border-radius:calc(var(--h-radio) + 4px);box-shadow:var(--h-sombra-chica);overflow:hidden;transition:box-shadow var(--h-mov),border-color var(--h-mov),transform var(--h-mov)}
 .tarjeta.oculta{display:none}
+@media (hover:hover){.tarjeta:hover{box-shadow:var(--h-sombra-flotante);border-color:color-mix(in srgb,var(--h-borde) 60%,var(--h-texto-2))}}
 .tarjeta:active{transform:scale(.99)}
-@media (hover:hover){.tarjeta:hover{transform:translateY(-3px)}[data-visual="Pixel"] .tarjeta:hover{transform:translate(-3px,-3px);box-shadow:11px 11px 0 var(--ink)}}
-.tarjeta:has(.btn-entrar:focus-visible){outline:3px solid var(--accent);outline-offset:4px}
-.tarjeta.proxima{opacity:.72}
-.tarjeta.proxima:hover{transform:none}
-.miniatura{position:relative;aspect-ratio:16/10;background:#000;border-bottom:var(--borde);overflow:hidden}
+.tarjeta:has(.btn-entrar:focus-visible){outline:2px solid var(--h-acento);outline-offset:3px}
+.miniatura{position:relative;aspect-ratio:16/10;margin:var(--h-e2) var(--h-e2) 0;border-radius:var(--h-radio);background:var(--h-superficie-2);overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
 .miniatura canvas{display:block;width:100%;height:100%}
-.miniatura-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:repeating-conic-gradient(var(--chip) 0 25%,var(--surface) 0 50%) 0 0/24px 24px;font:700 13px var(--fuente-etq);color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
-.etiqueta,.badge-estado{position:absolute;top:12px;background:rgba(0,0,0,.62);color:#fff;font:600 12px "DM Sans",sans-serif;padding:6px 11px;border-radius:var(--rb);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:2}
-.etiqueta{left:12px}.badge-estado{right:12px;background:var(--accent);color:var(--on-accent)}
-.cuerpo{flex:1;display:grid;align-content:start;gap:8px;padding:clamp(16px,2vw,22px)}
-.cuerpo h2{margin:0;font:800 clamp(21px,2.2vw,26px)/1.1 var(--fuente-tit);letter-spacing:-.02em}
-[data-visual="Pixel"] .cuerpo h2{font-size:clamp(15px,1.7vw,19px);line-height:1.3;letter-spacing:0}
-.cuerpo p{margin:0;font-size:15px;line-height:1.45;color:var(--muted);text-wrap:pretty}
-.tarjeta-acciones{padding:0 clamp(16px,2vw,22px) clamp(16px,2vw,22px)}
-.btn-entrar{width:100%;text-decoration:none}
-.btn-entrar::after{content:"";position:absolute;inset:0}
-.btn-disabled{display:flex;align-items:center;justify-content:center;min-height:56px;border:1.5px dashed var(--line);border-radius:var(--rb);color:var(--muted);font:600 14px "DM Sans",sans-serif;cursor:not-allowed}
+.badge-estado{position:absolute;top:var(--h-e2);right:var(--h-e2);z-index:2;padding:4px 10px;border-radius:999px;background:var(--h-superficie);color:var(--h-acento);font:700 12px/1.2 var(--h-fuente);box-shadow:var(--h-sombra-chica)}
+.cuerpo{flex:1;display:grid;align-content:start;gap:var(--h-e2);padding:var(--h-e4) var(--h-e4) var(--h-e3)}
+.cuerpo h2{margin:0;font:700 19px/1.2 var(--h-fuente-titulo);letter-spacing:-.01em}
+.cuerpo p{margin:0;font-size:var(--h-tam-chico);line-height:1.45;color:var(--h-texto-2);text-wrap:pretty}
+.etiquetas{display:flex;flex-wrap:wrap;gap:var(--h-e1)}
+.etiqueta{display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 7px;border-radius:999px;background:var(--h-superficie-2);border:var(--h-trazo) solid var(--h-borde);font:600 12px/1.3 var(--h-fuente);color:var(--h-texto)}
+.etiqueta .m-punto{width:8px;height:8px}
+.tarjeta-acciones{display:flex;padding:0 var(--h-e4) var(--h-e4)}
+.btn-entrar{flex:1;text-decoration:none;min-height:52px}
+.btn-entrar::after{content:"";position:absolute;inset:0;z-index:1}
+.btn-entrar .material-symbols-outlined{margin-right:-4px}
 
-@media (max-width:768px){.experiencias-grid{grid-template-columns:minmax(0,1fr)}.contenedor{padding-inline:16px}.brand-sub{display:none}}
-footer{margin-top:auto;padding-top:16px;border-top:1.5px solid var(--line);font-size:13px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
-footer .enlace-hub{color:var(--ink);font-weight:700;text-decoration:none;border-bottom:2px solid var(--accent)}
+footer{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--h-e2) var(--h-e4);padding-top:var(--h-e4);border-top:var(--h-trazo) solid var(--h-borde);font-size:var(--h-tam-chico);color:var(--h-texto-2)}
+footer .h-btn{text-decoration:none}
+
+@media (max-width:700px){
+  .m-barra,.m-contenido{padding-left:max(var(--h-e4),env(safe-area-inset-left,0px));padding-right:max(var(--h-e4),env(safe-area-inset-right,0px))}
+  .m-marca-sub{display:none}
+  #btn-fullscreen .h-btn-texto{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+  #btn-fullscreen{padding:0;width:var(--h-toque)}
+  .m-filtro{flex-basis:100%}
+  .m-filtro .h-seg>button{font-size:var(--h-tam-chico);padding:0 4px}
+}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
 
-<div class="contenedor">
-  <header class="top">
-    <div class="marca">
-      <div class="brand-simbolo" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-      <div>
-        <div>Somos Diseño</div>
-        <span class="brand-sub">INACAP Santiago Centro · Semana del Diseño 2026</span>
-      </div>
+<header class="m-barra">
+  <div class="m-marca">
+    <div class="m-simbolo" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    <div>
+      <p class="m-marca-nombre">Somos Diseño</p>
+      <p class="m-marca-sub">INACAP Santiago Centro · Semana del Diseño 2026</p>
     </div>
-    <button class="btn chico" id="btn-fullscreen" type="button" aria-label="Alternar pantalla completa">
-      <span aria-hidden="true">⛶</span> <span id="fs-texto">Pantalla completa</span>
-    </button>
-  </header>
+  </div>
+  <button class="h-btn" id="btn-fullscreen" type="button" aria-label="Alternar pantalla completa">
+    <span class="material-symbols-outlined h-icono" aria-hidden="true">open_in_full</span><span class="h-btn-texto" id="fs-texto">Pantalla completa</span>
+  </button>
+</header>
 
-  <section class="intro" aria-labelledby="titulo">
-    <h1 id="titulo">Experiencias interactivas</h1>
-    <p>Explora los tres lenguajes visuales de la campaña: Geométrica, Pixel y Orgánica. Toca una actividad para comenzar. Al elegir un lenguaje, toda la pantalla cambia de forma y de color.</p>
-
-    <div class="filtros">
-      <p class="label" id="filtro-etiqueta">Filtrar por lenguaje</p>
-      <div class="seg" role="group" aria-labelledby="filtro-etiqueta">
-        <button class="btn-filtro" data-filtro="todos" aria-pressed="true">Todos</button>
-        <button class="btn-filtro" data-filtro="pixel" aria-pressed="false">Pixel</button>
-        <button class="btn-filtro" data-filtro="geometrica" aria-pressed="false">Geométrica</button>
-        <button class="btn-filtro" data-filtro="organica" aria-pressed="false">Orgánica</button>
+<div class="m-contenido">
+  <section class="m-intro" aria-labelledby="titulo">
+    <div>
+      <h1 id="titulo">Experiencias interactivas</h1>
+      <p>Explora los tres lenguajes visuales de la campaña: Geométrica, Pixel y Orgánica. Toca una actividad para comenzar.</p>
+    </div>
+    <div class="m-filtro">
+      <p class="h-etq" id="filtro-etiqueta">Filtrar por lenguaje</p>
+      <div class="h-seg" role="radiogroup" aria-labelledby="filtro-etiqueta">
+        <button type="button" role="radio" class="btn-filtro" data-filtro="todos" aria-checked="true">Todos</button>
+        <button type="button" role="radio" class="btn-filtro" data-filtro="pixel" aria-checked="false"><span class="m-punto" style="--c:#7A2E8E" aria-hidden="true"></span>Pixel</button>
+        <button type="button" role="radio" class="btn-filtro" data-filtro="geometrica" aria-checked="false"><span class="m-punto" style="--c:#2B4BD8" aria-hidden="true"></span>Geométrica</button>
+        <button type="button" role="radio" class="btn-filtro" data-filtro="organica" aria-checked="false"><span class="m-punto" style="--c:#00A651" aria-hidden="true"></span>Orgánica</button>
       </div>
     </div>
   </section>
 
   <main>
     <ul class="experiencias-grid" id="grid-experiencias">
-
       <!-- 1. FOTOMATÓN -->
       <li class="tarjeta" data-lenguajes="pixel geometrica organica" id="exp-fotomaton">
         <div class="miniatura">
           <canvas id="cv-fotomaton" aria-hidden="true"></canvas>
-          <span class="etiqueta">Transversal · 3 Lenguajes</span>
         </div>
         <div class="cuerpo">
+          <div class="etiquetas"><span class="etiqueta"><span aria-hidden="true" style="display:inline-flex;gap:2px"><span class="m-punto" style="--c:#7A2E8E"></span><span class="m-punto" style="--c:#2B4BD8"></span><span class="m-punto" style="--c:#00A651"></span></span>3 lenguajes</span></div>
           <h2>Fotomatón CMYK</h2>
           <p>Sácate una foto, solo o en grupo. Cada lenguaje tiene su efecto: trama CMYK, pantalla CRT o mosaico de triángulos. Llévatela a tu celular con un QR.</p>
         </div>
         <div class="tarjeta-acciones">
-          <a class="btn primario btn-entrar" href="fotomaton/dist/" id="link-fotomaton" aria-label="Entrar al Fotomatón">Entrar <span aria-hidden="true">→</span></a>
+          <a class="h-btn h-primario btn-entrar" href="fotomaton/dist/" id="link-fotomaton" aria-label="Entrar al Fotomatón">Entrar <span class="material-symbols-outlined h-icono" aria-hidden="true">chevron_right</span></a>
         </div>
       </li>
-
       <!-- 2. TALLER DE MOSAICOS / TU SÍMBOLO -->
       <li class="tarjeta" data-lenguajes="geometrica" id="exp-mosaicos">
         <div class="miniatura">
           <canvas id="cv-mosaicos" aria-hidden="true"></canvas>
-          <span class="etiqueta">Geométrica</span>
         </div>
         <div class="cuerpo">
+          <div class="etiquetas"><span class="etiqueta"><span aria-hidden="true" style="display:inline-flex;gap:2px"><span class="m-punto" style="--c:#2B4BD8"></span></span>Geométrica</span></div>
           <h2>Taller de Mosaicos</h2>
           <p>Arma tus propios símbolos y patrones con figuras geométricas y colores. Experimenta libremente con giros, simetrías y repeticiones.</p>
         </div>
         <div class="tarjeta-acciones">
-          <a class="btn primario btn-entrar" href="taller-mosaicos/dist/" id="link-mosaicos" aria-label="Entrar al Taller de Mosaicos">Entrar <span aria-hidden="true">→</span></a>
+          <a class="h-btn h-primario btn-entrar" href="taller-mosaicos/dist/" id="link-mosaicos" aria-label="Entrar al Taller de Mosaicos">Entrar <span class="material-symbols-outlined h-icono" aria-hidden="true">chevron_right</span></a>
         </div>
       </li>
-
       <!-- 3. TEATRO DE PAPEL -->
       <li class="tarjeta" data-lenguajes="organica" id="exp-loops">
         <div class="miniatura">
           <canvas id="cv-loops" aria-hidden="true"></canvas>
-          <span class="etiqueta">Orgánica</span>
         </div>
         <div class="cuerpo">
+          <div class="etiquetas"><span class="etiqueta"><span aria-hidden="true" style="display:inline-flex;gap:2px"><span class="m-punto" style="--c:#00A651"></span></span>Orgánica</span></div>
           <h2>Teatro de Papel</h2>
           <p>Arma tu escena de papel recortado: elige Cordillera, Mar o Desierto, pon piezas que se mueven en loop, cámbiales el tamaño y el movimiento, y llévate el video.</p>
         </div>
         <div class="tarjeta-acciones">
-          <a class="btn primario btn-entrar" href="loops/dist/" id="link-loops" aria-label="Entrar al Teatro de Papel">Entrar <span aria-hidden="true">→</span></a>
+          <a class="h-btn h-primario btn-entrar" href="loops/dist/" id="link-loops" aria-label="Entrar al Teatro de Papel">Entrar <span class="material-symbols-outlined h-icono" aria-hidden="true">chevron_right</span></a>
         </div>
       </li>
-
       <!-- 4. GRAFFITI Y TAGS -->
       <li class="tarjeta" data-lenguajes="pixel" id="exp-graffiti">
         <div class="miniatura">
           <canvas id="cv-graffiti" aria-hidden="true"></canvas>
-          <span class="etiqueta">Pixel</span>
         </div>
         <div class="cuerpo">
+          <div class="etiquetas"><span class="etiqueta"><span aria-hidden="true" style="display:inline-flex;gap:2px"><span class="m-punto" style="--c:#7A2E8E"></span></span>Pixel</span></div>
           <h2>Graffiti y Tags</h2>
           <p>Pinta tu firma o ilustración urbana con trazo grueso y goteo de pintura en estética pixel digital.</p>
         </div>
         <div class="tarjeta-acciones">
-          <a class="btn primario btn-entrar" href="graffiti/dist/" id="link-graffiti" aria-label="Entrar a Graffiti y Tags">Entrar <span aria-hidden="true">→</span></a>
+          <a class="h-btn h-primario btn-entrar" href="graffiti/dist/" id="link-graffiti" aria-label="Entrar a Graffiti y Tags">Entrar <span class="material-symbols-outlined h-icono" aria-hidden="true">chevron_right</span></a>
         </div>
       </li>
-
       <!-- 4b. HORA PUNTA (juego Pixel; reemplaza al Vagón, plan 009) -->
       <li class="tarjeta" data-lenguajes="pixel" id="exp-juego">
         <div class="miniatura">
           <canvas id="cv-juego" aria-hidden="true"></canvas>
-          <span class="etiqueta">Pixel</span>
           <span class="badge-estado">Nuevo</span>
         </div>
         <div class="cuerpo">
+          <div class="etiquetas"><span class="etiqueta"><span aria-hidden="true" style="display:inline-flex;gap:2px"><span class="m-punto" style="--c:#7A2E8E"></span></span>Pixel</span></div>
           <h2>Hora punta</h2>
-          <p>Un juego en tres niveles: cruza la ciudad juntando latas de pintura, atrapa a los Grises en el andén y pinta la pared de la estación. Esa pared es tu mural y te lo llevas.</p>
+          <p>Un juego en tres niveles: cruza la ciudad juntando latas de pintura, atrapa a los Grises en el andén y enfrenta al Inacapín para devolverle el color. Llévate tu mural.</p>
         </div>
         <div class="tarjeta-acciones">
-          <a class="btn primario btn-entrar" href="juego-pixel/dist/" id="link-juego" aria-label="Entrar a Hora punta">Entrar <span aria-hidden="true">→</span></a>
+          <a class="h-btn h-primario btn-entrar" href="juego-pixel/dist/" id="link-juego" aria-label="Entrar a Hora punta">Entrar <span class="material-symbols-outlined h-icono" aria-hidden="true">chevron_right</span></a>
         </div>
       </li>
-
       <!-- 5. CREDENCIAL (celular) -->
       <li class="tarjeta" data-aparte id="exp-credencial">
         <div class="miniatura">
           <canvas id="cv-credencial" aria-hidden="true"></canvas>
-          <span class="etiqueta">En tu celular · 3 Lenguajes</span>
         </div>
         <div class="cuerpo">
+          <div class="etiquetas"><span class="etiqueta"><span aria-hidden="true" style="display:inline-flex;gap:2px"></span>En tu celular</span><span class="etiqueta"><span aria-hidden="true" style="display:inline-flex;gap:2px"><span class="m-punto" style="--c:#7A2E8E"></span><span class="m-punto" style="--c:#2B4BD8"></span><span class="m-punto" style="--c:#00A651"></span></span>3 lenguajes</span></div>
           <h2>Credencial</h2>
           <p>Crea tu personaje pixel en tu celular, ponlo en uno de los marcos de la campaña y junta los 4 sellos de la sede escaneando sus QR.</p>
         </div>
         <div class="tarjeta-acciones">
-          <a class="btn primario btn-entrar" href="credencial/dist/" id="link-credencial" aria-label="Entrar a la Credencial">Entrar <span aria-hidden="true">→</span></a>
+          <a class="h-btn h-primario btn-entrar" href="credencial/dist/" id="link-credencial" aria-label="Entrar a la Credencial">Entrar <span class="material-symbols-outlined h-icono" aria-hidden="true">chevron_right</span></a>
         </div>
       </li>
-
       <!-- 6. ESTACIÓN AUDIOREACTIVA -->
       <li class="tarjeta" data-lenguajes="geometrica" id="exp-audioreactiva">
         <div class="miniatura">
           <canvas id="cv-audioreactiva" aria-hidden="true"></canvas>
-          <span class="etiqueta">Geométrica</span>
         </div>
         <div class="cuerpo">
+          <div class="etiquetas"><span class="etiqueta"><span aria-hidden="true" style="display:inline-flex;gap:2px"><span class="m-punto" style="--c:#2B4BD8"></span></span>Geométrica</span></div>
           <h2>Estación Audioreactiva</h2>
           <p>Habla, aplaude o pon música: el sonido deforma la red de Geométrica en un túnel, un acordeón, un caleidoscopio, un tejido o una escalera. Silencia canales en la consola y graba tu loop.</p>
         </div>
         <div class="tarjeta-acciones">
-          <a class="btn primario btn-entrar" href="audioreactiva/dist/" id="link-audioreactiva" aria-label="Entrar a la Estación Audioreactiva">Entrar <span aria-hidden="true">→</span></a>
+          <a class="h-btn h-primario btn-entrar" href="audioreactiva/dist/" id="link-audioreactiva" aria-label="Entrar a la Estación Audioreactiva">Entrar <span class="material-symbols-outlined h-icono" aria-hidden="true">chevron_right</span></a>
         </div>
       </li>
-
-
       <!-- 8. TALLER DE GRABADO -->
       <li class="tarjeta" data-lenguajes="organica" id="exp-grabado">
         <div class="miniatura">
           <canvas id="cv-grabado" aria-hidden="true"></canvas>
-          <span class="etiqueta">Orgánica</span>
           <span class="badge-estado">Elegido</span>
         </div>
         <div class="cuerpo">
+          <div class="etiquetas"><span class="etiqueta"><span aria-hidden="true" style="display:inline-flex;gap:2px"><span class="m-punto" style="--c:#00A651"></span></span>Orgánica</span></div>
           <h2>Taller de Grabado</h2>
           <p>Estampa figuras orgánicas con tinta sobre papel, como con un taco de madera. Las tintas se mezclan donde se cruzan. Tus grabados se vuelven banderines en la plaza de la Estación.</p>
         </div>
         <div class="tarjeta-acciones">
-          <a class="btn primario btn-entrar" href="grabado/dist/" id="link-grabado" aria-label="Entrar al Taller de Grabado">Entrar <span aria-hidden="true">→</span></a>
+          <a class="h-btn h-primario btn-entrar" href="grabado/dist/" id="link-grabado" aria-label="Entrar al Taller de Grabado">Entrar <span class="material-symbols-outlined h-icono" aria-hidden="true">chevron_right</span></a>
         </div>
       </li>
-
     </ul>
   </main>
 
   <footer>
-    <span>Somos Diseño · INACAP Sede Santiago Centro</span>
-    <span>Modo quiosco · vuelve al inicio tras 90 s sin uso</span>
-    <a class="enlace-hub" href="hub-estacion/dist/">Pantalla HUB · Estación Somos Diseño →</a>
+    <span>Somos Diseño · INACAP Sede Santiago Centro · Modo quiosco: vuelve al inicio tras 90 s sin uso</span>
+    <a class="h-btn h-fantasma enlace-hub" href="hub-estacion/dist/">Pantalla HUB · Estación Somos Diseño <span class="material-symbols-outlined h-icono" aria-hidden="true">chevron_right</span></a>
   </footer>
 </div>
 
@@ -649,40 +663,161 @@ footer .enlace-hub{color:var(--ink);font-weight:700;text-decoration:none;border-
     });
   }
 
-  // 4b. Hora punta: el personaje cruza la calle fila por fila entre autos, con latas de pintura en el camino.
+  // 4b. Hora punta: el cruce isométrico del nivel 1 (como juego-pixel/src/juego/dibujoCruce.ts, misma proyección y
+  // colores): veredas, calles con autos y micros, la vía del metro con su tren, la plaza, latas de pintura que flotan,
+  // el personaje que salta fila por fila y, al fondo, el pórtico del METRO. Para ajustarlo basta editar ESCENA_HP.
   const cvJuego = document.getElementById("cv-juego");
   if (cvJuego) {
     const ctx = cvJuego.getContext("2d");
     const pj = new Image(); pj.src = "juego-pixel/dist/figma/personaje.svg";
-    const FILAS = [["vereda"], ["calle", 1, 0.9, HEX.Amarillo], ["calle", -1, 1.3, HEX.Verde], ["vereda"], ["calle", 1, 1.1, HEX.Rosa], ["vereda"]];
-    const LATAS = [[3, 0, HEX.Rosa], [9, 3, HEX.Celeste], [6, 5, HEX.Amarillo]];
+    const metroImg = new Image(); metroImg.src = "juego-pixel/dist/figma/metro-lateral.svg";
+    const KX = 0.2, FX = 0.42, FY = 0.8, ZZ = 0.75;                 // proyección de dibujoCruce.ts
+    const SUELO = {
+      vereda: ["#D9D0C1", "#B5AA97", "#C2B8A6", 0.14], plaza: ["#5DAA6E", "#3E7F4E", "#4C9A5E", 0.14],
+      calle: ["#3D3A36", "#2A2825", "#4A4641", 0], metro: ["#77726A", "#5A564F", "#8A857C", 0], estacion: ["#0062B8", "#004A8C", "#2B4BD8", 0.14]
+    };
+    // Filas de abajo (0, la partida) hacia arriba. Calles: dir, velocidad (celdas/s) y vehículos [tipo, color, x inicial].
+    const ESCENA_HP = {
+      celda: 37, columnas: 13, camX: 6.4, camY: 3.5, salto: 650, // ms por salto del personaje
+      filas: [
+        { tipo: "vereda", cosas: [[1, "banca"], [10, "basurero"]] },
+        { tipo: "calle", dir: 1, vel: 1.5, autos: [["auto", "#FFC20E", 0], ["micro", "", 6], ["auto", "#FF8FB1", 12]] },
+        { tipo: "calle", dir: -1, vel: 2.1, autos: [["auto", "#2B4BD8", 2], ["auto", "#00A651", 9]], latas: [[8, "#FFC20E"]] },
+        { tipo: "vereda", cosas: [[2, "basurero"], [11, "banca"]], latas: [[4, "#FF8FB1"]] },
+        { tipo: "metro", tren: { cada: 5200, dura: 2600 } },
+        { tipo: "plaza", cosas: [[0, "arbol"], [3, "arbol"], [10, "arbol"]], latas: [[7, "#7FC8F8"]] },
+        { tipo: "estacion", portico: true }
+      ]
+    };
+    const sombra = (hex, f) => { const n = parseInt(hex.slice(1), 16); return "#" + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => Math.round(v * f).toString(16).padStart(2, "0")).join(""); };
+    const LATA = [".kkkkkk.", "kssssssk", "kBBBBBBk", "kBhBBBBk", "kBhBBBBk", "kBBBBBBk", "kBBBBBBk", ".kkkkkk."];
+    const LATA_C = { k: "#000", s: "#B9B9B3", h: "#F4EEE3" };
     miniaturas.push({
       cv: cvJuego, ctx,
       draw: t => {
-        const { width: W, height: H } = cvJuego, c = H / FILAS.length, cols = Math.ceil(W / c), ms = quieto ? 1200 : t;
-        ctx.imageSmoothingEnabled = false;
-        FILAS.forEach(([tipo, dir, vel, color], k) => {
-          const y = H - (k + 1) * c;
-          ctx.fillStyle = tipo === "calle" ? "#3D3A36" : "#CFC6B8"; ctx.fillRect(0, y, W, c + 1);
-          if (tipo === "vereda") { ctx.fillStyle = "#B8AE9E"; for (let x = 0; x < cols; x++) ctx.fillRect(x * c, y, 2, c); }
-          else {
-            ctx.fillStyle = HEX.Hueso; for (let x = 0; x < W; x += c) ctx.fillRect(x + c * 0.2, y + c * 0.47, c * 0.4, c * 0.06);
-            for (let a = 0; a < 3; a++) { // autos vistos desde arriba
-              const largo = c * 1.8, recorrido = W + largo, x = ((ms / 1000 * vel * c * dir + a * recorrido / 3) % recorrido + recorrido) % recorrido - largo;
-              ctx.fillStyle = "#000"; ctx.fillRect(x, y + c * 0.12, largo, c * 0.76);
-              ctx.fillStyle = color; ctx.fillRect(x + 2, y + c * 0.12 + 2, largo - 4, c * 0.76 - 4);
-              ctx.fillStyle = HEX.Celeste; ctx.fillRect(x + largo * (dir > 0 ? 0.62 : 0.18), y + c * 0.25, largo * 0.18, c * 0.5);
+        const { width: W, height: H } = cvJuego, k = W / VW, E = ESCENA_HP, c = E.celda, ms = quieto ? 2600 : t;
+        const lw = 1.4, OX = VW / 2, OY = VH * 0.72;
+        ctx.setTransform(k, 0, 0, k, 0, 0); ctx.imageSmoothingEnabled = false;
+        const P = (x, y, z) => [OX + (x - E.camX) * c + (y - E.camY) * FX * c, OY + (x - E.camX) * KX * c - (y - E.camY) * FY * c - z * ZZ * c];
+        const cara = (pts, color, borde = true) => {
+          ctx.beginPath(); ctx.moveTo(...pts[0]); for (let i = 1; i < pts.length; i++) ctx.lineTo(...pts[i]); ctx.closePath();
+          ctx.fillStyle = color; ctx.fill(); if (borde) { ctx.lineWidth = lw; ctx.strokeStyle = "#000"; ctx.lineJoin = "miter"; ctx.stroke(); }
+        };
+        const caja = (x0, x1, y0, y1, z0, z1, color, fr = sombra(color, 0.8), co = sombra(color, 0.6)) => {
+          cara([P(x0, y0, z0), P(x1, y0, z0), P(x1, y0, z1), P(x0, y0, z1)], fr);
+          cara([P(x1, y0, z0), P(x1, y1, z0), P(x1, y1, z1), P(x1, y0, z1)], co);
+          cara([P(x0, y0, z1), P(x1, y0, z1), P(x1, y1, z1), P(x0, y1, z1)], color);
+        };
+        const plano = (x0, x1, y0, y1, z, color, borde = false) => cara([P(x0, y0, z), P(x1, y0, z), P(x1, y1, z), P(x0, y1, z)], color, borde);
+        const sombraSuelo = (x0, x1, y0, y1, z) => { ctx.globalAlpha = 0.28; plano(x0 + 0.12, x1 + 0.12, y0 - 0.1, y1 - 0.1, z + 0.002, "#000"); ctx.globalAlpha = 1; };
+
+        ctx.fillStyle = "#2B4BD8"; ctx.fillRect(0, 0, VW, VH);
+        const xa = -8, xb = E.columnas + 6, ciclo = E.columnas + 8;
+        const paso = Math.floor(ms / E.salto) % E.filas.length, arco = quieto ? 0 : Math.sin(((ms % E.salto) / E.salto) * Math.PI);
+        for (let y = E.filas.length - 1; y >= 0; y--) {
+          const f = E.filas[y], [top, frente, junta, h] = SUELO[f.tipo];
+          if (h) cara([P(xa, y, 0), P(xb, y, 0), P(xb, y, h), P(xa, y, h)], frente, false);
+          plano(xa, xb, y, y + 1, h, top);
+          ctx.lineWidth = 1; ctx.strokeStyle = junta; ctx.beginPath();
+          if (f.tipo === "vereda" || f.tipo === "estacion") for (let x = xa; x <= xb; x++) { const a = P(x, y, h), b = P(x, y + 1, h); ctx.moveTo(...a); ctx.lineTo(...b); }
+          ctx.stroke();
+          if (f.tipo === "calle") {
+            if (E.filas[y + 1] && E.filas[y + 1].tipo === "calle") for (let x = xa; x < xb; x++) plano(x + 0.15, x + 0.65, y + 0.95, y + 1.05, 0.001, "#F4EEE3");
+            if (!E.filas[y - 1] || E.filas[y - 1].tipo !== "calle") plano(xa, xb, y, y + 0.07, 0.001, "#FFC20E");
+          }
+          if (f.tipo === "metro") {
+            for (let x = xa; x < xb; x += 0.5) plano(x, x + 0.18, y + 0.12, y + 0.88, 0.001, "#7A5A3A");
+            for (const r of [0.28, 0.66]) caja(xa, xb, y + r, y + r + 0.06, 0, 0.06, "#C9C9C4", "#9A9A94", "#7A7A74");
+          }
+          const cosas = [];
+          for (const [x, o] of f.cosas || []) cosas.push([x, () => obstaculo(x, y, h, o)]);
+          for (const [x, color] of f.latas || []) cosas.push([x, () => lata(x, y, h, color)]);
+          for (const [tipo, color, x0] of f.autos || []) {
+            const largo = tipo === "micro" ? 3 : 2;
+            const x = (((x0 + (ms / 1000) * f.vel * f.dir) % ciclo) + ciclo) % ciclo - 4;
+            cosas.push([x, () => vehiculo(tipo, color, x, y, largo, f.dir)]);
+          }
+          if (f.tren) {
+            const u = ms % f.tren.cada;
+            if (u < f.tren.dura) { const xt = -12 + (u / f.tren.dura) * (E.columnas + 16); cosas.push([xt, () => tren(xt, y)]); }
+          }
+          if (y === paso) cosas.push([5.5, () => personaje(5, y, h)]);
+          cosas.sort((a, b) => a[0] - b[0]).forEach(([, d]) => d());
+          if (f.portico) portico(y, h);
+        }
+        const bruma = ctx.createLinearGradient(0, 0, 0, VH * 0.3);
+        bruma.addColorStop(0, "#2B4BD8"); bruma.addColorStop(1, "rgba(43,75,216,0)");
+        ctx.fillStyle = bruma; ctx.fillRect(0, 0, VW, VH * 0.3);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+        function obstaculo(x, y, h, o) {
+          if (o === "arbol") {
+            sombraSuelo(x + 0.15, x + 0.85, y + 0.15, y + 0.85, h);
+            caja(x + 0.36, x + 0.64, y + 0.36, y + 0.64, h, h + 0.55, "#7A5A3A");
+            caja(x + 0.12, x + 0.88, y + 0.16, y + 0.84, h + 0.55, h + 1.15, "#00A651");
+          } else if (o === "banca") {
+            caja(x + 0.08, x + 0.92, y + 0.34, y + 0.7, h + 0.22, h + 0.32, "#A0703F");
+            caja(x + 0.08, x + 0.92, y + 0.66, y + 0.76, h + 0.32, h + 0.68, "#A0703F");
+          } else {
+            caja(x + 0.25, x + 0.75, y + 0.28, y + 0.74, h, h + 0.62, "#00A651");
+            caja(x + 0.22, x + 0.78, y + 0.25, y + 0.77, h + 0.62, h + 0.72, "#2E7D46");
+          }
+        }
+        function lata(x, y, h, color) {
+          const flota = quieto ? 0.25 : 0.25 + Math.sin(ms / 260 + x + y) * 0.1, giro = quieto ? 1 : Math.cos(ms / 300 + x * 1.7);
+          sombraSuelo(x + 0.3, x + 0.7, y + 0.35, y + 0.65, h);
+          const [px, py] = P(x + 0.5, y + 0.5, h + flota), t = c * 0.5, w = Math.max(t * 0.22, t * Math.abs(giro)), u = w / 8, v = t / 8;
+          LATA.forEach((fila, j) => [...fila].forEach((ch, i) => { if (ch === ".") return; ctx.fillStyle = ch === "B" ? color : LATA_C[ch]; ctx.fillRect(px - w / 2 + i * u, py - t + j * v, u + 0.3, v + 0.3); }));
+        }
+        function vehiculo(tipo, color, x0, y, largo, dir) {
+          const x1 = x0 + largo;
+          sombraSuelo(x0 + 0.05, x1 - 0.05, y + 0.14, y + 0.86, 0);
+          if (tipo === "micro") {
+            caja(x0, x1, y + 0.12, y + 0.88, 0.1, 1.0, "#F4EEE3", "#DDD5C6", "#BDB4A3");
+            const [a] = [P(x0, y + 0.12, 1.0)], L = largo * c, Hh = 0.9 * ZZ * c;
+            ctx.save(); ctx.transform(1, KX, 0, 1, a[0], a[1]);
+            ctx.fillStyle = "#0062B8"; ctx.fillRect(0, Hh * 0.55, L, Hh * 0.16);
+            ctx.fillStyle = "#000"; ctx.fillRect(0, Hh * 0.12, L, Hh * 0.32);
+            ctx.fillStyle = "#7FC8F8"; for (let i = 0; i < largo * 2; i++) ctx.fillRect(i * c * 0.5 + c * 0.08, Hh * 0.15, c * 0.36, Hh * 0.24);
+            ctx.restore();
+            return;
+          }
+          caja(x0, x1, y + 0.16, y + 0.84, 0.12, 0.5, color);
+          const cx0 = dir > 0 ? x0 + 0.35 : x0 + 0.65;
+          caja(cx0, cx0 + 1, y + 0.24, y + 0.76, 0.5, 0.82, color);
+          const a = P(cx0, y + 0.24, 0.82), Hh = 0.32 * ZZ * c;
+          ctx.save(); ctx.transform(1, KX, 0, 1, a[0], a[1]); ctx.fillStyle = "#7FC8F8";
+          ctx.fillRect(c * 0.08, Hh * 0.18, c * 0.38, Hh * 0.6); ctx.fillRect(c * 0.54, Hh * 0.18, c * 0.38, Hh * 0.6); ctx.restore();
+        }
+        function tren(xt, y) {
+          const LARGO = 3.34;
+          for (let i = 0; i < 3; i++) {
+            const x0 = xt + i * LARGO + 0.04, x1 = x0 + LARGO - 0.08, lider = i === 2;
+            caja(x0, x1, y + 0.1, y + 0.9, 0.08, 1.1, "#F4EEE3", "#DDD5C6", lider ? "#FFC20E" : "#BDB4A3");
+            if (metroImg.complete && metroImg.naturalWidth) {
+              const a = P(x0, y + 0.1, 1.1); ctx.save(); ctx.transform(1, KX, 0, 1, a[0], a[1]);
+              ctx.drawImage(metroImg, 0, 0, (x1 - x0) * c, 1.02 * ZZ * c); ctx.restore();
             }
           }
-        });
-        for (const [x, f, color] of LATAS) { // latas de pintura
-          const px = x * c + c * 0.3, py = H - (f + 1) * c + c * 0.25, l = c * 0.45;
-          ctx.fillStyle = "#000"; ctx.fillRect(px - 2, py - 2, l + 4, l * 1.2 + 4);
-          ctx.fillStyle = color; ctx.fillRect(px, py + l * 0.2, l, l * 0.8); ctx.fillStyle = "#B9B9B3"; ctx.fillRect(px, py, l, l * 0.2);
         }
-        if (pj.complete && pj.naturalWidth) { // salta una fila cada 0,6 s y vuelve a partir
-          const paso = Math.floor(ms / 600) % FILAS.length, sube = quieto ? 0 : Math.sin(((ms % 600) / 600) * Math.PI) * c * 0.25;
-          ctx.drawImage(pj, Math.floor(cols / 2) * c, H - (paso + 1) * c - sube, c, c);
+        function personaje(x, y, h) {
+          const z = h + arco * 0.55;
+          ctx.globalAlpha = 0.3; plano(x + 0.22, x + 0.78, y + 0.3, y + 0.7, h + 0.002, "#000"); ctx.globalAlpha = 1;
+          const [px, py] = P(x + 0.5, y + 0.45, z), t = c * 0.98;
+          if (pj.complete && pj.naturalWidth) ctx.drawImage(pj, px - t / 2, py - t * 0.9, t, t);
+          else caja(x + 0.25, x + 0.75, y + 0.3, y + 0.7, z, z + 0.8, "#00A651");
+        }
+        function portico(y, h) {
+          const a = 3.4, b = 8.6;
+          caja(a, a + 0.5, y + 0.6, y + 1.0, h, h + 1.7, "#0062B8");
+          caja(b - 0.5, b, y + 0.6, y + 1.0, h, h + 1.7, "#0062B8");
+          caja(a - 0.3, b + 0.3, y + 0.55, y + 1.05, h + 1.7, h + 2.45, "#2B4BD8");
+          const p0 = P(a - 0.3, y + 0.55, h + 2.45), L = (b - a + 0.6) * c, Hh = 0.75 * ZZ * c;
+          ctx.save(); ctx.transform(1, KX, 0, 1, p0[0], p0[1]);
+          ctx.fillStyle = "#F4EEE3"; ctx.fillRect(L * 0.2, Hh * 0.14, L * 0.6, Hh * 0.72);
+          ctx.fillStyle = "#0062B8"; ctx.font = `700 ${Math.round(Hh * 0.62)}px "Silkscreen", monospace`;
+          ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("METRO", L / 2, Hh * 0.52);
+          ctx.restore();
         }
       }
     });
@@ -755,14 +890,13 @@ footer .enlace-hub{color:var(--ink);font-weight:700;text-decoration:none;border-
   const botonesFiltro = document.querySelectorAll(".btn-filtro");
   const tarjetas = document.querySelectorAll(".tarjeta");
 
-  // El lenguaje elegido cambia el tema de toda la página (forma, borde, tipografía y acento).
-  const VISUAL = { pixel: "Pixel", geometrica: "Geométrica", organica: "Orgánica" };
-
+  // Kit v2 (plan 014): el menú queda neutro como las experiencias; el filtro solo muestra u oculta tarjetas.
   function aplicarFiltro(lenguaje) {
-    botonesFiltro.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.filtro === lenguaje)));
-
-    if (VISUAL[lenguaje]) document.documentElement.dataset.visual = VISUAL[lenguaje];
-    else delete document.documentElement.dataset.visual;
+    botonesFiltro.forEach(b => {
+      const activo = b.dataset.filtro === lenguaje;
+      b.setAttribute("aria-checked", String(activo));
+      b.tabIndex = activo ? 0 : -1;
+    });
 
     tarjetas.forEach(card => {
       if (lenguaje === "todos") {
@@ -779,7 +913,17 @@ footer .enlace-hub{color:var(--ink);font-weight:700;text-decoration:none;border-
       resetTimerInactividad();
       aplicarFiltro(btn.dataset.filtro);
     });
+    // radiogroup: las flechas cambian de opción
+    btn.addEventListener("keydown", ev => {
+      const lista = [...botonesFiltro], i = lista.indexOf(btn);
+      const d = ev.key === "ArrowRight" || ev.key === "ArrowDown" ? 1 : ev.key === "ArrowLeft" || ev.key === "ArrowUp" ? -1 : 0;
+      if (!d) return;
+      ev.preventDefault();
+      const otro = lista[(i + d + lista.length) % lista.length];
+      otro.focus(); otro.click();
+    });
   });
+  aplicarFiltro("todos");
 
   // Modo Quiosco: Inactividad de 90 segundos
   let timeoutQuiosco;
@@ -797,6 +941,7 @@ footer .enlace-hub{color:var(--ink);font-weight:700;text-decoration:none;border-
   // Botón Pantalla Completa
   const btnFs = document.getElementById("btn-fullscreen");
   const fsTexto = document.getElementById("fs-texto");
+  const fsIcono = btnFs && btnFs.querySelector(".material-symbols-outlined");
   if (btnFs) {
     btnFs.addEventListener("click", () => {
       resetTimerInactividad();
@@ -809,6 +954,7 @@ footer .enlace-hub{color:var(--ink);font-weight:700;text-decoration:none;border-
     // El texto sigue al estado real (también cuando se sale con Esc o con el gesto del sistema)
     document.addEventListener("fullscreenchange", () => {
       if (fsTexto) fsTexto.textContent = document.fullscreenElement ? "Salir de pantalla completa" : "Pantalla completa";
+      if (fsIcono) fsIcono.textContent = document.fullscreenElement ? "close" : "open_in_full";
     });
   }
 })();
