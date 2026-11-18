@@ -8,7 +8,10 @@
 <!-- Kit v2 «herramienta» (plan 012/014): tokens --h-*, fuentes, íconos y componentes h-. El menú no es una herramienta:
      usa los tokens y los componentes (botones, segmentado, superficies) sin la anatomía de lienzo y panel. -->
 <link rel="stylesheet" href="shared/ui/herramienta.css">
+<script>/* Plan 016: un equipo, una pantalla. La credencial (celular) y el HUB (Flip) solo aparecen con ?staff. */
+if (/[?&]staff(=|&|$)/.test(location.search)) document.documentElement.classList.add('staff');</script>
 <style>
+html:not(.staff) [data-solo-staff]{display:none!important}
 /* Solo lo propio del menú; todo sale de los tokens --h-* del kit v2 (shared/ui/herramienta.css). */
 *,*::before,*::after{box-sizing:border-box}
 html,body{margin:0}
@@ -180,7 +183,7 @@ footer .h-btn{text-decoration:none}
         </div>
       </li>
       <!-- 5. CREDENCIAL (celular) -->
-      <li class="tarjeta" data-aparte id="exp-credencial">
+      <li class="tarjeta" data-aparte data-solo-staff id="exp-credencial">
         <div class="miniatura">
           <canvas id="cv-credencial" aria-hidden="true"></canvas>
         </div>
@@ -227,7 +230,7 @@ footer .h-btn{text-decoration:none}
 
   <footer>
     <span>Somos Diseño · INACAP Sede Santiago Centro · Modo quiosco: vuelve al inicio tras 90 s sin uso</span>
-    <a class="h-btn h-fantasma enlace-hub" href="hub-estacion/dist/">Pantalla HUB · Estación Somos Diseño <span class="material-symbols-outlined h-icono" aria-hidden="true">chevron_right</span></a>
+    <a class="h-btn h-fantasma enlace-hub" data-solo-staff href="hub-estacion/dist/">Pantalla HUB · Estación Somos Diseño <span class="material-symbols-outlined h-icono" aria-hidden="true">chevron_right</span></a>
   </footer>
 </div>
 
