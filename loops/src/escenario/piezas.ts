@@ -1,4 +1,5 @@
 import type { Curva, Pista } from './animacion';
+import { PPU_FONDO, PPU_PIEZA, registrarTinte, type Tinte } from './recursos';
 
 // Piezas de Orgánica armadas con las capas y el movimiento de Figma (archivo SomosDiseño).
 // Todas las coordenadas están en el marco de 240 × 240 de cada pieza. El `pivote` es el centro
@@ -34,7 +35,14 @@ export interface Pieza {
   partes?: { tipo: string; x: number; y: number; escala: number; fase: number }[]; // piezas dentro de la pieza
   muestra?: number; // momento del ciclo (0..1) para la miniatura
   variantes?: Variante[]; // distintas animaciones de la misma pieza; la primera es la de Figma
+  // Perfil (una sola tabla, PERFILES, al final del archivo): tamaño en el escenario y si camina.
+  tam?: number; // tamaño inicial del lado mayor de `caja`, en unidades del escenario (240 = alto del escenario)
+  limites?: [number, number]; // tamaño mínimo y máximo del lado mayor, en unidades del escenario
+  movil?: boolean; // puede caminar de A a B
+  colores?: ColorPieza[]; // colores para elegir (el primero es el inicial)
 }
+
+export interface ColorPieza { id: string; nombre: string; hex: string; tinte: Tinte }
 
 const A = (ruta: string) => `${import.meta.env.BASE_URL}figma/organica/${ruta}.svg`;
 const T5 = [0, 0.25, 0.5, 0.75, 1];
@@ -221,7 +229,6 @@ const respira = (k: number): Pista => ({ prop: 'scaleY', t: T5, v: [1, k, 1, k, 
 const helecho = figura('helecho', 'Helecho', '660:4006', 'helecho/helecho', 85, 194, 2000, [mece(4), respira(1.02)]);
 const canasto = figura('canasto', 'Canasto', '660:11130', 'canasto/canasto', 173.6, 188.7, 2000, [mece(1.2), respira(1.025)]);
 const quisco = figura('quisco', 'Quisco', '660:13012', 'quisco/quisco', 145.4, 199.9, 4000, [mece(2.5), respira(1.015)]);
-const flor = figura('flor', 'Flor', '660:14079', 'flor/flor-propia', 140.6, 140.6, 2000, [mece(6), { prop: 'scaleX', t: T5, v: [1, 1.04, 1, 1.04, 1], e: 'easeInOut' }, respira(1.04)], 20);
 
 // ---- Variantes de movimiento (creadas aquí a partir de las partes de Figma) ----
 // Pudú: capas = cola, pata 1-4, cuerpo, cabeza.
@@ -298,59 +305,121 @@ const pinguinoV = conVariantes(pinguino, 'Camina', [
   { id: 'mece', nombre: 'Se mece', durMs: 2000, pistas: [girar([0, 8, 0, -8, 0])] },
 ]);
 
-// Flor: se mece, gira o late.
-const florV = conVariantes(flor, 'Se mece', [
-  { id: 'gira', nombre: 'Gira', durMs: 8000, pistas: [[{ prop: 'rotate', t: [0, 1], v: [0, 360] }]] },
-  { id: 'late', nombre: 'Late', durMs: 2000,
-    pistas: [[{ prop: 'scaleX', t: T5, v: [1, 1.1, 1, 1.1, 1], e: 'easeInOut' }, { prop: 'scaleY', t: T5, v: [1, 1.1, 1, 1.1, 1], e: 'easeInOut' }]] },
-]);
 
 // ---- BOCETOS del elenco por escenario (plan 004): generados con scripts/generar-bocetos.py, no vienen de Figma ----
 // Todos viven en el marco de 240; las capas animadas son archivos separados de public/figma/organica-bocetos/.
 const B = (ruta: string) => `${import.meta.env.BASE_URL}figma/organica-bocetos/${ruta}.svg`;
 // Hombro de cada ave: sobre la mitad delantera del lomo. Es el mismo punto que usa scripts/generar-bocetos.py (HOMBROS).
 const HOMBROS: Record<string, [number, number]> = { condor: [128, 116], gaviota: [126, 117], picaflor: [128, 116], carpintero: [126, 119] };
-// Ave: ala de abajo, cuerpo, ala de arriba. Las alas giran en el hombro y se acortan al bajar (como la paloma).
-const aveBoceto = (id: string, nombre: string, durMs: number, caja: Pieza['caja'], amplitud: number, sube = 3): Pieza => ({
-  id, nombre, figma: 'boceto (no es de Figma)', durMs, caja,
-  grupo: [{ prop: 'y', t: U13, v: U13.map(u => -Math.sin(u * Math.PI * 2) * sube) }],
-  capas: [
-    { src: B(`${id}/ala-inferior`), x: 0, y: 0, pivote: HOMBROS[id], pistas: [{ prop: 'rotate', t: U13, v: ALA.map(n => -n * amplitud) }, { prop: 'scaleY', t: U13, v: ALA_Y }] },
-    { src: B(`${id}/cuerpo`), x: 0, y: 0 },
-    { src: B(`${id}/ala-superior`), x: 0, y: 0, pivote: HOMBROS[id], pistas: [{ prop: 'rotate', t: U13, v: ALA.map(n => n * amplitud) }, { prop: 'scaleY', t: U13, v: ALA_Y }] },
-  ],
+const T9 = [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1];
+// Ave: ala de abajo, cuerpo, ala de arriba. Ronda 2: el aleteo es el de la paloma de Figma (M3): las alas casi no
+// giran (±7° × amplitud) y se pliegan sobre el hombro (scaleY de 1 a 0,24), el cuerpo se balancea apenas adelante y
+// atrás y sube cuando el ala baja. Antes el cóndor giraba las alas ±20° y se veía como una tijera.
+const PALOMA_X = [0, 1.025, 2.032, 2.818, 2.927, 1.929, 0, -1.929, -2.927, -2.818, -2.032, -1.025, 0];
+const alas = (amplitud: number, plegado = 1): (Pista[] | undefined)[] => {
+  const sy = ALA_Y.map(v => 1 - (1 - v) * plegado);
+  return [
+    [{ prop: 'rotate', t: U13, v: ALA.map(n => -n * amplitud) }, { prop: 'scaleY', t: U13, v: sy }],
+    undefined,
+    [{ prop: 'rotate', t: U13, v: ALA.map(n => n * amplitud) }, { prop: 'scaleY', t: U13, v: sy }],
+  ];
+};
+const vuelo = (sube: number, balanceo = 1): Pista[] => [
+  { prop: 'y', t: U13, v: U13.map(u => -Math.sin(u * Math.PI * 2) * sube) },
+  { prop: 'x', t: U13, v: PALOMA_X.map(v => v * balanceo) },
+];
+const aveBoceto = (id: string, nombre: string, durMs: number, caja: Pieza['caja'], amplitud: number, sube = 3): Pieza => {
+  const pistas = alas(amplitud);
+  return {
+    id, nombre, figma: 'boceto (no es de Figma)', durMs, caja,
+    grupo: vuelo(sube),
+    capas: [
+      { src: B(`${id}/ala-inferior`), x: 0, y: 0, pivote: HOMBROS[id], pistas: pistas[0] },
+      { src: B(`${id}/cuerpo`), x: 0, y: 0 },
+      { src: B(`${id}/ala-superior`), x: 0, y: 0, pivote: HOMBROS[id], pistas: pistas[2] },
+    ],
+  };
+};
+// Planea: alas casi abiertas que se mecen; Revolotea: el aleteo de la paloma, rápido.
+const planea = (durMs: number, sube: number, giro: number): Variante => ({
+  id: 'planea', nombre: 'Planea', durMs,
+  grupo: [{ prop: 'y', t: T5, v: [0, -sube, 0, sube, 0], e: 'easeInOut' }, { prop: 'rotate', t: T5, v: [0, giro, 0, -giro, 0], e: 'easeInOut' }],
+  pistas: [[...girar([0, -3, 0, 3, 0]), { prop: 'scaleY', t: T5, v: [1, 0.9, 1, 0.9, 1], e: 'easeInOut' }], undefined,
+    [...girar([0, 3, 0, -3, 0]), { prop: 'scaleY', t: T5, v: [1, 0.9, 1, 0.9, 1], e: 'easeInOut' }]],
 });
-const condor = conVariantes(aveBoceto('condor', 'Cóndor', 2000, [44, 20, 146, 177], 3, 4), 'Aletea', [
-  { id: 'planea', nombre: 'Planea', durMs: 4000, grupo: [{ prop: 'y', t: T5, v: [0, -6, 0, 6, 0], e: 'easeInOut' }, { prop: 'rotate', t: T5, v: [0, 3, 0, -3, 0], e: 'easeInOut' }],
-    pistas: [girar([0, -3, 0, 3, 0]), undefined, girar([0, 3, 0, -3, 0])] },
+const revolotea = (durMs: number, amplitud: number, sube: number): Variante => ({ id: 'revolotea', nombre: 'Revolotea', durMs, grupo: vuelo(sube, 1.5), pistas: alas(amplitud) });
+const condor = conVariantes(aveBoceto('condor', 'Cóndor', 1600, [44, 20, 146, 177], 1.3, 4), 'Aletea', [
+  planea(4000, 6, 3),
+  { id: 'remonta', nombre: 'Remonta', durMs: 4000,
+    grupo: [{ prop: 'y', t: T5, v: [0, -14, -4, 10, 0], e: 'easeInOut' }, { prop: 'rotate', t: T5, v: [0, -9, 0, 7, 0], e: 'easeInOut' }],
+    pistas: alas(0.6, 0.35) },
 ]);
-const gaviota = conVariantes(aveBoceto('gaviota', 'Gaviota', 1000, [62, 46, 122, 131], 3.4), 'Aletea', [
-  { id: 'planea', nombre: 'Planea', durMs: 3000, grupo: [{ prop: 'y', t: T5, v: [0, -4, 0, 4, 0], e: 'easeInOut' }], pistas: [girar([0, -4, 0, 4, 0]), undefined, girar([0, 4, 0, -4, 0])] },
+const gaviota = conVariantes(aveBoceto('gaviota', 'Gaviota', 1000, [62, 46, 122, 131], 1.6), 'Aletea', [
+  planea(3000, 4, 2), revolotea(500, 1.2, 4),
 ]);
-const picaflor = aveBoceto('picaflor', 'Picaflor de Arica', 400, [90, 64, 103, 100], 4, 2);
-const carpintero = aveBoceto('carpintero', 'Carpintero negro', 800, [58, 47, 127, 133], 3);
-const chucao: Pieza = {
-  id: 'chucao', nombre: 'Chucao', figma: 'boceto (no es de Figma)', durMs: 800, caja: [80, 124, 90, 86],
+const picaflor = conVariantes(aveBoceto('picaflor', 'Picaflor de Arica', 300, [90, 64, 103, 100], 2.4, 1.5), 'Zumba', [
+  { id: 'liba', nombre: 'Liba', durMs: 1200,
+    grupo: [{ prop: 'rotate', t: T5, v: [0, 14, 14, 0, 0], e: 'easeInOut' }, { prop: 'x', t: T5, v: [0, 6, 6, 0, 0], e: 'easeInOut' }],
+    pistas: alas(2.4) },
+  { id: 'dardo', nombre: 'Dardo', durMs: 1600,
+    grupo: [{ prop: 'x', t: T5, v: [0, 22, 22, -4, 0], e: ['easeOut', 'linear', 'easeInOut', 'easeInOut'] }, { prop: 'y', t: T5, v: [0, -6, -6, 2, 0], e: 'easeInOut' }],
+    pistas: alas(2.4) },
+]);
+const carpintero = conVariantes(aveBoceto('carpintero', 'Carpintero negro', 800, [58, 47, 127, 133], 1.4), 'Aletea', [
+  planea(3000, 5, 3), revolotea(450, 1.1, 3),
+]);
+// Chucao: salta, canta (cola arriba y el pecho se infla) o mira a los lados.
+const chucao = conVariantes({
+  id: 'chucao', nombre: 'Chucao', figma: 'boceto (no es de Figma)', durMs: 800, caja: [80, 124, 90, 86], pivote: [124, 206],
   grupo: [{ prop: 'y', t: T5, v: [0, -10, 0, -10, 0], e: 'easeOut' }],
   capas: [
     { src: B('chucao/cola'), x: 0, y: 0, pivote: [100, 168], pistas: girar([0, 12, 0, 12, 0]) },
     { src: B('chucao/cuerpo'), x: 0, y: 0 },
   ],
-};
+}, 'Salta', [
+  { id: 'canta', nombre: 'Canta', durMs: 2000,
+    grupo: [{ prop: 'scaleY', t: T5, v: [1, 1.08, 1, 1.08, 1], e: 'easeInOut' }, { prop: 'scaleX', t: T5, v: [1, 1.04, 1, 1.04, 1], e: 'easeInOut' }],
+    pistas: [girar([0, 24, 18, 24, 0]), undefined] },
+  { id: 'mira', nombre: 'Mira', durMs: 2400,
+    grupo: [{ prop: 'rotate', t: T9, v: [0, -6, -6, 0, 0, 6, 6, 0, 0], e: 'easeInOut' }],
+    pistas: [girar([0, 8, 0, 8, 0]), undefined] },
+]);
 // Cuadrúpedos: patas que giran en la cadera (como el pudú) y el cuerpo que bota apenas.
-const cuadrupedo = (id: string, nombre: string, caja: Pieza['caja'], caderas: number[], caderaY: number): Pieza => ({
-  id, nombre, figma: 'boceto (no es de Figma)', durMs: 1000, caja,
-  grupo: [{ prop: 'y', t: T5, v: [0, -3, 0, -3, 0], e: 'easeInOut' }],
-  capas: [
-    { src: B(`${id}/pata1`), x: 0, y: 0, pivote: [caderas[0], caderaY], pistas: patasA },
-    { src: B(`${id}/pata2`), x: 0, y: 0, pivote: [caderas[1], caderaY], pistas: patasB },
-    { src: B(`${id}/pata3`), x: 0, y: 0, pivote: [caderas[2], caderaY], pistas: patasB },
-    { src: B(`${id}/pata4`), x: 0, y: 0, pivote: [caderas[3], caderaY], pistas: patasA },
-    { src: B(`${id}/cuerpo`), x: 0, y: 0 },
-  ],
-});
-const huemul = cuadrupedo('huemul', 'Huemul', [68, 46, 132, 162], [92, 104, 136, 148], 160);
-const guanaco = cuadrupedo('guanaco', 'Guanaco', [63, 33, 129, 179], [84, 96, 128, 140], 146);
+// Capas: cola, pata 1-4, cuerpo, cabeza (el cuello con la cabeza gira en la base del cuello; la cola, en su raíz).
+// Ronda 2: tres formas de moverse por animal: camina, pasta (baja la cabeza y mastica) y mira (levanta la cabeza
+// y mueve la cola). El guanaco, de cuello largo, no pasta de una pieza: camina, trota y mira.
+interface Articulaciones { caderas: number[]; caderaY: number; cuello: [number, number]; cola: [number, number]; pasta: number }
+const cuadrupedo = (id: string, nombre: string, caja: Pieza['caja'], a: Articulaciones): Pieza => {
+  const base: Pieza = {
+    id, nombre, figma: 'boceto (no es de Figma)', durMs: 1000, caja,
+    grupo: [{ prop: 'y', t: T5, v: [0, -3, 0, -3, 0], e: 'easeInOut' }],
+    capas: [
+      { src: B(`${id}/cola`), x: 0, y: 0, pivote: a.cola, pistas: girar([0, -10, 0, -10, 0]) },
+      { src: B(`${id}/pata1`), x: 0, y: 0, pivote: [a.caderas[0], a.caderaY], pistas: patasA },
+      { src: B(`${id}/pata2`), x: 0, y: 0, pivote: [a.caderas[1], a.caderaY], pistas: patasB },
+      { src: B(`${id}/pata3`), x: 0, y: 0, pivote: [a.caderas[2], a.caderaY], pistas: patasB },
+      { src: B(`${id}/pata4`), x: 0, y: 0, pivote: [a.caderas[3], a.caderaY], pistas: patasA },
+      { src: B(`${id}/cuerpo`), x: 0, y: 0 },
+      { src: B(`${id}/cabeza`), x: 0, y: 0, pivote: a.cuello, pistas: girar([0, 3, 0, 3, 0]) },
+    ],
+  };
+  const p = a.pasta;
+  return conVariantes(base, 'Camina', [
+    ...(p ? [{ id: 'pasta', nombre: 'Pasta', durMs: 4000,
+      pistas: [girar([0, -6, 0, -6, 0, -6, 0, -6, 0], 'easeInOut', T9), undefined, undefined, undefined, undefined, undefined,
+        // baja la cabeza, mastica dos veces abajo y la vuelve a subir
+        girar([0, p, p - 4, p, p - 4, p, p, 0, 0], 'easeInOut', T9)] }] : []),
+    { id: 'mira', nombre: 'Mira', durMs: 2000,
+      pistas: [girar([0, -22, 0, -22, 0, -22, 0, -22, 0], 'easeInOut', T9), undefined, undefined, undefined, undefined, undefined,
+        girar([0, -9, -9, -6, -9, -9, 0, 0, 0], 'easeInOut', T9)] },
+    ...(id === 'guanaco' ? [{ id: 'trota', nombre: 'Trota', durMs: 600,
+      grupo: [{ prop: 'y', t: T5, v: [0, -6, 0, -6, 0], e: 'easeInOut' } as Pista],
+      pistas: [girar([0, -16, 0, -16, 0]), girar([0, -26, 0, 26, 0]), girar([0, 26, 0, -26, 0]), girar([0, 26, 0, -26, 0]), girar([0, -26, 0, 26, 0]),
+        undefined, girar([0, -4, 0, -4, 0])] }] : []),
+  ]);
+};
+const huemul = cuadrupedo('huemul', 'Huemul', [68, 46, 132, 162], { caderas: [92, 104, 136, 148], caderaY: 160, cuello: [152, 146], cola: [78, 136], pasta: 70 });
+const guanaco = cuadrupedo('guanaco', 'Guanaco', [63, 33, 129, 179], { caderas: [84, 96, 128, 140], caderaY: 146, cuello: [141, 128], cola: [73, 124], pasta: 0 });
 // Plantas y objetos: una capa que se mece desde su base.
 const quietaEn = (id: string, nombre: string, caja: Pieza['caja'], durMs: number, pivote: [number, number], pistas: Pista[]): Pieza => ({
   id, nombre, figma: 'boceto (no es de Figma)', durMs, caja, capas: [{ src: B(`${id}/${id}`), x: 0, y: 0, pivote, pistas }],
@@ -364,6 +433,8 @@ const alerce = quietaEn('alerce', 'Alerce', [58, 34, 124, 186], 4000, [120, 218]
 const copihue = quietaEn('copihue', 'Copihue', [56, 32, 126, 152], 2000, [110, 50], [mece(4), respira(1.02)]);
 const maqui = quietaEn('maqui', 'Maqui', [76, 58, 100, 160], 2000, [120, 216], [mece(3), respira(1.02)]);
 const telar = quietaEn('telar', 'Telar mapuche', [52, 30, 136, 194], 3000, [120, 220], [respira(1.01)]);
+// Añañuca (ronda 2): reemplaza a la Flor en el Desierto (flor del desierto florido; boceto generado).
+const ananuca = quietaEn('ananuca', 'Añañuca', [68, 102, 106, 116], 2000, [120, 216], [mece(4), respira(1.03)]);
 const luna = quietaEn('luna', 'Luna', [84, 26, 100, 72], 4000, [120, 64], [mece(4), { prop: 'scaleX', t: T5, v: [1, 1.04, 1, 1.04, 1], e: 'easeInOut' }, respira(1.04)]);
 // Lluvia: la nube respira y dos capas de gotas caen alternadas (cuando una aparece, la otra se apaga).
 const cae: Pista[] = [
@@ -379,10 +450,86 @@ const lluvia: Pieza = {
   ],
 };
 
-export const PIEZAS: Pieza[] = [pudu2, palomaV, solV, araucariaV, pina, helechoV, quiscoV, florV, pezV, pinguinoV, cantaro, canasto, kisaV,
-  condor, gaviota, picaflor, carpintero, chucao, huemul, guanaco, chagual, cochayuyo, doca, concha, chanar, alerce, copihue, maqui, telar, luna, lluvia];
+const LISTA: Pieza[] = [pudu2, palomaV, solV, araucariaV, pina, helechoV, quiscoV, pezV, pinguinoV, cantaro, canasto, kisaV,
+  condor, gaviota, picaflor, carpintero, chucao, huemul, guanaco, chagual, cochayuyo, doca, concha, chanar, alerce, copihue, maqui, telar, luna, lluvia, ananuca];
 
-export const pieza = (id: string) => PIEZAS.find(p => p.id === id)!;
+// ---- Perfil de cada pieza: la ÚNICA tabla por tipo (tamaño en el escenario, límites, si camina, colores) ----
+// Tamaños en unidades del escenario (240 = alto). Un cóndor en el cielo es chico; una araucaria, alta; un huemul, mediano.
+// Mínimo y máximo dejan agrandar o achicar sin que la pieza se coma la escena ni desaparezca.
+type Perfil = { tam: number; min?: number; max?: number; movil?: boolean; colores?: ColorPieza[] };
+const AMARILLO = '#FFC20E', ROSA = '#FF8FB1', VERDE = '#00A651', HUESO = '#F4EEE3', NEGRO = '#000000';
+// Pez: el cuerpo era Lapislázuli y en el mar no se notaba. Colores que siempre contrastan con el agua azul.
+const tintePez = (cuerpo: string, escamas: string): Tinte => ({ '#2B4BD8': cuerpo, '#7FC8F8': escamas });
+const COLORES_PEZ: ColorPieza[] = [
+  { id: 'amarillo', nombre: 'Amarillo', hex: AMARILLO, tinte: tintePez(AMARILLO, HUESO) },
+  { id: 'rosa', nombre: 'Rosa', hex: ROSA, tinte: tintePez(ROSA, HUESO) },
+  { id: 'verde', nombre: 'Verde', hex: VERDE, tinte: tintePez(VERDE, AMARILLO) },
+  { id: 'hueso', nombre: 'Hueso', hex: HUESO, tinte: tintePez(HUESO, ROSA) },
+  { id: 'negro', nombre: 'Negro', hex: NEGRO, tinte: tintePez(NEGRO, AMARILLO) },
+];
+// Huemul: era morado como los cerros de la Cordillera y se perdía. Parte café (su color real) y se puede cambiar.
+// Cada color trae sus cuatro tonos (cuerpo, lado lejano, vientre y hocico), mezclas de la paleta como en el generador.
+const tinteHuemul = (c: string, lejano: string, claro: string, hocico: string): Tinte => ({ '#7A2E8E': c, '#5C226A': lejano, '#B184B4': claro, '#43194E': hocico });
+const COLORES_HUEMUL: ColorPieza[] = [
+  { id: 'cafe', nombre: 'Café', hex: '#B67154', tinte: tinteHuemul('#B67154', '#88553F', '#D2A994', '#643E2E') },
+  { id: 'morado', nombre: 'Morado', hex: '#7A2E8E', tinte: {} },
+  { id: 'rosa', nombre: 'Rosa', hex: ROSA, tinte: tinteHuemul(ROSA, '#BF6B85', '#FABAC8', '#8C4F61') },
+  { id: 'lapis', nombre: 'Lapislázuli', hex: '#2B4BD8', tinte: tinteHuemul('#2B4BD8', '#2038A2', '#8594DD', '#182977') },
+];
+const PERFILES: Record<string, Perfil> = {
+  // astros y cielo
+  sol: { tam: 46, min: 30, max: 72 }, luna: { tam: 44, min: 28, max: 70 }, lluvia: { tam: 60, min: 40, max: 96 },
+  // aves (vuelan)
+  condor: { tam: 46, min: 26, max: 80, movil: true }, gaviota: { tam: 38, min: 22, max: 64, movil: true },
+  picaflor: { tam: 22, min: 14, max: 40, movil: true }, carpintero: { tam: 34, min: 20, max: 56, movil: true },
+  // animales
+  huemul: { tam: 58, min: 36, max: 92, movil: true, colores: COLORES_HUEMUL }, guanaco: { tam: 66, min: 40, max: 104, movil: true },
+  pudu: { tam: 40, min: 26, max: 66, movil: true }, pinguino: { tam: 46, min: 28, max: 72, movil: true },
+  chucao: { tam: 24, min: 16, max: 40, movil: true }, pez: { tam: 34, min: 20, max: 60, movil: true, colores: COLORES_PEZ },
+  // plantas emblema
+  araucaria: { tam: 110, min: 70, max: 170 }, alerce: { tam: 130, min: 80, max: 190 }, quisco: { tam: 84, min: 50, max: 140 },
+  chagual: { tam: 88, min: 54, max: 140 }, chanar: { tam: 84, min: 50, max: 140 },
+  // plantas chicas
+  helecho: { tam: 52, min: 30, max: 90 }, copihue: { tam: 50, min: 30, max: 84 }, maqui: { tam: 56, min: 34, max: 96 },
+  cochayuyo: { tam: 64, min: 40, max: 110 }, doca: { tam: 36, min: 22, max: 60 }, ananuca: { tam: 46, min: 28, max: 76 },
+  // frutos y hallazgos
+  pina: { tam: 26, min: 16, max: 46 }, concha: { tam: 24, min: 14, max: 42 },
+  // artesanía
+  kisa: { tam: 64, min: 40, max: 104 }, canasto: { tam: 40, min: 24, max: 70 }, cantaro: { tam: 38, min: 22, max: 66 }, telar: { tam: 74, min: 46, max: 120 },
+};
+
+export const PIEZAS: Pieza[] = LISTA.map(p => {
+  const f = PERFILES[p.id] ?? { tam: 60 };
+  const piezaCon: Pieza = { ...p, tam: f.tam, limites: [f.min ?? f.tam * 0.6, f.max ?? f.tam * 1.6], movil: !!f.movil, colores: f.colores };
+  for (const c of f.colores ?? []) registrarTinte(`${p.id}:${c.id}`, c.tinte);
+  return piezaCon;
+});
+
+const PORID = new Map(PIEZAS.map(p => [p.id, p]));
+export const pieza = (id: string) => PORID.get(id)!;
+
+// Escala del item (1 = marco de 240) a partir de un tamaño en el escenario, y al revés.
+const lado = (p: Pieza) => Math.max(p.caja[2], p.caja[3]);
+export const escalaInicial = (tipo: string) => { const p = pieza(tipo); return +(p.tam! / lado(p)).toFixed(3); };
+export const limitarEscala = (tipo: string, escala: number) => {
+  const p = pieza(tipo), [a, b] = p.limites!, l = lado(p);
+  return Math.min(b / l, Math.max(a / l, escala));
+};
+// Tinte con que se dibuja: el color elegido o, si la pieza tiene colores, el primero.
+export const tinteDe = (tipo: string, color?: string) => {
+  const p = pieza(tipo);
+  return p.colores?.length ? `${tipo}:${color ?? p.colores[0].id}` : undefined;
+};
+// Densidad con que se rasteriza cada pieza: la justa para su tamaño máximo en la tarjeta de 1080 (4,5 px por unidad
+// del escenario), con un 15 % de holgura. Un cóndor (máx. 80 de 240) no necesita el detalle de un alerce.
+const ppuDe = (p: Pieza) => Math.min(PPU_PIEZA, Math.max(2, PPU_FONDO * (p.limites![1] / lado(p)) * 1.15));
+// Archivos que hay que tener rasterizados para dibujar una pieza. Las piezas con colores se cargan con el primero
+// (el inicial); los demás colores, al elegirlos (`archivosColor`).
+export const archivosDe = (p: Pieza) => (p.colores?.length
+  ? archivosColor(p, p.colores[0].id)
+  : p.capas.map(c => ({ src: c.src, ppu: ppuDe(p) })));
+export const archivosColor = (p: Pieza, color: string) => p.capas.map(c => ({ src: c.src, ppu: ppuDe(p), tinte: `${p.id}:${color}` }));
+export const archivosFondo = (f: { capas: Capa[] }) => f.capas.map(c => ({ src: c.src, ppu: PPU_FONDO }));
 
 // Fondo fijo: cielo y cordillera de C6 · Teatro de papel (la cordillera se mece 4 s).
 export const FONDO: { dur: number; capas: Capa[] } = {
