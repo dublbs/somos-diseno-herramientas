@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { enlaceJugar, entrarJugador, jugador, leerConfig, leerEmparejamiento, nuevoNonce, pinDeDemo, verificarPin } from '../juego';
 import { remoto } from '../datos';
+import { EVENTO_TERMINAR } from './Tutorial';
 
 // Botón del encargado (plan 013 §QR): para quien ya está jugando sin haber puesto su credencial. El staff toca el
 // botón chico de arriba al centro (arriba al centro, la franja libre de las barras superiores; una app la corre con `x` si ahí tiene algo), escribe su PIN y la tablet muestra un QR del timbre 2 de esta experiencia
@@ -74,6 +75,11 @@ export const QrEncargado: React.FC<{ app: string; x?: string }> = ({ app, x = '5
     else setError('PIN incorrecto.');
     setPin('');
   };
+  // Termina la sesión: el Quiosco borra la credencial asociada y lo creado y vuelve al inicio. Sin Quiosco, se recarga.
+  const terminarMesa = () => {
+    const atendido = !window.dispatchEvent(new Event(EVENTO_TERMINAR, { cancelable: true }));
+    if (!atendido) { try { sessionStorage.clear(); } catch { /* nada */ } location.reload(); }
+  };
   const cerrar = () => { setAbierto(false); setVista('menu'); setError(''); setPin(''); };
 
   return (<>
@@ -88,7 +94,12 @@ export const QrEncargado: React.FC<{ app: string; x?: string }> = ({ app, x = '5
           {vista === 'menu' ? (<>
             <h2 id="encargado-t" style={{ margin: 0, fontSize: 22 }}>Credencial</h2>
             <button type="button" style={{ ...boton, background: '#000', color: '#F4EEE3' }} onClick={() => setVista('crear')}><Icono nombre="qr_code_2" />Crear mi credencial</button>
-            <button type="button" style={boton} onClick={() => setVista('jugar')}><Icono nombre="qr_code_2" />{jugador() ? `Jugando con ${jugador()!.codigo}` : 'Jugar con mi credencial'}</button>
+            {jugador() ? (<>
+              <p style={{ margin: 0 }}>Esta mesa está jugando con <b>{jugador()!.codigo}</b>.</p>
+              <button type="button" style={{ ...boton, background: '#000', color: '#F4EEE3' }} onClick={terminarMesa}><Icono nombre="restart_alt" />Terminar y liberar la mesa</button>
+            </>) : (
+              <button type="button" style={boton} onClick={() => setVista('jugar')}><Icono nombre="qr_code_2" />Jugar con mi credencial</button>
+            )}
             <button type="button" style={{ ...boton, minHeight: 40, fontSize: 14, fontWeight: 500 }} onClick={() => setVista('timbre')}><Icono nombre="lock" />Encargado: timbre a mano</button>
             <button type="button" style={{ ...boton, border: 0, background: 'transparent' }} onClick={cerrar}>Cerrar</button>
           </>) : vista === 'crear' ? (<>
