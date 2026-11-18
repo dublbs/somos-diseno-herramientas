@@ -13,6 +13,7 @@ const MENSAJES: Record<string, string> = {
   NotReadableError: 'Otra app usa la cámara. Ciérrala y toca Reintentar.',
   AbortError: 'Otra app usa la cámara. Ciérrala y toca Reintentar.',
   SinCamara: 'Este navegador no deja usar la cámara.',
+  NotSupportedError: 'Este navegador no deja usar la cámara.',
   Cortada: 'La cámara se cortó. Toca Reintentar.',
 };
 export const mensajeCamara = (e: unknown) => MENSAJES[(e as Error)?.name] ?? 'No pudimos abrir la cámara. Toca Reintentar.';
