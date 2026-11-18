@@ -1,0 +1,86 @@
+/* Modo galería (?galeria · #/galeria): respaldo R3 de la pantalla Flip.
+   Escrito para Chromium 69 (Tizen 5.0): grid con grid-gap, posiciones con top/left/right/bottom, tamaños en vh/vw.
+   Nada de clamp(), inset, aspect-ratio, gap en flex, :has ni container queries. */
+.galeria {
+  height: 100vh; overflow: hidden; box-sizing: border-box;
+  display: grid; grid-template-rows: auto minmax(0, 1fr) auto; grid-row-gap: 2.2vh; row-gap: 2.2vh;
+  padding: 2.6vh 2.4vw 2.4vh; background: #000; color: #F4EEE3;
+  font-family: "DM Sans", system-ui, sans-serif;
+}
+.galeria * { box-sizing: border-box; }
+
+.g-cabecera { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-column-gap: 2vw; column-gap: 2vw; align-items: center; }
+.g-cabecera h1 { margin: 0; font: 800 5vh/1 "Bricolage Grotesque", sans-serif; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-estado { margin: 0; font-weight: 700; font-size: 2.2vh; white-space: nowrap; opacity: .9; }
+.g-punto { display: inline-block; margin-left: 1.2vw; padding: .4vh 1vh; border-radius: 99px; background: rgba(244,238,227,.15); font-size: 1.7vh; }
+.g-punto.en-vivo { background: #00A651; color: #000; }
+.g-completa { width: 5vh; height: 5vh; min-width: 36px; min-height: 36px; border: 2px solid rgba(244,238,227,.5); background: none; color: #F4EEE3; border-radius: 8px; font-size: 2.6vh; cursor: pointer; opacity: .6; }
+.g-completa:hover, .g-completa:focus { opacity: 1; }
+
+.g-cuerpo { min-height: 0; display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); grid-column-gap: 2vw; column-gap: 2vw; }
+.g-destacada { position: relative; min-height: 0; min-width: 0; }
+
+/* La creación grande: sobre papel Hueso, como en un muro de galería. */
+.g-marco { position: absolute; top: 0; left: 0; right: 0; bottom: 0; margin: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; grid-row-gap: 1.8vh; row-gap: 1.8vh; padding: 3vh; background: #F4EEE3; color: #000; border-radius: 1.2vh; animation: g-entra .7s ease-out; }
+.g-imagen { position: relative; min-height: 0; min-width: 0; }
+.g-imagen img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
+.g-juego .g-imagen img { image-rendering: pixelated; } /* el mural de Hora punta es pixel art */
+.g-marco figcaption { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-column-gap: 1.6vw; column-gap: 1.6vw; align-items: center; }
+.g-marco figcaption b { font: 800 4.4vh/1.1 "Bricolage Grotesque", sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-marco figcaption small { font: 700 2.2vh "IBM Plex Mono", monospace; opacity: .7; white-space: nowrap; }
+.g-clase { display: inline-block; padding: .6vh 1.2vh; border-radius: 99px; font-weight: 800; font-size: 2vh; white-space: nowrap; background: #000; color: #F4EEE3; }
+.g-clase.g-mosaico { background: #0062B8; color: #fff; }
+.g-clase.g-grabado { background: #00A651; color: #000; }
+.g-clase.g-graffiti { background: #FF8FB1; color: #000; }
+.g-clase.g-juego { background: #7A2E8E; color: #fff; }
+.g-clase.g-foto { background: #FFC20E; color: #000; }
+.g-nueva { position: absolute; top: 2vh; right: 2vh; padding: .8vh 1.8vh; background: #FFC20E; color: #000; font: 800 2.6vh "Bricolage Grotesque", sans-serif; border-radius: 99px; transform: rotate(4deg); }
+
+/* Las que siguen. */
+.g-siguientes { min-height: 0; margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(0, 1fr)); grid-gap: 1.6vh 1.2vw; gap: 1.6vh 1.2vw; }
+.g-siguientes li { min-height: 0; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-column-gap: 1vw; column-gap: 1vw; align-items: center; padding: 1vh; background: rgba(244,238,227,.08); border-radius: 1vh; animation: g-entra .5s ease-out; }
+.g-siguientes .g-imagen { height: 100%; background: rgba(244,238,227,.06); border-radius: .6vh; }
+.g-siguientes figcaption { display: grid; grid-row-gap: .6vh; row-gap: .6vh; justify-items: start; min-width: 0; }
+.g-siguientes figcaption b { font: 800 2.3vh/1.15 "Bricolage Grotesque", sans-serif; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-siguientes figcaption small { font: 700 1.6vh "IBM Plex Mono", monospace; opacity: .7; }
+.g-siguientes .g-clase { font-size: 1.5vh; padding: .4vh 1vh; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+
+.g-espera { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: grid; align-content: center; justify-items: center; grid-row-gap: 2vh; row-gap: 2vh; border: 2px dashed rgba(244,238,227,.3); border-radius: 1.2vh; }
+.g-espera b { font: 800 8vh/1 "Bricolage Grotesque", sans-serif; }
+.g-espera span { font-size: 2.6vh; opacity: .8; }
+
+.g-pie { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-column-gap: 3vw; column-gap: 3vw; align-items: center; font-size: 2.2vh; }
+.g-invita { margin: 0; font-weight: 700; }
+.g-llegaron { margin: 0; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-llegaron span { text-transform: uppercase; letter-spacing: .08em; font-size: 1.6vh; opacity: .7; margin-right: 1vw; }
+.g-llegaron b { display: inline-block; margin-left: 1vw; color: #FFC20E; }
+
+@keyframes g-entra { from { opacity: 0; } to { opacity: 1; } }
+.galeria.quieta .g-marco, .galeria.quieta .g-siguientes li { animation: none; }
+@media (prefers-reduced-motion: reduce) { .g-marco, .g-siguientes li { animation: none; } }
+
+/* Vertical: la grande arriba, las que siguen abajo en 4 × 2. Tamaños por el ancho (vw), que es el lado corto. */
+@media (max-aspect-ratio: 1/1) {
+  .galeria { grid-row-gap: 1.6vh; row-gap: 1.6vh; padding: 3vw 3vw 2.4vw; }
+  .g-cabecera { grid-template-columns: minmax(0, 1fr) auto; grid-row-gap: 1vw; row-gap: 1vw; }
+  .g-cabecera h1 { font-size: 6.2vw; }
+  .g-completa { grid-column: 2; grid-row: 1; width: 8vw; height: 8vw; font-size: 4vw; }
+  .g-estado { grid-column: 1 / -1; grid-row: 2; font-size: 3vw; }
+  .g-punto { font-size: 2.4vw; padding: .6vw 1.6vw; }
+  .g-cuerpo { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 3fr) minmax(0, 2fr); grid-row-gap: 1.6vh; row-gap: 1.6vh; }
+  .g-marco { padding: 3vw; grid-row-gap: 2vw; row-gap: 2vw; border-radius: 2vw; }
+  .g-marco figcaption b { font-size: 5.4vw; }
+  .g-marco figcaption small { font-size: 2.8vw; }
+  .g-clase { font-size: 2.8vw; padding: .8vw 2vw; }
+  .g-nueva { font-size: 3.6vw; top: 3vw; right: 3vw; padding: 1vw 2.4vw; }
+  .g-siguientes { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); grid-gap: 2vw; gap: 2vw; }
+  .g-siguientes li { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; grid-row-gap: 1vw; row-gap: 1vw; padding: 1.4vw; border-radius: 1.4vw; }
+  .g-siguientes figcaption { grid-row-gap: .6vw; row-gap: .6vw; }
+  .g-siguientes figcaption b { font-size: 3vw; }
+  .g-siguientes figcaption small { font-size: 2.2vw; }
+  .g-siguientes .g-clase { font-size: 2.2vw; padding: .5vw 1.4vw; }
+  .g-pie { grid-template-columns: minmax(0, 1fr); grid-row-gap: 1vw; row-gap: 1vw; font-size: 2.8vw; }
+  .g-llegaron { text-align: left; }
+  .g-llegaron span { font-size: 2.2vw; }
+  .g-espera b { font-size: 10vw; } .g-espera span { font-size: 3.4vw; }
+}

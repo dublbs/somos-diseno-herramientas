@@ -16,5 +16,6 @@ if (!String.prototype.replaceAll) {
     return typeof a === 'string' ? this.split(a).join(b) : this.replace(a, b);
   } });
 }
-if (!globalThis.queueMicrotask) globalThis.queueMicrotask = (f: () => void) => { Promise.resolve().then(f); };
+// `window` y no `globalThis`: globalThis llegó en Chromium 71 y aquí cortaría la carga.
+if (typeof window.queueMicrotask !== 'function') window.queueMicrotask =(f: () => void) => { Promise.resolve().then(f); };
 export {};
