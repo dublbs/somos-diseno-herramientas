@@ -339,3 +339,8 @@ label.btn { cursor: pointer; }
 .juego .acciones-movil .btn { line-height: 1.1; }
 /* Cacería: puntajes en vivo con #/afiches?ver (para ajustar con los afiches impresos). */
 .diagnostico { margin: 0; padding: 6px 10px; font: 600 12px/1.3 var(--mono, ui-monospace, monospace); text-align: center; background: var(--surface); border: var(--borde); border-radius: var(--rb); }
+/* «Agregar a inicio»: pasos cuando el navegador no instala con un toque (iPhone, Firefox, Samsung). */
+.hoja-instalar { position: fixed; inset: 0; z-index: 50; display: grid; align-items: end; background: rgba(0, 0, 0, .45); }
+.hoja-instalar .hoja { background: var(--bg, #F4EEE3); color: var(--ink); border-radius: 16px 16px 0 0; padding: 20px 20px calc(20px + env(safe-area-inset-bottom)); display: grid; gap: 12px; }
+.hoja-instalar h2 { margin: 0; font-size: 20px; }
+.hoja-instalar ol { margin: 0; padding-left: 20px; display: grid; gap: 8px; font-size: 15px; line-height: 1.4; }
