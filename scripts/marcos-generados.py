@@ -231,60 +231,60 @@ ROJO = '#E2001A'  # el rojo de la franja del lateral de Figma (FA08 · Metro / L
 GRIS = '#5A5A5A'
 
 def metro():
-    """El frente de un tren de la Línea 1 (como los NS-93 y NS-16): carrocería blanca con el techo celeste, el
-    parabrisas negro grande (la foto), letrero de destino arriba, la franja roja del lateral de Figma
-    (juego-pixel/public/figma/metro-lateral.svg) que da la vuelta por el frente, faros abajo en las esquinas y los bajos
-    negros con los bogies morados. Detrás, el túnel con los rieles. Sin logos reales."""
-    g, sobre = Grilla(), Grilla()
-    # túnel oscuro con luces de servicio y el andén abajo
+    """El frente de un tren de la Línea 1 (referencias de Amaro: el frente blanco del NS-93/NS-16 con la franja roja,
+    parabrisas oscuro grande, letrero naranja de destino y número rojo arriba, dos faros redondos, paragolpes rojo),
+    dibujado con el estilo Pixel de la web (contorno negro, carro hueso, franja roja y morada, vidrio morado con brillo
+    celeste, luces amarillas) y los colores del lateral de Figma (juego-pixel/public/figma/metro-lateral.svg).
+    La foto es el parabrisas. Sin el logo real del Metro: al centro, un rombo genérico."""
+    g, sobre, t = Grilla(), Grilla(), Grilla(1.25)
+    # túnel oscuro con luces de servicio amarillas y la vía abajo
     g.rect(0, 0, 240, 240, LAPIS)
     for y in range(0, 210, 30):
-        g.rect(0, y + 12.5, 240, y + 15, AZUL)                      # juntas del túnel
-    for x in (5, 227.5):
-        for y in (20, 80, 140):
-            g.rect(x, y, x + 7.5, y + 5, AMARILLO)                  # luces de servicio
-    g.rect(0, 222.5, 240, 240, NEGRO)                              # vía
-    g.rect(0, 225, 240, 227.5, GRIS); g.rect(0, 235, 240, 237.5, GRIS)   # rieles
-    # carrocería: blanca, esquinas de arriba redondeadas en escalones
-    X0, X1, Y0, Y1 = 12.5, 227.5, 5, 222.5
+        g.rect(0, y + 12.5, 240, y + 15, AZUL)
+    for x in (2.5, 230):
+        for y in (25, 85, 145):
+            g.rect(x, y, x + 7.5, y + 5, AMARILLO)
+    g.rect(0, 227.5, 240, 240, NEGRO)
+    g.rect(0, 230, 240, 232.5, GRIS); g.rect(0, 236.25, 240, 238.75, GRIS)
+    # carrocería hueso con las esquinas de arriba redondeadas en escalones
+    X0, X1, Y0, Y1 = 15, 225, 5, 227.5
     def tren(x, y):
         if not (X0 <= x < X1 and Y0 <= y < Y1):
             return False
         dx = min(x - X0, X1 - x); dy = y - Y0
-        return not (dx < 17.5 and dy < 17.5 and (17.5 - dx) + (17.5 - dy) > 18)
+        return not (dx < 20 and dy < 20 and (20 - dx) + (20 - dy) > 21)
     g.donde(tren, HUESO, 2.5)
-    # techo celeste (como el borde de arriba del lateral)
-    g.donde(lambda x, y: tren(x, y) and y < 12.5, CELESTE, 2.5)
-    # máscara negra del frente: rodea el parabrisas y el letrero
-    g.rect(32.5, 15, 207.5, Z1 + 5, NEGRO)
-    # letrero de destino: el número de la línea en rojo y el destino en ámbar
-    g.rect(40, 20, 57.5, 37.5, ROJO)
-    texto(g, 45, 22.5, '1', HUESO, 1)
-    texto(g, 132.5 - ancho_texto('SOMOS DISENO') / 2, 23.75, 'SOMOS DISENO', AMARILLO)
-    # parabrisas = la foto (con el marco negro de la máscara)
+    # techo oscuro (como el del frente real)
+    g.donde(lambda x, y: tren(x, y) and y < 15, NEGRO, 2.5)
+    # franja roja que viene del lateral y enmarca el frente por los costados
+    g.rect(X0, 20, 25, 205, ROJO); g.rect(215, 20, X1, 205, ROJO)
+    # parabrisas: vidrio oscuro con filo morado; arriba el letrero de destino; la foto ocupa el resto
+    # (el vidrio va oscuro, como el real: así se lee como parabrisas en todas las paletas; el morado queda de filo)
+    g.rect(32.5, 15, 207.5, Z1 + 5, MORADO)
+    g.rect(35, 17.5, 205, Z1 + 2.5, NEGRO)
+    g.rect(40, 22.5, 145, 37.5, '#2A2A2A')                               # letrero naranja (ámbar)
+    chico(t, 92.5 - ancho_chico('SOMOS DISENO') / 2, 26.875, 'SOMOS DISENO', AMARILLO)
+    g.rect(162.5, 20, 200, 40, ROJO)                                     # número de la línea, en rojo
+    texto(g, 181.25 - ancho_texto('L1') / 2, 23.75, 'L1', HUESO)
     g.rect(Z0, Z0, Z1, Z1, FOTO)
-    # limpiaparabrisas sobre la foto, abajo a la izquierda (encima)
-    for k in range(8):
-        sobre.rect(52.5 + k * 5, 187.5 - k * 2.5, 57.5 + k * 5, 190 - k * 2.5, NEGRO)
-    # marcos de puerta del lateral (morado) a los costados del frente
-    for x in (20, 215):
-        g.rect(x, 22.5, x + 5, 197.5, MORADO)
-    # franja roja que viene del lateral: una fina y una gruesa
-    g.rect(X0, 202.5, X1, 205, ROJO)
-    g.rect(X0, 207.5, X1, 213.75, ROJO)
-    # faros: blanco hacia afuera y rojo (cola) hacia adentro, en cajas negras
-    for x in (20, 182.5):
-        g.rect(x, 200, x + 37.5, 215, NEGRO)
-        g.rect(x + 2.5, 202.5, x + 17.5, 212.5, '#FFFFFF' if x < 100 else ROJO)
-        g.rect(x + 20, 202.5, x + 35, 212.5, ROJO if x < 100 else '#FFFFFF')
-    # enganche y bajos
-    g.rect(100, 213.75, 140, 222.5, NEGRO)
-    g.rect(110, 216.25, 130, 220, GRIS)
-    g.rect(X0, 217.5, X1, 222.5, NEGRO)
-    for x in (30, 185):
-        g.rect(x, 217.5, x + 25, 225, MORADO)                       # bogies (morado, como en el lateral)
-    g.contorno(NEGRO, de=(HUESO, CELESTE, MORADO), fuera_de=(LAPIS, AZUL))
-    return marco('PM05', 'Pixel', 'M05', 'Metro', LAPIS, g.paths(sin=(FOTO,)), sobre.paths())
+    # brillo celeste del vidrio y limpiaparabrisas (sobre la foto)
+    sobre.rect(Z0, Z0, Z0 + 15, Z0 + 2.5, CELESTE); sobre.rect(Z0, Z0, Z0 + 2.5, Z0 + 12.5, CELESTE)
+    for k in range(9):
+        sobre.rect(60 + k * 5, 190 - k * 2.5, 65 + k * 5, 192.5 - k * 2.5, NEGRO)
+    # panel bajo: faros redondos (aro negro, luz amarilla y brillo) y un rombo genérico al centro
+    for cx in (52.5, 187.5):
+        g.donde(lambda x, y, cx=cx: math.hypot(x - cx, y - 211.25) <= 9, NEGRO, 2.5)
+        g.donde(lambda x, y, cx=cx: math.hypot(x - cx, y - 211.25) <= 5.5, AMARILLO, 2.5)
+        g.rect(cx - 2.5, 207.5, cx, 210, '#FFFFFF')
+    g.donde(lambda x, y: abs(x - 120) + abs(y - 211.25) <= 7.5, ROJO, 2.5)
+    g.donde(lambda x, y: abs(x - 120) + abs(y - 211.25) <= 2.5, HUESO, 2.5)
+    # franja morada fina, paragolpes rojos en las esquinas, enganche y bajos negros
+    g.rect(X0, 220, X1, 222.5, MORADO)
+    g.rect(X0, 222.5, 50, 230, ROJO); g.rect(190, 222.5, X1, 230, ROJO)
+    g.rect(50, 222.5, 190, 230, NEGRO)
+    g.rect(105, 220, 135, 232.5, NEGRO); g.rect(112.5, 225, 127.5, 230, GRIS)
+    g.contorno(NEGRO, de=(HUESO, ROJO, MORADO), fuera_de=(LAPIS, AZUL, AMARILLO))
+    return marco('PM05', 'Pixel', 'M05', 'Metro', LAPIS, g.paths(sin=(FOTO,)) + t.paths(), sobre.paths())
 
 # ---------------------------------------------------------------- PM06 · Señal
 # Stickers de calle (ronda 3): como se ven pegados en un poste o una señal. «Slaps» con el borde blanco del troquel,
