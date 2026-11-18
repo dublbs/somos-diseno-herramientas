@@ -227,69 +227,123 @@ def ventana():
     return marco('PM04', 'Pixel', 'M04', 'Ventana web', CELESTE, paths, sobre.paths())
 
 # ---------------------------------------------------------------- PM05 · Metro
+ROJO = '#E2001A'  # el rojo de la franja del lateral de Figma (FA08 · Metro / Línea 1); no se recolorea
+GRIS = '#5A5A5A'
+
 def metro():
+    """El frente de un tren de la Línea 1 (como los NS-93 y NS-16): carrocería blanca con el techo celeste, el
+    parabrisas negro grande (la foto), letrero de destino arriba, la franja roja del lateral de Figma
+    (juego-pixel/public/figma/metro-lateral.svg) que da la vuelta por el frente, faros abajo en las esquinas y los bajos
+    negros con los bogies morados. Detrás, el túnel con los rieles. Sin logos reales."""
     g, sobre = Grilla(), Grilla()
-    # túnel: azul con azulejos celestes (como el andén)
+    # túnel oscuro con luces de servicio y el andén abajo
     g.rect(0, 0, 240, 240, LAPIS)
-    for y in range(0, 200, 15):
-        for x in range(-15 if (y // 15) % 2 else 0, 240, 30):
-            g.rect(x + 2.5, y + 2.5, x + 27.5, y + 12.5, AZUL)
-    # andén abajo: borde amarillo con botones (franja podotáctil) y vía
-    g.rect(0, 215, 240, 240, '#2A2A2A')
-    g.rect(0, 220, 240, 222.5, '#5A5A5A'); g.rect(0, 232.5, 240, 235, '#5A5A5A')
-    # el tren, de frente, como el afiche «El vagón como lienzo»
-    X0, X1, Y0, Y1 = 17.5, 222.5, 10, 222.5
+    for y in range(0, 210, 30):
+        g.rect(0, y + 12.5, 240, y + 15, AZUL)                      # juntas del túnel
+    for x in (5, 227.5):
+        for y in (20, 80, 140):
+            g.rect(x, y, x + 7.5, y + 5, AMARILLO)                  # luces de servicio
+    g.rect(0, 222.5, 240, 240, NEGRO)                              # vía
+    g.rect(0, 225, 240, 227.5, GRIS); g.rect(0, 235, 240, 237.5, GRIS)   # rieles
+    # carrocería: blanca, esquinas de arriba redondeadas en escalones
+    X0, X1, Y0, Y1 = 12.5, 227.5, 5, 222.5
     def tren(x, y):
-        # esquinas de arriba redondeadas en escalones
         if not (X0 <= x < X1 and Y0 <= y < Y1):
             return False
         dx = min(x - X0, X1 - x); dy = y - Y0
-        return not (dx < 15 and dy < 15 and (15 - dx) + (15 - dy) > 16)
-    g.donde(tren, AMARILLO, 2.5)
-    # letrero de destino
-    g.rect(37.5, 17.5, 202.5, 37.5, NEGRO)
-    texto(g, 120 - ancho_texto('L1 SOMOS DISENO') / 2, 21.25, 'L1 SOMOS DISENO', AMARILLO)
-    g.rect(127.5 + 12.5, 21.25, 130 + 12.5, 22.5, AMARILLO) if False else None
-    # parabrisas = foto, con marco negro grueso
-    g.rect(Z0 - 7.5, Z0 - 5, Z1 + 7.5, Z1 + 5, NEGRO)
+        return not (dx < 17.5 and dy < 17.5 and (17.5 - dx) + (17.5 - dy) > 18)
+    g.donde(tren, HUESO, 2.5)
+    # techo celeste (como el borde de arriba del lateral)
+    g.donde(lambda x, y: tren(x, y) and y < 12.5, CELESTE, 2.5)
+    # máscara negra del frente: rodea el parabrisas y el letrero
+    g.rect(32.5, 15, 207.5, Z1 + 5, NEGRO)
+    # letrero de destino: el número de la línea en rojo y el destino en ámbar
+    g.rect(40, 20, 57.5, 37.5, ROJO)
+    texto(g, 45, 22.5, '1', HUESO, 1)
+    texto(g, 132.5 - ancho_texto('SOMOS DISENO') / 2, 23.75, 'SOMOS DISENO', AMARILLO)
+    # parabrisas = la foto (con el marco negro de la máscara)
     g.rect(Z0, Z0, Z1, Z1, FOTO)
-    # costados del frente: trama de puntos (como el afiche) y focos
-    for y in range(50, 190, 10):
-        for x in (22.5, 27.5, 205, 210):
-            if ((y // 10) + (x // 5)) % 2 == 0:
-                g.rect(x, y, x + 5, y + 5, NEGRO)
-    # parte baja: focos, franja y enganche
-    g.rect(27.5, 205, 57.5, 215, HUESO); g.rect(182.5, 205, 212.5, 215, HUESO)          # focos
-    g.rect(30, 207.5, 37.5, 212.5, '#FFFFFF'); g.rect(185, 207.5, 192.5, 212.5, '#FFFFFF')
-    g.rect(67.5, 202.5, 172.5, 207.5, NEGRO)                                            # franja
-    g.rect(105, 210, 135, 222.5, NEGRO)                                                 # enganche
-    g.rect(112.5, 212.5, 127.5, 217.5, '#5A5A5A')
-    g.contorno(NEGRO, de=(AMARILLO, HUESO, '#FFFFFF'), fuera_de=(LAPIS, AZUL, '#2A2A2A', '#5A5A5A'))
-    # ruedas y riel bajo el tren
-    for x in (35, 185):
-        g.rect(x, 222.5, x + 20, 230, NEGRO); g.rect(x + 5, 225, x + 15, 227.5, '#5A5A5A')
+    # limpiaparabrisas sobre la foto, abajo a la izquierda (encima)
+    for k in range(8):
+        sobre.rect(52.5 + k * 5, 187.5 - k * 2.5, 57.5 + k * 5, 190 - k * 2.5, NEGRO)
+    # marcos de puerta del lateral (morado) a los costados del frente
+    for x in (20, 215):
+        g.rect(x, 22.5, x + 5, 197.5, MORADO)
+    # franja roja que viene del lateral: una fina y una gruesa
+    g.rect(X0, 202.5, X1, 205, ROJO)
+    g.rect(X0, 207.5, X1, 213.75, ROJO)
+    # faros: blanco hacia afuera y rojo (cola) hacia adentro, en cajas negras
+    for x in (20, 182.5):
+        g.rect(x, 200, x + 37.5, 215, NEGRO)
+        g.rect(x + 2.5, 202.5, x + 17.5, 212.5, '#FFFFFF' if x < 100 else ROJO)
+        g.rect(x + 20, 202.5, x + 35, 212.5, ROJO if x < 100 else '#FFFFFF')
+    # enganche y bajos
+    g.rect(100, 213.75, 140, 222.5, NEGRO)
+    g.rect(110, 216.25, 130, 220, GRIS)
+    g.rect(X0, 217.5, X1, 222.5, NEGRO)
+    for x in (30, 185):
+        g.rect(x, 217.5, x + 25, 225, MORADO)                       # bogies (morado, como en el lateral)
+    g.contorno(NEGRO, de=(HUESO, CELESTE, MORADO), fuera_de=(LAPIS, AZUL))
     return marco('PM05', 'Pixel', 'M05', 'Metro', LAPIS, g.paths(sin=(FOTO,)), sobre.paths())
 
 # ---------------------------------------------------------------- PM06 · Señal
-STICKERS = {
-    'corazon': (['.##.##.', '#######', '#######', '#######', '.#####.', '..###..', '...#...'], {'#': ROSA}),
-    'estrella': (['...#...', '...#...', '..###..', '#######', '.#####.', '.##.##.', '#.....#'], {'#': AMARILLO}),
-    'cara': (['.#####.', '#######', '##.#.##', '#######', '#.###.#', '##...##', '.#####.'], {'#': VERDE}),
-    'rayo': (['...###', '..###.', '.###..', '######', '..###.', '.###..', '###...'], {'#': CELESTE}),
-}
+# Stickers de calle (ronda 3): como se ven pegados en un poste o una señal. «Slaps» con el borde blanco del troquel,
+# unos encima de otros, medio arrancados (queda el papel blanco pegado con el borde roto), cinta de embalaje, el clásico
+# «HELLO my name is» con un tag de plumón, un sticker de crew y un tag con plumón directo sobre la señal, con chorreo.
+# Todo inventado (sin marcas reales), en grilla Pixel y paleta Línea azul.
+PAPEL_PEGADO, CINTA = '#E4DDD0', '#ECE6DA'  # los dos quedan del color del papel en cada paleta
 
-def sticker(g, x, y, nombre, escala=2):
-    filas, cols = STICKERS[nombre]
-    s = Grilla(); s.sprite(x, y, filas, cols, escala)
-    s.contorno(HUESO, paso=2)       # borde troquelado blanco
-    s.contorno(NEGRO, paso=1)
+def pegar(dst, src):
+    for j in range(dst.n):
+        for i in range(dst.n):
+            if src.c[j][i] is not None:
+                dst.c[j][i] = src.c[j][i]
+
+def slap(dst, pintar, borde=2, arrancado=None, semilla=1, contorno=True):
+    """Un sticker: lo que dibuja `pintar`, el borde blanco del troquel y, si `arrancado(x, y)`, la parte que se
+    arrancó: ahí queda el papel blanco pegado, con el borde roto (en dientes) y alguna fibra suelta."""
+    s = Grilla(); pintar(s)
+    s.contorno(HUESO, paso=borde)
+    if arrancado:
+        rnd = random.Random(semilla); u = s.u
+        for j in range(s.n):
+            for i in range(s.n):
+                if s.c[j][i] is None:
+                    continue
+                x, y = (i + 0.5) * u, (j + 0.5) * u
+                d = arrancado(x, y)  # > 0 dentro de lo arrancado (en unidades), < 0 fuera
+                if d > rnd.uniform(-2.5, 3):
+                    s.c[j][i] = PAPEL_PEGADO if d < 9 + rnd.uniform(0, 6) else None
+    if contorno:
+        s.contorno(NEGRO, paso=1)
+    pegar(dst, s)
+
+def recta(g, pts, col, grosor=1):
+    """Trazo de plumón: une los puntos con celdas (grosor en celdas)."""
+    u = g.u
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+        n = max(1, int(max(abs(x1 - x0), abs(y1 - y0)) / (u / 2)))
+        for k in range(n + 1):
+            x, y = x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n
+            i, j = int(x / u), int(y / u)
+            for di in range(grosor):
+                for dj in range(grosor):
+                    g.celda(i + di, j + dj, col)
+
+def cinta(g, cx, cy, largo, ancho, ang, semilla=3):
+    """Tira de cinta de embalaje girada, con los extremos cortados en dientes."""
+    rnd = random.Random(semilla); a = math.radians(ang); co, si = math.cos(a), math.sin(a); u = g.u
+    dientes = [rnd.uniform(0, 4) for _ in range(40)]
     for j in range(g.n):
         for i in range(g.n):
-            if s.c[j][i] is not None:
-                g.c[j][i] = s.c[j][i]
+            x, y = (i + 0.5) * u - cx, (j + 0.5) * u - cy
+            lu, lv = x * co + y * si, -x * si + y * co
+            k = min(39, int((lv + ancho / 2) / 2.5)) if abs(lv) <= ancho / 2 else 0
+            if abs(lv) <= ancho / 2 and abs(lu) <= largo / 2 - dientes[k]:
+                g.c[j][i] = CINTA
 
 def senal():
-    g, sobre = Grilla(), Grilla()
+    g, sobre, t = Grilla(), Grilla(), Grilla(1.25)
     # muro de azulejos detrás (se ve en las esquinas)
     g.rect(0, 0, 240, 240, AZUL)
     for y in range(0, 240, 15):
@@ -300,29 +354,72 @@ def senal():
     g.donde(lambda x, y: abs(x - 120) + abs(y - 120) <= 168, AMARILLO, 5)
     g.donde(lambda x, y: abs(x - 120) + abs(y - 120) <= 160, NEGRO, 5)
     g.donde(lambda x, y: abs(x - 120) + abs(y - 120) <= 155, AMARILLO, 5)
+    # restos de stickers viejos ya arrancados, sobre la señal (papel blanco pegado)
+    rnd = random.Random(11)
+    for (x0, y0, x1, y1) in ((150, 12.5, 185, 35), (12.5, 105, 32.5, 140), (205, 120, 230, 150)):
+        g.donde(lambda x, y, a=(x0, y0, x1, y1): a[0] <= x < a[2] and a[1] <= y < a[3] and rnd.random() > 0.18, PAPEL_PEGADO, 2.5)
+    # tag con plumón directo sobre la señal (abajo a la derecha), con chorreo
+    tag = [(198, 200), (204, 190), (208, 200), (212, 189), (216, 201), (222, 192), (226, 200)]
+    recta(g, tag, NEGRO, 1); recta(g, [(196, 205), (228, 202)], NEGRO, 1)
+    for x, y0, y1 in ((205, 205, 215), (217.5, 204, 220), (225, 203, 211)):
+        recta(g, [(x, y0), (x, y1)], NEGRO, 1)
     # la foto es el pictograma: cuadro con borde negro
     g.rect(Z0 - 5, Z0 - 5, Z1 + 5, Z1 + 5, NEGRO)
     g.rect(Z0, Z0, Z1, Z1, FOTO)
     # tornillos de la señal
-    for (x, y) in ((120, 15), (15, 120), (220, 120)):
+    for (x, y) in ((120, 15), (15, 120)):
         g.rect(x - 5, y - 5, x + 5, y + 5, '#BDB6AA'); g.rect(x - 2.5, y - 2.5, x + 2.5, y + 2.5, NEGRO)
-    # letrero «ATENCION: DISENO» abajo, dentro del rombo
+    # letrero «ZONA DE DISENO» abajo, dentro del rombo
     g.rect(72.5, 202.5, 167.5, 215, NEGRO)
-    t = Grilla(1.25)
     chico(t, 120 - ancho_chico('ZONA DE DISENO') / 2, 205.625, 'ZONA DE DISENO', AMARILLO)
-    # stickers pegados (encima de la foto en las esquinas, como pegados sobre la señal)
-    sticker(sobre, 25, 27.5, 'corazon', 2)
-    sticker(sobre, 177.5, 30, 'estrella', 2)
-    sticker(sobre, 175, 170, 'cara', 2)
-    sticker(sobre, 22.5, 172.5, 'rayo', 2)
-    # tag «DSGN» arriba al centro
-    tag = Grilla(); tag.rect(92.5, 30, 147.5, 47.5, MORADO); texto(tag, 97.5, 32.5, 'DSGN', HUESO, 1)
-    tag.contorno(HUESO, paso=1); tag.contorno(NEGRO, paso=1)
-    for j in range(tag.n):
-        for i in range(tag.n):
-            if tag.c[j][i] is not None:
-                sobre.c[j][i] = tag.c[j][i]
-    return marco('PM06', 'Pixel', 'M06', 'Señal', AZUL, g.paths(sin=(FOTO,)) + t.paths(), sobre.paths())
+
+    # --- stickers pegados encima (asoman sobre las esquinas de la foto, sin tapar la cara)
+    st = Grilla(1.25)
+    # 1 · arriba a la derecha, abajo: uno viejo rosa medio arrancado; encima, un slap redondo amarillo con un ojo
+    def viejo(s):
+        s.rect(165, 40, 222.5, 75, ROSA)
+        texto(s, 170, 50, 'XD', MORADO, 2)
+    slap(sobre, viejo, arrancado=lambda x, y: (x - 165) * -0.7 + (y - 75) * 0.7 + 10, semilla=4)
+    def ojo(s):
+        s.donde(lambda x, y: math.hypot(x - 202.5, y - 32.5) <= 20, AMARILLO, 2.5)
+        s.donde(lambda x, y: math.hypot((x - 202.5) / 1.5, y - 32.5) <= 7.5, HUESO, 2.5)
+        s.donde(lambda x, y: math.hypot(x - 205, y - 32.5) <= 5, NEGRO, 2.5)
+        s.rect(200, 27.5, 202.5, 30, HUESO)
+    slap(sobre, ojo, semilla=5)
+    # 2 · arriba a la izquierda: «HELLO my name is» con un tag de plumón, la esquina de abajo arrancada
+    X0, X1, Y0 = 7.5, 87.5, 15
+    def hello(s):
+        s.rect(X0, Y0, X1, Y0 + 27.5, AZUL)
+        texto(s, (X0 + X1) / 2 - ancho_texto('HELLO') / 2, Y0 + 2.5, 'HELLO', HUESO)
+        s.rect(X0, Y0 + 27.5, X1, Y0 + 52.5, '#FFFFFF')
+        s.rect(X0, Y0 + 52.5, X1, Y0 + 57.5, AZUL)
+    slap(sobre, hello, borde=1, arrancado=lambda x, y: (x - X1) + (y - (Y0 + 57.5)) + 20, semilla=6)
+    chico(st, (X0 + X1) / 2 - ancho_chico('MY NAME IS') / 2, Y0 + 18.75, 'MY NAME IS', HUESO)
+    # el tag escrito con plumón en el blanco
+    # (letras inclinadas, a mano: cada fila corrida media letra; subrayado con una cola)
+    TAG = ['###..###..###.#..#',
+           '#..#.#....#...##.#',
+           '#..#..##..#.#.#.##',
+           '#..#....#.#..##..#',
+           '###..###..###.#..#']
+    for k, fila in enumerate(TAG):
+        sobre.sprite(17.5 + (4 - k) * 2.5, Y0 + 30 + k * 2.5, [fila], {'#': NEGRO})
+    recta(sobre, [(15, Y0 + 47.5), (60, Y0 + 46), (70, Y0 + 42)], NEGRO, 1)
+    # 3 · abajo a la izquierda: sticker de crew (rectángulo verde con estrella) sujeto con cinta
+    def crew(s):
+        s.rect(10, 165, 72.5, 200, VERDE)
+        s.sprite(15, 172.5, ['..#..', '..#..', '#####', '.###.', '.#.#.'], {'#': AMARILLO}, 1)
+        texto(s, 30, 172.5, 'CREW', HUESO)
+        s.rect(15, 187.5, 65, 192.5, NEGRO)
+        chico(st, 40 - ancho_chico('SOMOS 2026') / 2, 188.125, 'SOMOS 2026', HUESO)
+    slap(sobre, crew, semilla=7)
+    cinta(sobre, 62, 168, 34, 10, -38, semilla=8)
+    # 4 · abajo a la derecha (borde de la foto): un sticker que alguien arrancó; queda el papel y un pedazo celeste
+    def roto(s):
+        s.rect(167.5, 160, 205, 195, CELESTE)
+        texto(s, 172.5, 167.5, 'PX', AZUL, 2)
+    slap(sobre, roto, arrancado=lambda x, y: (y - 160) * 0.9 - (x - 167.5) * 0.4 - 4, semilla=9)
+    return marco('PM06', 'Pixel', 'M06', 'Señal', AZUL, g.paths(sin=(FOTO,)) + t.paths(), sobre.paths() + st.paths())
 
 # ---------------------------------------------------------------- vectores (Geométrica y Orgánica)
 def poli(pts):
