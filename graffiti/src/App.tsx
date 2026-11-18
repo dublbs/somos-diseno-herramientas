@@ -5,7 +5,7 @@ import { COLS, FILAS, GOTEO, MAX_HISTORIAL, MUROS, PALETA, SECADO, SPRAY_CONTINU
 import { PLANTILLAS } from './data/stencils';
 import { cargar } from './lib/imagenes';
 import { borrar, copiar, gotear, linea, mascaraDe, medidas, nacerChorro, nuevoDibujo, plumon, rociar, rodillo, tintaRodillo, type Chorro, type Dibujo, type Estampa, type Puesta } from './lib/pintura';
-import { dibujarMuro, dibujarPlacaStencil, dibujarSticker, medidaSticker } from './lib/dibujar';
+import { dibujarMuro, dibujarPlacaStencil, dibujarSticker, medidaSticker, stickerEn } from './lib/dibujar';
 import { crearTarjeta } from './lib/exportar';
 import { Lienzo } from './components/Lienzo';
 import { PreviaPincel } from './components/PreviaPincel';
@@ -24,7 +24,7 @@ const HERRAMIENTAS: (DefHerramienta<Herramienta> & { ayuda: string; detalle: str
   { id: 'rodillo', nombre: 'Rodillo', icono: 'format_paint', ayuda: 'Pasa el rodillo; levanta para recargar.', detalle: 'Franja ancha con vetas que se va quedando sin pintura: levanta y vuelve a pasar.' },
   { id: 'plumon', nombre: 'Plumón', icono: 'ink_highlighter', ayuda: 'Borde duro para firmar tu tag.', detalle: 'Trazo parejo de borde duro, con tinta extra al apoyar y al levantar.' },
   { id: 'stencil', nombre: 'Stencil', icono: 'content_cut', ayuda: 'Mueve, gira y escala la plantilla.', detalle: 'Ubica la plantilla con las manijas y toca ✓. Después pinta encima: la pintura pasa solo por los huecos.' },
-  { id: 'sticker', nombre: 'Sticker', icono: 'add_reaction', ayuda: 'Ponlo, gíralo y tócale ✓ para pegarlo.', detalle: 'Toca el muro para ponerlo. Arrastra para moverlo, la manija de arriba lo gira y las esquinas lo escalan. ✓ lo pega.' },
+  { id: 'sticker', nombre: 'Sticker', icono: 'add_reaction', ayuda: 'Ponlo y tócale ✓. Toca uno pegado para editarlo.', detalle: 'Toca el muro para ponerlo. Arrastra para moverlo, la manija de arriba lo gira y las esquinas lo escalan. ✓ lo pega. Toca un sticker ya pegado para moverlo de nuevo o eliminarlo.' },
   { id: 'borrar', nombre: 'Borrar', icono: 'ink_eraser', ayuda: 'Quita la pintura del muro.', detalle: 'Quita la pintura y deja el muro a la vista. Los stickers pegados se quedan.' },
 ];
 const SRC_PLANTILLA = (id: string) => `${import.meta.env.BASE_URL}figma/stencils/${id}.svg`;
@@ -51,6 +51,7 @@ export const App: React.FC = () => {
   const [goteo, setGoteo] = useState<NivelGoteo>('poco'); // plan 009: el spray parte con poco goteo
   const [puesta, setPuesta] = useState<Puesta | null>(null);
   const [nuevo, setNuevo] = useState<Estampa | null>(null); // sticker puesto, aún sin pegar (con manijas)
+  const [elegido, setElegido] = useState<number | null>(null); // sticker ya pegado y seleccionado (índice en dibujo.stickers)
   const [moviendo, setMoviendo] = useState(false);
   const [version, setVersion] = useState(0);
   const [pasos, setPasos] = useState({ atras: 0, adelante: 0 });
@@ -67,6 +68,7 @@ export const App: React.FC = () => {
   const secadoEn = useRef(performance.now()), ultimoChorro = useRef(0);
   const rodar = useRef({ ux: 1, uy: 0, s: 0 }); // eje del rodillo y distancia recorrida
   const suave = useRef<[number, number] | null>(null); // el plumón sigue al dedo suavizado (como el suavizado de Photoshop)
+  const transformando = useRef(false); // el gesto de manijas sobre el sticker elegido ya guardó su paso
   const trazoGuardo = useRef(false); // el trazo en curso ya guardó su paso (para descartarlo si resulta ser un gesto)
   const lienzoRef = useRef<HTMLDivElement | null>(null);
   const redibujar = () => setVersion(v => v + 1);
@@ -155,8 +157,8 @@ export const App: React.FC = () => {
     setPasos({ atras: atras.current.length, adelante: adelante.current.length });
     redibujar();
   };
-  const deshacer = () => { setNuevo(null); moverHistorial(atras, adelante); };
-  const rehacer = () => { setNuevo(null); moverHistorial(adelante, atras); };
+  const deshacer = () => { setNuevo(null); setElegido(null); moverHistorial(atras, adelante); };
+  const rehacer = () => { setNuevo(null); setElegido(null); moverHistorial(adelante, atras); };
   // Con 2 dedos se deshace y con 3 se rehace (kit v2): lo que alcanzó a pintar el primer dedo se descarta.
   const anularTrazo = () => {
     pos.current = null; suave.current = null;
@@ -200,13 +202,69 @@ export const App: React.FC = () => {
     setNuevo(null);
     redibujar();
   };
-  const ponerSticker = (id: string, x = COLS / 2, y = FILAS / 2) => setNuevo(n => n ? { ...n, id } : { id, x, y, escala: 1, giro: 0 });
+  const ponerSticker = (id: string, x = COLS / 2, y = FILAS / 2) => { setElegido(null); setNuevo(n => n ? { ...n, id } : { id, x, y, escala: 1, giro: 0 }); };
+
+  // Sticker ya pegado y seleccionado: sigue siendo un objeto (no se pinta en el muro) hasta exportar.
+  const cambiarElegido = (f: (e: Estampa) => Estampa, guardar: boolean) => {
+    const e = elegido === null ? undefined : dibujo.current.stickers[elegido];
+    if (!e || elegido === null) return;
+    if (guardar) guardarHistorial();
+    const lista = dibujo.current.stickers.slice(); lista[elegido] = f(e);
+    dibujo.current.stickers = lista;
+    redibujar();
+  };
+  const transformarElegido = (t: Transformacion, final: boolean) => {
+    const e = elegido === null ? undefined : dibujo.current.stickers[elegido];
+    if (!e) return;
+    const igual = e.x === t.x && e.y === t.y && e.escala === t.escala && e.giro === t.giro;
+    // un gesto (arrastrar, girar, escalar) = un paso del historial; tocar sin mover no guarda nada
+    if (!transformando.current && !igual) { guardarHistorial(); transformando.current = true; }
+    if (!igual) cambiarElegido(s => ({ ...s, ...t }), false);
+    if (final) transformando.current = false;
+  };
+  const eliminarElegido = () => {
+    if (elegido === null || !dibujo.current.stickers[elegido]) return;
+    guardarHistorial();
+    dibujo.current.stickers = dibujo.current.stickers.filter((_, i) => i !== elegido);
+    setElegido(null);
+    redibujar();
+    avisar('Sticker eliminado. ↶ lo trae de vuelta.');
+  };
+  const alFrenteElegido = () => {
+    const lista = dibujo.current.stickers;
+    if (elegido === null || elegido === lista.length - 1) return;
+    guardarHistorial();
+    dibujo.current.stickers = [...lista.filter((_, i) => i !== elegido), lista[elegido]];
+    setElegido(dibujo.current.stickers.length - 1);
+    redibujar();
+  };
+  const duplicarElegido = () => {
+    const e = elegido === null ? undefined : dibujo.current.stickers[elegido];
+    if (!e) return;
+    guardarHistorial();
+    const d = Math.max(3, COLS * 0.04);
+    dibujo.current.stickers = [...dibujo.current.stickers, { ...e, x: Math.min(COLS - 1, e.x + d), y: Math.min(FILAS - 1, e.y + d) }];
+    setElegido(dibujo.current.stickers.length - 1);
+    redibujar();
+  };
+  // Con un sticker elegido, Supr o Retroceso lo eliminan (con teclado).
+  const eliminarRef = useRef(eliminarElegido); eliminarRef.current = eliminarElegido;
+  useEffect(() => {
+    if (elegido === null) return;
+    const tecla = (e: KeyboardEvent) => {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && !(e.target as Element | null)?.closest?.('input, textarea')) { e.preventDefault(); eliminarRef.current(); }
+      if (e.key === 'Escape') setElegido(null);
+    };
+    window.addEventListener('keydown', tecla);
+    return () => window.removeEventListener('keydown', tecla);
+  }, [elegido]);
 
   const elegirHerramienta = (h: Herramienta) => {
     if (h !== 'sticker' && nuevo) pegarSticker(); // lo que quedó puesto no se pierde
+    if (h !== 'sticker') setElegido(null);
     setHerr(h);
     if (h === 'stencil' && !puesta) ponerPlantilla(PLANTILLAS[0].id);
-    if (h === 'sticker' && !nuevo) ponerSticker(sticker);
+    if (h === 'sticker' && !nuevo && h !== herr) ponerSticker(sticker);
   };
 
   const alBajar = (x: number, y: number, fx: number, fy: number) => {
@@ -215,7 +273,13 @@ export const App: React.FC = () => {
       setPuesta(p => p ? { ...p, x: fx, y: fy } : { id: PLANTILLAS[0].id, capa: 1, x: fx, y: fy, escala: escalaInicial(PLANTILLAS[0].id), giro: 0 });
       return;
     }
-    if (herr === 'sticker') { // tocar fuera del sticker puesto lo lleva ahí (o pone uno nuevo)
+    if (herr === 'sticker') {
+      // Tocar un sticker ya pegado lo selecciona (el puesto sin pegar se descarta: no se había confirmado).
+      const i = stickerEn(dibujo.current.stickers, fx, fy);
+      if (i >= 0) { setNuevo(null); setElegido(i); return; }
+      // Con uno elegido, tocar el muro vacío solo lo suelta.
+      if (elegido !== null) { setElegido(null); return; }
+      // Tocar fuera del sticker puesto lo lleva ahí (o pone uno nuevo).
       setNuevo(n => n ? { ...n, x: fx, y: fy } : { id: sticker, x: fx, y: fy, escala: 1, giro: 0 });
       return;
     }
@@ -257,9 +321,10 @@ export const App: React.FC = () => {
     suave.current = null; pos.current = null; trazoGuardo.current = false;
   };
 
-  const vaciar = () => { setNuevo(null); guardarHistorial(); chorros.current = []; carga.current.fill(0); dibujo.current = nuevoDibujo(); redibujar(); };
+  const vaciar = () => { setNuevo(null); setElegido(null); guardarHistorial(); chorros.current = []; carga.current.fill(0); dibujo.current = nuevoDibujo(); redibujar(); };
   const exportar = async () => {
     if (nuevo) pegarSticker();
+    setElegido(null);
     try { setTarjeta(await crearTarjeta(muro, dibujo.current)); otorgarCreacion('graffiti'); enviarAlInventario(); }
     catch { avisar('No se pudo crear la tarjeta. Inténtalo de nuevo.'); }
   };
@@ -282,6 +347,7 @@ export const App: React.FC = () => {
 
   const vacio = !dibujo.current.pintura.some(Boolean) && !dibujo.current.stickers.length && !nuevo;
   const activa = HERRAMIENTAS.find(h => h.id === herr)!;
+  const pegado = elegido === null ? null : dibujo.current.stickers[elegido] ?? null;
   const nombreMuro = MUROS.find(m => m.id === muro)!.nombre;
   const pinta = herr === 'spray' || herr === 'rodillo' || herr === 'plumon';
 
@@ -309,7 +375,7 @@ export const App: React.FC = () => {
   const girarStencil = () => setPuesta(p => p && { ...p, giro: (p.giro + 90) % 360, escala: Math.min(p.escala, escalaMaxStencil(p.id, p.giro + 90)) });
 
   const seccionHerramienta = (
-    <SeccionPanel titulo={activa.nombre} ayuda={activa.detalle}>
+    <SeccionPanel titulo={pegado ? 'Sticker pegado' : activa.nombre} ayuda={activa.detalle}>
       {pinta && <PreviaPincel pincel={herr as 'spray' | 'rodillo' | 'plumon'} tamano={herr === 'rodillo' ? tamRodillo : tamano} color={PALETA[color - 1].hex} />}
       {(pinta || herr === 'borrar') && segTamano}
       {herr === 'spray' && (
@@ -326,12 +392,19 @@ export const App: React.FC = () => {
         </div>
       </>)}
       {herr === 'sticker' && (<>
-        <GrillaBiblioteca etiqueta="Sticker" columnas={4} elegido={nuevo?.id ?? sticker} onElegir={id => { setSticker(id); ponerSticker(id); }}
+        {pegado ? (
+          <div className="fila-botones">
+            <Boton icono="rotate_right" texto="Girar 90°" onClick={() => cambiarElegido(e => ({ ...e, giro: (e.giro + 90) % 360 }), true)} />
+            <Boton icono="delete" texto="Eliminar" variante="peligro" onClick={eliminarElegido} />
+          </div>
+        ) : (
+          <div className="fila-botones">
+            <Boton icono="rotate_right" texto="Girar 90°" onClick={() => setNuevo(n => n && { ...n, giro: (n.giro + 90) % 360 })} disabled={!nuevo} />
+            <Boton icono="check" texto="Pegar" variante="primario" onClick={() => pegarSticker()} disabled={!nuevo} />
+          </div>
+        )}
+        <GrillaBiblioteca etiqueta="Sticker" columnas={4} elegido={pegado?.id ?? nuevo?.id ?? sticker} onElegir={id => { setSticker(id); ponerSticker(id); }}
           elementos={STICKERS.map(s => ({ id: s.id, nombre: s.nombre, contenido: <img src={s.src} alt="" /> }))} />
-        <div className="fila-botones">
-          <Boton icono="rotate_right" texto="Girar 90°" onClick={() => setNuevo(n => n && { ...n, giro: (n.giro + 90) % 360 })} disabled={!nuevo} />
-          <Boton icono="check" texto="Pegar" variante="primario" onClick={() => pegarSticker()} disabled={!nuevo} />
-        </div>
       </>)}
     </SeccionPanel>
   );
@@ -374,6 +447,20 @@ export const App: React.FC = () => {
         ]}
         onConfirmar={() => { setHerr('spray'); avisar('Listo: pinta encima del stencil.'); }} />} />
   );
+  const mPegado = pegado && medidaSticker(pegado.id);
+  const manijasPegado = herr === 'sticker' && pegado && mPegado && (
+    <Manijas key={'pegado-' + elegido} etiqueta="Sticker pegado" valor={pegado} ancho={mPegado.w} alto={mPegado.h} lienzo={{ ancho: COLS, alto: FILAS }}
+      limites={{ min: 0.12, max: 0.8 }}
+      onCambiar={transformarElegido}
+      barrita={<BarritaSeleccion etiqueta="Sticker pegado"
+        acciones={[
+          { icono: 'rotate_right', etiqueta: 'Girar 90°', onClick: () => cambiarElegido(e => ({ ...e, giro: (e.giro + 90) % 360 }), true) },
+          { icono: 'flip_to_front', etiqueta: 'Traer al frente', onClick: alFrenteElegido, disabled: elegido === dibujo.current.stickers.length - 1 },
+          { icono: 'content_copy', etiqueta: 'Duplicar', onClick: duplicarElegido },
+          { icono: 'delete', etiqueta: 'Eliminar sticker', peligro: true, onClick: eliminarElegido },
+        ]}
+        onConfirmar={() => setElegido(null)} />} />
+  );
   const mSticker = nuevo && medidaSticker(nuevo.id);
   const manijasSticker = herr === 'sticker' && nuevo && mSticker && (
     <Manijas etiqueta="Sticker" valor={nuevo} ancho={mSticker.w} alto={mSticker.h} lienzo={{ ancho: COLS, alto: FILAS }}
@@ -405,6 +492,7 @@ export const App: React.FC = () => {
           />
           {manijasStencil}
           {manijasSticker}
+          {manijasPegado}
         </LienzoAjustado>
       </MarcoHerramienta>
 

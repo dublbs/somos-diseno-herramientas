@@ -64,3 +64,16 @@ html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: non
 .mural { display: block; border: 2px solid #000; image-rendering: pixelated; }
 .retrato { image-rendering: pixelated; }
 @media (max-height: 760px) { .caja { gap: 7px; padding: 14px 18px; } .reglas { font-size: 14px; } .caja h2 { font-size: 19px; } }
+
+/* Ronda 3: en el andén y el jefe la arena usa todo el alto; los controles son más compactos y van sobre sus bordes.
+   Izquierda: ▲ ▼ arriba y ◀ ▶ grandes abajo. Derecha: Saltar y Lanzar. */
+.hp:not([data-nivel="cruce"]) .mando.izq { grid-template-columns: repeat(2, 76px); grid-template-rows: 56px 76px; left: 10px; }
+.hp:not([data-nivel="cruce"]) .mando.izq .arriba { grid-area: 1 / 1; }
+.hp:not([data-nivel="cruce"]) .mando.izq .abajo { grid-area: 1 / 2; }
+.hp:not([data-nivel="cruce"]) .mando.izq .izq { grid-area: 2 / 1; }
+.hp:not([data-nivel="cruce"]) .mando.izq .der { grid-area: 2 / 2; }
+.hp:not([data-nivel="cruce"]) .mando.der { right: 10px; gap: 8px; }
+.hp:not([data-nivel="cruce"]) .tecla { background: rgba(255, 255, 255, .5); min-width: 56px; min-height: 56px; }
+.hp:not([data-nivel="cruce"]) .tecla.saltar { width: 76px; height: 76px; }
+.hp:not([data-nivel="cruce"]) .tecla.grande { width: 100px; height: 100px; }
+.hp:not([data-nivel="cruce"]) .hud { top: 8px; left: 8px; }

@@ -5,11 +5,12 @@ import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
 import { Llevatela } from '../../shared/ui/Llevatela';
 import { avanzarCruce, META, mover, nuevoCruce, type Cruce } from './juego/cruce';
 import { avanzarAnden, bajar, lanzarA, nuevoAnden, saltar, VIDAS, type Anden } from './juego/anden';
-import { avanzarJefe, bajarJ, COLORES_JEFE, GOLPES_JEFE, lanzarJ, nuevoJefe, proximoColor, saltarJ, type Jefe } from './juego/jefe';
+import { avanzarJefe, bajarJ, GOLPES_JEFE, lanzarJ, nuevoJefe, proximoColor, saltarJ, VIDAS_JEFE, type Jefe } from './juego/jefe';
 import { HUESO, NOMBRE_PINTURA, TIROS_POR_LATA, type Pieza } from './juego/comun';
 import { dibujarCruce, type Imagenes } from './juego/dibujoCruce';
 import { dibujarAnden } from './juego/dibujoAnden';
-import { dibujarInacapin, dibujarJefe } from './juego/dibujoJefe';
+import { dibujarJefe, retratoInacapin } from './juego/dibujoJefe';
+import { lienzoPinta } from './juego/personajes';
 import { dibujarMural, miniaturaMural } from './juego/mural';
 import { crearTarjeta, type Resumen } from './juego/tarjeta';
 import '../../shared/ui/somos-kit.css';
@@ -17,26 +18,25 @@ import './styles.css';
 
 // «Hora punta» (plan docs/plans/009-juego-pixel.md, ronda 2): juego Pixel que reemplaza al Vagón.
 // Nivel 1, El cruce (isométrico): juntas latas de pintura. Nivel 2, El andén: con esa pintura atrapas Grises y juntas
-// piezas. Jefe, el Inacapín Pixel: le devuelves el color con bolas de Grises. Lo que te llevas es tu mural.
+// piezas. Jefe, el Inacapín: le devuelves el color con bolas de Grises. Lo que te llevas es tu mural.
 const TITULO = 'Hora punta';
 const MIN_PUNTOS_CREACION = 5;
 const ESPERA_FIN = 1200; // ms entre el final del cruce y su tarjeta
 type Nivel = 'cruce' | 'anden' | 'jefe';
 type Etapa = Nivel | 'paso' | 'paso2' | 'fin';
 type Accion = 'arriba' | 'abajo' | 'izq' | 'der' | 'lanzar';
-const NOMBRE_NIVEL: Record<Nivel, string> = { cruce: 'Nivel 1 · El cruce', anden: 'Nivel 2 · El andén', jefe: 'Jefe · El Inacapín Pixel' };
+const NOMBRE_NIVEL: Record<Nivel, string> = { cruce: 'Nivel 1 · El cruce', anden: 'Nivel 2 · El andén', jefe: 'Jefe · El Inacapín' };
 
 const movimiento = window.matchMedia?.('(prefers-reduced-motion: reduce)');
 const quieto = () => movimiento?.matches ?? false; // se consulta en cada cuadro: la consulta se crea una vez
-const cargarImagen = (ruta: string) => new Promise<HTMLImageElement | null>(res => {
-  const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = `${import.meta.env.BASE_URL}figma/${ruta}`;
-});
 // `?nivel=2` parte en el andén con 3 latas y `?nivel=3` en el jefe con 3 latas y 4 piezas (para probar y mostrarlo).
 const NIVEL = Number(new URLSearchParams(location.search).get('nivel')) || 1;
 const LATAS_PRUEBA = ['#FF8FB1', '#FFC20E', '#7FC8F8'];
 const PIEZAS_PRUEBA: Pieza[] = [{ color: '#00A651', forma: 'corazon' }, { color: '#FF8FB1', forma: 'estrella' }, { color: '#FFC20E', forma: 'rayo' }, { color: '#00A651', forma: 'gota' }];
 const andenDePrueba = () => Object.assign(nuevoAnden(LATAS_PRUEBA), NIVEL === 3 ? { juntadas: PIEZAS_PRUEBA, limpio: true } : {});
 const coloresJefe = (latas: string[], piezas: Pieza[]) => [...latas, ...piezas.map(p => p.color)];
+// Densidades del lienzo (px por px CSS), de la mejor a la más liviana: la de la pantalla (hasta 2), 1 y 0,75.
+const densidades = () => { const d = Math.min(window.devicePixelRatio || 1, 2); return [...new Set([d, 1.5, 1, 0.75])].filter(x => x <= d); };
 const plural = (n: number, uno: string, varios = uno + 's') => `${n} ${n === 1 ? uno : varios}`;
 const leerMejor = () => { try { return Number(sessionStorage.getItem('sd:juego:mejor')) || 0; } catch { return 0; } };
 
@@ -76,9 +76,9 @@ const Retrato: React.FC<{ partes: number; tam: number }> = ({ partes, tam }) => 
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const c = ref.current; if (!c) return;
-    c.width = c.height = 64;
-    const x = c.getContext('2d')!; x.clearRect(0, 0, 64, 64);
-    dibujarInacapin(x, 0, 0, 64, partes);
+    c.width = c.height = 80;
+    const x = c.getContext('2d')!; x.clearRect(0, 0, 80, 80);
+    retratoInacapin(x, 80, partes / GOLPES_JEFE);
   }, [partes]);
   return <canvas ref={ref} className="retrato" style={{ width: tam, height: tam }} aria-hidden="true" />;
 };
@@ -86,9 +86,9 @@ const Retrato: React.FC<{ partes: number; tam: number }> = ({ partes, tam }) => 
 // «Cómo se juega» de cada nivel: va en la tarjeta de entrada y en la pausa.
 const Reglas: React.FC<{ nivel: Nivel }> = ({ nivel }) => nivel === 'jefe' ? (
   <ul className="reglas">
-    <li>El Inacapín <b>lanza Grises</b>: 2 golpes de pintura y quedan en una bola.</li>
-    <li><b>Empuja la bola contra él</b>: cada golpe le devuelve un color. Son 6.</li>
-    <li><b>Salta las manchas</b> y sal de las columnas marcadas: caen gotas.</li>
+    <li>El Inacapín <b>escupe Grises</b>: 2 golpes de pintura y quedan en una bola.</li>
+    <li><b>Empuja la bola contra él</b>: cada golpe le devuelve su rojo. Son {GOLPES_JEFE}.</li>
+    <li>Mira sus avisos: si <b>se agacha</b>, salta; si <b>parpadea rosado</b>, embiste (sáltalo o sube a una viga). Salta las ondas y sal de las columnas marcadas.</li>
   </ul>
 ) : nivel === 'anden' ? (
   <ul className="reglas">
@@ -113,6 +113,9 @@ export const App: React.FC = () => {
   const camara = useRef(0);
   const espera = useRef(0); // ms desde que el cruce terminó (choque o llegada)
   const img = useRef<Imagenes>({ personaje: null, metro: null });
+  const calidad = useRef(0); // paso de densidad del lienzo (0 = la de la pantalla); ver `densidades`
+  const rinde = useRef({ n: 0, suma: 0 });
+  const redimensionar = useRef(() => {});
   const [etapa, setEtapa] = useState<Etapa>(NIVEL === 3 ? 'jefe' : NIVEL === 2 ? 'anden' : 'cruce');
   const [intro, setIntro] = useState(true); // tarjeta «Cómo se juega» al empezar cada nivel
   const [puntos, setPuntos] = useState(0);
@@ -127,10 +130,10 @@ export const App: React.FC = () => {
   useEffect(() => { document.documentElement.dataset.visual = 'Pixel'; }, []);
   // `?bot=1`: deja los motores a la vista de las pruebas automáticas (Playwright). No cambia el juego.
   useEffect(() => {
-    if (new URLSearchParams(location.search).get('bot') === '1') Object.assign(window, { horaPunta: { cruce, anden, jefe, acciones } });
+    if (new URLSearchParams(location.search).get('bot') === '1') Object.assign(window, { horaPunta: { cruce, anden, jefe, acciones, calidad } });
   }, []);
   useEffect(() => {
-    Promise.all([cargarImagen('personaje.svg'), cargarImagen('metro-lateral.svg')]).then(([personaje, metro]) => { img.current = { personaje, metro }; });
+    img.current = { personaje: lienzoPinta('quieto'), metro: null }; // Pinta y el metro se dibujan en código (ronda 3)
   }, []);
 
   const nivel: Nivel = etapa === 'jefe' || etapa === 'paso2' || (etapa === 'fin' && resumen?.nivel === 3) ? 'jefe'
@@ -172,9 +175,18 @@ export const App: React.FC = () => {
       if (!vivo) return;
       const c = lienzo.current, dt = t - previo;
       previo = t;
+      // Rendimiento: con el juego corriendo, promedia 90 cuadros (tras 30 de gracia); bajo ~45 fps, menos densidad.
+      const r = rinde.current;
+      if (corre && dt < 250 && ++r.n > 30) {
+        r.suma += dt;
+        if (r.n >= 120) {
+          if (r.suma / (r.n - 30) > 1000 / 45 && calidad.current < densidades().length - 1) { calidad.current++; redimensionar.current(); }
+          r.n = 0; r.suma = 0;
+        }
+      }
       const ctx = c && c.width ? c.getContext('2d')! : null;
       const a = anden.current, j = jefe.current, q = quieto();
-      const mando = Math.round(240 * Math.min(window.devicePixelRatio || 1, 2)); // los controles ocupan ~240 px por esquina
+      const mando = Math.round(190 * (c && c.clientWidth ? c.width / c.clientWidth : 1)); // alto de los controles (en vertical van bajo la arena)
       if (j && nivel === 'jefe' && etapa !== 'paso2') {
         if (corre && etapa === 'jefe') {
           avanzarJefe(j, dt);
@@ -187,7 +199,7 @@ export const App: React.FC = () => {
           if (a.fin) terminar('¡Un Gris te borró!');
           else if (a.limpio) setEtapa('paso2');
         }
-        if (ctx) dibujarAnden(ctx, c!.width, c!.height, a, img.current, t, mando);
+        if (ctx) dibujarAnden(ctx, c!.width, c!.height, a, img.current, t, mando, q);
       } else {
         const e = cruce.current;
         if (corre && etapa === 'cruce') {
@@ -219,14 +231,17 @@ export const App: React.FC = () => {
     return () => { vivo = false; };
   }, [visto, corre, etapa, nivel, terminar]);
 
-  // El canvas toma la resolución de su caja (hasta 2× en pantallas densas).
+  // El canvas toma la resolución de su caja (hasta 2× en pantallas densas). Si el equipo no alcanza ~45 cuadros por
+  // segundo (tablets de gama media con DPR 1,5), el bucle baja la densidad un paso (`calidad`) y no vuelve a subirla.
   useEffect(() => {
     const c = lienzo.current;
     if (!c) return;
-    const ro = new ResizeObserver(() => {
-      const d = Math.min(window.devicePixelRatio || 1, 2);
+    const medir = () => {
+      const d = densidades()[Math.min(calidad.current, densidades().length - 1)];
       c.width = Math.round(c.clientWidth * d); c.height = Math.round(c.clientHeight * d);
-    });
+    };
+    redimensionar.current = medir;
+    const ro = new ResizeObserver(medir);
     ro.observe(c);
     return () => ro.disconnect();
   }, [visto]);
@@ -315,7 +330,7 @@ export const App: React.FC = () => {
       pasos={[
         { icono: 'route', texto: 'Nivel 1: cruza la ciudad hasta el metro y junta latas de pintura.' },
         { icono: 'format_paint', texto: 'Nivel 2: en el andén, encierra a los Grises en bolas de pintura y empújalas.' },
-        { icono: 'auto_awesome', texto: 'Jefe: el Inacapín Pixel se quedó gris. Lánzale bolas y devuélvele el color.' },
+        { icono: 'auto_awesome', texto: 'Jefe: el Inacapín se quedó gris. Lánzale bolas y devuélvele el color.' },
       ]}
       acciones={[{ texto: 'Jugar', icono: 'play_arrow', alTocar: marcarVisto }]} />
   );
@@ -342,7 +357,7 @@ export const App: React.FC = () => {
           onPointerDown={alBajar} onPointerUp={alSoltar} onPointerCancel={() => { toque.current = null; }} />
 
         <div className="hud" aria-label="Lo que llevas">
-          {verVidas && <div className="chip" aria-label={`${plural(hud.vidas, 'vida')}`}>{Array.from({ length: VIDAS }, (_, i) => <Corazon key={i} lleno={i < hud.vidas} />)}</div>}
+          {verVidas && <div className="chip" aria-label={`${plural(hud.vidas, 'vida')}`}>{Array.from({ length: nivel === 'jefe' ? VIDAS_JEFE : VIDAS }, (_, i) => <Corazon key={i} lleno={i < hud.vidas} />)}</div>}
           <div className="chip" aria-label={plural(hud.latas.length, 'lata')}>
             <Lata color={hud.latas.at(-1) ?? HUESO} /> <b>{hud.latas.length}</b>
             {nivel === 'anden' && <span className="chip-sub">{plural(hud.tiros, 'tiro')}</span>}
@@ -351,7 +366,7 @@ export const App: React.FC = () => {
           {nivel === 'jefe' && (
             <div className="chip hud-jefe" role="meter" aria-label="Color recuperado" aria-valuemin={0} aria-valuemax={GOLPES_JEFE} aria-valuenow={hud.golpes}>
               <span className="chip-sub">Color</span>
-              <span className="barra-color">{COLORES_JEFE.map((col, i) => <i key={col} style={{ background: i < hud.golpes ? col : undefined }} />)}</span>
+              <span className="barra-color">{Array.from({ length: GOLPES_JEFE }, (_, i) => <i key={i} style={{ background: i < hud.golpes ? '#E2001A' : undefined }} />)}</span>
             </div>
           )}
           {nivel === 'cruce' && <div className="chip" aria-label={`Fila ${Math.min(cruce.current.maxY, META)} de ${META}`}><span className="material-symbols-outlined" aria-hidden="true">train</span> <b>{Math.min(cruce.current.maxY, META)}/{META}</b></div>}
@@ -423,7 +438,7 @@ export const App: React.FC = () => {
         {etapa === 'paso2' && (
           <div className="capa" role="dialog" aria-modal="true" aria-labelledby="paso2-t">
             <div className="caja">
-              <h2 id="paso2-t">¡Llegó el Inacapín Pixel!</h2>
+              <h2 id="paso2-t">¡Llegó el Inacapín!</h2>
               <Retrato partes={0} tam={96} />
               <p className="ayuda">Limpiaste el andén, pero el Inacapín se quedó gris. Tu pintura no se acaba: sale de tus colores.</p>
               <Reglas nivel="jefe" />

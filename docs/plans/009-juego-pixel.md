@@ -1,6 +1,6 @@
 # 009 · Juego Pixel «Hora punta» (reemplaza al Vagón)
 
-Fecha: 13 nov 2026 · Estado: **ronda 2 (17–18 nov): cruce isométrico, andén y jefe; verificada en modo demo** (rama `amaro/hora-punta-iso`). Antes: 3 niveles decididos el 13 nov (rama `amaro/juego-pixel`, tarea T1 de `docs/tasks/009-pendientes.md`).
+Fecha: 13 nov 2026 · Estado: **ronda 3 (18 nov): el Inacapín de Figma salta por el mapa, Grises y pintura nuevos, personaje «Pinta» y vehículos Pixel** (rama `amaro/hora-punta-r3`). Ronda 2 (17–18 nov): cruce isométrico, andén y jefe (rama `amaro/hora-punta-iso`). Antes: 3 niveles decididos el 13 nov.
 Nombre de trabajo: «Hora punta» (se cambia en un solo lugar: `juego-pixel/src/App.tsx`).
 
 ## Idea
@@ -70,7 +70,7 @@ ambos lados** como Minecraft Pocket Edition. Solo se toman mecánicas: personaje
 4 piezas de prueba). El mural vuelve a ser la **cuadrícula de 4 × 3** con tus piezas y latas, más un **trofeo** en la
 primera casilla si venciste al jefe.
 
-### Jefe · El Inacapín Pixel (diseño propuesto, a validar)
+### Jefe · El Inacapín Pixel (ronda 2, reemplazado por la ronda 3)
 - **Quién es:** no hay un Inacapín en el repo ni en el archivo de Figma de la campaña (se buscó «Inacapino» el 17 nov).
   Es un personaje pixel **original** de 16 × 16 (se ve de unos 3 × 3 celdas), de la familia del personaje Pixel
   (antenas, ojos cuadrados, cuerpo de bloque): un gigante de la hora punta que se quedó **gris**. **Sin el logo ni los
@@ -96,6 +96,71 @@ primera casilla si venciste al jefe.
   siempre en ~31 s; uno que reacciona en 0,35 s y se distrae el 25 % del tiempo gana 70 de 100, en 32 a 44 s (mediana
   34 s). **Queda abierto:** si se quiere llegar a 60 s, subir a 8 golpes o espaciar los Grises (ver «Verificación ronda 2»).
 - **Puntaje:** +2 por bola, +5 por Gris arrastrado, **+10 por golpe** al Inacapín y **+30 al vencerlo**.
+
+## Ronda 3 (18 nov): el Inacapín de Figma, Grises nuevos, personaje que salta y vehículos Pixel
+Pedido de Amaro del 18 nov (plan 014 §0 y §1 «Hora punta»). **Manda sobre la ronda 2 donde choquen.** Solo se toman
+mecánicas (primer jefe de Snow Bros, jefes de Cuphead); personajes y arte son de la campaña.
+
+| Antes (ronda 2) | Ahora (ronda 3) |
+|---|---|
+| «El Inacapín Pixel», personaje propuesto por un agente, gris por partes | **«Inacapín»**, el de Figma: «Pixel / Mascota · Inacapino» (`1002:29670`, sección «Inacapino · lenguaje pixel» `1002:29669`, página «Visual · Pixel»). Libro rojo INACAP con la franja de la «i», guante y zapatillas, grilla 20 × 20. Aprobado por Amaro: usa el **rojo INACAP** `#E2001A` (excepción como la del metro L1) |
+| Quieto en una esquina; cambia de esquina cada 2 golpes | **Salta por el mapa y se mueve todo el tiempo** (camina, salta entre el piso y las vigas, embiste) |
+| 6 golpes, 3 fases | **9 golpes, 3 fases** (cada 3 golpes) |
+| Grises de 8 × 8 sin familia | Grises de la **familia del Inacapín** (libro-caja con contorno, ojos cuadrados, piernas y zapatillas), en gris «borrado» |
+| Arena de ~43 px por celda en 1180 × 820 | La arena usa **todo el alto** (~63 px por celda): el doble de área |
+| Personaje FA10 (`personaje.svg`) | **Personaje nuevo, «Pinta»**, con animación de caminar, saltar, lanzar y golpe |
+| Autos y micros como cajas | **Micro, taxi, autos y metro** rehechos en Pixel con volumen |
+
+- **Nombre:** no se encontró en Figma una sección «Inacapin · investigación del personaje versión 2» con ese nombre exacto
+  (se revisaron las páginas Dirección creativa, Recursos y sistema, Visual · Pixel, Archivo, Campaña, Journey y Web ·
+  Design system). La versión Pixel aprobada que sí existe es la de arriba; si Amaro apunta a otro nodo, se cambia el sprite
+  (`INACAPIN` en `sprites.ts`, grilla de 20 × 20) y nada más.
+
+### Jefe · El Inacapín (inspirado en el primer jefe de Snow Bros y en la dificultad de Cuphead)
+- **Tamaño:** 3,4 celdas de alto (unos 215 px en 1180 × 820). Su caja de golpe es el libro (2,4 × 3,4 celdas).
+- **Siempre se mueve.** Entre ataques **camina** por su piso o viga hacia ti y se da vuelta en los bordes. Después elige:
+  1. **Salto:** se agacha (aviso de 0,5 s; su sombra marca dónde cae), salta a otra viga o al piso cerca de ti. Si te cae
+     encima, pierdes una vida. Desde la fase 2, al caer al piso **levanta una onda** que corre por el piso hacia ambos
+     lados: se salta.
+  2. **Escupe Grises:** abre el libro (aviso de 0,6 s) y lanza 1 Gris (fase 1) o 2 (fases 2 y 3) hacia ti.
+  3. **Embestida** (desde la fase 2, solo en el piso): se agacha y parpadea con una flecha (aviso de 1 s; 0,8 s en la
+     fase 3) y cruza el piso hasta la pared. Se esquiva subiendo a una viga. Al chocar la pared queda **mareado 1,2 s**:
+     el mejor momento para pegarle.
+- **Más Grises:** como máximo 2 / 3 / 4 vivos por fase, y desde la fase 2 también **caen Grises del techo** (se marca
+  dónde 0,8 s antes). Desde la fase 2 caen **gotas grises** en 2 columnas (3 en la fase 3), marcadas 1 s antes.
+- **Cómo se le pega:** igual que antes. Atrapas Grises con **2 golpes** de tu pintura (no se acaba) y **empujas la bola**:
+  cada bola que lo toca (camine, salte o embista) es un golpe, le **devuelve el rojo desde los pies hacia arriba** y lo
+  hace saltar lejos (0,9 s sin recibir otro). La pintura directa no le hace nada.
+- **Fases:** cada 3 golpes ruge «¡Fase 2!» / «¡Fase 3!» (1,2 s quieto) y desde ahí camina, salta y ataca más rápido.
+- **Tocarlo** mientras camina te empuja sin quitarte vidas; si te cae encima o te embiste, sí.
+- **Vidas:** 3, como en el andén. Perder no borra lo juntado.
+- **Meta de dificultad:** quien juega por primera vez lo gana en 2 o 3 intentos y la pelea dura 90 a 120 s. Se mide con
+  bots en `npm --prefix juego-pixel run pruebas` (ver «Verificación ronda 3»).
+- **Puntaje:** +2 por bola, +5 por Gris arrastrado, **+10 por golpe**, **+30 al vencerlo**. El mural suma el trofeo.
+
+### Grises y pintura (andén y jefe)
+- Sprite de 12 × 12 de la familia del Inacapín, en grises con un tramado «borrado». Animados: caminan (piernas
+  alternadas), saltan (piernas recogidas) y tiritan cuando reciben pintura.
+- **La pintura los cubre por capas** desde los pies, con un borde que chorrea; cada golpe salpica gotas del color.
+- **La bola**: redonda, del color de la pintura, con brillo y los ojos del Gris asomando. Al rodar **gira** y deja un
+  **rastro** de gotas que se seca; cuando se rompe o golpea al Inacapín **estalla en color**.
+
+### Pantalla del andén y del jefe
+- La arena toma **todo el alto** del lienzo; el HUD va encima (arriba a la izquierda, sobre la pared) y los controles a
+  los lados, semitransparentes, encima de los bordes de la arena. En vertical la arena va arriba y los controles debajo.
+- Controles más compactos en el andén y el jefe: ◀ ▶ grandes abajo y ▲ ▼ arriba (izquierda); Saltar y Lanzar (derecha).
+
+### Personaje «Pinta» (nuevo, `generado: true`)
+- Pixel de 16 × 16 en la paleta Línea azul: gorro celeste, polerón azul, pantalón negro, zapatillas hueso y la lata de
+  spray en la mano. Cuadros: quieto, caminar (2), saltar, lanzar y golpe. Se usa en los 3 niveles y en la tarjeta.
+
+### Vehículos del cruce (Pixel con volumen, `generado: true`)
+- **Micro** (bus de Santiago): blanco hueso con franja azul y lapislázuli, ventanas en fila, puertas, letrero de recorrido
+  y número en el frente.
+- **Taxi** (nuevo tipo en el motor, 1 de cada 4 autos): negro con techo amarillo y el letrero «TAXI».
+- **Autos:** sedán con capó, cabina, maletero, parabrisas, llantas con tapa y focos; colores de la paleta.
+- **Metro:** 3 carros con el lateral de Figma y la trompa amarilla con tramado, como el afiche del Metro.
+- Todo con contorno negro, colores planos y tramado de 2 tonos para las sombras.
 
 ## Puntaje
 - Nivel 1: +1 por fila nueva, +1 por lata.
