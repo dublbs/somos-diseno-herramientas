@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { CODIGO, EVENTO_TIMBRE, entrarJugador, entrarSinCredencial, sinCredencial, guardarConfig, hashPin, jugador, leerConfig, normalizarCodigo, pinDeDemo, verificarPin, type ConfigMesa, type DetalleCreacion } from '../juego';
 import { BotonAccion, Interruptor } from './Kit';
+import { QrEncargado } from './QrEncargado';
 
 // Modo juego en las mesas: la tablet pide el código de la credencial (o se juega sin ella, plan 011), otorga el timbre 2 al exportar y el staff
 // la configura con su PIN (?staff en la URL). Envuelve la experiencia completa.
@@ -8,7 +9,8 @@ import { BotonAccion, Interruptor } from './Kit';
 const Icono: React.FC<{ nombre: string }> = ({ nombre }) => <span className="material-symbols-outlined" aria-hidden="true">{nombre}</span>;
 const esStaff = () => new URLSearchParams(location.search).has('staff');
 
-export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string; children: React.ReactNode }> = ({ app, titulo, visual, children }) => {
+// encargadoX: posición horizontal del botón del encargado (QrEncargado), si la app tiene algo arriba al centro.
+export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string; encargadoX?: string; children: React.ReactNode }> = ({ app, titulo, visual, encargadoX, children }) => {
   const [config, setConfig] = useState<ConfigMesa>(leerConfig);
   const [codigo, setCodigo] = useState(() => jugador()?.codigo ?? null);
   const [libre, setLibre] = useState(sinCredencial);
@@ -26,6 +28,7 @@ export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string
   if (config.modoJuego && !codigo && !libre) return <Desbloqueo titulo={titulo} alEntrar={c => { entrarJugador(c, app); setCodigo(c); }} alSinCredencial={() => { entrarSinCredencial(); setLibre(true); }} alStaff={() => setStaff(true)} />;
   return (<>
     {children}
+    <QrEncargado app={app} x={encargadoX} />
     {ganado && (
       <div className="k-quiosco" role="dialog" aria-modal="true" aria-labelledby="timbre-t">
         <div className="k-panel k-quiosco-caja">
