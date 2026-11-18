@@ -5,7 +5,7 @@ import { PuertaJuego } from '../../shared/ui/Juego';
 
 ReactDOM.createRoot(document.getElementById('app')!).render(
   <React.StrictMode>
-    <PuertaJuego app="audioreactiva" titulo="Estación Audioreactiva" visual="Geométrica">
+    <PuertaJuego app="audioreactiva" titulo="Estación Audioreactiva" visual="Geométrica" encargadoX="58%">
       <App />
     </PuertaJuego>
   </React.StrictMode>

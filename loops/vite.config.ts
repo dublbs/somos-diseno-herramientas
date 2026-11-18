@@ -5,7 +5,7 @@ export default defineConfig({
   base: './',
   plugins: [react()],
   // El kit compartido (../shared/ui) importa React: se resuelve con el de esta app.
-  resolve: { dedupe: ['react', 'react-dom'] },
+  resolve: { dedupe: ['react', 'react-dom', 'qrcode'] /* qrcode: QR del encargado y «Llévatela» del kit */ },
   build: {
     chunkSizeWarningLimit: 2000,
   },
