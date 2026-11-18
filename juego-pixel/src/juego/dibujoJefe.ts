@@ -48,13 +48,14 @@ export function dibujarJefe(ctx: CanvasRenderingContext2D, ancho: number, alto: 
   if (b.estado === 'mareado') aplasta = 0.95;
   const respira = quieto || b.estado !== 'camina' ? 0 : Math.round(Math.sin(ahora / 260) * c * 0.03);
   const fiesta = celebra && !quieto ? Math.abs(Math.sin(ahora / 160)) * c * 0.7 : 0;
-  // brillo de aviso (telegrafía): un halo amarillo alrededor del libro
-  if (avisando && !celebra && (quieto || parpadeo)) {
-    const w = ANCHO_JEFE * c * 1.25, h = ALTO_JEFE * c * aplasta * 0.82;
-    ctx.fillStyle = b.estado === 'carga' ? '#FF8FB1' : '#FFC20E';
-    ctx.fillRect(pieX - w / 2 - c * 0.15 + dx, pieY - h - ALTO_JEFE * c * 0.3 * aplasta - c * 0.15, w + c * 0.3, h + c * 0.3);
-  }
   const paso = b.estado === 'camina' && !quieto ? ((Math.floor(ahora / 180) % 2) + 1) as 1 | 2 : 0;
+  // brillo de aviso (telegrafía): su silueta en amarillo (salto o escupo) o rosado (embestida), parpadeando
+  if (avisando && !celebra && (quieto || parpadeo)) {
+    const col = b.estado === 'carga' ? '#FF8FB1' : '#FFC20E', o = Math.max(3, Math.round(c * 0.09));
+    const boca = b.estado === 'escupe';
+    for (const [ox, oy] of [[-o, 0], [o, 0], [0, -o], [0, o], [-o, -o], [o, -o], [-o, o], [o, o]])
+      dibujarInacapin(ctx, pieX + dx + ox, pieY + oy, tam, b.mira, 0, { silueta: col, boca }, aplasta);
+  }
   dibujarInacapin(ctx, pieX + dx, pieY + respira - fiesta, tam, b.mira, rojo, {
     boca: b.estado === 'escupe' || celebra || b.estado === 'ruge',
     blanco: e.herido > 0 && Math.floor(ahora / 70) % 2 === 0,

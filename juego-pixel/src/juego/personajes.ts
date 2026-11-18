@@ -196,7 +196,7 @@ export const INACAPIN: Filas = [
   '....kkkkkk.kkkkkk...',
   '....hhhhhh.hhhhhh...',
 ];
-export interface OpcionesInacapin { boca?: boolean; blanco?: boolean; ojos?: 'x' | 'feliz' | 'enojo' | null; paso?: 0 | 1 | 2 }
+export interface OpcionesInacapin { boca?: boolean; blanco?: boolean; ojos?: 'x' | 'feliz' | 'enojo' | null; paso?: 0 | 1 | 2; silueta?: string }
 // `rojo` (0 a 1): cuánto color recuperó. Mira a la izquierda en el sprite (el guante va adelante).
 export function lienzoInacapin(rojo: number, o: OpcionesInacapin = {}): HTMLCanvasElement {
   const n = Math.round(rojo * 18) / 18;
@@ -212,6 +212,7 @@ export function lienzoInacapin(rojo: number, o: OpcionesInacapin = {}): HTMLCanv
   const gris = { R: '#8F8F8A', h: '#C9C9C4' } as Record<string, string>;
   const tramado = (i: number, j: number) => (i + j) % 2 === 0;
   return lienzo(`inacapin|${n}|${JSON.stringify(o)}`, filas, (ch, i, j) => {
+    if (o.silueta) return o.silueta;
     if (o.blanco && ch !== 'k') return '#FFFFFF';
     if (ch === 'k') return '#000000';
     const conColor = n >= 1 || j >= borde;

@@ -17,7 +17,7 @@ export function marco(ancho: number, alto: number, mandoAlto = 0): Marco {
   const c = Math.max(8, Math.floor(Math.min(ancho / ANCHO_A, alto / ALTO_A)));
   const libre = alto - ALTO_A * c;
   const x0 = Math.round((ancho - ANCHO_A * c) / 2);
-  const y0 = libre >= mandoAlto && mandoAlto > 0 ? Math.round(Math.min(libre - mandoAlto, libre / 2)) : Math.round(libre / 2);
+  const y0 = libre >= mandoAlto && mandoAlto > 0 ? Math.round(Math.min(libre - mandoAlto, c * 1.6)) : Math.round(libre / 2);
   return { c, X: x => Math.round(x0 + x * c), Y: y => Math.round(y0 + y * c), lw: Math.max(2, Math.round(c / 18)), x0, y0 };
 }
 
