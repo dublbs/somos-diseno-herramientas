@@ -16,29 +16,26 @@ done
 ```
 **Si la rama tiene `AVANCE.md`, está a medias**: retómala desde su «Falta». Si no tiene, está terminada.
 
-## 2. Estado (18 nov, 16:25 UTC)
-Lo terminado está en la rama **`amaro/ronda-3`** = **PR #37** (para mergear). Lo que se termine después se une ahí.
+## 2. Estado al hacer el relevo (18 nov, 16:35 UTC)
+**Los agentes de Amaro están detenidos.** Todo lo que hicieron está en GitHub; nadie más está trabajando en estas ramas.
+Lo terminado está en **`amaro/ronda-3`** = **PR #37** (para mergear).
 
 | Rama | Estado | Qué queda |
 |---|---|---|
 | `amaro/audioreactiva-r3` | **Terminada, en el PR #37** | Probar con dedo y parlante |
-| `amaro/menu-y-grabado-r3` | **Terminada, en el PR #37** | Menú con kit v2 y miniatura del cruce isométrico; Grabado con solo marcos Orgánica alrededor del papel (`VENTANA_MARCO = 210` en `grabado/src/lib/afiche.ts`) |
-| `amaro/hora-punta-r3` | **A medias** (4 commits) | Hecho: Inacapín de Figma (nodo `1002:29670`, en `juego-pixel/public/figma/inacapin.svg`), jefe nuevo (`jefe.ts`: camina, salta, escupe, embiste, ondas; 9 golpes, 3 fases), 48 pruebas de motor, personaje nuevo «Pinta», Grises, bola, efectos, andén y jefe a todo el alto, micro/taxi/autos/metro L1 en Pixel. **Falta:** controles más compactos en andén y jefe, Pinta en el cruce, tarjeta con Pinta, verificación Playwright (partida, fps, 6 resoluciones) y `dist/`. Ver `juego-pixel/AVANCE.md` |
-| `amaro/fotomaton-r3` | **A medias** (7 commits) | Hecho: efecto Geométrico nuevo (semitono de triángulos, elegido entre 4 ensayos), **cámara en la tablet** (permiso dentro del toque, mensajes y reintento), **retrato 3:4**, vista en vivo más fluida. **Falta** (según `fotomaton/AVANCE.md`, revisar contra los commits): kit v2 en cámara y editor, ícono clásico de usuario en las vistas previas, Señal con stickers de calle, Metro de L1, verificación y `dist/` |
-| `amaro/hub-r3` | **Recién lanzado** (puede no existir aún en origin) | Encargo B5: **modo galería** `?galeria` (respaldo de la Flip), personas de la plaza al andén, refinar |
+| `amaro/menu-y-grabado-r3` | **Terminada, en el PR #37** | — (marco: `VENTANA_MARCO = 210` en `grabado/src/lib/afiche.ts` si se quiere más ancho o más fino) |
+| `amaro/fotomaton-r3` | **Casi terminada** (`tsc` en verde) | Hecho: kit v2 en cámara y editor, semitono de triángulos, ícono de usuario en las vistas previas, Señal con stickers de calle, Metro de L1, **cámara pedida en el toque, retrato 3:4 y errores claros**, vista en vivo más fluida. El último commit «wip» trae cambios a medio hacer en `useCamara` (estaba reescribiéndolo): **revisarlo**. **Falta:** verificación en 6 resoluciones con cámara falsa, `dist/` y probar en la tablet real. El `AVANCE.md` está desactualizado: guíate por `git log` |
+| `amaro/hora-punta-r3` | **A medias** (`tsc` en verde) | Hecho: Inacapín de Figma (nodo `1002:29670`, `juego-pixel/public/figma/inacapin.svg`), jefe nuevo (`jefe.ts`: camina, salta, escupe, embiste, ondas; 9 golpes, 3 fases), 48 pruebas de motor, personaje «Pinta», Grises, bola, efectos, andén y jefe a todo el alto, micro/taxi/autos/metro L1. El último «wip» trae ajustes de dibujo del andén, el jefe y los personajes. **Falta:** controles más compactos en andén y jefe, Pinta en el cruce, tarjeta con Pinta, verificación Playwright y `dist/` |
+| `amaro/hub-r3` | **Empezado, NO compila** | El «wip» trae el inicio del **modo galería** (`hub-estacion/src/galeria/`) y un cambio en `escena.ts`. `tsc` falla: `src/galeria/ejemplos.ts` importa `./piezas`, que no alcanzó a crearse. **Falta:** casi todo el encargo B5 |
 | `amaro/teatro-r3` | **Sin empezar** | Encargo B6 |
 | `amaro/graffiti-r3` | **Sin empezar** | Encargo B7 |
-
-**Si un agente de Amaro se cortó a mitad de una edición**, su rama puede no tener lo último: los cambios sin commit quedan
-en la sesión de Amaro, no en GitHub. Parte desde lo que está en `origin` y su `AVANCE.md`; revisa con `git log` qué ya está
-hecho aunque el `AVANCE.md` no lo marque.
 
 Referencias de Amaro (fotos del tren de Línea 1 y el metro Pixel de la web): estaban en la sesión de Amaro y **no están
 en el repo**. El metro Pixel de la web se parece a `juego-pixel/public/figma/metro-lateral.svg`. Si las necesitas, pídeselas.
 
 ## 3. Prioridad para el 19 (si no alcanza, lo de abajo queda fuera)
 1. **Mergear el PR #37.**
-2. Fotomatón: terminar y verificar la **cámara en la tablet** (sin esto no funciona la experiencia) y sumarlo a `amaro/ronda-3`.
+2. **Fotomatón**: revisar el último «wip» de `useCamara`, verificar, `dist/` y **probar la cámara en la tablet real** (sin esto no funciona la experiencia). Sumarlo a `main`.
 3. Hora punta, menú + Grabado.
 4. HUB: **respaldo de la Flip** (galería, R3).
 5. Graffiti (stickers), Teatro en kit v2.
