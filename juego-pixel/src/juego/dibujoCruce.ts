@@ -43,6 +43,9 @@ const cache = { c: 0, piezas: new Map<string, { lienzo: HTMLCanvasElement; ax: n
 
 type P = [number, number];
 
+// Rojo de las micros de la red de Santiago (excepción a la paleta Línea azul, solo aquí; pedido de Pipe, 18 nov).
+const ROJO_RED = '#D7262E';
+
 export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto: number, e: Cruce, camara: number, img: Imagenes, ahora: number, quieto = false) {
   const j = e.jugador;
   let v = vistas.get(e);
@@ -266,7 +269,6 @@ export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto:
     ctx.fillStyle = '#FFFFFF'; ctx.fillRect(ox + 2 * p, oy + 2 * p, 2 * p, p);
   }
 
-  const ROJO_RED = '#D7262E'; // rojo de las micros de la red (excepción de paleta, solo aquí)
   function vehiculo(veh: Vehiculo, y: number, dir: 1 | -1) {
     const x0 = veh.x, x1 = veh.x + veh.largo, p = u();
     sombraSuelo(x0 + 0.05, x1 - 0.05, y + 0.14, y + 0.86, 0);
