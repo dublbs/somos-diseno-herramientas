@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { DURACION_TRAYECTO, LLEGADA, type Item } from '../escenario/dibujar';
 import { pieza } from '../escenario/piezas';
-import { Interruptor, Segmentado } from '../../../shared/ui/Kit';
+import { BotonIcono, Interruptor, Segmento } from '../../../shared/ui/Herramienta';
 
 // Línea de tiempo (propuesta 005, «After Effects»): play, tiempo y FPS arriba; una fila por pieza con sus keyframes.
 // En las piezas que caminan, A está en 0 s y al cerrar el loop; B se arrastra para elegir cuándo llega.
@@ -13,6 +13,7 @@ interface Props {
   fps: number;
   borde: boolean;
   max?: number; // tope de piezas por escena
+  disabled?: boolean; // mientras se graba el video
   onPlay: () => void;
   onTiempo: (ms: number) => void;
   onFps: (f: number) => void;
@@ -35,23 +36,22 @@ export const LineaDeTiempo: React.FC<Props> = p => {
   };
   const u = p.tiempo / DURACION_TRAYECTO;
   return (
-    <div className="linea-tiempo">
+    <div className="linea-tiempo" role="group" aria-label="Línea de tiempo" data-h-sin-gestos="">
       <div className="lt-cabeza">
         <div className="lt-controles">
-          <button type="button" className="k-btn k-icono k-primario" onClick={p.onPlay} aria-label={p.pausado ? 'Reproducir el loop' : 'Pausar el loop'}>
-            <span className="material-symbols-outlined" aria-hidden="true">{p.pausado ? 'play_arrow' : 'pause'}</span>
-          </button>
+          <BotonIcono variante="primario" icono={p.pausado ? 'play_arrow' : 'pause'} etiqueta={p.pausado ? 'Reproducir el loop' : 'Pausar el loop'} onClick={p.onPlay} disabled={p.disabled} />
           <span className="lt-reloj">{(p.tiempo / 1000).toFixed(1)} s</span>
         </div>
-        <input type="range" className="k-rango lt-cursor" min={0} max={DURACION_TRAYECTO} step={50} value={p.tiempo}
+        <input type="range" className="h-rango lt-cursor" min={0} max={DURACION_TRAYECTO} step={50} value={p.tiempo}
+          style={{ '--p': `${u * 100}%` } as React.CSSProperties} disabled={p.disabled}
           onChange={e => p.onTiempo(Number(e.target.value))} aria-label="Tiempo del loop" />
         <div className="lt-ajustes">
-          <Segmentado etiqueta="Cuadros por segundo" valor={p.fps} onCambiar={p.onFps} opciones={FPS.map(f => ({ valor: f, texto: `${f} fps` }))} />
-          <Interruptor id="borde" texto="Borde" activo={p.borde} onCambiar={p.onBorde} />
+          <Segmento etiqueta="Cuadros por segundo" valor={p.fps} onCambiar={p.onFps} opciones={FPS.map(f => ({ valor: f, texto: `${f} fps`, disabled: p.disabled }))} />
+          <Interruptor texto="Borde" activo={p.borde} onCambiar={p.onBorde} />
         </div>
       </div>
       <div className="lt-pistas" style={{ '--filas': Math.max(1, p.items.length) } as React.CSSProperties}>
-        {!p.items.length && <p className="k-ayuda lt-vacia">Arrastra piezas al escenario: cada una tendrá aquí su fila con sus keyframes{p.max ? ` (hasta ${p.max})` : ''}.</p>}
+        {!p.items.length && <p className="h-ayuda lt-vacia">Arrastra piezas al escenario: cada una tendrá aquí su fila con sus keyframes{p.max ? ` (hasta ${p.max})` : ''}.</p>}
         {[...p.items].reverse().map(it => {
           const b = it.llegada ?? LLEGADA;
           return (
