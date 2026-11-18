@@ -4,11 +4,10 @@ import { miniatura, publicar } from '../../shared/datos';
 import { MARCOS, porId, type Visual } from './data/marcos';
 import { TINTAS } from './data/tintas';
 import { Panel } from './components/Panel';
-import { BotonAccion, Confirmar } from '../../shared/ui/Kit';
-import type { Lado } from './hooks/useCamara';
+import { Boton, useAviso } from '../../shared/ui/Herramienta';
+import { abrirCamaraEnToque, type Lado } from './hooks/useCamara';
 import type { Cara } from './lib/cara';
 import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
-import '../../shared/ui/somos-kit.css';
 import { Camara } from './components/Camara';
 import { Editor, type FotoEditable } from './components/Editor';
 import { PasoQR } from './components/PasoQR';
@@ -33,7 +32,10 @@ export function App() {
   // Placas de impresión apagadas (canales de la trama), como el ojo de un canal en Photoshop.
   const [apagadas, setApagadas] = useState<string[]>([]), [lado, setLado] = useState<Lado>('user');
   const vivo = useRef<{ c: HTMLCanvasElement; cara: Cara | null } | null>(null);
-  const [foto, setFoto] = useState<FotoEditable | null>(null), [aviso, setAviso] = useState('');
+  const [foto, setFoto] = useState<FotoEditable | null>(null), [aviso, setAviso] = useAviso();
+  // «Restablecer» con la foto puesta pide un segundo toque (no se borra por accidente).
+  const [armado, setArmado] = useState(false);
+  useEffect(() => { if (!armado) return; const t = setTimeout(() => setArmado(false), 2500); return () => clearTimeout(t); }, [armado]);
   const [ocupado, setOcupado] = useState(false), [tarjeta, setTarjeta] = useState<Blob | null>(null);
   const archivo = useRef<HTMLInputElement>(null);
   const [marcoMostrado, cambiando] = useRetardo(marcoId, RETARDO_MARCO);
@@ -61,7 +63,6 @@ export function App() {
     });
     return () => { vivo = false; };
   }, [foto]);
-  useEffect(() => { if (!aviso) return; const t = setTimeout(() => setAviso(''), 2600); return () => clearTimeout(t); }, [aviso]);
 
   const elegirVisual = (v: Visual) => {
     setVisual(v);
@@ -92,7 +93,7 @@ export function App() {
     setCelda(INICIAL.celda); setTinta(INICIAL.tinta); setApagadas([]); setPaso('camara');
   };
   // Restablecer: además vuelve al lenguaje y al marco de partida.
-  const restablecer = () => { terminar(); setVisual(INICIAL.visual); setMarcoId(INICIAL.marco); setLado('user'); };
+  const restablecer = () => { setArmado(false); terminar(); setVisual(INICIAL.visual); setMarcoId(INICIAL.marco); setLado('user'); };
 
   // Con una persona jugando, su tarjeta llega al inventario de su credencial, como lo que se crea en las otras mesas.
   // Solo después de que acepta el aviso y toca «Generar QR»: es cuando la tarjeta sale de la tablet (fotomaton/CLAUDE.md).
@@ -116,10 +117,11 @@ export function App() {
       camara={paso === 'camara' ? { lado, setLado, alSubir: subir } : undefined} />
   );
   const restablecerEl = paso === 'camara'
-    ? <BotonAccion icono="restart_alt" texto="Restablecer" onClick={restablecer} />
-    : <Confirmar icono="restart_alt" texto="Restablecer" pregunta="¿Borrar la foto?" onConfirmar={restablecer} />;
+    ? <Boton icono="restart_alt" texto="Restablecer" variante="fantasma" onClick={restablecer} />
+    : <Boton icono="restart_alt" texto={armado ? '¿Borrar la foto?' : 'Restablecer'} variante={armado ? 'peligro' : 'fantasma'}
+        onClick={() => (armado ? restablecer() : setArmado(true))} />;
   const input = <input ref={archivo} type="file" accept="image/*" capture="user" style={{ display: 'none' }} onChange={alArchivo} />;
-  const avisoEl = <>{aviso ? <div className="aviso" role="status">{aviso}</div> : null}<Quiosco app="fotomaton" /></>;
+  const avisoEl = <Quiosco app="fotomaton" />;
 
   if (!visto) return (
     <>
@@ -131,7 +133,7 @@ export function App() {
           { icono: 'ios_share', texto: 'Llévatela al celular con un QR. Queda 24 horas y después se borra.' },
         ]}
         acciones={[
-          { texto: 'Abrir la cámara', icono: 'photo_camera', alTocar: () => { marcarVisto(); setPaso('camara'); } },
+          { texto: 'Abrir la cámara', icono: 'photo_camera', alTocar: () => { abrirCamaraEnToque(lado); marcarVisto(); setPaso('camara'); } },
           { texto: 'Subir una foto', icono: 'image', alTocar: () => { marcarVisto(); subir(); } },
         ]} />
     </>
@@ -143,12 +145,12 @@ export function App() {
       {input}
       {paso === 'camara' ? (
         <Camara lado={lado} marco={marcoMostrado} celda={celda} tinta={tinta} apagadas={placasActivas} vivo={vivo} cambiando={cambiando} textoCambio={textoCambio} alSubir={subir}
-          volver={HUB_URL} acciones={restablecerEl} lateral={lateral}
+          volver={HUB_URL} acciones={restablecerEl} panel={lateral} aviso={aviso}
           alFoto={(f, c) => { revelar(); setFoto({ c: f, cara: c }); setPaso('editar'); }} />
       ) : (
         <Editor foto={foto} marco={marcoMostrado} celda={celda} tinta={tinta} apagadas={placasActivas} revelando={revelando} cambiando={cambiando}
           textoCambio={textoCambio} ocupado={ocupado} alLlevatela={llevatela} alOtra={() => setPaso('camara')}
-          volver={HUB_URL} acciones={restablecerEl} lateral={lateral} />
+          volver={HUB_URL} acciones={restablecerEl} panel={lateral} aviso={aviso} />
       )}
       {paso === 'qr' && tarjeta && (
         <div className="k-quiosco" role="dialog" aria-modal="true" aria-labelledby="qr-t">

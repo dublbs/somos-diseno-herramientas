@@ -9,7 +9,8 @@ import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
 import { Llevatela } from '../../shared/ui/Llevatela';
 import { TACOS, cargarTacos, miniaturaTaco, tacoEntintado, tacoPorId, type TacoListo } from './lib/tacos';
 import {
-  CacheCapas, MARCOS_AFICHE, MAX_CAPAS, PAPEL, PAPELES, TACO_BASE, componer, lienzoMarco, tamEstampa, tarjeta,
+  CacheCapas, MARCOS_AFICHE, MAX_CAPAS, PAPEL, PAPELES, TACO_BASE, componer, componerPapel, lienzoMarco, margenMarco, marcoValido,
+  tamEstampa, tarjeta,
   type Afiche, type CapaAfiche, type Papel,
 } from './lib/afiche';
 import './styles.css';
@@ -27,10 +28,14 @@ const nuevaCapa = (n: number, tinta: string): CapaAfiche => ({ id: `c${Date.now(
 function inicial(): Afiche {
   try {
     const g = JSON.parse(localStorage.getItem(CLAVE) || 'null') as Afiche | null;
-    if (g && Array.isArray(g.capas) && g.capas.length && g.capas.some(c => c.id === g.activa)) return { ...g, papel: g.papel in PAPELES ? g.papel : 'Hueso' };
+    // Un afiche guardado antes del plan 014 puede traer un marco de otro lenguaje (o «marcoEncima»): se limpia.
+    if (g && Array.isArray(g.capas) && g.capas.length && g.capas.some(c => c.id === g.activa)) {
+      const { capas, activa, registro } = g;
+      return { capas, activa, registro: !!registro, papel: g.papel in PAPELES ? g.papel : 'Hueso', marco: marcoValido(g.marco) };
+    }
   } catch { /* sin almacenamiento */ }
   const c = nuevaCapa(1, ROTACION[0]);
-  return { capas: [c], activa: c.id, papel: 'Hueso', marco: null, marcoEncima: true, registro: false };
+  return { capas: [c], activa: c.id, papel: 'Hueso', marco: null, registro: false };
 }
 
 // Miniatura de una capa: lo que tiene, en su tinta, sobre el papel y encuadrado en sus estampas (o una gota de su
@@ -74,6 +79,7 @@ export const App: React.FC = () => {
   const [borrarTodo, setBorrarTodo] = useState(false);
   const lienzo = useRef<HTMLCanvasElement>(null);
   const encima = useRef<HTMLCanvasElement>(null);
+  const marcoRef = useRef<HTMLCanvasElement>(null); // el marco, alrededor del papel
   const caja = useRef<HTMLDivElement>(null);
   const cache = useRef(new CacheCapas());
   const cacheMini = useRef(new CacheCapas());
@@ -101,7 +107,7 @@ export const App: React.FC = () => {
     if (!lado) return;
     if (c.width !== lado) { c.width = c.height = lado; }
     const x = c.getContext('2d')!;
-    componer(x, lado, af, t, cache.current);
+    componerPapel(x, lado, af, t, cache.current);
     cache.current.limpiar(af.capas.map(k => k.id));
     // la última estampa aparece con un golpe suave (como al levantar el taco)
     const ap = aparece.current;
@@ -112,11 +118,23 @@ export const App: React.FC = () => {
     }
   }, []);
   useEffect(() => { dibujar(); setVersion(v => v + 1); }, [a, tacos, empezado, dibujar]);
+  // El marco va en su propio canvas, del tamaño de toda la hoja; el papel queda encima, al centro.
+  const dibujarMarco = useCallback(() => {
+    const c = marcoRef.current, { a: af } = vivo.current, id = marcoValido(af.marco);
+    if (!c || !id) return;
+    const lado = Math.round(c.clientWidth * Math.min(window.devicePixelRatio || 1, 2));
+    if (!lado) return;
+    if (c.width !== lado) { c.width = c.height = lado; }
+    const x = c.getContext('2d')!;
+    x.clearRect(0, 0, lado, lado);
+    x.drawImage(lienzoMarco(id, lado, PAPELES[af.papel]), 0, 0);
+  }, []);
+  useEffect(() => { dibujarMarco(); }, [a.marco, a.papel, empezado, dibujarMarco]);
   useEffect(() => {
-    const c = lienzo.current; if (!c) return;
-    const ro = new ResizeObserver(() => { dibujar(); }); ro.observe(c);
+    const c = lienzo.current, m = marcoRef.current; if (!c) return;
+    const ro = new ResizeObserver(() => { dibujar(); dibujarMarco(); }); ro.observe(c); if (m) ro.observe(m);
     return () => ro.disconnect();
-  }, [empezado, dibujar]);
+  }, [empezado, dibujar, dibujarMarco, a.marco]);
 
   // Vista previa del taco: translúcida, en la tinta de la capa activa, sobre el papel.
   useEffect(() => {
@@ -222,6 +240,8 @@ export const App: React.FC = () => {
   const [tw, th] = tacoListo ? tamEstampa(tacoListo, 1) : [300, 300];
   const vacio = total === 0;
   const papelHex = PAPELES[a.papel];
+  const marcoActivo = marcoValido(a.marco);
+  const margen = margenMarco(marcoActivo);
 
   const barraTacos = (
     <div className="h-flotante tacos" role="toolbar" aria-label="Tacos">
@@ -262,16 +282,13 @@ export const App: React.FC = () => {
     </SeccionPanel>
 
     <SeccionPanel titulo="Marco">
-      <GrillaBiblioteca etiqueta="Marco" tam={60} elegido={a.marco ?? 'ninguno'}
+      <GrillaBiblioteca etiqueta="Marco" tam={60} columnas={3} elegido={a.marco ?? 'ninguno'}
         onElegir={id => cambiar(v => ({ ...v, marco: id === 'ninguno' ? null : id }))}
         elementos={[
           { id: 'ninguno', nombre: 'Sin marco', contenido: <Icono nombre="crop_square" /> },
-          ...MARCOS_AFICHE.map(m => ({ id: m.id, nombre: `${m.name} · ${m.visual}`, contenido: <MiniMarco id={m.id} papel={papelHex} /> })),
+          ...MARCOS_AFICHE.map(m => ({ id: m.id, nombre: m.name, contenido: <MiniMarco id={m.id} papel={papelHex} /> })),
         ]} />
-      {a.marco && (
-        <Segmento etiqueta="Dónde va el marco" valor={a.marcoEncima} onCambiar={v => cambiar(x => ({ ...x, marcoEncima: v }))}
-          opciones={[{ valor: true, texto: 'Sobre las estampas', icono: 'flip_to_front' }, { valor: false, texto: 'Bajo las estampas', icono: 'flip_to_back' }]} />
-      )}
+      <p className="h-ayuda">Los marcos de Orgánica rodean el papel: no tapan nada de lo que estampas.</p>
     </SeccionPanel>
 
     <SeccionPanel titulo="Ajustes">
@@ -300,7 +317,9 @@ export const App: React.FC = () => {
     }}
       primario={{ texto: 'Llévatelo', onClick: exportar, disabled: vacio || !tacos }}
       herramientas={barraTacos} panel={panel} anchoPanel={340} altoPanelVertical="40%" aviso={aviso}>
-      <LienzoAjustado ref={caja} proporcion={1} className="hoja">
+      <LienzoAjustado ref={caja} proporcion={1} className={'hoja' + (marcoActivo ? ' con-marco' : '')}>
+        {marcoActivo && <canvas ref={marcoRef} className="marco" aria-hidden="true" />}
+        <div className="zona-papel" style={{ inset: `${margen * 100}%` }}>
         <canvas ref={lienzo} className="papel" onPointerDown={tocarPapel} role="img"
           aria-label={`Afiche con ${a.capas.length} capa${a.capas.length === 1 ? '' : 's'} y ${total} estampa${total === 1 ? '' : 's'}. Toca para ubicar ${def.nombre}.`} />
         <canvas ref={encima} className="previa" aria-hidden="true" />
@@ -315,6 +334,7 @@ export const App: React.FC = () => {
               acciones={[{ icono: 'rotate_90_degrees_cw', etiqueta: 'Girar 90°', onClick: () => setPrevia(p => p && { ...p, giro: ((p.giro + 90 + 180) % 360) - 180 }) }]}
               onCancelar={cancelar} onConfirmar={estampar} />} />
         )}
+        </div>
       </LienzoAjustado>
     </MarcoHerramienta>
     {llevar && <Llevatela blob={llevar} app="grabado" titulo="Tu afiche está listo" conCredencial={!!jugador()?.codigo} alCerrar={() => setLlevar(null)} />}
@@ -322,14 +342,17 @@ export const App: React.FC = () => {
   </>);
 };
 
-// Miniatura de un marco sobre el papel elegido.
+// Miniatura de un marco alrededor del papel elegido.
 const MiniMarco: React.FC<{ id: string; papel: string }> = ({ id, papel }) => {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const c = ref.current; if (!c) return;
     const x = c.getContext('2d')!;
-    x.fillStyle = papel; x.fillRect(0, 0, 96, 96);
+    const m = Math.round(96 * margenMarco(id));
+    x.clearRect(0, 0, 96, 96);
     x.drawImage(lienzoMarco(id, 96, papel), 0, 0);
+    x.fillStyle = papel; x.fillRect(m, m, 96 - 2 * m, 96 - 2 * m);
+    x.strokeStyle = 'rgba(0,0,0,0.18)'; x.lineWidth = 1; x.strokeRect(m + 0.5, m + 0.5, 95 - 2 * m, 95 - 2 * m);
   }, [id, papel]);
   return <canvas ref={ref} width={96} height={96} style={{ width: '100%', height: '100%', display: 'block', borderRadius: 3 }} />;
 };

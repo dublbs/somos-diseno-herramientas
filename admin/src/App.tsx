@@ -8,16 +8,27 @@ import './styles.css';
 // PC madre (plan 007): el panel del staff para el evento. Personas y timbres, canje con stock, mesas, avisos y configuración.
 // Corre en el PC del stand (o en cualquier navegador) con la sesión de Supabase Auth de cada persona del equipo.
 
-type Vista = 'personas' | 'canje' | 'mesas' | 'avisos' | 'config';
+type Vista = 'resumen' | 'personas' | 'canje' | 'mesas' | 'hub' | 'avisos' | 'config';
 const VISTAS: { id: Vista; nombre: string; icono: string }[] = [
+  { id: 'resumen', nombre: 'Resumen', icono: 'speed' },
   { id: 'personas', nombre: 'Personas', icono: 'grid_view' },
   { id: 'canje', nombre: 'Canje', icono: 'approval' },
   { id: 'mesas', nombre: 'Mesas', icono: 'train' },
+  { id: 'hub', nombre: 'Pantalla HUB', icono: 'wallpaper' },
   { id: 'avisos', nombre: 'Avisos', icono: 'auto_awesome' },
   { id: 'config', nombre: 'Configuración', icono: 'tune' },
 ];
 const Icono: React.FC<{ n: string }> = ({ n }) => <span className="material-symbols-outlined" aria-hidden="true">{n}</span>;
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Santiago' });
+// Nombres de lo que guarda la base (pasos del timbre 2 y tipos de eventos del HUB).
+const EXPERIENCIAS: Record<string, string> = {
+  audioreactiva: 'Audioreactiva', fotomaton: 'Fotomatón', grabado: 'Grabado', graffiti: 'Graffiti', juego: 'Hora punta',
+  mosaicos: 'Mosaicos', 'taller-mosaicos': 'Mosaicos', teatro: 'Teatro', loops: 'Teatro', vagon: 'Vagón',
+};
+const TIPOS: Record<string, string> = {
+  credencial: 'Credencial', timbre: 'Timbre', vagon: 'Vagón', grabado: 'Grabado', mosaico: 'Mosaico', audio: 'Audioreactiva',
+  graffiti: 'Graffiti', foto: 'Fotomatón', juego: 'Hora punta',
+};
 const normalizar = (c: string) => { const t = c.toUpperCase().replace(/[^A-Z0-9]/g, ''); return t.startsWith('SD') ? 'SD-' + t.slice(2, 7) : 'SD-' + t.slice(0, 5); };
 
 // Avisos cortos (se van solos).
@@ -30,7 +41,7 @@ function useAviso(): [string, (m: string) => void] {
 export const App: React.FC = () => {
   const [sesion, setSesion] = useState<Session | null | undefined>(undefined);
   const [staff, setStaff] = useState<api.Staff | null | undefined>(undefined);
-  const [vista, setVista] = useState<Vista>('personas');
+  const [vista, setVista] = useState<Vista>('resumen');
 
   useEffect(() => {
     if (!api.configurado) { setSesion(null); return; }
@@ -70,9 +81,11 @@ export const App: React.FC = () => {
         </div>
       </nav>
       <main className="contenido">
+        {vista === 'resumen' && <ResumenPanel ir={setVista} />}
         {vista === 'personas' && <Personas staff={staff} />}
         {vista === 'canje' && <CanjePanel staff={staff} />}
-        {vista === 'mesas' && <Mesas />}
+        {vista === 'mesas' && <Mesas staff={staff} />}
+        {vista === 'hub' && <PantallaHub />}
         {vista === 'avisos' && <Avisos />}
         {vista === 'config' && <Config staff={staff} />}
       </main>
@@ -139,6 +152,7 @@ const Personas: React.FC<{ staff: api.Staff }> = ({ staff }) => {
   const [nombre, setNombre] = useState('');
   const [aviso, setAviso] = useAviso();
   const [ocupado, setOcupado] = useState(false);
+  const [abierta, setAbierta] = useState<api.Persona | null>(null);
   const cargar = useCallback(() => api.personas(busqueda).then(setLista).catch(e => setAviso((e as Error).message)), [busqueda, setAviso]);
   useEffect(() => { const t = setTimeout(cargar, 150); return () => clearTimeout(t); }, [cargar]);
   useEffect(() => api.enVivo(cargar), [cargar]);
@@ -151,22 +165,27 @@ const Personas: React.FC<{ staff: api.Staff }> = ({ staff }) => {
   };
   const alternarSello = (p: api.Persona, n: number) => hacer(() => (p.sellos.includes(n) ? api.quitarSello(p.id, n) : api.darSello(p.id, n)));
   const guardarNombre = (p: api.Persona) => hacer(async () => { await api.renombrar(p.id, nombre); setEditando(null); }, 'Nombre guardado.');
-  const borrar = (p: api.Persona) => { if (confirm(`¿Borrar la credencial ${p.codigo} (${p.nombre})? Se borran sus timbres y avisos.`)) hacer(() => api.borrarPersona(p.id), 'Credencial borrada.'); };
+  const borrar = (p: api.Persona) => { if (confirm(`¿Borrar la credencial ${p.codigo} (${p.nombre})? Se borran sus timbres y avisos, y sale del HUB.`)) hacer(async () => { await api.borrarPersona(p.id); if (abierta?.id === p.id) setAbierta(null); }, 'Credencial borrada.'); };
+  const exportar = () => hacer(async () => { descargarCsv(await api.todasLasPersonas()); }, 'CSV descargado.');
 
   const total = lista.length, completas = lista.filter(p => completa(p.sellos)).length, canjeadas = lista.filter(p => p.canjeado).length;
   return (
     <section>
       <header className="cabecera">
         <div><h1>Personas</h1><p className="ayuda">{total} credenciales · {completas} completas · {canjeadas} canjeadas</p></div>
-        <input className="buscar" type="search" placeholder="Buscar por código o nombre" value={busqueda} onChange={e => setBusqueda(e.target.value)} aria-label="Buscar" />
+        <div className="acciones">
+          <input className="buscar" type="search" placeholder="Buscar por código o nombre" value={busqueda} onChange={e => setBusqueda(e.target.value)} aria-label="Buscar" />
+          <button type="button" className="btn" onClick={exportar} disabled={ocupado} title="Todas las credenciales, en una planilla"><Icono n="download" />CSV</button>
+        </div>
       </header>
       {aviso && <p className="aviso" role="status">{aviso}</p>}
+      {abierta && <FichaPersona p={lista.find(x => x.id === abierta.id) ?? abierta} alCerrar={() => setAbierta(null)} />}
       <table className="tabla">
         <thead><tr><th>Código</th><th>Nombre</th><th>Lenguaje</th>{ESTACIONES.map(e => <th key={e.n} className="centro-col" title={e.nombre}>{e.n}</th>)}<th title="Experiencias distintas (timbre 2)">Creación</th><th title="Afiches encontrados (timbre 3)">Cacería</th><th>Avisos</th><th>Canje</th><th>Hora</th><th></th></tr></thead>
         <tbody>
           {lista.map(p => (
             <tr key={p.id} className={p.canjeado ? 'canjeada' : completa(p.sellos) ? 'completa' : ''}>
-              <td className="mono">{p.codigo}</td>
+              <td><button type="button" className="texto mono" onClick={() => setAbierta(p)} title="Ver la ficha">{p.codigo} <Icono n="visibility" /></button></td>
               <td>
                 {editando === p.id ? (
                   <form className="enlinea" onSubmit={e => { e.preventDefault(); guardarNombre(p); }}>
@@ -269,20 +288,43 @@ const CanjePanel: React.FC<{ staff: api.Staff }> = ({ staff }) => {
 };
 
 // ---------- mesas ----------
-const Mesas: React.FC = () => {
+const Mesas: React.FC<{ staff: api.Staff }> = ({ staff }) => {
   const [lista, setLista] = useState<api.Sesion[]>([]);
+  const [conf, setConf] = useState<api.ConfigMesas | null | undefined>(undefined);
   const [aviso, setAviso] = useAviso();
   const cargar = useCallback(() => api.sesiones().then(setLista).catch(e => setAviso((e as Error).message)), [setAviso]);
-  useEffect(() => { cargar(); const id = setInterval(cargar, 8000); return () => clearInterval(id); }, [cargar]);
+  const cargarConf = useCallback(() => api.configMesas().then(setConf).catch(e => setAviso((e as Error).message)), [setAviso]);
+  useEffect(() => { cargar(); cargarConf(); const id = setInterval(cargar, 8000); return () => clearInterval(id); }, [cargar, cargarConf]);
+  const admin = staff.rol === 'admin';
+  const hacer = async (f: () => Promise<void>, ok: string) => { try { await f(); await cargarConf(); setAviso(ok); } catch (e) { setAviso((e as Error).message); } };
   const porMesa = new Map<string, api.Sesion>();
   for (const s of lista) if (!porMesa.has(s.mesa)) porMesa.set(s.mesa, s);
   return (
     <section>
-      <header className="cabecera"><div><h1>Mesas</h1><p className="ayuda">Qué credencial entró en modo juego en cada tablet. La tablet se identifica con 4 letras (se ven en <code>?staff</code>).</p></div></header>
+      <header className="cabecera"><div><h1>Mesas</h1><p className="ayuda">Las tablets se configuran desde aquí (plan 015) y lo aplican en ~30 s. Cada tablet se identifica con 4 letras.</p></div></header>
       {aviso && <p className="aviso" role="status">{aviso}</p>}
+      <div className="dos">
+        <div className="tarjeta">
+          <p className="etq">Todas las tablets</p>
+          {conf === undefined ? <p className="ayuda">Cargando…</p> : conf === null ? (
+            <p className="ayuda">Falta correr <code>shared/supabase/migraciones/008-config-mesas.sql</code> en Supabase. Mientras tanto, cada tablet se configura en <code>?staff</code>.</p>
+          ) : (<>
+            <label className="fila-check"><input type="checkbox" checked={conf.modo_juego} disabled={!admin}
+              onChange={e => { const si = e.target.checked; hacer(() => api.guardarModoJuego(si), si ? 'Modo juego encendido en todas las tablets.' : 'Modo juego apagado: las tablets dejan de pedir el código.'); }} />
+              Modo juego: las tablets piden el código de la credencial</label>
+            <p className="ayuda">Código de la estación 2 (lo usan las tablets solas; debe coincidir con los QR impresos): <b className="mono">{conf.token2 ?? '—'}</b></p>
+            <p className="ayuda">{conf.hay_pin ? 'El PIN del canje (Configuración) también abre ?staff en las tablets.' : 'Sin PIN: defínelo en Configuración (también abre ?staff en las tablets).'}</p>
+            {admin ? <button type="button" className="btn" onClick={() => { if (confirm('¿Reiniciar todas las tablets? Se borra el código de quien esté jugando y vuelven a pedirlo.')) hacer(() => api.reiniciarMesas(), 'Reinicio enviado a todas las tablets.'); }}>Reiniciar todas las tablets</button>
+              : <p className="ayuda">Solo un admin puede cambiar esto.</p>}
+            {conf.reinicio && <p className="ayuda">Último reinicio general: {hora(conf.reinicio)}</p>}
+          </>)}
+        </div>
+      </div>
       <div className="fichas">
         {[...porMesa.values()].map(s => (
-          <div key={s.mesa} className="tarjeta"><p className="etq">Mesa {s.mesa} · {s.app}</p><p className="mono grande">{s.codigo}</p><p className="ayuda">desde las {hora(s.inicio)}</p></div>
+          <div key={s.mesa} className="tarjeta"><p className="etq">Mesa {s.mesa} · {s.app}</p><p className="mono grande">{s.codigo}</p><p className="ayuda">desde las {hora(s.inicio)}</p>
+            {admin && conf && <button type="button" className="btn" onClick={() => hacer(() => api.reiniciarMesas(s.mesa), `Reinicio enviado a la mesa ${s.mesa}.`)}>Reiniciar esta mesa</button>}
+          </div>
         ))}
         {!porMesa.size && <p className="vacio">Ninguna tablet ha abierto una sesión de juego todavía.</p>}
       </div>
@@ -371,9 +413,10 @@ const Config: React.FC<{ staff: api.Staff }> = ({ staff }) => {
           <p className="ayuda">{hay === null ? 'Comprobando…' : hay ? 'Hay un PIN configurado. Guardar uno nuevo lo reemplaza.' : 'Todavía no hay PIN: nadie puede canjear desde el celular hasta que lo definas.'}</p>
           <label>Nuevo PIN (4 a 8 números)<input className="mono grande" inputMode="numeric" value={pin} disabled={staff.rol !== 'admin'} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 8))} /></label>
           {staff.rol === 'admin' ? <button className="btn primario" disabled={pin.length < 4}>Guardar PIN</button> : <p className="ayuda">Solo un admin puede cambiarlo.</p>}
-          <p className="ayuda">Si las tablets usan <code>VITE_STAFF_PIN_SHA256</code>, ponles el mismo PIN para que el equipo recuerde uno solo.</p>
+          <p className="ayuda">Con la migración 008, este PIN también abre <code>?staff</code> en las tablets: el equipo recuerda uno solo.</p>
         </form>
         <Cuentas staff={staff} />
+        {staff.rol === 'admin' && <EmpezarDeCero />}
       </div>
     </section>
   );
@@ -420,5 +463,193 @@ const Cuentas: React.FC<{ staff: api.Staff }> = ({ staff }) => {
         ))}</tbody>
       </table>
     </div>
+  );
+};
+
+// ---------- resumen (plan 017) ----------
+const ResumenPanel: React.FC<{ ir: (v: Vista) => void }> = ({ ir }) => {
+  const [r, setR] = useState<api.Resumen | null | undefined>(undefined);
+  const [mig, setMig] = useState<api.EstadoMigracion[]>([]);
+  const [aviso, setAviso] = useAviso();
+  const cargar = useCallback(() => api.resumen().then(setR).catch(e => setAviso((e as Error).message)), [setAviso]);
+  useEffect(() => { cargar(); api.estadoMigraciones().then(setMig); const id = setInterval(cargar, 15000); return () => clearInterval(id); }, [cargar]);
+  useEffect(() => api.enVivo(cargar), [cargar]);
+  const faltan = mig.filter(m => m.corrida === false);
+  const hora1 = r ? Object.entries(r.ultima_hora).filter(([t]) => t !== 'timbre').sort((a, b) => b[1] - a[1]) : [];
+  return (
+    <section>
+      <header className="cabecera"><div><h1>Resumen</h1><p className="ayuda">El evento en vivo. Se actualiza solo.</p></div></header>
+      {aviso && <p className="aviso" role="status">{aviso}</p>}
+      {faltan.length > 0 && (
+        <div className="tarjeta alerta" role="alert">
+          <p className="etq">Faltan migraciones en Supabase</p>
+          <p className="ayuda">Sin ellas, partes del evento fallan (por ejemplo, «La base todavía no tiene esta función» al escanear el QR de una tablet). Supabase → SQL Editor → New query → pegar el archivo → Run, en este orden:</p>
+          <ul className="lista">{faltan.map(m => <li key={m.archivo}><code>shared/supabase/migraciones/{m.archivo}</code> · {m.que}</li>)}</ul>
+        </div>
+      )}
+      {r === null ? <p className="ayuda">Los números necesitan la migración 010.</p> : r && (
+        <div className="numeros">
+          <Numero n={r.credenciales} t="credenciales" onClick={() => ir('personas')} />
+          <Numero n={r.completas} t="con los 4 timbres" />
+          <Numero n={r.canjes} t={`premios entregados${r.stock != null ? ` · quedan ${r.stock}` : ''}`} onClick={() => ir('canje')} />
+          <Numero n={r.mesas_activas} t="tablets jugando (15 min)" onClick={() => ir('mesas')} />
+          <Numero n={r.avisos_suscritos} t="celulares con avisos" onClick={() => ir('avisos')} />
+        </div>
+      )}
+      {r && (
+        <div className="dos">
+          <div className="tarjeta">
+            <p className="etq">Timbres entregados</p>
+            <table className="tabla"><tbody>
+              {ESTACIONES.map(e => <tr key={e.n}><td>{e.n} · {e.nombre}</td><td className="mono">{r.por_sello[String(e.n)] ?? 0}</td></tr>)}
+            </tbody></table>
+          </div>
+          <div className="tarjeta">
+            <p className="etq">Última hora en el HUB</p>
+            {hora1.length ? <table className="tabla"><tbody>{hora1.map(([t, n]) => <tr key={t}><td>{TIPOS[t] ?? t}</td><td className="mono">{n}</td></tr>)}</tbody></table>
+              : <p className="ayuda">Nada nuevo en la última hora.</p>}
+            <button type="button" className="btn" onClick={() => ir('hub')}><Icono n="wallpaper" />Ver la pantalla HUB</button>
+          </div>
+        </div>
+      )}
+      <h2>Estado de la base</h2>
+      <table className="tabla">
+        <thead><tr><th>Migración</th><th>Para qué</th><th>Estado</th></tr></thead>
+        <tbody>{mig.map(m => (
+          <tr key={m.archivo}><td className="mono">{m.archivo}</td><td>{m.que}</td>
+            <td>{m.corrida === null ? <span className="mono">sin red</span> : m.corrida ? <span className="pill ok">Corrida</span> : <span className="pill falta">Falta</span>}</td></tr>
+        ))}</tbody>
+      </table>
+    </section>
+  );
+};
+const Numero: React.FC<{ n: number; t: string; onClick?: () => void }> = ({ n, t, onClick }) => onClick
+  ? <button type="button" className="numero" onClick={onClick}><b className="mono">{n}</b><span>{t}</span></button>
+  : <div className="numero"><b className="mono">{n}</b><span>{t}</span></div>;
+
+// ---------- pantalla HUB (plan 017) ----------
+const FILTROS: { id: string; nombre: string; tipos: string[] }[] = [
+  { id: 'todo', nombre: 'Todo', tipos: ['credencial', 'graffiti', 'foto', 'mosaico', 'grabado', 'juego', 'vagon'] },
+  { id: 'credencial', nombre: 'Personas', tipos: ['credencial'] },
+  { id: 'dibujos', nombre: 'Dibujos y fotos', tipos: ['graffiti', 'foto', 'mosaico', 'grabado', 'juego', 'vagon'] },
+];
+const PantallaHub: React.FC = () => {
+  const [filtro, setFiltro] = useState(FILTROS[0]);
+  const [lista, setLista] = useState<api.EventoHub[]>([]);
+  const [aviso, setAviso] = useAviso();
+  const cargar = useCallback(() => api.eventosHub(filtro.tipos).then(setLista).catch(e => setAviso((e as Error).message)), [filtro, setAviso]);
+  useEffect(() => { cargar(); const id = setInterval(cargar, 10000); return () => clearInterval(id); }, [cargar]);
+  const quitar = async (e: api.EventoHub) => {
+    if (!confirm(`¿Quitar del HUB este ${(TIPOS[e.tipo] ?? e.tipo).toLowerCase()}${e.codigo ? ` (${e.codigo})` : ''}? No se puede deshacer.`)) return;
+    try { await api.ocultarEvento(e.id); setLista(l => l.filter(x => x.id !== e.id)); setAviso('Quitado. El HUB se recarga en menos de 30 s.'); }
+    catch (err) { setAviso((err as Error).message); }
+  };
+  const recargar = async () => { try { await api.recargarHub(); setAviso('Listo: el HUB se recarga en menos de 30 s.'); } catch (err) { setAviso((err as Error).message); } };
+  return (
+    <section>
+      <header className="cabecera">
+        <div><h1>Pantalla HUB</h1><p className="ayuda">Lo último que llegó al HUB. Si algo no debe verse, quítalo: desaparece de la pantalla al recargarse (sola, en menos de 30 s).</p></div>
+        <div className="acciones">
+          <div className="seg" role="radiogroup" aria-label="Qué mostrar">
+            {FILTROS.map(f => <button key={f.id} type="button" aria-pressed={filtro.id === f.id} onClick={() => setFiltro(f)}>{f.nombre}</button>)}
+          </div>
+          <button type="button" className="btn" onClick={recargar}><Icono n="refresh" />Recargar el HUB</button>
+        </div>
+      </header>
+      {aviso && <p className="aviso" role="status">{aviso}</p>}
+      <div className="fichas">
+        {lista.map(e => <TarjetaEvento key={e.id} e={e} alQuitar={() => quitar(e)} />)}
+        {!lista.length && <p className="vacio">Todavía no llega nada al HUB.</p>}
+      </div>
+    </section>
+  );
+};
+const TarjetaEvento: React.FC<{ e: api.EventoHub; alQuitar?: () => void }> = ({ e, alQuitar }) => {
+  const png = typeof e.datos.png === 'string' ? e.datos.png : typeof e.datos.foto === 'string' ? e.datos.foto : null;
+  return (
+    <div className="tarjeta evento">
+      <p className="etq">{TIPOS[e.tipo] ?? e.tipo} · {hora(e.creado)}</p>
+      {png ? <img src={png} alt="" /> : <p className="grande">{typeof e.datos.nombre === 'string' ? e.datos.nombre : '—'}</p>}
+      {e.tipo === 'credencial' && png && typeof e.datos.nombre === 'string' && <p><b>{e.datos.nombre}</b></p>}
+      <p className="mono ayuda">{e.codigo ?? 'sin credencial'}</p>
+      {alQuitar && <button type="button" className="btn chico" onClick={alQuitar}><Icono n="visibility_off" />Quitar del HUB</button>}
+    </div>
+  );
+};
+
+// ---------- ficha de una persona (plan 017) ----------
+const FichaPersona: React.FC<{ p: api.Persona; alCerrar: () => void }> = ({ p, alCerrar }) => {
+  const [pasos, setPasos] = useState<api.Paso[] | null>(null);
+  const [eventos, setEventos] = useState<api.EventoHub[]>([]);
+  const [aviso, setAviso] = useAviso();
+  const cargar = useCallback(() => Promise.all([api.pasosDe(p.id), api.eventosDe(p.codigo)]).then(([a, b]) => { setPasos(a); setEventos(b); }).catch(e => setAviso((e as Error).message)), [p.id, p.codigo, setAviso]);
+  useEffect(() => { cargar(); }, [cargar]);
+  const quitar = async (e: api.EventoHub) => {
+    if (!confirm('¿Quitar esto del HUB?')) return;
+    try { await api.ocultarEvento(e.id); await cargar(); } catch (err) { setAviso((err as Error).message); }
+  };
+  const creaciones = (pasos ?? []).filter(x => x.sello === 2 && x.clave !== 'unico');
+  const afiches = (pasos ?? []).filter(x => x.sello === 3 && x.clave !== 'unico');
+  const visibles = eventos.filter(e => e.tipo !== 'timbre');
+  return (
+    <div className="tarjeta ficha-persona" role="region" aria-label={`Ficha de ${p.codigo}`}>
+      <div className="cabecera">
+        <div><p className="etq">{p.codigo} · {marcoListo(p.marco).visual} · desde las {hora(p.creada)}</p><h2>{p.nombre}</h2></div>
+        <button type="button" className="btn chico" onClick={alCerrar} aria-label="Cerrar la ficha"><Icono n="close" /></button>
+      </div>
+      {aviso && <p className="aviso" role="status">{aviso}</p>}
+      <p>Timbres: {ESTACIONES.map(e => `${e.n} ${p.sellos.includes(e.n) ? '✓' : '·'}`).join('   ')} {p.canjeado && <span className="pill ok">Canjeado</span>}</p>
+      <div className="dos">
+        <div><p className="etq">Experiencias (timbre 2) · {creaciones.length}/4</p>
+          {pasos === null ? <p className="ayuda">Cargando…</p> : creaciones.length ? <ul className="lista">{creaciones.map(x => <li key={x.clave}>{EXPERIENCIAS[x.clave] ?? x.clave} <span className="mono ayuda">{hora(x.creado)}</span></li>)}</ul> : <p className="ayuda">Ninguna todavía.</p>}
+        </div>
+        <div><p className="etq">Afiches (timbre 3) · {afiches.length}/3</p>
+          {pasos === null ? <p className="ayuda">Cargando…</p> : afiches.length ? <ul className="lista">{afiches.map(x => <li key={x.clave}>{x.clave} <span className="mono ayuda">{hora(x.creado)}</span></li>)}</ul> : <p className="ayuda">Ninguno todavía.</p>}
+        </div>
+      </div>
+      <p className="etq">En el HUB · {visibles.length}</p>
+      <div className="fichas">
+        {visibles.map(e => <TarjetaEvento key={e.id} e={e} alQuitar={() => quitar(e)} />)}
+        {!visibles.length && <p className="ayuda">No ha publicado nada en el HUB.</p>}
+      </div>
+    </div>
+  );
+};
+
+// ---------- exportar ----------
+function descargarCsv(lista: api.Persona[]) {
+  const celda = (v: unknown) => { const t = String(v ?? ''); return /[",\n;]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+  const filas = [['codigo', 'nombre', 'lenguaje', ...ESTACIONES.map(e => `timbre_${e.n}`), 'experiencias', 'afiches', 'canjeado', 'avisos', 'creada']];
+  for (const p of lista) filas.push([p.codigo, p.nombre, marcoListo(p.marco).visual, ...ESTACIONES.map(e => (p.sellos.includes(e.n) ? 'si' : '')),
+    String(p.creaciones ?? ''), String(p.portales), p.canjeado ? 'si' : '', p.avisos ? 'si' : '', p.creada]);
+  const csv = '\ufeff' + filas.map(f => f.map(celda).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = `somos-diseno-personas-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+// ---------- empezar de cero (plan 017) ----------
+const EmpezarDeCero: React.FC = () => {
+  const [frase, setFrase] = useState('');
+  const [aviso, setAviso] = useAviso();
+  const [ocupado, setOcupado] = useState(false);
+  const borrar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!confirm('Última confirmación: se borran TODAS las credenciales, timbres, canjes, lo que muestra el HUB, las sesiones de mesa y los avisos. ¿Seguir?')) return;
+    setOcupado(true);
+    try { const r = await api.empezarDeCero(frase); setFrase(''); setAviso(`Listo: se borraron ${r.credenciales} credenciales y ${r.eventos} cosas del HUB. Las tablets y el HUB se reinician solos.`); }
+    catch (err) { setAviso((err as Error).message); }
+    setOcupado(false);
+  };
+  return (
+    <form className="tarjeta peligro" onSubmit={borrar}>
+      <p className="etq">Empezar de cero</p>
+      <p className="ayuda">Para dejar todo limpio después de la prueba general. Borra credenciales, timbres, canjes, lo que muestra el HUB, las sesiones de mesa y los avisos. <b>Se mantiene:</b> el staff, el PIN, el modo juego, el premio y su stock, los sellos y los afiches.</p>
+      <label>Escribe BORRAR TODO<input value={frase} onChange={e => setFrase(e.target.value)} autoComplete="off" /></label>
+      {aviso && <p className="aviso" role="status">{aviso}</p>}
+      <button className="btn peligro" disabled={ocupado || frase !== 'BORRAR TODO'}><Icono n="delete" />Borrar todo</button>
+    </form>
   );
 };

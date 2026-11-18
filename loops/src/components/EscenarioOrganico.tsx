@@ -10,7 +10,10 @@ import { duracionLoop, grabarLoop, puedeGrabar } from '../lib/grabarLoop';
 import type { VideoLoop } from './ModalExportar';
 import { LineaDeTiempo } from './LineaDeTiempo';
 import { Carga } from './Carga';
-import { BarraSuperior, BotonAccion, Confirmar, Paleta, PantallaHerramienta, Seccion, Segmentado } from '../../../shared/ui/Kit';
+import {
+  BarritaSeleccion, Boton, FilaPropiedad, Icono, LienzoAjustado, MarcoHerramienta, Muestra, SeccionPanel, Segmento,
+  useGestosHistorial,
+} from '../../../shared/ui/Herramienta';
 import {
   ASA, ESCENARIO, cajaItem, quieto, dibujarEscenario, dibujarSeleccion,
   posicionItem, DURACION_TRAYECTO, type Item,
@@ -20,6 +23,7 @@ interface Props {
   onExportar: (canvas: HTMLCanvasElement) => void;
   onVideo: (tarjetaPng: Blob, video: VideoLoop) => void;
   onGrabando?: (grabando: boolean) => void;
+  aviso?: string;
 }
 
 type Gesto =
@@ -45,8 +49,18 @@ const DIAG: Diag | null = new URLSearchParams(location.search).has('diag')
   : null;
 const ICONO_ESC: Record<string, string> = { cordillera: 'landscape', mar: 'water', bosque: 'forest', desierto: 'wb_sunny' };
 
-export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrabando }) => {
+export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrabando, aviso }) => {
   const lienzo = useRef<HTMLCanvasElement>(null);
+  const ajustado = useRef<HTMLDivElement>(null);
+  // Tamaño en pantalla del escenario: sirve para poner la barrita de la pieza elegida junto a ella.
+  const [ladoPx, setLadoPx] = useState(0);
+  useEffect(() => {
+    const el = ajustado.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setLadoPx(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const [escId, setEscId] = useState(ESCENARIOS[0].id);
   const [mapa, setMapa] = useState<Mapa>({});
   const [sel, setSel] = useState<number | null>(null);
@@ -56,6 +70,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
   const [borde, setBorde] = useState(true);
   const [grabando, setGrabando] = useState<number | null>(null);
   const [errorVideo, setErrorVideo] = useState('');
+  const [armadoVaciar, setArmadoVaciar] = useState(false);
   const [puedeDeshacer, setPuedeDeshacer] = useState(false);
   const [puedeRehacer, setPuedeRehacer] = useState(false);
   const [tiempoVisual, setTiempoVisual] = useState(0);
@@ -139,7 +154,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
   };
 
   const alBajar = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!listo) return;
+    if (!listo || !e.isPrimary) return;
     // Tocar el escenario con el loop corriendo lo pausa: en pausa se edita y nada salta (plan 008, T-016).
     if (!vivo.current.pausado) { setPausado(true); vivo.current.pausado = true; }
     const p = aEscenario(e), { items: lista, sel: actual } = vivo.current;
@@ -178,7 +193,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
 
   const alMover = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const g = gesto.current;
-    if (!g) return;
+    if (!g || !e.isPrimary) return;
     if (!g.movido) { g.movido = true; if (antesDelGesto.current) registrar(antesDelGesto.current); }
     const p = aEscenario(e);
     actualizar(l => l.map(it => {
@@ -244,6 +259,20 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
     setPuedeDeshacer(historial.current.length > 0);
     setPuedeRehacer(adelante.current.length > 0);
   }, []);
+
+  // Dos dedos deshacen y tres rehacen (kit v2). Si el primer dedo alcanzó a mover una pieza, ese arrastre se descarta.
+  useGestosHistorial(ajustado, {
+    onDeshacer: deshacer, onRehacer: rehacer,
+    alMultitoque: () => {
+      const g = gesto.current;
+      gesto.current = null;
+      if (g?.movido) {
+        const previo = historial.current.pop();
+        if (previo) setMapa(previo);
+        setPuedeDeshacer(historial.current.length > 0);
+      }
+    },
+  });
 
   // Biblioteca → escenario: tocar agrega la pieza; arrastrarla la deja donde se suelta.
   const soltarFantasma = (e: React.PointerEvent) => {
@@ -338,40 +367,105 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
     : lleno ? `Llegaste a ${MAX_PIEZAS} piezas`
     : 'Toca una figura para editarla';
 
-  return (<>
-    <PantallaHerramienta
-      anchoLateral={320}
-      superior={
-        <BarraSuperior titulo="Teatro de Papel" bajada={ayuda}>
-          <BotonAccion icono="undo" etiqueta="Deshacer" onClick={deshacer} disabled={!puedeDeshacer} />
-          <BotonAccion icono="redo" etiqueta="Rehacer" onClick={rehacer} disabled={!puedeRehacer} />
-          <BotonAccion icono="auto_awesome" texto="Sorpréndeme" onClick={sorprender} disabled={!listo || ocupado} />
-          <BotonAccion icono="download" texto="Tarjeta" etiqueta="Descargar la tarjeta PNG" onClick={exportar} disabled={items.length === 0 || ocupado} />
-          {puedeGrabar() && (
-            <BotonAccion icono="movie" primario onClick={grabar} disabled={items.length === 0 || ocupado}
-              texto={grabando === null ? 'Grabar loop' : `Grabando ${Math.round(grabando * 100)} %`} />
-          )}
-        </BarraSuperior>
-      }
-      lateral={<>
-        <Seccion titulo="Escenario">
-          <div className="k-seg escenarios" role="radiogroup" aria-label="Escenario">
-            {ESCENARIOS.map(e => (
-              <button key={e.id} type="button" role="radio" aria-checked={escId === e.id} disabled={ocupado}
-                onClick={() => { setEscId(e.id); setSel(null); }}>
-                <span className="material-symbols-outlined" aria-hidden="true">{ICONO_ESC[e.id]}</span>{e.nombre}
-              </button>
-            ))}
-          </div>
-        </Seccion>
+  const agrandar = () => cambiarElegida(i => ({ ...i, escala: limitarEscala(i.tipo, i.escala * 1.15) }));
+  const achicar = () => cambiarElegida(i => ({ ...i, escala: limitarEscala(i.tipo, i.escala / 1.15) }));
+  const voltear = () => cambiarElegida(i => ({ ...i, espejo: !i.espejo }));
+  const invertir = () => cambiarElegida(i => i.destino ? ({ ...i, x: i.destino.x, y: i.destino.y, destino: { x: i.x, y: i.y }, espejo: !i.espejo }) : i);
 
-        <Seccion titulo={lleno ? `Biblioteca · tope de ${MAX_PIEZAS}` : 'Biblioteca'}>
-          {lleno && <p className="k-ayuda">Llegaste a {MAX_PIEZAS} piezas: quita una para sumar otra.</p>}
+  // Barrita junto a la pieza elegida (solo en pausa: en play la pieza camina). Coordenadas en px del escenario.
+  const caja = elegido && pausado && ladoPx > 0 && !ocupado ? cajaItem(quieto(elegido), relojRef.current) : null;
+  const k = ladoPx / ESCENARIO;
+  const ancla = caja ? { x: (caja.x + caja.w / 2) * k, y: Math.max(0, caja.y) * k, abajo: Math.min(ESCENARIO, caja.y + caja.h) * k } : undefined;
+
+  const grabable = puedeGrabar();
+  useEffect(() => { if (!armadoVaciar) return; const t = setTimeout(() => setArmadoVaciar(false), 2500); return () => clearTimeout(t); }, [armadoVaciar]);
+  const sinPiezas = items.length === 0;
+
+  return (<>
+    <MarcoHerramienta
+      titulo="Teatro de Papel"
+      ayuda={ayuda}
+      historia={{ deshacer, rehacer, puedeDeshacer: puedeDeshacer && !ocupado, puedeRehacer: puedeRehacer && !ocupado }}
+      acciones={<>
+        <Boton icono="auto_awesome" texto="Sorpréndeme" onClick={sorprender} disabled={!listo || ocupado} />
+        {grabable && <Boton icono="image" texto="Tarjeta" etiqueta="Descargar la tarjeta PNG" onClick={exportar} disabled={sinPiezas || ocupado} />}
+      </>}
+      primario={grabable
+        ? { icono: 'movie', texto: grabando === null ? 'Llévatelo' : `Grabando ${Math.round(grabando * 100)} %`, onClick: grabar, disabled: sinPiezas || ocupado }
+        : { icono: 'ios_share', texto: 'Llévatelo', onClick: exportar, disabled: sinPiezas || ocupado }}
+      anchoPanel={320}
+      altoPanelVertical="36%"
+      aviso={aviso}
+      herramientas={
+        <LineaDeTiempo
+          items={items} sel={sel} tiempo={tiempoVisual} pausado={pausado} fps={fps} borde={borde} max={MAX_PIEZAS} disabled={ocupado}
+          onPlay={() => setPausado(v => !v)}
+          onTiempo={ms => { setPausado(true); cambiarTiempoManual(ms); }}
+          onFps={setFps} onBorde={setBorde}
+          onElegir={uid => setSel(uid)}
+          onLlegadaInicio={() => registrar()}
+          onLlegada={(uid, t) => actualizar(l => l.map(it => (it.uid === uid ? { ...it, llegada: Math.round(t * 100) / 100 } : it)))}
+        />
+      }
+      panel={<>
+        {elegido && (
+          <SeccionPanel titulo={p!.nombre}
+            acciones={<button type="button" className="h-btn h-solo-icono h-fantasma" aria-label="Soltar la pieza" title="Soltar la pieza" onClick={() => setSel(null)}><Icono nombre="close" /></button>}
+            ayuda={elegido.destino
+              ? 'Arrástrala para moverla. Arrastra el punto B para elegir hacia dónde camina; en la línea de tiempo, cuándo llega.'
+              : 'Arrástrala para moverla. Tira del círculo amarillo para cambiar su tamaño.'}>
+            {variantes.length > 1 && (
+              <FilaPropiedad etiqueta="Animación" apilada>
+                <Segmento etiqueta="Animación" valor={elegido.variante ?? 0} onCambiar={n => cambiarElegida(i => ({ ...i, variante: n }))}
+                  opciones={variantes.map((v, n) => ({ valor: n, texto: v.nombre }))} />
+              </FilaPropiedad>
+            )}
+            {p!.movil && (
+              <FilaPropiedad etiqueta="Trayecto" apilada>
+                <Segmento etiqueta="Trayecto" valor={elegido.destino ? 'camina' : 'fijo'}
+                  onCambiar={v => {
+                    if (v === 'fijo') cambiarElegida(i => ({ ...i, destino: undefined }));
+                    else if (!elegido.destino) cambiarElegida(i => ({ ...i, destino: { x: Math.max(25, Math.min(215, Math.round(i.x + (i.espejo ? -70 : 70)))), y: i.y } }));
+                  }}
+                  opciones={[{ valor: 'fijo', texto: 'Quieto' }, { valor: 'camina', texto: 'De A a B' }]} />
+              </FilaPropiedad>
+            )}
+            {p!.colores && (
+              <FilaPropiedad etiqueta="Color" apilada>
+                <div className="h-muestras" role="radiogroup" aria-label={`Color del ${p!.nombre.toLowerCase()}`}>
+                  {p!.colores.map(c => (
+                    <Muestra key={c.id} color={c.hex} nombre={c.nombre} activa={(elegido.color ?? p!.colores![0].id) === c.id}
+                      onClick={() => {
+                        // Cada color se recorta la primera vez que se elige (son pocas capas: tarda un instante).
+                        const uid = elegido.uid;
+                        cargarLote(archivosColor(p!, c.id)).then(() => {
+                          registrar();
+                          actualizar(l => l.map(it => (it.uid === uid ? { ...it, color: c.id } : it)));
+                        });
+                      }} />
+                  ))}
+                </div>
+              </FilaPropiedad>
+            )}
+            <div className="transformar" role="group" aria-label="Transformar">
+              <BotonEtiquetado icono="zoom_in" texto="Agrandar" onClick={agrandar} />
+              <BotonEtiquetado icono="zoom_out" texto="Achicar" onClick={achicar} />
+              <BotonEtiquetado icono="flip" texto="Voltear" onClick={voltear} />
+              {elegido.destino && <BotonEtiquetado icono="swap_horiz" texto="Invertir" etiqueta="Invertir el trayecto" onClick={invertir} />}
+              <BotonEtiquetado icono="flip_to_front" texto="Al frente" onClick={alFrente} />
+              <BotonEtiquetado icono="flip_to_back" texto="Al fondo" onClick={alFondo} />
+              <BotonEtiquetado icono="delete" texto="Quitar" onClick={quitar} peligro />
+            </div>
+          </SeccionPanel>
+        )}
+
+        <SeccionPanel titulo={lleno ? `Biblioteca · tope de ${MAX_PIEZAS}` : 'Biblioteca'}
+          ayuda={lleno ? `Llegaste a ${MAX_PIEZAS} piezas: quita una para sumar otra.` : 'Toca una pieza para sumarla o arrástrala al escenario.'}>
           <div className="bandeja">
             {Object.keys(esc.piezas).map(id => {
               const pz = pieza(id), mini = miniaturaDe(id);
               return (
-                <button key={id} type="button" className="k-btn pieza-btn" disabled={!listo || lleno || ocupado} aria-label={`Añadir ${pz.nombre}`}
+                <button key={id} type="button" className="h-item pieza-btn" disabled={!listo || lleno || ocupado} aria-label={`Añadir ${pz.nombre}`}
                   onClick={e => { if (e.detail === 0) agregar(id); }}
                   onPointerDown={e => { toque.current = { tipo: id, x: e.clientX, y: e.clientY }; try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* sin captura */ } }}
                   onPointerMove={e => {
@@ -386,85 +480,47 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
               );
             })}
           </div>
-        </Seccion>
+        </SeccionPanel>
 
-        <Seccion titulo={elegido ? p!.nombre : 'Pieza elegida'}>
-          {!elegido && <p className="k-ayuda">Toca una figura del escenario (o su fila en la línea de tiempo) para moverla, cambiar su tamaño, su animación o su trayecto.</p>}
-          {elegido && (<>
-            <p className="k-ayuda">Arrástrala para moverla. Tira del círculo amarillo para cambiar su tamaño.</p>
-            {variantes.length > 1 && <p className="prop-etq">Animación</p>}
-            {variantes.length > 1 && (
-              <Segmentado etiqueta="Animación" valor={elegido.variante ?? 0} onCambiar={n => cambiarElegida(i => ({ ...i, variante: n }))}
-                opciones={variantes.map((v, n) => ({ valor: n, texto: v.nombre }))} />
-            )}
-            {p!.movil && <p className="prop-etq">Trayecto</p>}
-            {p!.movil && (
-              <Segmentado etiqueta="Trayecto" valor={elegido.destino ? 'camina' : 'fijo'}
-                onCambiar={v => {
-                  if (v === 'fijo') cambiarElegida(i => ({ ...i, destino: undefined }));
-                  else if (!elegido.destino) cambiarElegida(i => ({ ...i, destino: { x: Math.max(25, Math.min(215, Math.round(i.x + (i.espejo ? -70 : 70)))), y: i.y } }));
-                }}
-                opciones={[{ valor: 'fijo', texto: 'Quieto' }, { valor: 'camina', texto: 'De A a B' }]} />
-            )}
-            {p!.colores && <p className="prop-etq">Color</p>}
-            {p!.colores && (
-              <Paleta etiqueta={`Color del ${p!.nombre.toLowerCase()}`} colores={Object.fromEntries(p!.colores.map(c => [c.nombre, c.hex]))}
-                elegido={(p!.colores.find(c => c.id === elegido.color) ?? p!.colores[0]).nombre}
-                onElegir={n => {
-                  const c = p!.colores!.find(x => x.nombre === n);
-                  // Cada color se recorta la primera vez que se elige (son pocas capas: tarda un instante).
-                  const uid = elegido.uid;
-                  if (c) cargarLote(archivosColor(p!, c.id)).then(() => {
-                    registrar();
-                    actualizar(l => l.map(it => (it.uid === uid ? { ...it, color: c.id } : it)));
-                  });
-                }} />
-            )}
-            <div className="transformar">
-              <BotonEtiquetado icono="zoom_in" texto="Agrandar" onClick={() => cambiarElegida(i => ({ ...i, escala: limitarEscala(i.tipo, i.escala * 1.15) }))} />
-              <BotonEtiquetado icono="zoom_out" texto="Achicar" onClick={() => cambiarElegida(i => ({ ...i, escala: limitarEscala(i.tipo, i.escala / 1.15) }))} />
-              <BotonEtiquetado icono="flip" texto="Voltear" onClick={() => cambiarElegida(i => ({ ...i, espejo: !i.espejo }))} />
-              {elegido.destino && <BotonEtiquetado icono="swap_horiz" texto="Invertir" etiqueta="Invertir el trayecto" onClick={() => cambiarElegida(i => i.destino ? ({ ...i, x: i.destino.x, y: i.destino.y, destino: { x: i.x, y: i.y }, espejo: !i.espejo }) : i)} />}
-              <BotonEtiquetado icono="flip_to_front" texto="Al frente" onClick={alFrente} />
-              <BotonEtiquetado icono="flip_to_back" texto="Al fondo" onClick={alFondo} />
-              <BotonEtiquetado icono="delete" texto="Quitar" onClick={quitar} />
-            </div>
-            {elegido.destino && <p className="k-ayuda">Arrastra el punto verde B en el escenario. En la línea de tiempo, mueve B para elegir cuándo llega.</p>}
-          </>)}
-        </Seccion>
-        <Confirmar icono="restart_alt" texto="Vaciar el escenario" disabled={items.length === 0 || ocupado} onConfirmar={vaciar} />
-        {errorVideo && <p className="k-ayuda ayuda-error" role="alert">{errorVideo}</p>}
+        <SeccionPanel titulo="Escenario">
+          <div className="escenarios">
+            <Segmento etiqueta="Escenario" valor={escId} onCambiar={id => { setEscId(id); setSel(null); }}
+              opciones={ESCENARIOS.map(e => ({ valor: e.id, icono: ICONO_ESC[e.id], texto: e.nombre, disabled: ocupado }))} />
+          </div>
+        </SeccionPanel>
+
+        <SeccionPanel titulo="Escena">
+          {/* Vaciar pide un segundo toque (kit v2: botón de peligro que confirma). */}
+          <Boton icono="restart_alt" variante="peligro" ancho texto={armadoVaciar ? '¿Seguro? Toca otra vez' : 'Vaciar el escenario'}
+            disabled={sinPiezas || ocupado} onClick={() => { if (armadoVaciar) { setArmadoVaciar(false); vaciar(); } else setArmadoVaciar(true); }} />
+          {!grabable && <p className="h-ayuda">Este navegador no graba video: «Llévatelo» entrega la tarjeta en PNG.</p>}
+          {errorVideo && <p className="h-ayuda ayuda-error" role="alert">{errorVideo}</p>}
+        </SeccionPanel>
       </>}
-      inferior={
-        <LineaDeTiempo
-          items={items} sel={sel} tiempo={tiempoVisual} pausado={pausado} fps={fps} borde={borde} max={MAX_PIEZAS}
-          onPlay={() => setPausado(v => !v)}
-          onTiempo={ms => { setPausado(true); cambiarTiempoManual(ms); }}
-          onFps={setFps} onBorde={setBorde}
-          onElegir={uid => setSel(uid)}
-          onLlegadaInicio={() => registrar()}
-          onLlegada={(uid, t) => actualizar(l => l.map(it => (it.uid === uid ? { ...it, llegada: Math.round(t * 100) / 100 } : it)))}
-        />
-      }
     >
-      <div className="escenario-fit">
-        <div className="lienzo-wrap lienzo-fit">
-          <canvas
-            ref={lienzo}
-            width={RESOLUCION_CANVAS}
-            height={RESOLUCION_CANVAS}
-            className={'canvas-escenario' + (fantasma ? ' recibe' : '')}
-            onPointerDown={alBajar}
-            onPointerMove={alMover}
-            onPointerUp={alSoltar}
-            onPointerCancel={alSoltar}
-            aria-label={`Escenario ${esc.nombre}: toca una pieza para moverla`}
-          />
-          {!listo && <Carga hechas={carga.hechas} total={carga.total} />}
-          {ocupado && <div className="velo-grabando" role="status"><span className="material-symbols-outlined" aria-hidden="true">movie</span>Grabando tu loop…</div>}
-        </div>
-      </div>
-    </PantallaHerramienta>
+      <LienzoAjustado ref={ajustado} proporcion={1} className="lienzo-teatro">
+        <canvas
+          ref={lienzo}
+          width={RESOLUCION_CANVAS}
+          height={RESOLUCION_CANVAS}
+          className={'canvas-escenario' + (fantasma ? ' recibe' : '')}
+          onPointerDown={alBajar}
+          onPointerMove={alMover}
+          onPointerUp={alSoltar}
+          onPointerCancel={alSoltar}
+          aria-label={`Escenario ${esc.nombre}: toca una pieza para moverla`}
+        />
+        {ancla && (
+          <BarritaSeleccion ancla={ancla} etiqueta={`Acciones de ${p!.nombre}`} acciones={[
+            { icono: 'flip', etiqueta: 'Voltear', onClick: voltear },
+            { icono: 'flip_to_front', etiqueta: 'Al frente', onClick: alFrente },
+            { icono: 'delete', etiqueta: 'Quitar', onClick: quitar, peligro: true },
+          ]} />
+        )}
+        {!listo && <Carga hechas={carga.hechas} total={carga.total} />}
+        {ocupado && <div className="velo-grabando" role="status"><Icono nombre="movie" />Grabando tu loop… {Math.round((grabando ?? 0) * 100)} %</div>}
+      </LienzoAjustado>
+    </MarcoHerramienta>
     {fantasma && miniaturaDe(fantasma.tipo) && (
       <img className="fantasma" src={miniaturaDe(fantasma.tipo)} alt="" style={{ left: fantasma.x, top: fantasma.y }} />
     )}
@@ -472,9 +528,9 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
 };
 
 // Botón de propiedades: ícono con su nombre debajo (plan 008, T-011).
-const BotonEtiquetado: React.FC<{ icono: string; texto: string; etiqueta?: string; onClick: () => void }> = ({ icono, texto, etiqueta, onClick }) => (
-  <button type="button" className="k-btn prop-btn" onClick={onClick} aria-label={etiqueta ?? texto}>
-    <span className="material-symbols-outlined" aria-hidden="true">{icono}</span>
+const BotonEtiquetado: React.FC<{ icono: string; texto: string; etiqueta?: string; onClick: () => void; peligro?: boolean }> = ({ icono, texto, etiqueta, onClick, peligro }) => (
+  <button type="button" className={'h-btn prop-btn' + (peligro ? ' h-peligro' : '')} onClick={onClick} aria-label={etiqueta ?? texto}>
+    <Icono nombre={icono} />
     <span className="prop-texto">{texto}</span>
   </button>
 );

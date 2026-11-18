@@ -1,183 +1,88 @@
-@import '../../shared/somos-ui.css';
-@import '../../shared/somos-fonts.css';
-@import '../../shared/somos-icons.css';
+@import '../../shared/ui/herramienta.css';
 
-/* Normalización de radios: evita que --rt (50% en Orgánica) convierta cajas en óvalos deformados */
-:root,
-:root[data-visual="Orgánica"] {
-  --r: 24px;
-  --rt: 16px;
-  --rb: 999px;
-}
+/* Teatro de Papel sobre el kit v2 (plan 012 y 014): la pantalla, las barras y los controles vienen de
+   shared/ui/herramienta.css. Aquí solo el escenario, la biblioteca, la línea de tiempo (en el lugar de la barra
+   flotante, bajo el escenario, sin taparlo) y el resultado. La interfaz usa tokens --h-*; el escenario tiene sus colores. */
 
-.material-symbols-outlined { font-size: 20px; vertical-align: middle; }
-
-/* Teatro de Papel: herramienta de animación con barras fijas (propuesta 005). La pantalla, las barras y los controles
-   vienen del kit (shared/ui/somos-kit.css); aquí el escenario, la biblioteca y la línea de tiempo. */
-.k-lienzo .escenario-fit { width: 100%; height: 100%; display: grid; place-items: center; }
-.lienzo-wrap { position: relative; overflow: hidden; border-radius: var(--r); border: var(--borde); box-shadow: var(--sombra); background: #F4EEE3; }
+/* Escenario: cuadrado de papel; el canvas lo llena */
+.lienzo-teatro { border-radius: var(--h-radio); overflow: hidden; background: #F4EEE3; }
 .canvas-escenario { display: block; width: 100%; height: 100%; cursor: pointer; touch-action: none; }
-.canvas-escenario.recibe { outline: 4px dashed var(--accent); outline-offset: -6px; }
+.canvas-escenario.recibe { outline: 4px dashed var(--h-acento); outline-offset: -6px; }
+.velo-grabando { position: absolute; inset: 0; z-index: 5; display: grid; place-content: center; justify-items: center; gap: var(--h-e2); background: rgba(255, 255, 255, .72); color: var(--h-texto); font: 700 var(--h-tam-titulo)/1.2 var(--h-fuente); font-variant-numeric: tabular-nums; }
+.velo-grabando .h-icono { font-size: 36px !important; color: var(--h-acento); }
+
 /* Pantalla de carga sobre el escenario: «Preparando el teatro…» con avance real */
-.carga { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 10px; padding: 24px; text-align: center; background: #F4EEE3; color: var(--ink); }
-.carga-icono.material-symbols-outlined { font-size: 40px; color: var(--accent); }
-.carga-titulo { margin: 0; font: 800 clamp(18px, 2.4vw, 26px) var(--fuente-tit, "DM Sans"), sans-serif; letter-spacing: -0.01em; }
-.carga-barra { width: min(260px, 60%); height: 10px; border-radius: 999px; background: rgba(0, 0, 0, .1); overflow: hidden; }
-.carga-barra span { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .2s ease-out; }
-.carga-detalle { margin: 0; font: 600 13px "DM Sans", sans-serif; color: var(--muted); font-variant-numeric: tabular-nums; }
+.carga { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 10px; padding: 24px; text-align: center; background: #F4EEE3; color: var(--h-texto); }
+.carga-icono.material-symbols-outlined { font-size: 40px; color: var(--h-acento); }
+.carga-titulo { margin: 0; font: 700 clamp(18px, 2.4vw, 24px)/1.2 var(--h-fuente-titulo); }
+.carga-barra { width: min(260px, 60%); height: 8px; border-radius: 999px; background: rgba(0, 0, 0, .1); overflow: hidden; }
+.carga-barra span { display: block; height: 100%; border-radius: inherit; background: var(--h-acento); transition: width .2s ease-out; }
+.carga-detalle { margin: 0; font: 500 var(--h-tam-chico) var(--h-fuente); color: var(--h-texto-2); font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) { .carga-barra span { transition: none; } }
-.fantasma { position: fixed; z-index: 40; width: 88px; height: 88px; transform: translate(-50%, -60%) rotate(-4deg); pointer-events: none; filter: drop-shadow(0 10px 14px rgba(0, 60, 30, .35)); }
 
-/* Panel derecho con scroll propio (plan 012): la página y el lienzo nunca se mueven; el panel sí, si no cabe. */
-.k-lateral { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
+/* Pieza que se arrastra desde la biblioteca */
+.fantasma { position: fixed; z-index: 40; width: 88px; height: 88px; transform: translate(-50%, -60%) rotate(-4deg); pointer-events: none; filter: drop-shadow(0 8px 12px rgba(0, 0, 0, .3)); }
+@media (prefers-reduced-motion: reduce) { .fantasma { transform: translate(-50%, -60%); } }
 
-/* Escenario: cuatro opciones en 2 × 2, ícono y nombre en una línea (antes el nombre se salía de la píldora) */
-.k-seg.escenarios { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.k-seg.escenarios > button { min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 8px; font-size: 14px; white-space: nowrap; }
-.k-seg.escenarios .material-symbols-outlined { font-size: 20px; flex: none; }
+/* Panel · Escenario: cuatro opciones en 2 × 2 */
+.escenarios .h-seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.escenarios .h-seg > button { white-space: nowrap; }
 
-/* Escenario: cuatro opciones con ícono */
-.esc-op { display: grid; justify-items: center; gap: 0; font-size: 11.5px; line-height: 1.1; }
-.esc-op .material-symbols-outlined { font-size: 18px; }
-
-/* Biblioteca de piezas: 3 columnas, se arrastran al escenario */
-.bandeja { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.pieza-btn.k-btn { min-height: 0; height: 78px; padding: 4px; display: grid; grid-template-rows: minmax(0, 1fr) auto; justify-items: center; gap: 2px; font: 600 11px/1.1 "DM Sans", sans-serif; text-transform: none; letter-spacing: 0; touch-action: none; }
+/* Panel · Biblioteca: 3 columnas; cada pieza se toca o se arrastra al escenario */
+.bandeja { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--h-e2); }
+.pieza-btn.h-item { aspect-ratio: auto; height: 84px; padding: var(--h-e1); display: grid; grid-template-rows: minmax(0, 1fr) auto; justify-items: center; gap: 2px; color: var(--h-texto); font: 600 12px/1.1 var(--h-fuente); touch-action: none; }
+.pieza-btn.h-item:disabled { opacity: .4; cursor: default; }
 .pieza-btn img, .pieza-vacia { width: 100%; height: 100%; min-height: 0; object-fit: contain; display: block; }
 /* Nombres largos («Picaflor de Arica», «Telar mapuche») en dos líneas, sin salirse de la tarjeta */
 .pieza-btn .pieza-nombre { max-width: 100%; min-height: 2.2em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-align: center; overflow-wrap: anywhere; align-content: center; }
 
-/* Propiedades */
-.transformar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.transformar .k-btn { width: auto; }
-.prop-btn.k-btn { min-height: 56px; height: auto; padding: 6px 2px; display: grid; justify-items: center; align-content: center; gap: 2px; font: 600 11px/1.1 "DM Sans", sans-serif; text-transform: none; letter-spacing: 0; min-width: 0; }
-.prop-btn .material-symbols-outlined { font-size: 22px; }
+/* Panel · Pieza elegida: acciones con ícono y nombre */
+.transformar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--h-e2); }
+.prop-btn.h-btn { min-height: 60px; min-width: 0; height: auto; padding: 6px 2px; display: grid; justify-items: center; align-content: center; gap: 2px; font: 600 12px/1.1 var(--h-fuente); }
 .prop-texto { max-width: 100%; text-align: center; overflow-wrap: anywhere; }
-.prop-etq { margin: 4px 0 -4px; font: 700 12px "DM Sans", sans-serif; color: var(--muted); }
-.k-paleta .k-color { width: 44px; height: 44px; box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, .28); }
-.ayuda-error { color: #C23B4E; margin: 0; }
+.ayuda-error { color: var(--h-peligro); }
+/* Segmentados del panel con nombres de animación largos: que el texto se parta en vez de salirse */
+.h-panel .h-seg > button { white-space: normal; line-height: 1.1; text-align: center; }
 
-/* Línea de tiempo: cabeza (play, tiempo, FPS, borde) y una fila por pieza con sus keyframes */
-.k-inferior:has(.linea-tiempo) { display: block; }
-.linea-tiempo { --lt-nombre: 104px; display: grid; gap: 8px; }
-.lt-cabeza { display: grid; grid-template-columns: var(--lt-nombre) minmax(0, 1fr) auto; align-items: center; gap: 0 12px; }
-.lt-controles { display: flex; align-items: center; gap: 8px; }
-.lt-reloj { font: 700 13px "DM Sans", sans-serif; font-variant-numeric: tabular-nums; min-width: 36px; }
+/* Línea de tiempo: va en el lugar de la barra flotante (abajo del escenario, sin taparlo) y ocupa todo el ancho.
+   Cabeza (play, tiempo, FPS, borde) y una fila por pieza con sus keyframes. */
+.linea-tiempo { --lt-nombre: 104px; justify-self: stretch; display: grid; gap: var(--h-e2); padding: var(--h-e2) var(--h-e3); border-radius: calc(var(--h-radio) + 4px); background: var(--h-superficie); border: var(--h-trazo) solid var(--h-borde); box-shadow: var(--h-sombra-chica); min-width: 0; }
+.lt-cabeza { display: grid; grid-template-columns: var(--lt-nombre) minmax(0, 1fr) auto; align-items: center; gap: 0 var(--h-e3); }
+.lt-controles { display: flex; align-items: center; gap: var(--h-e2); }
+.lt-reloj { font: 700 var(--h-tam-chico) var(--h-fuente); font-variant-numeric: tabular-nums; min-width: 36px; }
 .lt-cursor { width: 100%; }
-.lt-ajustes { display: flex; align-items: center; gap: 12px; }
-.lt-ajustes .k-seg button { padding-inline: 8px; font-size: 12px; }
-/* Cada fila mide al menos 16 px: con 8 piezas la línea de tiempo crece (hasta 152 px) y el escenario se achica un poco */
-.lt-pistas { position: relative; height: clamp(96px, calc(var(--filas) * 19px), 152px); display: grid; grid-template-rows: repeat(var(--filas), minmax(16px, 28px)); align-content: center; gap: 3px; }
-.lt-controles .k-btn.k-icono { width: 48px; height: 48px; min-width: 48px; flex: none; padding: 0; }
-.lt-vacia { margin: auto 0; padding-left: var(--lt-nombre); }
-.lt-fila { display: grid; grid-template-columns: var(--lt-nombre) minmax(0, 1fr); gap: 12px; min-height: 0; }
-.lt-nombre { min-height: 0; border: 0; background: none; color: var(--muted); font: 600 12px/16px "DM Sans", sans-serif; text-align: right; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0; }
-.lt-fila[aria-selected="true"] .lt-nombre { color: var(--ink); font-weight: 800; }
-.lt-pista { position: relative; min-height: 0; border-radius: 999px; background: rgba(0, 0, 0, .05); cursor: pointer; touch-action: none; }
-.lt-fila[aria-selected="true"] .lt-pista { background: rgba(0, 166, 81, .12); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.lt-ajustes { display: flex; align-items: center; gap: var(--h-e3); }
+.lt-ajustes .h-seg > button { padding-inline: var(--h-e2); font-size: var(--h-tam-chico); min-width: 56px; white-space: nowrap; }
+.lt-ajustes .h-interruptor { font-size: var(--h-tam-chico); font-weight: 600; }
+/* Cada fila mide al menos 16 px: con 8 piezas la línea de tiempo crece (hasta 140 px) y el escenario se achica un poco */
+.lt-pistas { position: relative; height: clamp(72px, calc(var(--filas) * 19px), 140px); display: grid; grid-template-rows: repeat(var(--filas), minmax(16px, 28px)); align-content: center; gap: 3px; }
+.lt-vacia { margin: auto 0; padding-left: calc(var(--lt-nombre) + var(--h-e3)); }
+.lt-fila { display: grid; grid-template-columns: var(--lt-nombre) minmax(0, 1fr); gap: var(--h-e3); min-height: 0; }
+.lt-nombre { min-height: 0; border: 0; background: none; color: var(--h-texto-2); font: 600 12px/16px var(--h-fuente); text-align: right; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0; }
+.lt-fila[aria-selected="true"] .lt-nombre { color: var(--h-acento); font-weight: 700; }
+.lt-pista { position: relative; min-height: 0; border-radius: 999px; background: var(--h-superficie-2); cursor: pointer; touch-action: none; }
+.lt-fila[aria-selected="true"] .lt-pista { background: var(--h-acento-suave); box-shadow: inset 0 0 0 1.5px var(--h-acento); }
 .lt-tramo { position: absolute; top: 30%; bottom: 30%; border-radius: 999px; }
-.lt-tramo.ida { background: var(--accent); }
-.lt-tramo.vuelta { background: color-mix(in srgb, var(--accent) 40%, transparent); }
+.lt-tramo.ida { background: var(--h-acento); }
+.lt-tramo.vuelta { background: color-mix(in srgb, var(--h-acento) 40%, transparent); }
 .lt-tramo.fijo { background: repeating-linear-gradient(90deg, rgba(0, 0, 0, .18) 0 6px, transparent 6px 12px); top: 45%; bottom: 45%; min-height: 2px; }
-.lt-key { position: absolute; top: 50%; width: 18px; height: 18px; max-height: 100%; transform: translate(-50%, -50%) rotate(45deg); background: var(--surface); border: 2px solid var(--ink); display: grid; place-items: center; font: 800 0px/1 "DM Sans", sans-serif; }
-.lt-key.b { background: #FFC20E; width: 22px; height: 22px; cursor: ew-resize; }
-.lt-cabezal { position: absolute; top: -4px; bottom: -4px; left: calc(var(--lt-nombre) + 12px + (100% - var(--lt-nombre) - 12px) * var(--u)); width: 2px; background: #C23B4E; pointer-events: none; }
-@media (prefers-reduced-motion: reduce) { .fantasma { transform: translate(-50%, -60%); } }
+.lt-key { position: absolute; top: 50%; width: 16px; height: 16px; max-height: 100%; transform: translate(-50%, -50%) rotate(45deg); background: var(--h-superficie); border: 2px solid var(--h-texto); font-size: 0; }
+.lt-key.b { background: #FFC20E; width: 20px; height: 20px; cursor: ew-resize; }
+.lt-cabezal { position: absolute; top: -4px; bottom: -4px; left: calc(var(--lt-nombre) + var(--h-e3) + (100% - var(--lt-nombre) - var(--h-e3)) * var(--u)); width: 2px; background: var(--h-peligro); pointer-events: none; }
 
-/* Vertical: las barras quedan abajo; la biblioteca se ensancha */
-@media (orientation: portrait) and (min-width: 600px) {
-  .bandeja { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .transformar { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .k-lateral { height: 34dvh; min-height: 300px; }
-}
-@media (max-width: 1100px) and (min-aspect-ratio: 1/1) { .k-bajada { display: none; } .linea-tiempo { --lt-nombre: 100px; } }
+/* Pantallas angostas (vertical o 1024 con panel): nombres de fila más cortos y FPS más apretados */
+@media (max-width: 1100px) { .linea-tiempo { --lt-nombre: 84px; } }
 
-/* Modal Exportar */
-.modal-fondo {
-  position: fixed;
-  inset: 0;
-  z-index: 30;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
-}
-.modal-tarjeta {
-  width: min(100%, 540px);
-  max-height: calc(100dvh - 40px);
-  overflow: auto;
-  background: var(--surface);
-  color: var(--ink);
-  border-radius: var(--r);
-  border: var(--borde);
-  box-shadow: var(--sombra);
-  padding: 20px;
-  display: grid;
-  gap: 16px;
-}
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.modal-header h3 {
-  margin: 0;
-  font: 800 22px var(--fuente-tit);
-  letter-spacing: -0.02em;
-}
-.btn-cerrar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1.5px solid var(--line);
-  background: transparent;
-  color: var(--ink);
-  font-size: 18px;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-}
-.modal-cuerpo {
-  display: grid;
-  gap: 16px;
-  justify-items: center;
-}
-.preview-tarjeta-img {
-  width: auto;
-  max-width: 100%;
-  max-height: min(54dvh, 520px);
-  border-radius: calc(var(--r) * 0.5);
-  border: 1.5px solid var(--line);
-  display: block;
-}
-.modal-info {
-  display: grid;
-  gap: 8px;
-  width: 100%;
-  text-align: center;
-}
-.modal-info p {
-  margin: 0;
-}
-.modal-info .subtexto {
-  font-size: 13px;
-  color: var(--muted);
-}
-.btn-descarga-directa {
-  min-height: 50px;
-  padding: 0 20px;
-  border-radius: var(--rb);
-  border: 1.5px solid var(--ink);
-  background: transparent;
-  color: var(--ink);
-  font: 600 15px "DM Sans", sans-serif;
-  cursor: pointer;
-  box-shadow: var(--sombra-btn);
-}
-.btn-descarga-directa:first-of-type {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--on-accent);
-}
+/* Resultado: vista previa del loop y descargas (video y PNG) */
+.modal-fondo { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 20px; background: rgba(0, 0, 0, .5); }
+.modal-tarjeta { width: min(100%, 520px); max-height: calc(100dvh - 40px); overflow: auto; overscroll-behavior: contain; background: var(--h-superficie); color: var(--h-texto); border-radius: var(--h-radio); border: var(--h-trazo) solid var(--h-borde); box-shadow: var(--h-sombra-flotante); padding: var(--h-e4); display: grid; gap: var(--h-e4); font-family: var(--h-fuente); }
+.modal-header { display: flex; align-items: center; justify-content: space-between; gap: var(--h-e3); }
+.modal-header h3 { margin: 0; font: 700 20px/1.2 var(--h-fuente-titulo); }
+.btn-cerrar { width: var(--h-toque); height: var(--h-toque); border-radius: var(--h-radio); border: var(--h-trazo) solid var(--h-borde); background: var(--h-superficie); color: var(--h-texto); font-size: 18px; cursor: pointer; display: grid; place-items: center; }
+.modal-cuerpo { display: grid; gap: var(--h-e4); justify-items: center; }
+.preview-tarjeta-img { width: auto; max-width: 100%; max-height: min(52dvh, 500px); border-radius: var(--h-radio-chico); border: var(--h-trazo) solid var(--h-borde); display: block; }
+.modal-info { display: grid; gap: var(--h-e2); width: 100%; text-align: center; }
+.modal-info p { margin: 0; }
+.modal-info .subtexto { font-size: var(--h-tam-chico); color: var(--h-texto-2); }
+.btn-descarga-directa { min-height: var(--h-toque); padding: 0 var(--h-e4); border-radius: var(--h-radio); border: var(--h-trazo) solid var(--h-borde); background: var(--h-superficie); color: var(--h-texto); font: 600 var(--h-tam-texto) var(--h-fuente); cursor: pointer; }
+.btn-descarga-directa:first-of-type { background: var(--h-acento); border-color: var(--h-acento); color: var(--h-sobre-acento); }

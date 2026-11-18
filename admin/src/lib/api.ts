@@ -99,6 +99,19 @@ export async function sesiones(): Promise<Sesion[]> {
   return (data as Sesion[]) ?? [];
 }
 
+// Configuración de las tablets desde el PC madre (plan 015, migración 008).
+export interface ConfigMesas { modo_juego: boolean; token2: string | null; reinicio: string | null; hay_pin: boolean }
+export async function configMesas(): Promise<ConfigMesas | null> {
+  const { data, error: e } = await exigir().rpc('config_mesas');
+  if (e) { if (/config_mesas|function/i.test(e.message)) return null; throw new Error(e.message); } // sin la migración 008
+  return data as ConfigMesas;
+}
+const ponerConfig = async (clave: string, valor: string) =>
+  error((await exigir().from('config').upsert({ clave, valor, actualizado: new Date().toISOString() })).error);
+export const guardarModoJuego = (si: boolean) => ponerConfig('mesas_modo_juego', si ? 'si' : 'no');
+// Las tablets que abrieron su sesión antes de este momento la borran y vuelven a pedir el código (en ~30 s).
+export const reiniciarMesas = (mesa?: string) => ponerConfig(mesa ? 'mesas_reinicio:' + mesa.toUpperCase() : 'mesas_reinicio', new Date().toISOString());
+
 // ---------- avisos ----------
 export async function enviarAviso(a: { titulo: string; cuerpo: string; url?: string; codigo?: string | null }): Promise<{ enviadas: number; fallidas: number }> {
   const { data, error: e } = await exigir().functions.invoke('notificar', { body: a });
@@ -156,4 +169,84 @@ export function enVivo(alCambiar: () => void): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'canjes' }, alCambiar)
     .subscribe();
   return () => { sb.removeChannel(canal); };
+}
+
+// ---------- gestión (plan 017, migración 010) ----------
+const falta = (e: { message: string; code?: string }) => e.code === 'PGRST202' || /could not find the function|does not exist/i.test(e.message);
+const ERRORES_GESTION: Record<string, string> = {
+  solo_staff: 'Tu cuenta no es del staff.',
+  solo_admin: 'Solo un admin puede hacer esto.',
+  frase_incorrecta: 'Escribe exactamente BORRAR TODO.',
+};
+const errorGestion = (e: { message: string; code?: string } | null) => {
+  if (!e) return;
+  if (falta(e)) throw new Error('Falta correr shared/supabase/migraciones/010-gestion-pc-madre.sql en Supabase.');
+  throw new Error(ERRORES_GESTION[e.message] ?? e.message);
+};
+
+export interface Resumen {
+  credenciales: number; por_sello: Record<string, number>; completas: number; canjes: number; stock: number | null;
+  mesas_activas: number; ultima_hora: Record<string, number>; avisos_suscritos: number;
+}
+export async function resumen(): Promise<Resumen | null> {
+  const { data, error: e } = await exigir().rpc('resumen_evento');
+  if (e && falta(e)) return null;
+  errorGestion(e);
+  return data as Resumen;
+}
+
+// Qué migraciones están corridas: se pregunta por una función de cada una con datos que no cambian nada.
+export interface EstadoMigracion { archivo: string; que: string; corrida: boolean | null }
+const SONDAS: { archivo: string; que: string; fn: string; args: Record<string, unknown> }[] = [
+  { archivo: '006-timbre-flyer.sql', que: 'Timbre 4 con el flyer', fn: 'sellar_flyer', args: { p_codigo: 'SD-00000' } },
+  { archivo: '007-afiche-por-diseno.sql', que: 'Cacería reconociendo el afiche', fn: 'reconocer_afiche', args: { p_codigo: 'SD-00000', p_afiche: '-' } },
+  { archivo: '008-config-mesas.sql', que: 'Las tablets siguen al PC madre', fn: 'config_mesas', args: {} },
+  { archivo: '009-jugar-con-qr.sql', que: 'Jugar en una mesa con el QR de la credencial', fn: 'leer_emparejamiento', args: { p_mesa: 'ZZ', p_nonce: 'zzzzzzzz' } },
+  { archivo: '010-gestion-pc-madre.sql', que: 'Gestión del PC madre (este panel)', fn: 'resumen_evento', args: {} },
+];
+export async function estadoMigraciones(): Promise<EstadoMigracion[]> {
+  return Promise.all(SONDAS.map(async s => {
+    try {
+      const { error: e } = await exigir().rpc(s.fn, s.args);
+      return { archivo: s.archivo, que: s.que, corrida: !(e && falta(e)) };
+    } catch { return { archivo: s.archivo, que: s.que, corrida: null }; }
+  }));
+}
+
+// Lo que se ve en el HUB.
+export interface EventoHub { id: number; tipo: string; codigo: string | null; datos: Record<string, unknown>; creado: string }
+export async function eventosHub(tipos: string[], n = 60): Promise<EventoHub[]> {
+  const { data, error: e } = await exigir().from('eventos').select('id, tipo, codigo, datos, creado').in('tipo', tipos).order('creado', { ascending: false }).limit(n);
+  error(e);
+  return (data as EventoHub[]) ?? [];
+}
+export async function eventosDe(codigo: string): Promise<EventoHub[]> {
+  const { data, error: e } = await exigir().from('eventos').select('id, tipo, codigo, datos, creado').eq('codigo', codigo).order('creado', { ascending: false }).limit(100);
+  error(e);
+  return (data as EventoHub[]) ?? [];
+}
+export async function ocultarEvento(id: number) { errorGestion((await exigir().rpc('ocultar_evento', { p_id: id })).error); }
+export async function recargarHub() { errorGestion((await exigir().rpc('recargar_hub')).error); }
+export async function empezarDeCero(frase: string): Promise<{ credenciales: number; eventos: number }> {
+  const { data, error: e } = await exigir().rpc('empezar_de_cero', { p_frase: frase });
+  errorGestion(e);
+  return data as { credenciales: number; eventos: number };
+}
+
+// Pasos de una persona: timbre 2 (clave = experiencia) y timbre 3 (clave = afiche).
+export interface Paso { sello: number; clave: string; creado: string }
+export async function pasosDe(id: string): Promise<Paso[]> {
+  const { data, error: e } = await exigir().from('pasos').select('sello, clave, creado').eq('credencial_id', id).order('creado');
+  error(e);
+  return (data as Paso[]) ?? [];
+}
+// Todas las personas (sin el límite de 300 de la tabla), para exportar.
+export async function todasLasPersonas(): Promise<Persona[]> {
+  const todas: Persona[] = [];
+  for (let desde = 0; ; desde += 1000) {
+    const { data, error: e } = await exigir().from('personas').select('*').order('creada').range(desde, desde + 999);
+    error(e);
+    todas.push(...((data as Persona[]) ?? []));
+    if (!data || data.length < 1000) return todas;
+  }
 }

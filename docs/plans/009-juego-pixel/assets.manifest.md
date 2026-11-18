@@ -35,3 +35,18 @@ después se estampa.
 | Árbol, banca, basurero, señal | 1 celda | verdes y madera; banca madera; basurero verde; señal negra con luz amarilla | Obstáculos y aviso del metro |
 | Pórtico del metro | 6 celdas | pilares azul, viga lapislázuli, letrero hueso «METRO», escalera gris | Meta del cruce |
 | Suelo | bandas inclinadas | vereda `#D9D0C1`, plaza `#5DAA6E`, calle `#3D3A36` con líneas hueso y solera amarilla, vías `#77726A` con durmientes, estación `#0062B8` con borde amarillo | Filas |
+
+## Ronda 3 (18 nov)
+### De Figma
+| Archivo | Origen | Uso |
+|---|---|---|
+| `juego-pixel/public/figma/inacapin.svg` | Figma `Yo9o3ZG2lyaEGcyxoxs89R` · `1002:29670` «Pixel / Mascota · Inacapino» (sección `1002:29669` «Inacapino · lenguaje pixel», página «Visual · Pixel»). Exportado el 18 nov y limpiado a su grilla de 20 × 20 (negro, rojo INACAP `#E2001A`, hueso) | Referencia del sprite `INACAPIN` de `sprites.ts` (la misma grilla, pixel a pixel): el jefe, su retrato y el trofeo del mural |
+
+### Generados (`generado: true`, en `juego-pixel/src/juego/sprites.ts` y `dibujo*.ts`)
+| Sprite | Tamaño | Colores | Uso |
+|---|---|---|---|
+| `INACAPIN` | 20 × 20 | la grilla de Figma; el rojo se ve gris y vuelve desde los pies con cada golpe | Jefe |
+| `GRIS_*` (camina A y B, salta) | 12 × 12 | grises con tramado «borrado», contorno negro, ojos hueso | Grises del andén y del jefe (familia del Inacapín) |
+| `PINTA_*` (quieto, camina A y B, salta, lanza, golpe) | 16 × 16 | gorro celeste, polerón azul, pantalón negro, zapatillas hueso, lata | El personaje en los 3 niveles y la tarjeta (reemplaza a `personaje.svg`) |
+| Bola de pintura | círculo de 12 × 12 | el color de la pintura, brillo hueso, ojos del Gris | Grises atrapados: gira al rodar, deja rastro y estalla |
+| Micro, taxi, auto, metro | cajas 3/4 con detalle pixel | micro hueso con franjas azul y lapislázuli; taxi negro y amarillo; autos de la paleta; metro con `metro-lateral.svg` y trompa amarilla con tramado | Tráfico del cruce |

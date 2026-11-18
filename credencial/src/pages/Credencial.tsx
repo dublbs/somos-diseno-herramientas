@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Carta, useRecursos } from '../components/Pixel';
 import { Timbrado } from '../components/Timbrado';
-import { obtener, sellar, remoto, guardarMiCredencial, olvidarMiCredencial, miCredencial, fotoDe } from '../lib/store';
+import { obtener, sellar, remoto, guardarMiCredencial, olvidarMiCredencial, miCredencial, fotoDe, emparejarMesa, tomarMesaPendiente } from '../lib/store';
+import { nombreExperiencia } from './Mesa';
 import { guardarArchivo } from '../lib/descargar';
 import { cartaEnLienzo, aBlob, ranuraTimbre, CARTA, type Cara, type DatosCarta } from '../pixel/render';
 import { TIMBRES, type Tema } from '../temas';
@@ -46,6 +47,14 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
     if (instalar === 'directo') { if (await pedirInstalar()) setEstado('Listo: abre la credencial desde tu pantalla de inicio.'); return; }
     setPasosInstalar(true);
   };
+  // Si llegó desde el QR de una mesa sin credencial (plan 014), al crearla queda jugando en esa mesa.
+  useEffect(() => {
+    const m = tomarMesaPendiente();
+    if (!m) return;
+    emparejarMesa(codigo, m.mesa, m.nonce, m.app)
+      .then(() => setEstado(`¡Listo! Ya juegas en ${nombreExperiencia(m.app)} con tu credencial.`))
+      .catch(e => setEstado((e as Error).message));
+  }, [codigo]);
 
   const cargar = useCallback(() => obtener(codigo).then(d => { setDatos(d); ponerTema(d.marco); }).catch(e => setError((e as Error).message)), [codigo, ponerTema]);
   useEffect(() => { cargar(); if (!miCredencial()) guardarMiCredencial(codigo); }, [cargar, codigo]);

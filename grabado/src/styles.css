@@ -6,6 +6,10 @@
 /* Papel: el afiche y, encima, la vista previa del taco y la pista del papel vacío */
 .hoja { overflow: hidden; box-shadow: var(--h-sombra-flotante); }
 .hoja canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+/* El marco (plan 014) rodea el papel: ocupa toda la hoja y el papel va encima, al centro, con su área completa */
+.hoja .marco { pointer-events: none; }
+.zona-papel { position: absolute; inset: 0; }
+.con-marco .zona-papel { box-shadow: 0 1px 6px rgba(0, 0, 0, .28); }
 .papel { touch-action: none; cursor: crosshair; transform-origin: center; }
 .previa { pointer-events: none; }
 .pista { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; gap: var(--h-e2);

@@ -7,7 +7,7 @@
     <title>Estación · HUB</title>
     <script>
       if (/\/hub-estacion\/?$/.test(window.location.pathname)) {
-        window.location.replace(window.location.pathname.replace(/\/hub-estacion\/?$/, '/hub-estacion/dist/') + window.location.search);
+        window.location.replace(window.location.pathname.replace(/\/hub-estacion\/?$/, '/hub-estacion/dist/') + window.location.search + window.location.hash);
       }
     </script>
   </head>
