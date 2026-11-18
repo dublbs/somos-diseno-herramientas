@@ -6,7 +6,7 @@ import { dibujarMural, type Mural } from './mural';
 export interface Resumen extends Mural { puntos: number; filas: number; bolas: number; arrastrados: number; nivel: 1 | 2 | 3; limpio: boolean; golpes: number }
 
 // Tarjeta 1080 × 1350 con la franja negra común: tu mural, el personaje y el puntaje.
-export async function crearTarjeta(r: Resumen, personaje: HTMLImageElement | null): Promise<Blob> {
+export async function crearTarjeta(r: Resumen, personaje: CanvasImageSource | null): Promise<Blob> {
   try { await document.fonts.load('700 120px "Silkscreen"'); await document.fonts.load('800 66px "Bricolage Grotesque"'); await document.fonts.load('500 26px "DM Sans"'); } catch { /* respaldo */ }
   const c = document.createElement('canvas');
   c.width = 1080; c.height = 1350;

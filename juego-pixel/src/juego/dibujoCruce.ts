@@ -5,7 +5,7 @@ import { LATA, sprite } from './sprites';
 // Mundo: x crece a lo largo del carril, y hacia adelante (filas) y z hacia arriba, todo en celdas.
 // Se ven el techo, el frente (cara y = y0) y el costado derecho (cara x = x1) de cada caja, en 3 tonos y con contorno negro.
 // Las imágenes de Figma (personaje y lateral del metro) llegan ya cargadas.
-export interface Imagenes { personaje: HTMLImageElement | null; metro: HTMLImageElement | null }
+export interface Imagenes { personaje: CanvasImageSource | null; metro: CanvasImageSource | null }
 
 // Proyección: un paso en x baja un poco (las filas son bandas inclinadas); un paso en y sube y se corre a la derecha.
 const KX = 0.2, FX = 0.42, FY = 0.8, Z = 0.75;

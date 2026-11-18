@@ -1,96 +1,107 @@
-// Dibuja la pelea con el Inacapín Pixel (plan 009-juego-pixel, ronda 2) sobre la arena del andén.
+// Dibuja la pelea con el Inacapín (plan 009-juego-pixel, ronda 3) sobre la arena del andén: el Inacapín de Figma,
+// gris, que camina, se agacha, salta, escupe, embiste y recupera su rojo desde los pies con cada golpe.
 import { ALTO_A, ANCHO_A } from './anden';
-import { dibujarAvisos, dibujarGrises, dibujarJugador, dibujarTiros, escenario, marco } from './dibujoAnden';
+import { dibujarAvisos, dibujarGrises, dibujarJugador, dibujarTiros, escenario, marco, pasoEfectos } from './dibujoAnden';
 import type { Imagenes } from './dibujoCruce';
-import { ALTO_JEFE, ANCHO_JEFE, COLORES_JEFE, GOLPES_JEFE, VIGAS_JEFE, xJefe, type Jefe } from './jefe';
-import { INACAPIN, PALETA, PIEZAS, sprite } from './sprites';
+import { avanzarEfectos, dibujarManchas, dibujarParticulas, sacudida } from './efectos';
+import { ALTO_JEFE, ANCHO_JEFE, GOLPES_GRIS, GOLPES_JEFE, VIGAS_JEFE, type Jefe } from './jefe';
+import { dibujarGris, dibujarInacapin } from './personajes';
+import { PIEZAS, sprite } from './sprites';
 
-const GRISES = ['#6B6B66', '#8F8F8A', '#A3A39D', '#6B6B66', '#8F8F8A', '#5A5A55'];
+const COLORES_FIESTA = ['#E2001A', '#FF8FB1', '#FFC20E', '#7FC8F8', '#00A651', '#7A2E8E', '#F4EEE3'];
 
-// El Inacapín en (px, py) de `tam` px de lado. `color[i]` dice si la parte i (1 a 6) ya recuperó su color.
-export function dibujarInacapin(ctx: CanvasRenderingContext2D, px: number, py: number, tam: number, partes: number, opciones: { boca?: boolean; blanco?: boolean; ojos?: 'x' | 'feliz' | null; espejo?: boolean } = {}) {
-  const n = INACAPIN.length, p = tam / n;
-  INACAPIN.forEach((fila, j) => [...fila].forEach((ch, i0) => {
-    if (ch === '.') return;
-    const i = opciones.espejo ? n - 1 - i0 : i0;
-    let col: string;
-    if (ch >= '1' && ch <= '6') { const k = Number(ch); col = k <= partes ? COLORES_JEFE[k - 1] : GRISES[k - 1]; }
-    else if (ch === 'r') col = partes >= 3 ? '#FF8FB1' : '#B9B9B3';
-    else if (ch === 'w' && opciones.ojos === 'x') col = j === 6 ? (i0 % 2 ? '#000000' : '#F4EEE3') : (i0 % 2 ? '#F4EEE3' : '#000000');
-    else if (ch === 'w' && opciones.ojos === 'feliz') col = j === 7 ? '#F4EEE3' : '#000000';
-    else col = PALETA[ch];
-    if (opciones.blanco && ch !== 'k') col = '#FFFFFF';
-    ctx.fillStyle = col;
-    ctx.fillRect(Math.round(px + i * p), Math.round(py + j * p), Math.ceil(p), Math.ceil(p));
-  }));
-  // Boca abierta: se agranda hacia abajo cuando ataca.
-  if (opciones.boca) { // simétrica: no cambia con el espejo
-    ctx.fillStyle = '#000000'; ctx.fillRect(Math.round(px + 5 * p), Math.round(py + 9 * p), Math.ceil(6 * p), Math.ceil(3 * p));
-    ctx.fillStyle = '#FF8FB1'; ctx.fillRect(Math.round(px + 6 * p), Math.round(py + 11 * p), Math.ceil(4 * p), Math.ceil(p));
-  }
-}
-
-export function dibujarJefe(ctx: CanvasRenderingContext2D, ancho: number, alto: number, e: Jefe, img: Imagenes, ahora: number, quieto = false, mando = 0) {
-  const m = marco(ancho, alto, mando, Math.round(mando * 0.22)), { c, X, Y } = m;
-  const partes = e.celebra || e.fin === 'victoria' ? GOLPES_JEFE : e.golpes;
-  escenario(ctx, ancho, alto, m, VIGAS_JEFE, img, '', 1 - partes / GOLPES_JEFE);
-
-  // Avisos de gotas: la columna se marca en el piso y arriba.
-  if (e.ataque?.tipo === 'gotas') {
-    const on = Math.floor(ahora / 140) % 2 === 0;
-    for (const x of e.ataque.columnas) {
-      ctx.fillStyle = on ? '#FFC20E' : '#000'; ctx.fillRect(X(x + 0.1), Y(ALTO_A - 1) - Math.round(c * 0.16), Math.round(c * 0.8), Math.round(c * 0.16));
-      ctx.globalAlpha = 0.18; ctx.fillStyle = '#000'; ctx.fillRect(X(x + 0.1), Y(0), Math.round(c * 0.8), (ALTO_A - 1) * c); ctx.globalAlpha = 1;
-      sprite(ctx, PIEZAS.gota, X(x + 0.2), Y(0.15), c * 0.6, c * 0.6, '#8F8F8A');
-    }
-  }
-
-  // El Inacapín: respira, se agacha y brilla antes de atacar, parpadea al recibir un golpe y salta de esquina.
-  const tam = ANCHO_JEFE * c, yTope = ALTO_A - 1 - ALTO_JEFE;
-  let bx = X(xJefe(e)), by = Y(yTope);
-  if (e.cambio) {
-    const p = 1 - e.cambio / 1200, viejo = p < 0.5 ? e.lado : -e.lado;
-    const desde = viejo > 0 ? ANCHO_A - ANCHO_JEFE : 0, hacia = viejo > 0 ? 0 : ANCHO_A - ANCHO_JEFE;
-    bx = X(desde + (hacia - desde) * p); by = Y(yTope - Math.sin(p * Math.PI) * 4);
-  }
+export function dibujarJefe(ctx: CanvasRenderingContext2D, ancho: number, alto: number, e: Jefe, img: Imagenes, ahora: number, quieto = false, mandoAlto = 0) {
+  const m = marco(ancho, alto, mandoAlto), { c, X, Y } = m;
   const celebra = e.celebra > 0 || e.fin === 'victoria';
-  const respira = quieto ? 0 : Math.round(Math.sin(ahora / 300) * c * 0.04);
-  const avisa = e.ataque && e.ataque.t > 0;
-  const agacha = avisa && e.ataque!.tipo === 'mancha' ? Math.round(c * 0.2) : 0;
-  const salto = celebra && !quieto ? Math.abs(Math.sin(ahora / 160)) * c * 0.6 : 0;
-  // sombra
-  ctx.globalAlpha = 0.25; ctx.fillStyle = '#000'; ctx.fillRect(bx + c * 0.2, Y(ALTO_A - 1) - Math.round(c * 0.12), tam - c * 0.4, Math.round(c * 0.14)); ctx.globalAlpha = 1;
-  if (avisa && Math.floor(ahora / 120) % 2 === 0) { // brillo de aviso
-    ctx.fillStyle = '#FFC20E'; ctx.fillRect(bx - c * 0.12, by - c * 0.12 + agacha + respira, tam + c * 0.24, tam + c * 0.24 - agacha);
-  }
-  ctx.save();
-  ctx.translate(bx, by + respira - salto);
-  if (agacha) { ctx.translate(0, agacha + tam * 0.08); ctx.scale(1, 0.92); }
-  dibujarInacapin(ctx, 0, 0, tam, partes, {
-    boca: !!avisa || celebra, blanco: e.herido > 0 && Math.floor(ahora / 80) % 2 === 0,
-    ojos: celebra ? 'feliz' : e.herido > 0 ? 'x' : null, espejo: e.lado < 0,
-  });
-  ctx.restore();
+  const rojo = celebra ? 1 : e.golpes / GOLPES_JEFE;
+  avanzarEfectos(e, e.eventos, e.grises, VIGAS_JEFE, pasoEfectos(e, ahora), quieto);
+  const [sx, sy] = sacudida(e, c, ahora);
+  ctx.save(); ctx.translate(sx, sy);
+  escenario(ctx, ancho, alto, m, VIGAS_JEFE, img, '', 1 - rojo);
+  dibujarManchas(ctx, m, e);
+  const parpadeo = Math.floor(ahora / 130) % 2 === 0;
 
-  // Manchas y gotas grises.
-  for (const mm of e.manchas) {
-    const gx = X(mm.x - 0.4), gy = Y(ALTO_A - 1) - Math.round(c * 0.62), gira = quieto ? 0 : Math.floor(ahora / 70) % 2;
-    ctx.fillStyle = '#000'; ctx.fillRect(gx, gy + gira, Math.round(c * 0.8), Math.round(c * 0.62));
-    ctx.fillStyle = '#8F8F8A'; ctx.fillRect(gx + 3, gy + 3 + gira, Math.round(c * 0.8) - 6, Math.round(c * 0.62) - 6);
-    ctx.fillStyle = '#6B6B66'; ctx.fillRect(gx + 3, gy + Math.round(c * 0.4) + gira, Math.round(c * 0.8) - 6, Math.round(c * 0.16));
+  // Avisos en el techo: columnas de gotas y Grises que van a caer.
+  for (const mk of e.marcas) {
+    const on = quieto || parpadeo;
+    ctx.globalAlpha = 0.16; ctx.fillStyle = '#000'; ctx.fillRect(X(mk.x + 0.1), Y(0), Math.round(c * 0.8), (ALTO_A - 1) * c); ctx.globalAlpha = 1;
+    ctx.fillStyle = on ? '#FFC20E' : '#000'; ctx.fillRect(X(mk.x + 0.1), Y(ALTO_A - 1) - Math.round(c * 0.16), Math.round(c * 0.8), Math.round(c * 0.16));
+    if (mk.tipo === 'gota') sprite(ctx, PIEZAS.gota, X(mk.x + 0.2), Y(0.15), c * 0.6, c * 0.6, '#8F8F8A');
+    else dibujarGris(ctx, X(mk.x + 0.5), Y(0.9), c * 0.8, 'salto', 1);
+  }
+
+  // El Inacapín.
+  const b = e.jefe, pieX = X(b.x + ANCHO_JEFE / 2), pieY = Y(b.y), tam = ALTO_JEFE * c * 1.1; // el sprite tiene piernas
+  // sombra en el piso bajo él (y la de su caída, si salta)
+  const sombraEn = (x: number, y: number, ancho: number, a: number) => { ctx.globalAlpha = a; ctx.fillStyle = '#000'; ctx.fillRect(X(x) - Math.round(ancho * c / 2), Y(y) - Math.round(c * 0.12), Math.round(ancho * c), Math.round(c * 0.14)); ctx.globalAlpha = 1; };
+  if (b.estado === 'salta' && b.destino) { // dónde va a caer: la sombra crece y parpadea
+    const cerca = Math.max(0.2, Math.min(1, 1 - (b.destino.y - b.y) / 6));
+    sombraEn(b.destino.x + ANCHO_JEFE / 2, b.destino.y, ANCHO_JEFE * (0.5 + cerca * 0.6), 0.25 + (parpadeo ? 0.2 : 0));
+  } else sombraEn(b.x + ANCHO_JEFE / 2, b.y, ANCHO_JEFE * 1.1, 0.28);
+
+  let aplasta = 1, dx = 0;
+  const avisando = b.estado === 'agacha' || b.estado === 'carga' || b.estado === 'escupe';
+  if (b.estado === 'agacha') aplasta = quieto ? 0.85 : 0.86 + 0.04 * Math.sin(ahora / 40);
+  if (b.estado === 'carga') { aplasta = 0.62; dx = quieto ? 0 : Math.sin(ahora / 25) * c * 0.06; }
+  if (b.estado === 'embiste') aplasta = 0.6;
+  if (b.estado === 'salta') aplasta = b.vy < 0 ? 1.08 : 1.02;
+  if (b.estado === 'mareado') aplasta = 0.95;
+  const respira = quieto || b.estado !== 'camina' ? 0 : Math.round(Math.sin(ahora / 260) * c * 0.03);
+  const fiesta = celebra && !quieto ? Math.abs(Math.sin(ahora / 160)) * c * 0.7 : 0;
+  // brillo de aviso (telegrafía): un halo amarillo alrededor del libro
+  if (avisando && !celebra && (quieto || parpadeo)) {
+    const w = ANCHO_JEFE * c * 1.25, h = ALTO_JEFE * c * aplasta * 0.82;
+    ctx.fillStyle = b.estado === 'carga' ? '#FF8FB1' : '#FFC20E';
+    ctx.fillRect(pieX - w / 2 - c * 0.15 + dx, pieY - h - ALTO_JEFE * c * 0.3 * aplasta - c * 0.15, w + c * 0.3, h + c * 0.3);
+  }
+  const paso = b.estado === 'camina' && !quieto ? ((Math.floor(ahora / 180) % 2) + 1) as 1 | 2 : 0;
+  dibujarInacapin(ctx, pieX + dx, pieY + respira - fiesta, tam, b.mira, rojo, {
+    boca: b.estado === 'escupe' || celebra || b.estado === 'ruge',
+    blanco: e.herido > 0 && Math.floor(ahora / 70) % 2 === 0,
+    ojos: celebra ? 'feliz' : e.herido > 0 || b.estado === 'mareado' ? 'x' : b.estado === 'carga' || b.estado === 'embiste' || b.estado === 'ruge' ? 'enojo' : null,
+    paso,
+  }, aplasta);
+  // flecha de la embestida
+  if (b.estado === 'carga' && (quieto || parpadeo)) {
+    const fx = b.mira > 0 ? X(b.x + ANCHO_JEFE + 0.4) : X(b.x - 1.2), fy = Y(b.y - 0.9), s = Math.round(c * 0.16);
+    ctx.fillStyle = '#000'; ctx.fillRect(fx - 2, fy - s - 2, s * 5 + 4, s * 3 + 4);
+    ctx.fillStyle = '#FF8FB1';
+    for (let k = 0; k < 5; k++) { const h = (b.mira > 0 ? 5 - k : k + 1) * 0.6; ctx.fillRect(fx + k * s, fy - (h * s) / 2 + s / 2, s, Math.max(s, h * s)); }
+  }
+  // líneas de velocidad al embestir
+  if (b.estado === 'embiste' && !quieto) {
+    ctx.fillStyle = '#FFFFFF';
+    for (let k = 0; k < 4; k++) ctx.fillRect(b.mira > 0 ? X(b.x - 0.8 - k * 0.3) : X(b.x + ANCHO_JEFE + 0.2 + k * 0.3), Y(b.y - 0.4 - k * 0.35), Math.round(c * 0.5), Math.max(2, Math.round(c * 0.06)));
+  }
+  // estrellas de mareo
+  if (b.estado === 'mareado' && !quieto) for (let k = 0; k < 4; k++) {
+    const a = ahora / 200 + k * 1.57, x = pieX + Math.cos(a) * c * 1.1, y = Y(b.y - ALTO_JEFE - 0.4) + Math.sin(a) * c * 0.2;
+    ctx.fillStyle = '#000'; ctx.fillRect(x - 2, y - 2, c * 0.2 + 4, c * 0.2 + 4); ctx.fillStyle = '#FFC20E'; ctx.fillRect(x, y, c * 0.2, c * 0.2);
+  }
+
+  // Ondas que corren por el piso y gotas grises.
+  for (const o of e.ondas) {
+    const ox = X(o.x), base = Y(ALTO_A - 1);
+    for (let k = 0; k < 4; k++) {
+      const h = Math.round(c * (0.55 - k * 0.12)), w = Math.round(c * 0.2);
+      const x = ox - o.dir * k * w - w / 2;
+      ctx.fillStyle = '#000'; ctx.fillRect(x - 2, base - h - 2, w + 4, h + 2);
+      ctx.fillStyle = k % 2 ? '#B9B9B3' : '#8F8F8A'; ctx.fillRect(x, base - h, w, h);
+    }
   }
   for (const g of e.gotas) sprite(ctx, PIEZAS.gota, X(g.x - 0.35), Y(g.y - 0.75), c * 0.7, c * 0.7, '#8F8F8A');
 
-  dibujarGrises(ctx, m, e.grises, VIGAS_JEFE, ahora);
+  dibujarGrises(ctx, m, e.grises, VIGAS_JEFE, ahora, () => GOLPES_GRIS, quieto);
   dibujarTiros(ctx, m, e.tiros);
-  if (!(e.fin === 'derrota')) dibujarJugador(ctx, m, e.jugador, e.invulnerable, img, VIGAS_JEFE, ahora);
+  if (e.fin !== 'derrota') dibujarJugador(ctx, m, e.jugador, e.invulnerable, e.tiros, VIGAS_JEFE, ahora, quieto);
+  dibujarParticulas(ctx, m, e, ancho, alto);
 
   // Celebración: papel picado de los colores que recuperó.
   if (celebra) {
-    for (let k = 0; k < 60; k++) {
+    for (let k = 0; k < 70; k++) {
       const t = quieto ? 0.5 : ((ahora / 2200 + k * 0.137) % 1);
       const x = X(((k * 7.31) % ANCHO_A)), y = Y(t * ALTO_A);
-      ctx.fillStyle = COLORES_JEFE[k % COLORES_JEFE.length]; ctx.fillRect(x, y, Math.round(c * 0.18), Math.round(c * 0.18));
+      ctx.fillStyle = COLORES_FIESTA[k % COLORES_FIESTA.length]; ctx.fillRect(x, y, Math.round(c * 0.18), Math.round(c * 0.18));
     }
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.font = `700 ${Math.round(c * 0.62)}px "Silkscreen", monospace`;
@@ -98,4 +109,10 @@ export function dibujarJefe(ctx: CanvasRenderingContext2D, ancho: number, alto: 
     ctx.fillStyle = '#FFC20E'; ctx.fillText('¡Le devolviste el color!', X(ANCHO_A / 2), Y(2.6));
   }
   dibujarAvisos(ctx, m, e.avisos, '#FFC20E');
+  ctx.restore();
+}
+
+// Retrato del Inacapín (tarjeta de entrada): de cuerpo entero en un canvas cuadrado.
+export function retratoInacapin(ctx: CanvasRenderingContext2D, lado: number, rojo: number) {
+  dibujarInacapin(ctx, lado / 2, lado, lado, -1, rojo);
 }
