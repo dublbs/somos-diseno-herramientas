@@ -139,7 +139,13 @@ export const App: React.FC = () => {
   const elegirTempo = (t: Tempo) => { setTempo(t); motor.current.ponerTempo(t); };
   const alternarPista = (p: Pista) => setActivas(a => { const n = { ...a, [p]: !a[p] }; motor.current.ponerPista(p, n[p]); return n; });
 
-  const foto = () => lienzo.current!.toBlob(b => b && setLlevar(b), 'image/png');
+  // La foto también es una creación: suma al inventario y al timbre 2, igual que el loop (QA 18 nov).
+  const foto = () => lienzo.current!.toBlob(b => {
+    if (!b) return;
+    setLlevar(b);
+    publicar('audio', { escena: escenaId }, jugador()?.codigo ?? null).catch(() => { /* sin red */ });
+    otorgarCreacion('audioreactiva');
+  }, 'image/png');
   const grabar = async () => {
     setGrabando(0.001);
     try {
