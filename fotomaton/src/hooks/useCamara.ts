@@ -75,6 +75,8 @@ export function useCamara(params: Params) {
       const p = props.current;
       componer(c.getContext('2d')!, c.width, p.marco, cuadro.current, p.celda, TINTAS[p.tinta], cara.current, { apagadas: p.apagadas });
       if (p.vivo) p.vivo.current = { c: cuadro.current, cara: cara.current };
+      // Solo en desarrollo: cuenta cuadros para medir la vista en vivo (Playwright lee window.__cuadros).
+      if (import.meta.env.DEV) (window as unknown as { __cuadros?: number }).__cuadros = ((window as unknown as { __cuadros?: number }).__cuadros ?? 0) + 1;
     };
     raf = requestAnimationFrame(tick); return () => cancelAnimationFrame(raf);
   }, [lado]);

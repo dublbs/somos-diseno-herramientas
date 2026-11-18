@@ -80,17 +80,20 @@ export function dibujarEncuadre(ctx: CanvasRenderingContext2D, src: Fuente, w: n
 }
 
 // solo: dibuja una sola placa (canal) · apagadas: placas que la persona apagó (no se imprimen).
+// Memoria de trabajo de la trama (se reutiliza entre cuadros de la vista en vivo).
+let bufTrama = new Float32Array(0), bufRadios = new Float32Array(0);
 export function trama(src: Fuente, w: number, h: number, celda: number, tinta: Tinta, cara: Cara | null, solo?: string, apagadas?: readonly string[]) {
   w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h)); celda = Math.max(3, celda);
   const paso = Math.max(1, celda / 2), mw = Math.ceil(w / paso), mh = Math.ceil(h / paso);
   const m = lienzoTmp('muestra', mw, mh), mx = m.getContext('2d', { willReadFrequently: true })!;
   mx.clearRect(0, 0, mw, mh); dibujarEncuadre(mx, src, mw, mh, cara);
   const px = mx.getImageData(0, 0, mw, mh).data;
+  // Se rasteriza a mano (ImageData) en vez de dibujar miles de arcos: en la tablet, rellenar ~30 000 círculos por cuadro
+  // con mezcla «multiply» era lo que dejaba la vista en vivo de Orgánica a pocos cuadros por segundo. Mismo dibujo:
+  // cada punto es un círculo de radio rmax·√v con borde suavizado de 1 px.
   const out = lienzoTmp('trama', w, h), o = out.getContext('2d')!;
-  o.globalCompositeOperation = 'source-over'; o.fillStyle = tinta.papel; o.fillRect(0, 0, w, h);
   // 'opaca': los puntos tapan lo de abajo (colores puros). 'multiply': tintas translúcidas, como imprenta.
   const opaca = tinta.mezcla === 'opaca';
-  o.globalCompositeOperation = opaca ? 'source-over' : 'multiply';
   const cx = w / 2, cy = h / 2, n = Math.ceil(Math.hypot(w, h) / celda / 2) + 1, rmax = celda * 0.5 * (opaca ? 1.1 : 1.42), vmin = opaca ? 0.1 : 0.04;
   const ajustar = (v: number) => Math.min(1, Math.max(0, (v - 0.5) * 1.18 + 0.52));
   const canales: [string, number, string][] = tinta.modo === 'cmyk'
@@ -98,10 +101,19 @@ export function trama(src: Fuente, w: number, h: number, celda: number, tinta: T
     : tinta.modo === 'duo' ? [['b', 75, tinta.b!], ['a', 45, tinta.a!]] : [['l', 45, tinta.a!]];
   // Opaca: de lo más claro a lo más oscuro, así los puntos oscuros siempre quedan arriba.
   if (opaca) canales.sort((p, q) => lum(q[2]) - lum(p[2]));
+  const N = w * h;
+  if (bufTrama.length < N * 3) bufTrama = new Float32Array(N * 3);
+  const R = bufTrama.subarray(0, N), G = bufTrama.subarray(N, 2 * N), B = bufTrama.subarray(2 * N, 3 * N);
+  const [pr, pg, pb] = rgb(tinta.papel).map(v => v / 255);
+  R.fill(pr); G.fill(pg); B.fill(pb);
+  const lado = 2 * n + 1;
+  if (bufRadios.length < lado * lado) bufRadios = new Float32Array(lado * lado);
+  const radios = bufRadios.subarray(0, lado * lado);
   for (const [ch, ang, color] of canales) {
     if (solo ? ch !== solo : apagadas?.includes(ch)) continue;
     const a = ang * Math.PI / 180, co = Math.cos(a), si = Math.sin(a);
-    o.fillStyle = color; o.beginPath();
+    // radio de cada punto de la grilla girada
+    radios.fill(0);
     for (let i = -n; i <= n; i++) for (let j = -n; j <= n; j++) {
       const gx = i * celda, gy = j * celda, x = cx + gx * co - gy * si, y = cy + gx * si + gy * co;
       if (x < -celda || y < -celda || x > w + celda || y > h + celda) continue;
@@ -114,12 +126,33 @@ export function trama(src: Fuente, w: number, h: number, celda: number, tinta: T
       else if (ch === 'k') v = k * 0.9;
       else { if (k > 0.995) continue; const base = ch === 'c' ? r : ch === 'm' ? g : b; v = (1 - base - k) / (1 - k); }
       if (v < vmin) continue;
-      const rad = rmax * Math.sqrt(v);
-      o.moveTo(x + rad, y); o.arc(x, y, rad, 0, Math.PI * 2);
+      radios[(i + n) * lado + (j + n)] = rmax * Math.sqrt(v);
     }
-    o.fill();
+    // cada píxel: cobertura del punto más cercano entre los 4 de su celda girada
+    const [tr, tg, tb] = rgb(color).map(v => v / 255), du = co / celda, dv = -si / celda;
+    for (let y = 0; y < h; y++) {
+      const dy = y + 0.5 - cy, dx0 = 0.5 - cx;
+      let u = (dx0 * co + dy * si) / celda + n, v = (-dx0 * si + dy * co) / celda + n;
+      let q = y * w;
+      for (let x = 0; x < w; x++, q++, u += du, v += dv) {
+        const i0 = Math.floor(u), j0 = Math.floor(v);
+        if (i0 < 0 || j0 < 0 || i0 + 1 >= lado || j0 + 1 >= lado) continue;
+        const fu = u - i0, fv = v - j0, b0 = i0 * lado + j0;
+        let cov = 0, rr: number, d: number, c: number;
+        rr = radios[b0]; d = celda * celda * (fu * fu + fv * fv); if (rr > 0 && d < (rr + 0.5) * (rr + 0.5)) { d = Math.sqrt(d); c = rr - d + 0.5; if (c > cov) cov = c; }
+        rr = radios[b0 + lado]; d = celda * celda * ((1 - fu) * (1 - fu) + fv * fv); if (rr > 0 && d < (rr + 0.5) * (rr + 0.5)) { d = Math.sqrt(d); c = rr - d + 0.5; if (c > cov) cov = c; }
+        rr = radios[b0 + 1]; d = celda * celda * (fu * fu + (1 - fv) * (1 - fv)); if (rr > 0 && d < (rr + 0.5) * (rr + 0.5)) { d = Math.sqrt(d); c = rr - d + 0.5; if (c > cov) cov = c; }
+        rr = radios[b0 + lado + 1]; d = celda * celda * ((1 - fu) * (1 - fu) + (1 - fv) * (1 - fv)); if (rr > 0 && d < (rr + 0.5) * (rr + 0.5)) { d = Math.sqrt(d); c = rr - d + 0.5; if (c > cov) cov = c; }
+        if (cov <= 0) continue;
+        if (cov > 1) cov = 1;
+        if (opaca) { R[q] += (tr - R[q]) * cov; G[q] += (tg - G[q]) * cov; B[q] += (tb - B[q]) * cov; }
+        else { R[q] *= 1 - cov * (1 - tr); G[q] *= 1 - cov * (1 - tg); B[q] *= 1 - cov * (1 - tb); }
+      }
+    }
   }
-  o.globalCompositeOperation = 'source-over';
+  const im = o.createImageData(w, h), dd = im.data;
+  for (let q = 0, z = 0; q < N; q++, z += 4) { dd[z] = R[q] * 255; dd[z + 1] = G[q] * 255; dd[z + 2] = B[q] * 255; dd[z + 3] = 255; }
+  o.putImageData(im, 0, 0);
   return out;
 }
 
@@ -278,21 +311,44 @@ export function dibujarPlaca(ctx: CanvasRenderingContext2D, lado: number, src: F
 
 // Compone marco: fondo → figura → foto en trama dentro de su zona → lo que en Figma va sobre la foto.
 export interface OpcionesComponer { apagadas?: readonly string[] }
+// Las capas fijas del marco (fondo + figura, y lo que va encima) se dibujan una vez por marco, tinta y tamaño y se
+// guardan: los marcos de Orgánica traen trazados de Figma muy pesados y, en la vista en vivo, redibujarlos en cada cuadro
+// era lo que más costaba en la tablet.
+const capasCache = new Map<string, { bajo: HTMLCanvasElement; sobre: HTMLCanvasElement | null }>();
+function capasMarco(m: ReturnType<typeof marcoListo>, marco: { bg: string; fills: string[]; encima: string[] }, tinta: Tinta, size: number) {
+  const key = m.id + '|' + tinta.label + '|' + size;
+  let r = capasCache.get(key);
+  if (r) return r;
+  if (capasCache.size > 24) capasCache.clear();
+  const s = size / 240, nuevo = () => { const c = document.createElement('canvas'); c.width = c.height = size; return c; };
+  const bajo = nuevo(), x = bajo.getContext('2d')!;
+  x.fillStyle = marco.bg; x.fillRect(0, 0, size, size);
+  x.setTransform(s, 0, 0, s, 0, 0);
+  m._p.forEach(([p], i) => { x.fillStyle = marco.fills[i]; x.fill(p); });
+  let sobre: HTMLCanvasElement | null = null;
+  if (m._encima.length) {
+    sobre = nuevo(); const y = sobre.getContext('2d')!; y.setTransform(s, 0, 0, s, 0, 0);
+    m._encima.forEach(([p], i) => { y.fillStyle = marco.encima[i]; y.fill(p); });
+  }
+  r = { bajo, sobre };
+  capasCache.set(key, r);
+  return r;
+}
+
 export function componer(ctx: CanvasRenderingContext2D, size: number, marcoId: string, src: Fuente, celda: number, tinta: Tinta, cara?: Cara | null, op: OpcionesComponer = {}) {
-  const m = marcoListo(marcoId), s = size / 240, marco = marcoConTinta(m, tinta);
+  const m = marcoListo(marcoId), s = size / 240, marco = marcoConTinta(m, tinta), capas = capasMarco(m, marco, tinta, size);
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'source-over';
-  ctx.fillStyle = marco.bg; ctx.fillRect(0, 0, size, size);
-  ctx.setTransform(s, 0, 0, s, 0, 0);
-  m._p.forEach(([p], i) => { ctx.fillStyle = marco.fills[i]; ctx.fill(p); });
+  ctx.drawImage(capas.bajo, 0, 0);
   const [bx, by, bw, bh] = m._clip.box;
   const t = efectoDe(m.visual)(src, bw * s, bh * s, celdaRelativa(src, bw, bh, celda, cara ?? null) * s, tinta, cara ?? null, op.apagadas);
   ctx.save();
+  ctx.setTransform(s, 0, 0, s, 0, 0);
   ctx.clip(m._clip.path);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.drawImage(t, Math.round(bx * s), Math.round(by * s));
   ctx.restore();
-  m._encima.forEach(([p], i) => { ctx.fillStyle = marco.encima[i]; ctx.fill(p); });
+  if (capas.sobre) ctx.drawImage(capas.sobre, 0, 0);
   ctx.restore();
 }
 

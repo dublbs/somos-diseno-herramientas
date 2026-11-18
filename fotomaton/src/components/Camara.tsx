@@ -5,6 +5,9 @@ import { Lienzo } from './Lienzo';
 import { Disparador } from './Disparador';
 import { Boton, LienzoAjustado, MarcoHerramienta } from '../../../shared/ui/Herramienta';
 
+// La vista en vivo se dibuja a 720 px como máximo (la tablet la escala); la foto final sale a resolución completa.
+const VIVO_MAX = 720;
+
 interface Props {
   lado: Lado; marco: string; celda: number; tinta: string; apagadas: readonly string[];
   vivo: MutableRefObject<{ c: HTMLCanvasElement; cara: Cara | null } | null>;
@@ -42,7 +45,7 @@ export function Camara({ lado, marco, celda, tinta, apagadas, vivo, alFoto, alSu
         <Disparador texto="Foto" etiqueta="Sacar foto" onClick={disparar} disabled={!!error || !!cuenta || cambiando} /><span /></div>}>
       <video ref={video} className="oculto" playsInline muted autoPlay></video>
       <LienzoAjustado proporcion={1} className="foto-lienzo">
-        <Lienzo cref={lienzo}>
+        <Lienzo cref={lienzo} max={VIVO_MAX}>
           {cambiando ? <div className="carga"><span>{textoCambio}</span></div> : null}
           {cuenta ? <div className="cuenta">{cuenta}</div> : null}
           {flash ? <div className="flash"></div> : null}
