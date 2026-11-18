@@ -6,13 +6,14 @@ import { TINTAS } from '../data/tintas';
 // Mensajes en pantalla según el error de getUserMedia (con «Reintentar» y «Subir una foto» al lado).
 const MENSAJES: Record<string, string> = {
   SinHttps: 'La cámara solo funciona con https://. Abre la página con https:// o desde localhost.',
-  NotAllowedError: 'La cámara está bloqueada. Permítela en el candado de la barra de dirección y toca Reintentar.',
-  SecurityError: 'La cámara está bloqueada. Permítela en el candado de la barra de dirección y toca Reintentar.',
+  NotAllowedError: 'La cámara está bloqueada. Permítela en los ajustes del sitio (el candado o «aA» junto a la dirección) y toca Reintentar.',
+  SecurityError: 'La cámara está bloqueada. Permítela en los ajustes del sitio (el candado o «aA» junto a la dirección) y toca Reintentar.',
   NotFoundError: 'No encontramos una cámara en este dispositivo.',
   OverconstrainedError: 'No encontramos una cámara en este dispositivo.',
   NotReadableError: 'Otra app usa la cámara. Ciérrala y toca Reintentar.',
   AbortError: 'Otra app usa la cámara. Ciérrala y toca Reintentar.',
   SinCamara: 'Este navegador no deja usar la cámara.',
+  Cortada: 'La cámara se cortó. Toca Reintentar.',
 };
 export const mensajeCamara = (e: unknown) => MENSAJES[(e as Error)?.name] ?? 'No pudimos abrir la cámara. Toca Reintentar.';
 
@@ -82,6 +83,11 @@ export function useCamara(params: Params) {
       // respuesta vieja: se apaga, salvo que sea la misma cámara que espera el pedido vigente
       if (yo !== turno.current) { if (promesa !== ultima.current) s.getTracks().forEach(t => t.stop()); return; }
       soltar(); stream.current = s;
+      // Si el sistema corta la cámara (otra app la toma, la tablet se bloquea), se ofrece Reintentar.
+      s.getVideoTracks().forEach(t => t.addEventListener('ended', () => {
+        if (stream.current !== s) return;
+        soltar(); setError(MENSAJES.Cortada); setEstado('error');
+      }));
       const v = video.current!;
       v.srcObject = s; await v.play().catch(() => { /* autoplay muteado: igual dibuja */ });
       setEstado('lista'); abrioAntes = true;
@@ -97,11 +103,21 @@ export function useCamara(params: Params) {
   useEffect(() => {
     let vivo = true;
     if (pendiente && pendiente.lado === lado) { const p = pendiente.promesa; usar(p).then(() => { if (pendiente?.promesa === p) pendiente = null; }); }
-    else if (stream.current) usar(pedirCamara(lado)); // cambio de lado: el permiso ya está dado
+    // Cambio de lado: el permiso ya está dado. Se suelta la cámara anterior antes de pedir la otra (muchas tablets
+    // Android no abren las dos a la vez y responden NotReadableError).
+    else if (stream.current) { soltar(); usar(pedirCamara(lado)); }
     else yaPermitida().then(ok => { if (!vivo) return; if (ok) usar(pedirCamara(lado)); else setEstado('tocar'); });
     return () => { vivo = false; };
   }, [lado, usar]);
-  useEffect(() => () => { turno.current++; soltar(); }, []);
+  // Al salir de la cámara (o de la página) se apagan las pistas. `ultima` en null hace que una respuesta que llegue
+  // después también se apague (si no, la cámara quedaría encendida sin nadie que la muestre).
+  useEffect(() => {
+    const salir = () => { turno.current++; ultima.current = null; soltar(); };
+    // Si la página vuelve del caché del navegador (atrás/adelante), la cámara ya no está: se pide un toque.
+    const alOcultar = () => { salir(); setEstado('tocar'); };
+    window.addEventListener('pagehide', alOcultar);
+    return () => { window.removeEventListener('pagehide', alOcultar); salir(); };
+  }, []);
 
   useEffect(() => {
     let vivo = true, ocupado = false;
