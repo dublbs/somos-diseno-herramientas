@@ -125,11 +125,11 @@ export function trama(src: Fuente, w: number, h: number, celda: number, tinta: T
 
 
 // --- Efectos por lenguaje -------------------------------------------------
-// Orgánica = trama CMYK (arriba) · Pixel = pantalla CRT · Geométrica = mosaico de triángulos de tinta plana.
+// Orgánica = trama CMYK (arriba) · Pixel = pantalla CRT · Geométrica = semitono de triángulos.
 export const EFECTOS = {
   Orgánica: { nombre: 'Trama CMYK', control: 'Trama', paleta: 'Tinta', ayuda: 'Con la trama fina se reconoce mejor la cara.' },
   Pixel: { nombre: 'Pantalla CRT', control: 'Píxel', paleta: 'Paleta', ayuda: 'Con píxeles chicos se reconoce mejor la cara.' },
-  'Geométrica': { nombre: 'Mosaico de triángulos', control: 'Triángulo', paleta: 'Paleta', ayuda: 'Los triángulos se achican solos donde hay detalle: ojos, boca y contorno.' },
+  'Geométrica': { nombre: 'Semitono de triángulos', control: 'Triángulo', paleta: 'Paleta', ayuda: 'Cada triángulo crece con la sombra. Con triángulos chicos se reconoce mejor la cara.' },
 } as const;
 
 // Foto reducida a una grilla: un pixel por bloque.
@@ -177,65 +177,73 @@ export function crt(src: Fuente, w: number, h: number, celda: number, tinta: Tin
   return out;
 }
 
-// Geométrica · mosaico de triángulos adaptativo (plan 012): una grilla de triángulos equiláteros que se parten en
-// cuatro donde la foto tiene detalle (ojos, boca, contorno de la cara) y quedan grandes donde es pareja (fondo, ropa).
-// Cada triángulo es un tono plano de la paleta según su luz; con la tinta CMYK, su color real posterizado.
+// Geométrica · semitono de triángulos (ronda 3, plan 014): una grilla regular de triángulos equiláteros, alternados
+// arriba y abajo. Cada celda lleva de fondo el tono claro y encima un triángulo del tono oscuro que crece con la sombra,
+// como un semitono de imprenta hecho con triángulos: la gradación es continua y la cara se lee por luces y sombras.
+// Los tonos salen de la paleta por bandas de luz (ver bandasDe); con la tinta CMYK, cada triángulo va con su color real.
+// Se eligió entre cuatro ensayos (grilla de tono plano, semitono, truchet de cuartos de círculo y cuadros partidos por
+// la diagonal) por ser el que mejor deja reconocer la cara en todas las paletas y tamaños.
+const bandasCache = new Map<string, { n: number; de: (i: number, r: number, g: number, b: number) => string }>();
+// Paleta por bandas de luz: las tintas de luz parecida forman una banda (en Línea azul, rosa, celeste y amarillo casi
+// no se distinguen en gris) y dentro de cada banda se elige la de color más parecido a la foto. Así las luces y
+// sombras quedan ordenadas y el color sigue a la foto (piel rosa, fondo celeste…).
+function bandasDe(t: Tinta) {
+  let r = bandasCache.get(t.label);
+  if (r) return r;
+  const inks = tintasDe(t), g: string[][] = [];
+  for (const c of inks) { const u = g[g.length - 1]; if (u && lum(c) - lum(u[u.length - 1]) < 0.1) u.push(c); else g.push([c]); }
+  if (g.length > 1 && lum(t.papel) - lum(inks[inks.length - 1]) < 0.1) g[g.length - 1].push(t.papel); else g.push([t.papel]);
+  const info = g.map(b => b.map(h => { const [x, y, z] = rgb(h).map(v => v / 255), l = 0.299 * x + 0.587 * y + 0.114 * z; return { h, c: [x - l, y - l, z - l] }; }));
+  r = {
+    n: g.length,
+    de(i, x, y, z) {
+      const banda = info[Math.max(0, Math.min(info.length - 1, i))];
+      if (banda.length === 1) return banda[0].h;
+      const l = 0.299 * x + 0.587 * y + 0.114 * z, c = [x - l, y - l, z - l];
+      let mejor = banda[0].h, dm = Infinity;
+      for (const e of banda) { const d = (e.c[0] - c[0]) ** 2 + (e.c[1] - c[1]) ** 2 + (e.c[2] - c[2]) ** 2; if (d < dm) { dm = d; mejor = e.h; } }
+      return mejor;
+    },
+  };
+  bandasCache.set(t.label, r);
+  return r;
+}
+// Color real (tinta CMYK): un poco más saturado y en pocos niveles, para que cada pieza sea un color plano y limpio.
+function colorPlano(r: number, g: number, b: number) {
+  const l = 0.299 * r + 0.587 * g + 0.114 * b;
+  const f = (v: number) => Math.round(Math.round(Math.min(1, Math.max(0, (l + (v - l) * 1.25 - 0.5) * 1.15 + 0.5)) * 6) / 6 * 255);
+  return `rgb(${f(r)},${f(g)},${f(b)})`;
+}
 export function mosaico(src: Fuente, w: number, h: number, celda: number, tinta: Tinta, cara: Cara | null) {
   w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h));
-  const T = Math.max(18, celda * 8), minimo = Math.max(3.2, T / 9);
-  const paso = Math.max(1, minimo / 2), { mw, mh, px } = reducir(src, w, h, paso, cara);
+  const T = Math.max(7, celda * 2.6), paso = Math.max(1, T / 5);
+  const { mw, mh, px } = reducir(src, w, h, paso, cara);
+  // niveles automáticos (percentiles 2 y 98 de la luz): la cara usa toda la escala aunque la foto esté apagada
+  const n = mw * mh, L = new Float32Array(n), hist = new Uint32Array(256);
+  for (let i = 0; i < n; i++) { L[i] = (0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2]) / 255; hist[Math.min(255, (L[i] * 255) | 0)]++; }
+  const pct = (p: number) => { let a = 0; for (let i = 0; i < 256; i++) { a += hist[i]; if (a >= n * p) return i / 255; } return 1; };
+  const lo = pct(0.02), hi = Math.max(lo + 0.1, pct(0.98));
   const out = lienzoTmp('mosaico', w, h), o = out.getContext('2d')!;
   o.globalCompositeOperation = 'source-over'; o.globalAlpha = 1; o.fillStyle = tinta.papel; o.fillRect(0, 0, w, h);
-  const rampa = [...tintasDe(tinta), tinta.papel], n = rampa.length;
-  const muestra = (x: number, y: number) => {
-    const sx = Math.min(mw - 1, Math.max(0, (x / paso) | 0)), sy = Math.min(mh - 1, Math.max(0, (y / paso) | 0)), p = (sy * mw + sx) * 4;
-    return [px[p] / 255, px[p + 1] / 255, px[p + 2] / 255];
-  };
-  type P = [number, number];
-  // Juntas de papel entre las piezas, más finas en las piezas chicas: así se lee el mosaico aunque dos vecinas
-  // tengan el mismo tono.
-  const juntas: [P, P, P, number][] = [];
-  const pintar = (a: P, b: P, c: P, color: string) => {
-    o.fillStyle = color; o.strokeStyle = color; o.lineWidth = 0.6;
-    o.beginPath(); o.moveTo(a[0], a[1]); o.lineTo(b[0], b[1]); o.lineTo(c[0], c[1]); o.closePath(); o.fill(); o.stroke();
-    juntas.push([a, b, c, Math.hypot(b[0] - a[0], b[1] - a[1])]);
-  };
-  const tri = (a: P, b: P, c: P, nivel: number) => {
-    const gx = (a[0] + b[0] + c[0]) / 3, gy = (a[1] + b[1] + c[1]) / 3;
-    if (gx < -T || gy < -T || gx > w + T || gy > h + T) return;
-    // 7 muestras: el centro, hacia los vértices y hacia los lados
-    const pts: P[] = [[gx, gy], ...[a, b, c].map(v => [gx + (v[0] - gx) * 0.62, gy + (v[1] - gy) * 0.62] as P),
-      ...[[a, b], [b, c], [c, a]].map(([u, v]) => [gx + ((u[0] + v[0]) / 2 - gx) * 0.7, gy + ((u[1] + v[1]) / 2 - gy) * 0.7] as P)];
-    let r = 0, g = 0, bl = 0, lmin = 1, lmax = 0;
-    for (const [x, y] of pts) { const [pr, pg, pb] = muestra(x, y), l = 0.299 * pr + 0.587 * pg + 0.114 * pb; r += pr; g += pg; bl += pb; lmin = Math.min(lmin, l); lmax = Math.max(lmax, l); }
-    r /= 7; g /= 7; bl /= 7;
-    const lado = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    if (lmax - lmin > 0.16 && lado / 2 >= minimo && nivel < 3) {
-      const ab: P = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], bc: P = [(b[0] + c[0]) / 2, (b[1] + c[1]) / 2], ca: P = [(c[0] + a[0]) / 2, (c[1] + a[1]) / 2];
-      tri(a, ab, ca, nivel + 1); tri(ab, b, bc, nivel + 1); tri(ca, bc, c, nivel + 1); tri(ab, bc, ca, nivel + 1);
-      return;
-    }
-    if (tinta.colorReal) {
-      const q = (v: number) => Math.round(Math.round(realce(v) * 4) / 4 * 255);
-      pintar(a, b, c, `rgb(${q(r)},${q(g)},${q(bl)})`);
-    } else {
-      const L = realce(0.299 * r + 0.587 * g + 0.114 * bl);
-      pintar(a, b, c, rampa[Math.min(n - 1, Math.max(0, Math.round(L * (n - 1))))]);
-    }
-  };
+  const bn = bandasDe(tinta);
   const H = T * Math.sqrt(3) / 2, cols = Math.ceil(w / (T / 2)) + 3, filas = Math.ceil(h / H) + 1;
   const ox = (w - (cols - 1) * T / 2) / 2 - T / 2, oy = (h - filas * H) / 2;
+  const tri = (ax: number, ay: number, bx: number, by: number, cx: number, cy: number) => { o.beginPath(); o.moveTo(ax, ay); o.lineTo(bx, by); o.lineTo(cx, cy); o.closePath(); o.fill(); };
   for (let j = 0; j < filas; j++) for (let i = 0; i < cols; i++) {
-    const x = ox + i * T / 2, y0 = oy + j * H, y1 = y0 + H;
-    if ((i + j) % 2 === 0) tri([x, y1], [x + T / 2, y0], [x + T, y1], 0);
-    else tri([x, y0], [x + T / 2, y1], [x + T, y0], 0);
+    const x = ox + i * T / 2, arriba = (i + j) % 2 === 0, yb = oy + j * H + (arriba ? H : 0), yp = oy + j * H + (arriba ? 0 : H);
+    // base (x, yb)–(x+T, yb) y punta (x+T/2, yp); centro a un tercio de la altura desde la base
+    const gx = x + T / 2, gy = yb + (yp - yb) / 3;
+    if (gx < -T || gy < -T || gx > w + T || gy > h + T) continue;
+    const sx = Math.min(mw - 1, Math.max(0, (gx / paso) | 0)), sy = Math.min(mh - 1, Math.max(0, (gy / paso) | 0)), q = sy * mw + sx;
+    const r = px[q * 4] / 255, g = px[q * 4 + 1] / 255, b = px[q * 4 + 2] / 255;
+    if (tinta.colorReal) { o.fillStyle = colorPlano(r, g, b); tri(x, yb, x + T, yb, gx, yp); continue; }
+    const t = Math.min(1, Math.max(0, (L[q] - lo) / (hi - lo))) * (bn.n - 1), banda = Math.min(bn.n - 2, Math.floor(t)), f = t - banda;
+    o.fillStyle = bn.de(banda + 1, r, g, b); tri(x - 0.3, yb, x + T + 0.3, yb, gx, yp);
+    const e = Math.sqrt(1 - f) * 0.98;
+    if (e < 0.08) continue;
+    o.fillStyle = bn.de(banda, r, g, b);
+    tri(gx + (x - gx) * e, gy + (yb - gy) * e, gx + (x + T - gx) * e, gy + (yb - gy) * e, gx, gy + (yp - gy) * e);
   }
-  o.strokeStyle = tinta.papel; o.globalAlpha = 0.55; o.lineJoin = 'round';
-  for (const [a, b, c, lado] of juntas) {
-    o.lineWidth = Math.max(0.5, lado / 26);
-    o.beginPath(); o.moveTo(a[0], a[1]); o.lineTo(b[0], b[1]); o.lineTo(c[0], c[1]); o.closePath(); o.stroke();
-  }
-  o.globalAlpha = 1;
   return out;
 }
 
