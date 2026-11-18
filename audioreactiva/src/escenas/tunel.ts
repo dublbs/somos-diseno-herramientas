@@ -47,7 +47,8 @@ export function dibujarTunel(ctx: CanvasRenderingContext2D, W: number, H: number
   let anillos = 0; while (base * Math.pow(razon, anillos) < alcance * 1.6 && anillos < 60) anillos++;
   ctx.fillStyle = p.tinta;
   for (let i = anillos; i >= 0; i--) {
-    const r0 = base * Math.pow(razon, i + f), r1 = base * Math.pow(razon, i + 1 + f);
+    // en los anillos invertidos los cuadros de un mismo sector se tocan: se solapan un poco para que no quede costura
+    const r0 = base * Math.pow(razon, i + f), r1 = base * Math.pow(razon, i + 1 + f) * (i < (p.invertidos ?? 0) ? 1.012 : 1);
     const t0 = p.torsion * (i + f), t1 = p.torsion * (i + 1 + f);
     const [x0, y0] = centro(r0), [x1, y1] = centro(r1);
     ctx.beginPath();

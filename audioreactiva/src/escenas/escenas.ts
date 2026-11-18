@@ -68,8 +68,8 @@ const tunel: Escena = {
     e.torsion += ((est * 0.13 + r.acordes * 0.08) - e.torsion) * suave;
     e.razon += ((1.32 - r.melodia * 0.08) - e.razon) * suave;
     // Chas: los anillos invierten su color de adentro hacia afuera (en anillos alternos, así el damero se vuelve
-    // rayos) y vuelven; sin movimiento, el cambio es corto y sin barrido
-    const invertidos = m.tChas < 0.55 ? (r.quieto ? 99 : Math.min(99, (m.tChas / 0.22) * 18)) : 0;
+    // rayos) y vuelven; con movimiento reducido, solo los anillos del fondo y sin barrido
+    const invertidos = m.tChas < 0.55 ? (r.quieto ? 7 : Math.min(99, (m.tChas / 0.22) * 18)) : 0;
     dibujarTunel(ctx, S, S, {
       fase: e.fase, redondez: e.redondez, torsion: e.torsion, latido: Math.max(r.bombo, salto), giro: e.giro,
       razon: e.razon, acerca: salto * (r.quieto ? 0.1 : 0.45), giroCentro: est * Math.PI / 4 + r.caja * Math.PI / 8,
@@ -279,7 +279,7 @@ const escalera: Escena = {
     for (let i = 0; i < n; i++) {
       const x = Math.floor(i * w), ancho = Math.ceil(w) + 1;
       const cadena = sube(tBum - i * 0.018, 0.07, 0.6) * h * (r.quieto ? 0.4 : 1.3) * (0.5 + 0.5 * i / (n - 1));
-      const dy = (i - (n - 1) / 2) * -rise + (e.corre * h) % (h * FR.length) - salto * (0.6 + 0.4 * Math.sin(i * 0.7)) - e.alza[i] * h * 0.45 - cadena + tirar;
+      const dy = (i - (n - 1) / 2) * -rise + (e.corre * h) % (h * FR.length) - salto * (0.6 + 0.4 * Math.sin(i * 0.7)) - e.alza[i] * h * 0.45 - cadena + tirar - (i === e.peldano ? destello * h * 0.6 : 0);
       const v = r.bandas[Math.floor((i * 12) / n)];
       const muesca = Math.max(0, Math.min(1, (v - 0.3) / 0.7) * 0.3 + r.acordes * 0.45);
       for (let j = -FR.length * 2; j < filas + FR.length; j++) {
