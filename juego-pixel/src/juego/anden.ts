@@ -1,7 +1,7 @@
 // «Hora punta» · Nivel 2, El andén (mecánica de atrapar y empujar). Lógica sin dibujo (plan docs/plans/009-juego-pixel.md).
 // Una pantalla vista de lado, en celdas: x crece a la derecha, y crece hacia abajo y marca los pies de cada figura.
 // La pintura sale de las latas del nivel 1; cada Gris que cae suelta una pieza del mural.
-import { azar, entre, FORMAS, HUESO, TIROS_POR_LATA, type Aviso, type Forma, type Pieza } from './comun';
+import { azar, entre, FORMAS, HUESO, TIROS_POR_LATA, type Aviso, type Evento, type Forma, type Pieza } from './comun';
 
 export const ANCHO_A = 16, ALTO_A = 12;
 export const G = 42, SALTO = 16.6, VEL_J = 5.2, VEL_GRIS = 2.1, VEL_BOLA = 10;
@@ -23,13 +23,15 @@ export interface Cuerpo { x: number; y: number; vx: number; vy: number; suelo: b
 export interface GrisA extends Cuerpo {
   id: number; golpes: number; color: string; bola: number; // bola: ms que le quedan encerrado (0 = suelto)
   rueda: { rebotes: number; combo: number } | null; salta: number; seca: number; fuera: boolean; // seca: ms hasta perder una capa
+  giro?: number; // celdas que lleva rodando (para dibujar el giro)
+  aturde?: number; // ms que le quedan mareado al llegar (jefe): no camina ni hace daño
 }
 export interface Tiro { x: number; y: number; dir: 1 | -1; recorrido: number; color: string }
 export interface PiezaSuelta extends Pieza { x: number; y: number; vy: number; t: number }
 export type FinAnden = null | 'atrapado';
 export interface Anden {
   semilla: number; jugador: Cuerpo;
-  grises: GrisA[]; tiros: Tiro[]; piezas: PiezaSuelta[]; avisos: Aviso[];
+  grises: GrisA[]; tiros: Tiro[]; piezas: PiezaSuelta[]; avisos: Aviso[]; eventos: Evento[];
   municion: string[]; juntadas: Pieza[]; oleada: number; tiempo: number; puntos: number;
   bolas: number; arrastrados: number; vidas: number; invulnerable: number; fin: FinAnden; limpio: boolean; siguienteId: number; formas: number;
   teclas: { izq: boolean; der: boolean };
@@ -44,7 +46,7 @@ export const cuerpo = (x: number, y: number, mira: 1 | -1 = 1): Cuerpo => ({ x, 
 
 export function nuevoAnden(latas: string[], semilla = Date.now() % 100000): Anden {
   const e: Anden = {
-    semilla, jugador: cuerpo(7.6, 11), grises: [], tiros: [], piezas: [], avisos: [],
+    semilla, jugador: cuerpo(7.6, 11), grises: [], tiros: [], piezas: [], avisos: [], eventos: [],
     municion: latas.flatMap(c => Array<string>(TIROS_POR_LATA).fill(c)), juntadas: [], oleada: 0, tiempo: 0, puntos: 0,
     bolas: 0, arrastrados: 0, vidas: VIDAS, invulnerable: 0, fin: null, limpio: false, siguienteId: 1, formas: Math.floor(azar({ semilla }) * 4),
     teclas: { izq: false, der: false },
@@ -61,6 +63,7 @@ function soltarOleada(e: Anden) {
 }
 
 function avisar(e: Anden, texto: string, x: number, y: number) { e.avisos.push({ texto, x, y, t: 900 }); }
+function evento(e: Anden, ev: Evento) { e.eventos.push(ev); if (e.eventos.length > 60) e.eventos.shift(); }
 export const toca = (a: Cuerpo, b: Cuerpo, holgura = 0) => Math.abs(a.x - b.x) < ANCHO_F - holgura && Math.abs(a.y - b.y) < 0.85 - holgura;
 
 // Gravedad y vigas: un cuerpo que cae se apoya en la primera viga que cruza con los pies.
@@ -128,8 +131,10 @@ export function avanzarAnden(e: Anden, dtMs: number) {
     const g = e.grises.find(h => !h.rueda && !h.fuera && h.bola === 0 && Math.abs(h.x + ANCHO_F / 2 - t.x) < 0.55 && t.y <= h.y && t.y >= h.y - 0.95);
     if (!g) continue;
     t.recorrido = 99; g.golpes++; g.color = t.color; g.vx = 0; g.seca = 2500;
+    evento(e, { tipo: 'pinta', x: t.x, y: t.y, color: t.color });
     if (g.golpes >= (t.color === HUESO ? GOLPES_HUESO : GOLPES_COLOR)) {
       g.bola = BOLA_MS; e.bolas++; e.puntos += 2; avisar(e, '+2', g.x, g.y - 1);
+      evento(e, { tipo: 'bola', x: g.x + 0.4, y: g.y - 0.45, color: g.color });
     }
   }
   e.tiros = e.tiros.filter(t => t.recorrido < 99);
@@ -140,14 +145,19 @@ export function avanzarAnden(e: Anden, dtMs: number) {
     if (g.rueda) {
       g.vx = g.mira * VEL_BOLA;
       fisica(g, dt);
+      g.giro = (g.giro ?? 0) + g.mira * VEL_BOLA * dt;
       if (g.x <= 0 || g.x >= ANCHO_A - ANCHO_F) {
         g.x = Math.max(0, Math.min(ANCHO_A - ANCHO_F, g.x)); g.mira = g.mira > 0 ? -1 : 1; g.rueda.rebotes++;
-        if (g.rueda.rebotes > 2) { g.fuera = true; e.puntos += 5; e.arrastrados++; soltarPieza(e, g); avisar(e, '+5', g.x, g.y - 1); continue; }
+        evento(e, { tipo: 'rebota', x: g.x + 0.4, y: g.y - 0.4, color: g.color });
+        if (g.rueda.rebotes > 2) {
+          g.fuera = true; e.puntos += 5; e.arrastrados++; soltarPieza(e, g); avisar(e, '+5', g.x, g.y - 1);
+          evento(e, { tipo: 'rompe', x: g.x + 0.4, y: g.y - 0.45, color: g.color }); continue;
+        }
       }
       for (const o of e.grises) if (o !== g && !o.fuera && !o.rueda && toca(g, o)) {
         o.fuera = true; o.color = g.color; g.rueda.combo++;
         const pts = 5 * g.rueda.combo; e.puntos += pts; e.arrastrados++;
-        soltarPieza(e, o);
+        soltarPieza(e, o); evento(e, { tipo: 'rompe', x: o.x + 0.4, y: o.y - 0.45, color: g.color });
         avisar(e, g.rueda.combo > 1 ? `+${pts} ×${g.rueda.combo}` : `+${pts}`, o.x, o.y - 1);
       }
       continue;
@@ -155,7 +165,7 @@ export function avanzarAnden(e: Anden, dtMs: number) {
     if (g.bola > 0) {
       g.vx = 0; fisica(g, dt);
       g.bola -= dtMs;
-      if (g.bola <= 0) { g.bola = 0; g.golpes = 0; g.color = HUESO; } // se escapa
+      if (g.bola <= 0) { g.bola = 0; g.golpes = 0; g.color = HUESO; evento(e, { tipo: 'escapa', x: g.x + 0.4, y: g.y - 0.45, color: '#8F8F8A' }); } // se escapa
       // Caminar contra la bola la empuja.
       if (toca(j, g, -0.05) && j.vx !== 0 && Math.sign(g.x - j.x) === Math.sign(j.vx)) {
         g.rueda = { rebotes: 0, combo: 0 }; g.mira = j.vx > 0 ? 1 : -1; avisar(e, '¡Rueda!', g.x, g.y - 1);
@@ -177,7 +187,7 @@ export function avanzarAnden(e: Anden, dtMs: number) {
     if (g.x <= 0 || g.x >= ANCHO_A - ANCHO_F) { g.x = Math.max(0, Math.min(ANCHO_A - ANCHO_F, g.x)); g.mira = g.mira > 0 ? -1 : 1; }
     if (e.invulnerable <= 0 && toca(j, g, 0.15)) {
       // Te tocó un Gris: pierdes una vida y vuelves al centro del andén, intocable por 2 s.
-      e.vidas--; avisar(e, e.vidas ? '¡Ay!' : '', j.x, j.y - 1);
+      e.vidas--; avisar(e, e.vidas ? '¡Ay!' : '', j.x, j.y - 1); evento(e, { tipo: 'dano', x: j.x + 0.4, y: j.y - 0.5, color: '#8F8F8A' });
       if (!e.vidas) e.fin = 'atrapado';
       else { Object.assign(j, cuerpo(7.6, ALTO_A - 1, j.mira)); e.invulnerable = 2000; }
     }

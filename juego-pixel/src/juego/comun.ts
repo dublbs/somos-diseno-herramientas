@@ -22,3 +22,7 @@ export const elegir = <T,>(e: { semilla: number }, l: T[]) => l[Math.floor(azar(
 
 // Cada lata son TIROS_POR_LATA tiros de su color en el nivel 2.
 export const TIROS_POR_LATA = 5;
+
+// Lo que pasó en un cuadro y el dibujo convierte en efectos (salpicaduras, estallidos, polvo). El motor no los usa.
+export type TipoEvento = 'pinta' | 'bola' | 'rompe' | 'rebota' | 'golpe' | 'salpica' | 'aterriza' | 'escupe' | 'embiste' | 'escapa' | 'dano';
+export interface Evento { tipo: TipoEvento; x: number; y: number; color: string }
