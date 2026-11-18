@@ -175,3 +175,29 @@ reconocimiento de afiches por cámara, el flyer, el canje sin doble entrega y el
 
 **No simulado:** Audioreactiva, Teatro y Fotomatón en modo juego; el lado del staff en el PC madre; varias personas a la
 vez; tablets y celulares reales; Supabase. Las capturas de esta bitácora están en `docs/qa/simulacion/`.
+
+## Segunda pasada (18 nov, después de las correcciones)
+Correcciones y resultados al detalle en [`docs/tasks/013-correcciones-qa.md`](../tasks/013-correcciones-qa.md).
+
+- **Visitante 2, «Tomás»** (celular de 360×740), sobre una copia demo de `main` + las 3 ramas de la ronda 2 + las
+  correcciones:
+  - La creación dice «Junta 4 timbres y gana tu bolsa» bajo el marco (antes «PIXEL M05 · Metro»).
+  - Al entrar con el código, cada tablet muestra «Juegas con SD-RU9MU: lo que te lleves de aquí suma a tu credencial»
+    durante 7 s (captura `10-aviso-codigo-tablet.png`).
+  - El reverso muestra «4 de 4 hechas» y «0 de 3 encontrados», y abajo «tu inventario está en «Jugar»»
+    (`11-reverso-con-avance.png`).
+  - Con 4 de 4 sin el timbre, la línea dice «Te faltan: timbrar tu Creación…», y el botón se llama «Timbrar».
+  - Inventario con «Hora punta» y «Audio-/reactiva» en dos líneas (`12-inventario-nombres.png`).
+  - Recorrido completo hasta «¡Canjeado!».
+- **Nuevos hallazgos de la segunda pasada:**
+  - Audioreactiva: la «Foto» no sumaba la creación (solo el loop) → corregido en su rama (T-15).
+  - Audioreactiva después de recargar: «Grabar loop» queda apagado hasta tocar «Toca para que suene». Es claro y
+    está bien.
+  - HUB «Estación»: en vivo habría mostrado 40 personas inventadas → corregido (T-16).
+  - Registro de migraciones sin la `006-timbre-flyer` ni la `007-afiche-por-diseno` (T-18) y credenciales legibles
+    por cualquiera (T-19): para el equipo.
+  - Fotomatón dice «Llévatela» y el resto «Llévatelo» (T-13).
+  - Al publicar, un celular que ya abrió la credencial puede quedarse con la versión vieja hasta recargar (en la
+    simulación pasó por la caché del navegador). Probar en la prueba general que Vercel no deje el `index.html` en caché.
+- **Lo que sigue sin comprobar:** PC madre (necesita Supabase Auth), equipos reales, Safari, afiches impresos con la
+  luz de la sede, y escuchar los 5 estilos de Audioreactiva.
