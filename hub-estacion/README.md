@@ -8,10 +8,10 @@ Pantalla para la **pantalla flip** y los **Mac** del evento. Es el corte de una 
 | Mezanine (medio) | Geométrica | Torniquetes, piso de damero y la **pantalla de la Estación Audioreactiva** |
 | Andén (abajo) | Pixel | Letrero pixel y el Metro. Cada 3er tren pasa el **vagón pintado** (easter egg de la experiencia Vagón) |
 
-**Cada persona con credencial es un personaje.** El cuerpo es del lenguaje de su marco y la cabeza es su foto o su personaje. Cada timbre lo sube un nivel:
-- 1 timbre: llega en tren al andén;
-- 2 timbres: sube al mezanine;
-- 3 timbres: sale a la plaza;
+**Cada persona con credencial es un personaje.** El cuerpo es del lenguaje de su marco y la cabeza es su foto o su personaje. Llega a la plaza y cada timbre lo baja un nivel por las escaleras mecánicas (plan 014 §0):
+- 1 timbre: entra caminando a la plaza;
+- 2 timbres: baja al mezanine;
+- 3 timbres: baja al andén;
 - 4 timbres: lleva aureola y hay confeti.
 
 Arriba se ven las cifras y el último aviso.
@@ -33,6 +33,12 @@ Assets reutilizados (copiados a `public/figma/`):
 - los personajes de la credencial;
 - araucaria, sol, helecho, flor y quisco de Teatro de Papel;
 - stickers y tag de Graffiti.
+
+## Modo galería (`?galeria` o `#/galeria`)
+Respaldo liviano de la pantalla Flip (plan 014 §3, R3): pasa a pantalla completa las creaciones que llegan por
+`shared/datos.ts` (mosaico, grabado, graffiti, Hora punta, Fotomatón) con el nombre de la persona si trae su código.
+Lo nuevo pasa adelante; sin creaciones completa con ejemplos (`src/galeria/ejemplos.ts`). `?cada=<s>` cambia el ritmo
+(9 s por omisión). Solo `<img>`, grid y opacidad: pensado para el navegador de la Flip 2 (Chromium ~69).
 
 ## Hoja de cuerpos (`?cuerpos`)
 Propuesta de cuerpos para los personajes: 3 opciones por lenguaje, caminando, todas con la misma cabeza (la foto o el personaje de la credencial). Está en `src/estacion/cuerpos.ts` y `src/HojaCuerpos.tsx`. La escena sigue usando los cuerpos actuales hasta que el equipo elija.
