@@ -114,9 +114,9 @@ function puntuarGuia(preparados: Preparado[], rgba: ArrayLike<number>, w: number
     const mediana = (v: number[]) => { const o = [...v].sort((a, b) => a - b); return o[Math.floor(o.length / 2)] ?? 0; };
     const tope = (v: number) => Math.max(-TINTE, Math.min(TINTE, v));
     const or = tope(mediana(bloques.map(b => b.dr))), og = tope(mediana(bloques.map(b => b.dg)));
-    let d = 0;
-    for (const b of bloques) { d += b.peso * Math.hypot(b.dr - or, b.dg - og); }
-    const color = Math.max(0, 1 - (d / bloques.length) / 0.12); // los bloques oscuros casi no cuentan
+    let d = 0, sumaPeso = 0;
+    for (const b of bloques) { d += b.peso * Math.hypot(b.dr - or, b.dg - og); sumaPeso += b.peso; }
+    const color = Math.max(0, 1 - (d / (sumaPeso || 1)) / 0.12); // promedio pesado: lo oscuro pesa menos, pero un afiche casi negro igual se juzga por sus partes de color
     return { id: p.id, puntaje: mejor * (0.4 + 0.6 * color) };
   });
 }
