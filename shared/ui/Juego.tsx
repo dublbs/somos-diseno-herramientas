@@ -14,6 +14,9 @@ export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string
   const [libre, setLibre] = useState(sinCredencial);
   const [ganado, setGanado] = useState<DetalleCreacion | null>(null);
   const [staff, setStaff] = useState(esStaff);
+  // Al entrar con el código, un aviso corto confirma con qué credencial se juega y que lo creado suma (QA 18 nov, T-05).
+  const [recien, setRecien] = useState<string | null>(null);
+  useEffect(() => { if (!recien) return; const t = setTimeout(() => setRecien(null), 7000); return () => clearTimeout(t); }, [recien]);
 
   useEffect(() => { if (!document.documentElement.dataset.visual) document.documentElement.dataset.visual = visual; }, [visual]);
   useEffect(() => {
@@ -23,9 +26,10 @@ export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string
   }, []);
 
   if (staff) return <PanelStaff app={app} alSalir={() => { setConfig(leerConfig()); setStaff(false); history.replaceState(null, '', location.pathname); }} />;
-  if (config.modoJuego && !codigo && !libre) return <Desbloqueo titulo={titulo} alEntrar={c => { entrarJugador(c, app); setCodigo(c); }} alSinCredencial={() => { entrarSinCredencial(); setLibre(true); }} alStaff={() => setStaff(true)} />;
+  if (config.modoJuego && !codigo && !libre) return <Desbloqueo titulo={titulo} alEntrar={c => { entrarJugador(c, app); setCodigo(c); setRecien(c); }} alSinCredencial={() => { entrarSinCredencial(); setLibre(true); }} alStaff={() => setStaff(true)} />;
   return (<>
     {children}
+    {recien && <p className="k-juego-aviso" role="status"><Icono nombre="approval" />Juegas con <b>{recien}</b>: lo que te lleves de aquí suma a tu credencial.</p>}
     {ganado && (
       <div className="k-quiosco" role="dialog" aria-modal="true" aria-labelledby="timbre-t">
         <div className="k-panel k-quiosco-caja">
