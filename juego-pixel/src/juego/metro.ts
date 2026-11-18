@@ -53,3 +53,16 @@ export function lienzoTrompa(): HTMLCanvasElement {
   r(C.k, 7, 19, 6, 4); r(C.g, 8, 19, 4, 2);
   return trompa;
 }
+
+// La parte de atrás de un carro (se ve entre carro y carro): hueso con el fuelle negro.
+let fuelle: HTMLCanvasElement | null = null;
+export function lienzoFuelle(): HTMLCanvasElement {
+  if (fuelle) return fuelle;
+  fuelle = nuevo(20, ALTO);
+  const x = fuelle.getContext('2d')!;
+  const r = (col: string, a: number, b: number, w: number, h: number) => { x.fillStyle = col; x.fillRect(a, b, w, h); };
+  r(C.k, 0, 2, 20, 18); r(C.b, 1, 3, 18, 16); r(C.k, 5, 4, 10, 15); r(C.G, 6, 5, 8, 13);
+  for (let k = 0; k < 6; k++) r(C.k, 6, 6 + k * 2, 8, 1);
+  r(C.r, 1, 12, 4, 2); r(C.r, 15, 12, 4, 2);
+  return fuelle;
+}
