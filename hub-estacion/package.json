@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:tablet": "vite --host",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && node scripts/verificar-flip.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
