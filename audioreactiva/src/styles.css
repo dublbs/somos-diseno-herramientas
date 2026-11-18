@@ -54,3 +54,7 @@
 .ar-linea .h-icono { font-size: 16px; vertical-align: -3px; }
 
 @media (prefers-reduced-motion: reduce) { .ar-pad { transition: none; } }
+.ar-manos { margin: var(--h-e2) 0 0; padding: 0; list-style: none; display: grid; gap: 6px; font: 500 13px/1.35 var(--h-fuente); color: var(--h-texto-2); }
+.ar-manos li { display: grid; grid-template-columns: 18px auto 1fr; gap: 6px; align-items: start; }
+.ar-manos b { color: var(--h-texto); font-weight: 700; }
+.ar-manos .h-icono { font-size: 18px; line-height: 18px; }
