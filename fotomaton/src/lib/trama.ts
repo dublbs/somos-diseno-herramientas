@@ -365,14 +365,17 @@ export const DEMO = (() => {
   return c;
 })();
 
+// Cuadro de la cámara en retrato 3:4 (recortado al centro si la cámara entrega apaisado), espejado en la selfie.
+// `max` es el alto en px.
 export function pintarVideo(canvas: HTMLCanvasElement, v: HTMLVideoElement, espejo: boolean, max: number) {
   const vw = v.videoWidth, vh = v.videoHeight; if (!vw) return false;
-  const s = Math.min(1, max / Math.max(vw, vh)), w = Math.round(vw * s), h = Math.round(vh * s);
+  const sw = Math.min(vw, vh * 3 / 4), sh = Math.min(vh, vw * 4 / 3), sx = (vw - sw) / 2, sy = (vh - sh) / 2;
+  const h = Math.round(Math.min(max, sh)), w = Math.round(h * 3 / 4);
   if (canvas.width !== w) canvas.width = w;
   if (canvas.height !== h) canvas.height = h;
   const x = canvas.getContext('2d')!; x.save();
   if (espejo) { x.translate(w, 0); x.scale(-1, 1); }
-  x.drawImage(v, 0, 0, w, h); x.restore(); return true;
+  x.drawImage(v, sx, sy, sw, sh, 0, 0, w, h); x.restore(); return true;
 }
 
 export function leerArchivo(file: File): Promise<HTMLCanvasElement> {

@@ -5,7 +5,7 @@ import { MARCOS, porId, type Visual } from './data/marcos';
 import { TINTAS } from './data/tintas';
 import { Panel } from './components/Panel';
 import { Boton, useAviso } from '../../shared/ui/Herramienta';
-import type { Lado } from './hooks/useCamara';
+import { abrirCamaraEnToque, type Lado } from './hooks/useCamara';
 import type { Cara } from './lib/cara';
 import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
 import { Camara } from './components/Camara';
@@ -133,7 +133,7 @@ export function App() {
           { icono: 'ios_share', texto: 'Llévatela al celular con un QR. Queda 24 horas y después se borra.' },
         ]}
         acciones={[
-          { texto: 'Abrir la cámara', icono: 'photo_camera', alTocar: () => { marcarVisto(); setPaso('camara'); } },
+          { texto: 'Abrir la cámara', icono: 'photo_camera', alTocar: () => { abrirCamaraEnToque(lado); marcarVisto(); setPaso('camara'); } },
           { texto: 'Subir una foto', icono: 'image', alTocar: () => { marcarVisto(); subir(); } },
         ]} />
     </>

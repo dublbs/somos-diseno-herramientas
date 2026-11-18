@@ -33,6 +33,7 @@ video.oculto{position:absolute;width:1px;height:1px;opacity:0;pointer-events:non
 .foto-lienzo .carga span{background:var(--h-superficie);color:var(--h-texto);border:var(--h-trazo) solid var(--h-borde);border-radius:var(--h-radio);font:600 15px var(--h-fuente)}
 .foto-lienzo .carga::before{background-image:radial-gradient(circle,var(--h-acento) var(--p),transparent calc(var(--p) + 1.5%))}
 .foto-lienzo .error-cam{background:var(--h-superficie-2);color:var(--h-texto)}
+.acciones-cam{display:flex;gap:var(--h-e2);flex-wrap:wrap;justify-content:center}
 
 /* Abajo, al centro: solo el disparador (acción flotante grande); el estado de la cara a su izquierda */
 .pie-foto{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:var(--h-e3);width:100%}
