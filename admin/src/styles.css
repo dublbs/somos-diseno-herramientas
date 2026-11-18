@@ -33,6 +33,8 @@ pre { background: var(--chip); padding: 12px; overflow-x: auto; font-size: 13px;
 .cabecera { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
 .buscar { min-width: 280px; }
 .tarjeta { background: var(--surface); border: 2px solid var(--ink); padding: 20px; display: grid; gap: 12px; align-content: start; }
+.fila-check { display: flex; align-items: center; gap: 12px; min-height: 48px; font-weight: 600; cursor: pointer; }
+.fila-check input { width: 24px; height: 24px; accent-color: var(--accent, #0062B8); }
 .entrar { width: min(100%, 380px); }
 .dos { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; align-items: start; }
 .fichas { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }

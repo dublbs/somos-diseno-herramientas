@@ -16,5 +16,6 @@ La base ya está en uso. Los tres archivos base (`credencial/supabase/schema.sql
 | `005-eventos-juego.sql` | `eventos.tipo` suma `juego` (Hora punta) | 14/11, Claude (sesión de Pipe) |
 | `fotomaton/supabase/migrations/0001_fotomaton.sql` | Tabla y bucket privado `fotomaton` (lo usa «Llévatela» en todas las experiencias, plan 011). **Una sola vez.** | 14/11, Claude (sesión de Pipe) |
 | `006-limpiar-llevatela.sql` | Cron cada hora que llama a la función `limpiar` (borrado a 24 h de «Llévatela») | 14/11, Claude (sesión de Pipe) · probado: 200 |
+| `008-config-mesas.sql` | Las tablets siguen al PC madre: modo juego, código de la estación 2 y reinicios (`config_mesas()`), y el PIN del canje abre `?staff` (`verificar_pin_staff()`). Plan 015 | **Pendiente de correr** |
 
 Funciones desplegadas en `somos-diseno`: `notificar` (plan 007), `tarjeta` y `limpiar` (Fotomatón / «Llévatela»), todas el 12–14/11.
