@@ -618,7 +618,7 @@ export class Estacion {
 
 // Silueta de un taco entintada en un color (para los banderines de grabado).
 const tintas = new Map<string, HTMLCanvasElement>();
-function entintar(im: HTMLImageElement, color: string, lado: number): HTMLCanvasElement {
+export function entintar(im: HTMLImageElement, color: string, lado: number): HTMLCanvasElement {
   const k = `${im.src}|${color}|${Math.round(lado)}`;
   let c = tintas.get(k);
   if (!c) {
@@ -636,7 +636,7 @@ function entintar(im: HTMLImageElement, color: string, lado: number): HTMLCanvas
 // Mosaico geométrico de prueba (como los del Taller de Mosaicos): un módulo de 2 × 2 reflejado en 4 × 4.
 const mosaicos = new Map<string, HTMLCanvasElement>();
 const PARES = [[C.Azul, C.Hueso], [C.Lapis, C.Rosa], [C.Verde, C.Amarillo], [C.Morado, C.Celeste], [C.Negro, C.Amarillo]];
-function mosaico(semilla: number, lado: number): HTMLCanvasElement {
+export function mosaico(semilla: number, lado: number): HTMLCanvasElement {
   const k = `${semilla}|${Math.round(lado)}`;
   let c = mosaicos.get(k);
   if (!c) {
