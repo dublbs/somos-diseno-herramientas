@@ -107,12 +107,11 @@ function revisarChoques(e: Cruce) {
 }
 
 export function avanzarCruce(e: Cruce, dtMs: number) {
-  if (e.fin) return;
   const dt = Math.min(dtMs, 50) / 1000, d = dificultad(e.maxY);
-  e.tiempo += dtMs; if (!e.llego) e.quieto += dtMs;
-  e.jugador.salto = Math.max(0, e.jugador.salto - dt * 8);
+  e.jugador.salto = Math.max(0, e.jugador.salto - dt * 8); // el salto termina aunque hayas chocado
+  if (!e.fin) { e.tiempo += dtMs; if (!e.llego) e.quieto += dtMs; } // si chocaste, el tránsito sigue y nada más
   // La cámara sigue al jugador (deja 2 filas detrás) y nunca retrocede.
-  e.camara = Math.max(e.camara, Math.min(e.jugador.y - 2, META - VISIBLES + 2));
+  if (!e.fin) e.camara = Math.max(e.camara, Math.min(e.jugador.y - 2, META - VISIBLES + 2));
   for (const k of [...e.filas.keys()]) if (k < e.camara - 2) e.filas.delete(k);
 
   for (let y = e.camara; y < e.camara + VISIBLES + 1; y++) {
@@ -138,6 +137,7 @@ export function avanzarCruce(e: Cruce, dtMs: number) {
   for (const a of e.avisos) a.t -= dtMs;
   e.avisos = e.avisos.filter(a => a.t > 0);
 
+  if (e.fin) return;
   revisarChoques(e);
   if (!e.fin && !e.llego && e.quieto > QUIETO_FIN) e.fin = 'hora';
 }
