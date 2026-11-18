@@ -12,8 +12,9 @@ import './styles.css';
 const params = new URLSearchParams(window.location.search);
 const HORA_FIJA = params.has('hora') ? Number(params.get('hora')) : null;
 const RAPIDO = Math.max(1, Number(params.get('rapido')) || 1);
-// ?prueba=0: solo las personas reales (sin la población ni los eventos de prueba).
-const PRUEBA = params.get('prueba') !== '0';
+// Personas y eventos de prueba: por defecto solo sin Supabase (en el evento, solo las reales). ?prueba=1 los fuerza y
+// ?prueba=0 los apaga (QA 18 nov: el enlace del hub abría la pantalla en vivo con 40 personas inventadas).
+const PRUEBA = params.has('prueba') ? params.get('prueba') !== '0' : !remoto;
 const QUIETO = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
 interface Aviso { id: number; texto: string }
