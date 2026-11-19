@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Estacion, disponer, TODAS_LAS_IMAGENES } from './estacion/escena';
 import { poblacionDePrueba, simularEventos, azar, type Evento, type Persona } from './estacion/fuente';
 import { precargar } from './estacion/imagenes';
-import { conectar } from './estacion/vivo';
+import { conectar, cargarEjemplos } from './estacion/vivo';
+import { crearEjemplos } from './galeria/ejemplos';
 import { remoto, URL_SB, cabeceras } from '../../shared/datos';
 import { ACTIVAS } from '../../shared/juego';
 import './styles.css';
@@ -46,6 +47,9 @@ export const App: React.FC = () => {
     const id = setInterval(preguntar, 30000);
     return () => clearInterval(id);
   }, []);
+  // Con personas de prueba, los cuadros de la mezanina se completan con obras de ejemplo. En producción (?prueba=0),
+  // sin obras todavía, los cuadros quedan vacíos con «Tu obra aquí».
+  useEffect(() => { if (PRUEBA && listo) crearEjemplos().then(e => cargarEjemplos(e.piezas)).catch(() => {}); }, [listo]);
 
   useEffect(() => {
     if (!listo) return;
@@ -87,7 +91,7 @@ export const App: React.FC = () => {
       setResumen(e.resumen);
     };
     const detener = PRUEBA ? simularEventos(() => estacion.current!.avatares.map(a => a.p as Persona), alEvento, 5000 / RAPIDO) : () => {};
-    // Lo real: credenciales, timbres, vagones, mosaicos y grabados que llegan por shared/datos.ts.
+    // Lo real: credenciales, timbres y las obras (mosaico, grabado, graffiti, Hora punta, Fotomatón) de shared/datos.ts.
     let desconectar = () => {};
     conectar(alEvento, codigo => estacion.current!.avatares.some(a => a.p.codigo === codigo)).then(f => { desconectar = f; });
     setResumen(estacion.current!.resumen);
@@ -117,7 +121,7 @@ export const App: React.FC = () => {
         <time className="hora">{(HORA_FIJA != null ? `${String(Math.floor(HORA_FIJA)).padStart(2, '0')}:00` : hora.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false }))}</time>
         <button type="button" className="completa" onClick={pantallaCompleta} aria-label="Pantalla completa">⛶</button>
       </header>
-      <canvas ref={lienzo} className="escena" role="img" aria-label={`Estación con ${resumen.personas} personas: andén Pixel, mezanine Geométrico y plaza Orgánica`} />
+      <canvas ref={lienzo} className="escena" role="img" aria-label={`Estación con ${resumen.personas} personas: andén Pixel, mezanina Geométrica y plaza Orgánica`} />
       {!listo && <p className="cargando">Abriendo la estación…</p>}
       <span className="demo">{remoto ? 'En vivo' : 'Este equipo'}{PRUEBA ? ' · con personas de prueba' : ''}</span>
     </div>

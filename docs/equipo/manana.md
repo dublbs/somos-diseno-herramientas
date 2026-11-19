@@ -1,85 +1,127 @@
-# Mañana: todo el feedback F-002 antes de abrir (10:00)
+# Esta noche y mañana: todo el feedback F-002 y F-003 antes de abrir (10:00)
 
-**Decisión de Amaro (19 nov):** entra **todo** el feedback de F-002. Solo queda fuera la app instalable (T-004).
-Los scripts e informes (T-001, T-002, T-003, B-001, B-003, B-004) son para después: no cambian lo que ve la gente.
+**Decisión de Amaro (19 nov):** entra **todo** el feedback de F-002 (experiencias) y F-003 (credencial y HUB). Solo
+queda fuera la app instalable (T-004). Los scripts e informes (T-001, T-002, T-003, B-001, B-003, B-004) son para
+después.
 
-## Cómo cabe en dos horas
-Son 16 tareas para tres personas. La única forma de que quepan es **separar construir de probar**:
-- **Construir:** los agentes trabajan en paralelo, con subagentes (ver «Paralelo dentro de cada carril»). **Conviene
-  lanzarlos antes de llegar a la sede**, desde la casa a las 7:00 o esta noche, porque un agente necesita de 20 a
-  60 min por tarea.
-- **Probar y mergear (8:00–9:30):** las personas prueban cada PR en una tablet Lenovo y lo mergean si funciona.
-- **Congelado a las 9:30.** Lo que no esté mergeado y probado a esa hora no entra mañana; su PR queda abierto y entra
-  después. Así ningún cambio sin probar llega a la actividad.
+**Plan:**
+- **Felipe empieza esta noche** con la lista completa, porque tiene más créditos.
+- **Mañana a las 8:00, Thomas y Basti toman lo que Felipe no alcanzó a empezar.**
+- **A las 9:30 se congela.** Lo que no esté mergeado y probado a esa hora no entra.
 
-## Reglas de la mañana
-- Un PR por tarea. Mergean Amaro o Felipe. GitHub Pages tarda 1–2 min después de cada merge.
-- Cada PR se prueba en una tablet real con la URL publicada. **Si algo se ve raro, no se mergea.**
-- Orden de merge: primero lo que ve todo el mundo (inicio, Hora punta), después el resto.
-- **Esta noche:** Amaro o Felipe pasan **por privado** a Thomas y a Basti el `.env.local` de las apps que tocan. Sin
-  ese archivo, el `dist/` sale sin Supabase. Nunca va al repo ni a un chat de grupo.
+## Cómo se sabe qué está tomado: el título del PR
+- **Todo PR empieza con el ID de la tarea**: `B-011 · Marco Metro sin limpiaparabrisas`. Si junta varias, van todas:
+  `B-011 B-014 · …`.
+- La tarea está **tomada** si hay un PR abierto (borrador o no) con su ID, y **hecha** si el PR está mergeado.
+- El PR se abre **como borrador apenas se empieza** la tarea, no al final. Así nadie toma lo mismo.
+- No hace falta editar las colas para marcar el estado: el estado vive en los PR. Mañana, para ver qué queda:
+  ```bash
+  git fetch origin && git log origin/main --oneline | grep -oE "[TBP]-0[0-9]{2}" | sort -u   # mergeadas
+  ```
+  Y en GitHub: la lista de PR abiertos.
 
 ## Esta noche
-- [ ] Mergear #55 (este plan) y #54 (Cabina de fotos).
-- [ ] Correr las migraciones 008, 009, 010 y 011 en el SQL Editor y anotarlas en el README de migraciones (E-003).
-- [ ] Pasar los `.env.local`.
+**Amaro o Felipe, antes de lanzar al agente:**
+1. Mergear el PR **«equipo, parte 2»** (el #55 ya entró). Trae este plan y además junta:
+   - #54 (Cabina de fotos), que ya entró por #58;
+   - la rama `amaro/ronda-3b` (Chas de Audioreactiva, obras de la Mezanina, «Mezanina»);
+   - la pauta de la prueba en grupo.
+   Es B-002 hecho (`claude/escaner-afiches` entró por #56). **Nota:** el #55 se mergeó con una versión temprana; el resto llegó en el PR «equipo, parte 2».
+2. Correr las migraciones **008, 009, 010 y 011** en el SQL Editor de `somos-diseno` y anotarlas en
+   `shared/supabase/migraciones/README.md` (E-003).
+3. Felipe lanza su agente con el prompt de abajo.
 
-## Reparto
-| Persona | Tareas, en orden | Apps |
-|---|---|---|
-| **Thomas** | T-005 copy del inicio → T-007 «Multiplicar» → T-012 marco de calle → T-009 muro del vagón → T-010 Audioreactiva a todo el lienzo → T-006 vista previa de Hora punta (al final, cuando Basti haya mergeado sus sprites) | `index.html`, `taller-mosaicos/`, `fotomaton/` + `shared/marcos*`, `graffiti/`, `audioreactiva/` |
-| **Basti** | B-002 rescatar ramas → B-006 tutorial → B-007 sprites → B-010 HUD y controles → B-008 andén y llegada del Inacapín → B-009 caminata del Inacapín | `juego-pixel/`, `hub-estacion/`, `credencial/` |
-| **Felipe** | Migraciones si faltan → T-008 Teatro completo (escenario arriba, Huemul, Pez, Guanaco) → T-011 Grabado (animación del taco y nitidez) → revisar y mergear | `loops/`, `grabado/` |
-| **Amaro** | Prende las tablets, el HUB y el PC madre → prueba cada PR en la tablet → mergea → ronda final a las 9:30 | — |
+**Felipe, orden de la lista.** Lo más visible y seguro va primero, para que si la noche no alcanza, lo hecho sea lo que
+más se nota.
 
-## Paralelo dentro de cada carril
-- **Thomas:** las 5 apps son distintas, así que puede tener **2 subagentes a la vez**, cada uno en su app y en su rama.
-  - Primero va T-005 junto con T-007.
-  - Después, T-012 junto con T-009.
-  - Al final, T-010, y T-006 cuando Basti haya mergeado.
-  - El agente principal revisa cada PR antes de avisar.
-- **Basti:** casi todo es `juego-pixel/`. Para no pisarse:
-  - **Subagente A**: B-006, B-007 y B-010 (tutorial, sprites y HUD), en la rama `basti/hora-punta-sprites-hud`.
-  - **Subagente B**: B-008 y B-009 (escenario, llegada y caminata del Inacapín), en la rama `basti/hora-punta-inacapin`.
-  - Antes de empezar, cada uno anota en su PR borrador los archivos que va a tocar. Si los dos necesitan el mismo
-    archivo, B espera a que se mergee A y actualiza su rama.
-  - B-002 lo hace el agente principal primero, porque es rápido.
-  - Las 48 pruebas del motor tienen que seguir en verde en las dos ramas.
-- **Felipe:** Teatro y Grabado son apps distintas; puede tener un subagente en cada una.
+| # | Tareas | App | Por qué en este orden |
+|---|---|---|---|
+| 1 | B-015, B-011, B-012, B-014 | `credencial/`, `shared/marcos*` | Cambios chicos y visibles en el celular de todos |
+| 2 | T-005, T-007 | `index.html`, `taller-mosaicos/` | El inicio lo ve todo el mundo |
+| 3 | B-006, B-007, B-010 | `juego-pixel/` | Hora punta: tutorial, sprites y HUD |
+| 4 | P-005, P-002, P-001, P-003, P-004 | `hub-estacion/` | HUB (cola: `felipe.md`) |
+| 5 | T-008 | `loops/` | Teatro completo |
+| 6 | B-013, B-016, B-017 | `credencial/` | Círculo de la foto, vista previa del flyer, deslizar para jugar |
+| 7 | T-012, T-009, T-011, T-010 | `fotomaton/`, `graffiti/`, `grabado/`, `audioreactiva/` | Cabina, Graffiti, Grabado y Audioreactiva |
+| 8 | B-008, B-009 | `juego-pixel/` | Andén y llegada del Inacapín, y su caminata |
+| 9 | T-006 | `index.html` | Vista previa de Hora punta: va al final porque depende de 3 y 8 |
+
+- **Multiagente:** el agente de Felipe puede usar **hasta 3 subagentes a la vez, cada uno en una app distinta**. Por
+  ejemplo: credencial, Hora punta y HUB. Al terminar uno, ese subagente toma el siguiente grupo de la tabla cuya app no
+  esté ocupada.
+  - Nunca dos subagentes en la misma app.
+  - `shared/marcos*` lo tocan B-011, B-014 y T-012: se hacen en ese orden, uno a la vez.
+- **Un PR por tarea** (o por grupo chico de la misma app), con el ID en el título y la rama `pipe/<tema>`.
+- **T-012:** antes de construir el marco de calle, el agente propone 2 opciones en el PR borrador y espera que Amaro
+  elija. Mientras tanto, sigue con otra tarea.
+- **Mergear de noche:** Felipe o Amaro mergean lo que esté listo y probado (build en verde, verificación de pantalla y
+  prueba de humo local sin errores). Si queda la duda, se deja abierto para que Amaro lo pruebe en la tablet a las 8.
+
+## Mañana
+| Hora | Thomas | Basti | Amaro | Felipe |
+|---|---|---|---|---|
+| 8:00 | Toma las tareas de **su carril** (`thomas.md`: experiencias de tablet e inicio) que no tengan PR, en el orden de la tabla de Felipe | Toma las tareas de **su carril** (`basti.md`: credencial y Hora punta) que no tengan PR, en el mismo orden | Prende las tablets, el HUB y el PC madre. Prueba lo que se mergeó de noche | Sigue con sus PR abiertos y revisa |
+| 8:00–9:30 | Un PR por tarea, con el ID en el título | Igual | Prueba cada PR en la tablet, el celular y el HUB, y mergea | Mergea con Amaro |
+| 9:30 | Congelado | Congelado | Ronda final: cada experiencia, un timbre, «Llévatela» y canje | Congelado |
+
+- **Los PR que Felipe dejó abiertos a medias no se tocan sin preguntarle.** Si a las 8:30 no hay avance, Felipe puede
+  soltar la tarea: cierra el PR y avisa.
+- **Las tareas del HUB (P-001…P-005) y del Teatro (T-008)** siguen siendo de Felipe mañana. Si las suelta, las toma
+  Basti (HUB) o Thomas (Teatro).
+
+## Reglas
+- Cada PR se prueba en una tablet real con la URL publicada. **Si algo se ve raro, no se mergea.** GitHub Pages tarda
+  1–2 min después de cada merge.
+- **`.env.local`:** Amaro o Felipe se lo pasan **por privado** a Thomas y a Basti esta noche. Sin ese archivo, el
+  `dist/` sale sin Supabase. Nunca va al repo ni a un chat de grupo.
+- **`dist/` al final de cada PR**, solo de la app tocada. Si hay conflicto en `dist/`, se resuelve recompilando.
 
 ## Si a las 9:00 algo grande va atrasado
-Los cambios grandes ya vienen partidos en trozos que funcionan solos. Se mergea el trozo que está listo y el resto queda
-para después:
-- **B-008:** primero el cambio de color del escenario, después la escena de llegada y al final los detalles del andén.
+Los cambios grandes ya vienen partidos en trozos que funcionan solos. Se mergea el trozo que está listo y el resto
+queda para después:
+- **B-008:** primero el cambio de color del escenario, después la escena de llegada y al final el andén.
 - **B-010:** primero la lata con número y los puntos legibles, al final los controles nuevos.
+- **B-017:** primero la barra de progreso y el indicador de deslizar, al final las animaciones.
+- **P-002 y P-001:** primero el metro nuevo sin puertas visibles, después los detalles.
+- **P-003:** si los cuerpos nuevos no están, quedan los de hoy.
 - **T-010:** si recortar la exportación no está probado, no se mergea.
 - **T-012:** si el marco nuevo no está, se quita la pizarra igual.
 
-## Prompts de mañana
-**Thomas**
+## Prompts
+**Felipe (esta noche)**
+```text
+Soy Felipe. Repo dublbs/somos-diseno-herramientas. Mañana abre la actividad a las 10:00 y hoy en la noche avanzo yo
+con la mayor parte. Haz git fetch origin y lee AGENTS.md, docs/equipo/README.md, docs/equipo/manana.md («Esta noche»),
+docs/equipo/bitacora.md (F-002, F-003, D-002), docs/equipo/thomas.md, docs/equipo/basti.md, docs/equipo/felipe.md y
+docs/equipo/referencias/README.md. Haz las tareas en el orden de la tabla «Felipe, orden de la lista», con hasta 3
+subagentes a la vez, cada uno en una app distinta (nunca dos en la misma). Cada tarea: rama pipe/<tema> desde
+origin/main, PR borrador apenas empieces con el ID en el título (ej. «B-011 · Marco Metro sin limpiaparabrisas»),
+verificación de pantalla (6 resoluciones en tablet; 390×844, 412×915 y 360×740 en la credencial; 1920×1080 en el
+HUB), capturas antes y después en el PR, dist de producción con el .env.local de la app, y el PR pasa a «listo» con
+qué se probó y qué no. En T-012 propón 2 opciones y espera a Amaro mientras sigues con otra. Para el HUB tienes permiso
+de crear assets nuevos (D-002). Si algo grande no alcanza, entrega el trozo que funciona según «Si a las 9:00 algo
+grande va atrasado». No mergees tú: avísame qué PR está listo. Al final dame la lista de IDs: listos, a medias y sin
+empezar.
+```
+**Thomas (mañana, 8:00)**
 ```text
 Soy Thomas. Repo dublbs/somos-diseno-herramientas. La actividad abre a las 10:00 y a las 9:30 se congela. Haz git fetch
-origin y lee AGENTS.md, docs/equipo/README.md, docs/equipo/manana.md y docs/equipo/thomas.md. Haz mis tareas de
-docs/equipo/manana.md en el orden del reparto, con hasta 2 subagentes en apps distintas: una rama thomas/<tema> y un PR
-por tarea, dist de producción con el .env.local que te paso, verificación en las 6 resoluciones. En T-012, propón 2
-opciones en el PR borrador y espera mi elección. Avísame apenas cada PR esté listo para probarlo en la tablet. Si una
-tarea grande no alcanza, entrega el trozo que funciona según «Si a las 9:00 algo grande va atrasado». Nada fuera de la
-lista.
+origin y lee AGENTS.md, docs/equipo/README.md, docs/equipo/manana.md («Mañana») y docs/equipo/thomas.md. Mira los PR
+abiertos y mergeados de GitHub: una tarea está tomada si algún PR tiene su ID en el título. Toma las tareas de mi
+carril (thomas.md) que nadie haya tomado, en el orden de la tabla de manana.md, con hasta 2 subagentes en apps
+distintas: rama thomas/<tema>, PR borrador con el ID en el título apenas empieces, verificación en las 6
+resoluciones, dist de producción con el .env.local que te paso. No toques PR abiertos de otra persona. Avísame apenas
+cada PR esté listo para probarlo en la tablet. Si algo grande no alcanza, entrega el trozo que funciona. A las 9:30 te
+detienes.
 ```
-**Basti**
+**Basti (mañana, 8:00)**
 ```text
 Soy Basti. Repo dublbs/somos-diseno-herramientas. La actividad abre a las 10:00 y a las 9:30 se congela. Haz git fetch
-origin y lee AGENTS.md, docs/equipo/README.md, docs/equipo/manana.md y docs/equipo/basti.md. Haz primero B-002 tú
-mismo y después reparte Hora punta en 2 subagentes como dice «Paralelo dentro de cada carril» (A: B-006, B-007, B-010;
-B: B-008, B-009), cada uno en su rama basti/<tema> con su PR. Dist de producción con el .env.local que te paso. Las
-48 pruebas del motor siguen en verde. Avísame apenas cada PR esté listo para probarlo en la tablet. Si algo grande no
-alcanza, entrega el trozo que funciona según «Si a las 9:00 algo grande va atrasado». Nada fuera de la lista.
-```
-**Felipe**
-```text
-Soy Felipe. Repo dublbs/somos-diseno-herramientas. La actividad abre a las 10:00 y a las 9:30 se congela. Lee AGENTS.md,
-docs/equipo/manana.md y las tareas T-008 y T-011 de docs/equipo/thomas.md. Haz T-008 completa en loops/ (escenario
-arriba de la biblioteca, orejas del Huemul, colores realistas del Pez, cabeza del Guanaco) y T-011 en grabado/
-(animación del taco y nitidez en tamaño máximo), con un subagente por app: ramas pipe/teatro-f002 y pipe/grabado-f002,
-un PR cada una, dist de producción, verificación en las 6 resoluciones, capturas antes y después en el PR.
+origin y lee AGENTS.md, docs/equipo/README.md, docs/equipo/manana.md («Mañana») y docs/equipo/basti.md. Mira los PR
+abiertos y mergeados de GitHub: una tarea está tomada si algún PR tiene su ID en el título. Toma las tareas de mi
+carril (basti.md: credencial y Hora punta) que nadie haya tomado, en el orden de la tabla de manana.md, con hasta 2
+subagentes en apps distintas: rama basti/<tema>, PR borrador con el ID en el título apenas empieces, verificación
+(credencial en 390×844, 412×915 y 360×740; Hora punta en las 6 resoluciones y sus 48 pruebas en verde), dist de
+producción con el .env.local que te paso. No toques PR abiertos de otra persona. Avísame apenas cada PR esté listo
+para probarlo. Si algo grande no alcanza, entrega el trozo que funciona. A las 9:30 te detienes.
 ```

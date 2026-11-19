@@ -14,6 +14,8 @@ Cómo se llenan las columnas:
 
 | ID | Fecha | Gravedad | Qué | Evidencia | Pasa a |
 |---|---|---|---|---|---|
+| D-002 | 19 nov | — | Amaro autoriza **crear assets nuevos para el HUB** (plaza, escaleras, andén, personajes), sin que tengan que venir de Figma. Excepción a «no inventar arte» de `AGENTS.md`, solo para `hub-estacion/`. La vara: que se vea terminado, como un producto real, refinado y bonito | Chat de Amaro | P-001…P-005 |
+| F-003 | 19 nov | Media | **Feedback de Amaro sobre la credencial y el HUB.** Detalle abajo, en «F-003 en detalle» | Chat de Amaro | B-011…B-017, P-001…P-005 |
 | F-002 | 19 nov | Media | **Ronda de feedback de Amaro (UI), experiencia por experiencia.** Texto completo abajo, en «F-002 en detalle». | Chat de Amaro, después del evento | T-004…T-012, B-006…B-010 (todo entra mañana salvo T-004: `manana.md`) |
 | E-007 | 19 nov | Media | Lo que **no se probó** en la revisión del 19 nov. Los flujos que escriben en producción (crear credencial, subir por «Llévatela», canjear) se dejaron fuera para no ensuciar los datos del evento. Tampoco se probó en las tablets reales (permiso de cámara de la Cabina, cacería con afiche impreso, audio de Audioreactiva) | Revisión de Claude (sesión de Amaro) | Personas |
 | E-006 | 19 nov | Media | `docs/tasks/008-teatro.md` tiene 20 tareas sin marcar, aunque la ronda 3 pasó el Teatro al kit v2 (#39). No se sabe cuáles siguen pendientes | `git log origin/main -- loops/` | T-001 |
@@ -86,3 +88,43 @@ centro. Hacerlo de papel no tiene sentido al llevárselo. → T-010
 
 **Cabina de fotos.** Está bastante bien. El marco «pizarra» no se entiende y es muy simple: quitarlo o cambiarlo por
 algo de la calle, que es lo que falta. → T-012
+
+## F-003 en detalle (19 nov, Amaro)
+**Credencial**
+- **Marco Metro:** hay una línea que sale de la esquina inferior izquierda hacia el centro. Es el limpiaparabrisas que
+  dibuja `scripts/marcos-generados.py` (líneas ~272–273, los 9 escalones negros de `sobre`) y se lee como un error. →
+  B-011
+- **Invasor (Pixel) y glifo (Geométrica):** todavía tienen el troquelado del sticker. Hay que quitarlo. → B-012
+- **Círculo para sacar la foto:** se ve tosco y hay que pulirlo. → B-013
+- **Marco Estallido:** el **patrón de fondo** (no el marco) es morado sobre morado y casi no se ve. Los demás patrones
+  están bien. → B-014
+- **Bienvenida, timbre 3:** el texto dice «afiches con un sello», pero no hay sello. Debe decir solo «Hay afiches
+  repartidos por la sede. Encuéntralos y apúntales con «Buscar afiches»». → B-015
+- **«Arma tu flyer aquí mismo»** está bien, pero falta poder **ver antes** el flyer que se va a generar. → B-016
+- **Navegación de juego:**
+  - Se queda «tocar para ver el álbum».
+  - En vez del botón «Jugar», un **indicador visual de deslizar a la derecha** que lleve a la pantalla de jugar de forma
+    natural, como en una app o un juego.
+  - Hay que **gamificar** un poco la interfaz: hoy se siente extraña.
+  - Se quedan el botón «Cómo se juega», la cacería, el inventario y «Tu flyer», que le gustan.
+  - → B-017
+- **Pregunta de Amaro:** ¿el HUB ya muestra las caras de las personas? Sí: en `main`, el HUB muestra la miniatura de la
+  cara **solo si la persona dio su consentimiento** (`hub-estacion/src/estacion/vivo.ts`, `escena.ts` ~572). Si no lo
+  dio, o mientras carga, muestra la inicial en color.
+
+**HUB**
+- **Plaza (Orgánica):** se ve simple y sin terminar. Hay que refinarla y, con ella, **las escaleras** (D-002). → P-001
+- **Estación** y **mapa de red** están bien: «parece arte de metro hecho por alguien».
+- **«En vivo»:** tener la Audioreactiva en vivo puede no ser viable. Mejor reproducir siempre **loops del Teatro y de
+  la Audioreactiva**. → P-004
+- **Andén (Pixel)** → P-002
+  - Está vacío y con poco detalle.
+  - El metro que llega no tiene el estilo nuevo (el Pixel detallado de `referencias/metro-web-pixel.png`).
+  - **No deberían verse las puertas abriéndose**: se abren del lado del andén, que no se ve.
+  - Revisar los stickers del plumón y de la zapatilla del andén. Amaro los nombra como parte de lo que falta: que
+    queden integrados como pegados en el escenario o que se quiten.
+- **Personajes:** al cuerpo le falta trabajo. Felipe propone cuerpos **al estilo Terraria**, uno inclinado a lo
+  geométrico, otro a lo orgánico y otro al Pixel (D-002). → P-003
+- **«Mezanine»** debe decir **«Mezanina»**. Ya está en la rama `amaro/ronda-3b` (B-002); hay que revisar que no quede
+  ninguno. → P-005
+- **General:** subir el detalle de todo, para que mañana se vea terminado.
