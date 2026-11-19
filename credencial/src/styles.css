@@ -5,6 +5,8 @@
 /* Credencial: pensada para el celular en vertical. Todo cabe en la pantalla, sin scroll.
    Tema: cada marco (2 por lenguaje) define --tema-banda, --tema-tinta, --tema-patron y --accent (App.tsx),
    y data-visual en <html> define forma, tipografía y sombras (shared/somos-tokens.css). */
+/* Siempre en claro (también con el modo oscuro del sistema o el oscurecido forzado del navegador). */
+:root { color-scheme: only light; }
 html:has(.movil), body:has(.movil) { padding: 0; height: 100%; overflow: hidden; background: var(--tema-banda, var(--bg)); }
 .movil {
   height: 100dvh;

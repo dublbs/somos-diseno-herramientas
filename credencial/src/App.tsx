@@ -71,7 +71,7 @@ function aplicarTema(t: Tema) {
     '--bg': '#F4EEE3', '--surface': '#F4EEE3', '--ink': '#000000', '--muted': '#4A453E', '--line': 'rgba(0,0,0,.18)', '--chip': '#E5DCCB',
   };
   for (const [k, val] of Object.entries(v)) r.style.setProperty(k, val);
-  r.style.colorScheme = 'light';
+  r.style.colorScheme = 'only light';
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t.banda);
 }
 
