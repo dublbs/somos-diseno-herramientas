@@ -109,13 +109,13 @@ const Reglas: React.FC<{ nivel: Nivel }> = ({ nivel }) => nivel === 'jefe' ? (
   </ul>
 ) : nivel === 'anden' ? (
   <ul className="reglas">
-    <li><b>◀ ▶</b> caminar, <b>Saltar</b> o <b>▲</b> salta, <b>▼</b> bajas de la viga.</li>
+    <li>Izquierda: <b>◀ ▶</b> caminar y <b>Bajar</b> de la viga. Derecha: <b>Saltar</b> y <b>Lanzar</b>.</li>
     <li><b>Lanza pintura</b>: 3 golpes de color y el Gris queda en una bola. Sin latas, la pintura hueso necesita 5.</li>
     <li><b>Camina contra la bola</b> y rueda. Cada Gris suelta una <b>pieza</b>: ve a buscarla.</li>
   </ul>
 ) : (
   <ul className="reglas">
-    <li><b>Avanza</b> fila por fila hasta el metro ({META} filas). Toca el lienzo o el botón Avanzar.</li>
+    <li><b>Avanza</b> fila por fila hasta el metro ({META} filas): botón Avanzar a la derecha o toca el lienzo. A la izquierda, <b>◀ ▶</b> y <b>Atrás</b>.</li>
     <li><b>Junta latas</b>: cada una son {TIROS_POR_LATA} tiros de color en el andén.</li>
     <li>Esquiva autos, micros y el metro. No te quedes quieto.</li>
   </ul>
@@ -400,20 +400,20 @@ export const App: React.FC = () => {
           {nivel === 'cruce' && <div className="hud-chip" aria-label={`Fila ${Math.min(cruce.current.maxY, META)} de ${META}`}><span className="material-symbols-outlined" aria-hidden="true">train</span> <b>{Math.min(cruce.current.maxY, META)}/{META}</b></div>}
         </div>
 
-        {/* Controles a ambos lados: moverse a la izquierda, acciones a la derecha. */}
+        {/* Controles para la tablet tomada con las dos manos (B-010): el pulgar izquierdo se mueve (◀ ▼ ▶ en una fila,
+            en la esquina inferior izquierda) y el derecho avanza, salta y lanza (esquina inferior derecha). Todo ≥ 64 px. */}
         {enJuego && !intro && !pausa && (
           <>
             <div className="mando izq" role="group" aria-label="Moverse">
-              <button type="button" className="tecla arriba" aria-label={nivel === 'cruce' ? 'Avanzar' : 'Saltar'} {...control('arriba')}><Flecha giro={0} /></button>
-              <button type="button" className="tecla izq" aria-label="Izquierda" {...control('izq')}><Flecha giro={-90} /></button>
-              <button type="button" className="tecla der" aria-label="Derecha" {...control('der')}><Flecha giro={90} /></button>
-              <button type="button" className="tecla abajo" aria-label={nivel === 'cruce' ? 'Retroceder' : 'Bajar'} {...control('abajo')}><Flecha giro={180} /></button>
+              <button type="button" className="tecla izq" aria-label="Izquierda" {...control('izq')}><Flecha giro={-90} tam={34} /></button>
+              <button type="button" className="tecla abajo" aria-label={nivel === 'cruce' ? 'Retroceder' : 'Bajar de la viga'} {...control('abajo')}><Flecha giro={180} tam={28} /><span>{nivel === 'cruce' ? 'Atrás' : 'Bajar'}</span></button>
+              <button type="button" className="tecla der" aria-label="Derecha" {...control('der')}><Flecha giro={90} tam={34} /></button>
             </div>
             <div className="mando der" role="group" aria-label="Acciones">
               {nivel === 'cruce' ? (
                 <button type="button" className="tecla grande" {...control('arriba')}><Flecha giro={0} tam={34} /><span>Avanzar</span></button>
               ) : (<>
-                <button type="button" className="tecla saltar" {...control('arriba')}><Flecha giro={0} /><span>Saltar</span></button>
+                <button type="button" className="tecla saltar" {...control('arriba')}><Flecha giro={0} tam={30} /><span>Saltar</span></button>
                 <button type="button" className="tecla grande" {...control('lanzar')} aria-label={`Lanzar pintura ${NOMBRE_PINTURA[hud.color]?.toLowerCase() ?? ''}`}>
                   <Lata color={hud.color} tam={34} /><span>Lanzar</span>
                 </button>
