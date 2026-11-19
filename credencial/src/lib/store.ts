@@ -187,7 +187,7 @@ export async function emparejarMesa(codigo: string, mesa: string, nonce: string,
 export interface Creacion { app: string; png?: string; escena?: string; creado: number }
 // creacion: experiencias distintas que ya sumaron al timbre 2 (plan 009: 4 distintas).
 export interface ProgresoJuego { afiches: string[]; meta: number; creaciones: Record<string, Creacion>; creacion: { pasos: number; meta: number } }
-const META_CREACION = 4;
+const META_CREACION = 2; // respaldo; la meta real la da la base (sellos_def.meta, migración 012)
 
 // Cada evento de una mesa con el código de la persona dice en qué experiencia creó algo (y, si la hay, su miniatura).
 // 'graffiti' y 'foto' los aceptan las migraciones 002 y 004; mientras no existan, simplemente no hay filas.

@@ -96,6 +96,8 @@ Método para lo demás: el mismo de la auditoría del Teatro. Por cada experienc
 
 ## 6. Decisiones (13 nov, Amaro)
 - **D1 · «4 creaciones»:** 4 experiencias **distintas**, aunque sean en la misma mesa.
+  - **Cambio del 19 nov (durante el evento):** la meta baja a **2** experiencias distintas. Base: `shared/supabase/migraciones/012-creacion-meta-2.sql`
+    (`sellos_def.meta = 2` y timbre para quien ya tenía 2 o más). La credencial lee la meta de la base; el código trae 2 de respaldo.
 - **D2 · El juego Pixel cuenta** como una de las 4 experiencias.
 - **D3 · HUB:** los trenes siguen llegando y partiendo del andén, sin rayados.
 - **D4 · Arte del juego:** se genera aquí con acabado medio; después se lleva a Figma.

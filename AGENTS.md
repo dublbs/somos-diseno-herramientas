@@ -108,7 +108,7 @@ Desde nov 2026 dos personas iteran la plataforma, cada una con su propio agente 
 - **Sitio**: GitHub Pages publica `main` (los `dist/` versionados): `https://dublbs.github.io/somos-diseno-herramientas/`. Tarda 1–2 min después de cada merge.
   - Credencial (celular): `…/credencial/dist/` · PC madre (staff): `…/admin/dist/` · HUB: `…/hub-estacion/dist/`
 - **Decisiones vigentes (planes 009–011, Amaro, 13 nov; el equipo se alinea a ellas):**
-  - **Timbres:** 1 Inscripción · 2 Creación (4 experiencias distintas) · 3 Cacería (3 afiches) · 4 Secreto (jefe final o plan B). El canje pide los 4.
+  - **Timbres:** 1 Inscripción · 2 Creación (**2** experiencias distintas; era 4 hasta el 19 nov, migración `012-creacion-meta-2.sql`) · 3 Cacería (3 afiches) · 4 Secreto (jefe final o plan B). El canje pide los 4.
   - **Hora punta reemplaza al Vagón.**
   - **La credencial es opcional para jugar** («Jugar sin credencial»).
   - **«Llévatela» con QR** en todas las experiencias.
