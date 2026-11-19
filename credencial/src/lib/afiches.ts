@@ -1,11 +1,13 @@
-// Los afiches de la cacería (plan 010 §2): los 5 afiches A3 de Figma «Evento · Imprenta» › sección «afiches»
-// (1044:12794), versión del 18 nov. Tejido (AF01) salió; el pingüino (03B) reemplaza al Sol en AF03.
+// Los afiches de la cacería (plan 010 §2): los 6 afiches A3 de Figma «Evento · Imprenta» (sección «afiches»,
+// 1044:12794, y el 01 Tejido A3, 1306:17020), versión del 19 nov. El pingüino (03B) reemplaza al Sol en AF03.
+// El 01 Tejido salió el 18 nov por error: está impreso y en la sede, así que vuelve.
 // Las miniaturas y su origen están en docs/plans/010-caceria/assets.manifest.md. El id es público (va en `pasos`);
 // el secreto que codifica cada sello vive solo en la base.
 import type { Visual } from '../../../shared/marcos';
 
 export interface Afiche { id: string; nombre: string; lenguaje: Visual; img: string }
 export const AFICHES: Afiche[] = [
+  { id: 'AF01', nombre: 'Tejido', lenguaje: 'Geométrica', img: './figma/afiches/af01.webp' },
   { id: 'AF02', nombre: 'Ven a ver', lenguaje: 'Geométrica', img: './figma/afiches/af02.webp' },
   { id: 'AF03', nombre: 'Diseño con raíces', lenguaje: 'Orgánica', img: './figma/afiches/af03.webp' },
   { id: 'AF04', nombre: 'Ven a crear', lenguaje: 'Orgánica', img: './figma/afiches/af04.webp' },

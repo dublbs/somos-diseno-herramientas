@@ -81,7 +81,7 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
           <b className="cuenta">{Math.min(encontrados, meta)} de {meta}{extra > 0 && <small> +{extra}</small>}</b>
         </header>
         <ol className="ranuras-afiche" aria-label="Afiches encontrados">
-          {/* Los 5 afiches de la sede: cada uno se ve cuando se encuentra. La meta (3) sigue en el contador. */}
+          {/* Los afiches de la sede (6, en una fila): cada uno se ve cuando se encuentra. La meta (3) sigue en el contador. */}
           {AFICHES.map(a => {
             const hallado = afiches.includes(a.id);
             return (
