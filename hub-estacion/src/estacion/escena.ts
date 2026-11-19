@@ -2,12 +2,13 @@ import { GLIFOS, AVANCE, normalizar } from '../../../shared/pixelfont';
 import type { Lenguaje, Persona } from './fuente';
 import { imagen, raster } from './imagenes';
 import { c3EnTiempo, dibujarC3 } from '../../../shared/c3-tunel.js';
-import { enVivo, listaImagen } from './vivo';
+import { enVivo, listaImagen, autorDe, type Obra, type ClaseObra } from './vivo';
+import { NOMBRE_CORTO } from '../galeria/piezas';
 import { ACTIVAS } from '../../../shared/juego';
 
 // Estación Somos Diseño: corte de una estación en tres niveles.
-//   Plaza Orgánica (arriba) · Mezanine Geométrico (medio) · Andén Pixel (abajo).
-// Las personas llegan a la plaza y cada timbre las baja un nivel (plan 014 §0): 1 plaza → 2 mezanine → 3 andén →
+//   Plaza Orgánica (arriba) · Mezanina Geométrica (medio) · Andén Pixel (abajo).
+// Las personas llegan a la plaza y cada timbre las baja un nivel (plan 014 §0): 1 plaza → 2 mezanina → 3 andén →
 // 4 andén con aureola.
 // Todo se dibuja en pixeles CSS a partir del tamaño de la pantalla (sirve en horizontal y vertical).
 
@@ -29,11 +30,6 @@ const GRABADOS = [
   { taco: SRC.araucaria, tinta: '#2B4BD8', papel: '#FFC20E' }, { taco: SRC.quisco, tinta: '#7A2E8E', papel: '#F4EEE3' },
   { taco: SRC.flor, tinta: '#0062B8', papel: '#FF8FB1' }, { taco: SRC.helecho, tinta: '#000000', papel: '#FFC20E' },
 ];
-// Mosaicos de prueba para los paneles MetroArte (Taller de Mosaicos), con quien los hizo.
-const MOSAICOS = [
-  { autor: 'Antonia', semilla: 3 }, { autor: 'Benjamín', semilla: 11 }, { autor: 'Camila', semilla: 24 }, { autor: 'Diego', semilla: 37 },
-  { autor: 'Fernanda', semilla: 52 }, { autor: 'Gaspar', semilla: 68 }, { autor: 'Isidora', semilla: 81 }, { autor: 'Matías', semilla: 95 },
-];
 
 // ---------- disposición ----------
 interface Nivel { y: number; h: number; suelo: number; fondo: number } // fondo: profundidad del piso para repartir gente
@@ -51,12 +47,12 @@ export function disponer(W: number, H: number): Disposicion {
     W, H, u, e: Math.min(u, W / 1500), // e: escala del mobiliario (más chico si la pantalla es angosta)
     plaza, mezz, anden,
     via: anden.y + anden.h * 0.9,
-    escA: W * 0.06, // pie de la escalera andén → mezanine (izquierda, sube hacia la derecha)
-    escB: W * 0.94, // pie de la escalera mezanine → plaza (derecha, sube hacia la izquierda)
+    escA: W * 0.06, // pie de la escalera andén → mezanina (izquierda, sube hacia la derecha)
+    escB: W * 0.94, // pie de la escalera mezanina → plaza (derecha, sube hacia la izquierda)
     tramoA: tramo(anden, mezz), tramoB: tramo(mezz, plaza),
   };
 }
-// 0 andén · 1 mezanine · 2 plaza
+// 0 andén · 1 mezanina · 2 plaza
 const nivelDe = (timbres: number) => (timbres >= 3 ? 0 : timbres === 2 ? 1 : 2);
 
 // ---------- personas en escena ----------
@@ -73,6 +69,13 @@ interface Avatar {
   destacado: number; // ms hasta el que se muestra su nombre
   entrando?: boolean; // recién llegada: entra caminando a la plaza desde un costado
 }
+// ---------- cuadros de la mezanina ----------
+interface Cuadro { obra: Obra | null; antes: Obra | null; desde: number } // antes: la que sale durante el barrido
+interface Muro { c3: { sx: number; sy: number; sw: number; sh: number }; marcos: { x: number; y: number }[]; lado: number }
+const BORDE = 6, PIE = 26, CICLO_CUADRO = 8000, BARRIDO_CUADRO = 900; // BORDE y PIE en unidades de e
+const CLASES: ClaseObra[] = ['mosaico', 'grabado', 'graffiti', 'juego', 'foto'];
+const COLOR_CLASE: Record<ClaseObra, string> = { mosaico: C.Celeste, grabado: C.Verde, graffiti: C.Rosa, juego: C.Morado, foto: C.Amarillo };
+
 interface Particula { x: number; y: number; vx: number; vy: number; vida: number; color: string; r: number }
 
 const PERIODO_TREN = 45000, ENTRA = 3500, DETENIDO = 9000, SALE = 3500;
@@ -85,6 +88,9 @@ export class Estacion {
   trenes = 0; // cuántos trenes han pasado
   azar: () => number;
   quieto: boolean;
+  cuadros: Cuadro[] = []; // los cuadros de la mezanina, con la obra que muestra cada uno
+  private mostrada = new Map<string, number>(); // id de la obra → cuándo entró por última vez a un cuadro
+  private muro: { W: number; H: number; m: Muro } | null = null;
 
   constructor(d: Disposicion, gente: Persona[], azar: () => number, quieto: boolean) {
     this.d = d; this.azar = azar; this.quieto = quieto;
@@ -159,7 +165,7 @@ export class Estacion {
         a.subiendo.t += dt / 3.2;
         if (a.subiendo.t >= 1) {
           a.nivel = a.subiendo.nivel; a.x = a.subiendo.hasta[0]; a.subiendo = undefined;
-          a.dir = a.nivel === 1 ? -1 : 1; // al mezanine se llega por la derecha; al andén, por la izquierda
+          a.dir = a.nivel === 1 ? -1 : 1; // a la mezanina se llega por la derecha; al andén, por la izquierda
           if (nivelDe(a.p.timbres) < a.nivel) a.objetivo = this.bajada(a.nivel);
         }
         continue;
@@ -192,7 +198,7 @@ export class Estacion {
   dibujar(ctx: CanvasRenderingContext2D, hora: number) {
     ctx.save();
     this.plaza(ctx, hora);
-    this.mezanine(ctx);
+    this.mezanina(ctx);
     this.andenPixel(ctx);
     this.escaleras(ctx);
     const visibles = this.avatares.map(a => ({ a, pos: this.posicion(a) })).sort((p, q) => p.pos[1] - q.pos[1]);
@@ -281,10 +287,10 @@ export class Estacion {
     this.textoPixel(ctx, 'ESTACION', tx - ancho / 2, ty, tam, C.Hueso);
   }
 
-  // ---------- MEZANINE · Geométrica ----------
-  // Boletería, máquinas de carga, paneles MetroArte con los mosaicos de la gente, la pantalla C3, el mapa de la red,
-  // letreros colgantes, torniquetes y el piso de damero.
-  private mezanine(ctx: CanvasRenderingContext2D) {
+  // ---------- MEZANINA · Geométrica ----------
+  // Boletería, máquinas de carga, la pantalla C3, los cuadros con las obras de la gente (mosaico, grabado, graffiti,
+  // Hora punta y Fotomatón), letreros colgantes, torniquetes y el piso de damero.
+  private mezanina(ctx: CanvasRenderingContext2D) {
     const { W, u, e, mezz } = this.d;
     const techo = mezz.y + 10 * u, piso = mezz.suelo, muro = piso - techo;
     ctx.fillStyle = C.Hueso; ctx.fillRect(0, mezz.y, W, mezz.h);
@@ -294,23 +300,20 @@ export class Estacion {
     // losa y luces
     ctx.fillStyle = C.Negro; ctx.fillRect(0, mezz.y, W, 10 * u);
     for (let x = W * 0.05; x < W; x += W * 0.1) { ctx.fillStyle = C.Amarillo; ctx.fillRect(x, mezz.y + 10 * u, 40 * e, 4 * e); }
-    // pantalla C3 al centro
-    const sw = Math.min(W * 0.2, muro * 0.95), sh = Math.min(muro * 0.55, sw * 0.62), sx = W / 2 - sw / 2, sy = techo + muro * 0.12;
+    // pantalla C3 al centro y, a los lados, los cuadros con las obras de la gente
+    const m = this.disponerMuro(), { sx, sy, sw, sh } = m.c3;
     ctx.fillStyle = C.Negro; ctx.fillRect(sx - 6 * e, sy - 6 * e, sw + 12 * e, sh + 12 * e);
     ctx.save(); ctx.beginPath(); ctx.rect(sx, sy, sw, sh); ctx.clip(); ctx.translate(sx, sy);
     dibujarC3(ctx, sw, sh, c3EnTiempo(this.quieto ? 2000 : this.reloj));
     ctx.restore();
     ctx.fillStyle = C.Negro; ctx.font = `700 ${11 * e}px "DM Sans", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
     ctx.fillText('EN VIVO · ESTACIÓN AUDIOREACTIVA', W / 2, sy + sh + 10 * e);
-    // paneles MetroArte a los lados de la pantalla
-    const pl = Math.min(muro * 0.62, W * 0.1);
-    this.panelArte(ctx, W * 0.35 - pl / 2, sy, pl, 0);
-    this.panelArte(ctx, W * 0.63 - pl / 2, sy, pl, 1);
     // boletería y máquinas de carga (izquierda)
     this.boleteria(ctx, W * 0.22, piso, muro);
     for (const x of [W * 0.285, W * 0.305]) this.maquina(ctx, x, piso);
-    // mapa de la red (derecha)
-    this.mapaRed(ctx, W * 0.695, sy, Math.min(W * 0.07, muro * 0.6), pl);
+    const ahora = this.quieto ? performance.now() : this.reloj;
+    this.actualizarCuadros(m.marcos.length, ahora);
+    m.marcos.forEach((r, i) => this.cuadro(ctx, r, this.cuadros[i], i, m.lado, ahora));
     // letreros colgantes
     this.letrero(ctx, 'Andenes ↓', W * 0.16, mezz.y + 10 * u, C.Morado);
     this.letrero(ctx, 'Salida ↑', W * 0.84, mezz.y + 10 * u, C.Verde);
@@ -323,29 +326,110 @@ export class Estacion {
       ctx.fillRect(x, y0 + f * alto, lado, alto);
     }
     ctx.fillStyle = C.Negro; ctx.fillRect(0, mezz.y + mezz.h - 6 * u, W, 6 * u);
-    this.cartel(ctx, 'Mezanine · Geométrica', W * 0.015, mezz.y + 20 * u, C.Azul);
+    this.cartel(ctx, 'Mezanina · Geométrica', W * 0.015, mezz.y + 20 * u, C.Azul);
   }
 
-  // Panel tipo aviso de metro: muestra un mosaico de la gente y cada 7 s lo cambia con un barrido de arriba hacia abajo.
-  private panelArte(ctx: CanvasRenderingContext2D, x: number, y: number, lado: number, desfase: number) {
-    const { e } = this.d;
-    const CICLO = 7000, BARRIDO = 900, t = this.quieto ? 0 : this.reloj + desfase * 3500;
-    const k = Math.floor(t / CICLO), dentro = t % CICLO;
-    // Los mosaicos de la gente (los más nuevos) y, si aún no hay suficientes, los de prueba.
-    const reales = enVivo.mosaicos.filter(m => listaImagen(m.im));
-    const lista: { autor: string; semilla?: number; im?: HTMLImageElement }[] = reales.length >= 2 ? reales : [...reales, ...MOSAICOS];
-    const cual = (i: number) => lista[((i % lista.length) + lista.length) % lista.length];
-    const pintar = (m: { semilla?: number; im?: HTMLImageElement }) => (m.im ?? mosaico(m.semilla!, lado));
-    const actual = cual(k * 2 + desfase), anterior = cual((k - 1) * 2 + desfase);
-    const pie = 18 * e;
-    ctx.fillStyle = C.Negro; ctx.fillRect(x - 5 * e, y - 5 * e, lado + 10 * e, lado + pie + 10 * e);
-    const corte = dentro < BARRIDO ? lado * (1 - Math.pow(1 - dentro / BARRIDO, 3)) : lado;
-    ctx.drawImage(pintar(anterior), x, y, lado, lado);
-    ctx.save(); ctx.beginPath(); ctx.rect(x, y, lado, corte); ctx.clip(); ctx.drawImage(pintar(actual), x, y, lado, lado); ctx.restore();
+  // Dónde van la pantalla C3 y los cuadros. Los cuadros cuelgan a la altura de la pantalla, en los tramos libres del
+  // muro: no tapan la boletería, la pantalla ni la escalera de la plaza. Se calcula solo cuando cambia el tamaño.
+  private disponerMuro(): Muro {
+    const { W, H } = this.d;
+    if (this.muro && this.muro.W === W && this.muro.H === H) return this.muro.m;
+    const { u, e, mezz, plaza, escB, tramoB } = this.d;
+    const techo = mezz.y + 10 * u, piso = mezz.suelo, muro = piso - techo;
+    const sw = Math.min(W * 0.2, muro * 0.95), sh = Math.min(muro * 0.55, sw * 0.62), sx = W / 2 - sw / 2;
+    // bajo el cartel del nivel y los letreros colgantes
+    const sy = Math.max(techo + muro * 0.12, mezz.y + 10 * u + 42 * e, mezz.y + 50 * u);
+    const lado = Math.max(40 * e, sh - PIE * e + 6 * e), b = BORDE * e, g = 22 * e, ancho = lado + 2 * b;
+    const abajo = sy + lado + PIE * e + b;
+    const tapa: [number, number][] = [[sx - 6 * e - g, sx + sw + 6 * e + g]];
+    // boletería y máquinas, si el cuadro bajaría hasta ellas
+    if (abajo > piso - Math.min(muro * 0.62, 120 * e) - 8 * e) tapa.push([W * 0.22 - 55 * e - g, W * 0.305 + 13 * e + g]);
+    // escalera mezanina → plaza: desde donde su estructura (34e bajo los peldaños) baja del techo de los cuadros
+    const y0 = plaza.suelo + plaza.fondo / 2, y1 = mezz.suelo + mezz.fondo / 2, x0 = escB - tramoB;
+    const k = Math.max(0, Math.min(1, (sy - b - 34 * e - y0) / (y1 - y0)));
+    tapa.push([x0 + tramoB * k - 56 * e - g, W]);
+    tapa.sort((p, q) => p[0] - q[0]);
+    // tramos libres y cuántos cuadros caben en cada uno, centrados
+    const marcos: { x: number; y: number }[] = [];
+    let desde = W * 0.02;
+    for (const [i, f] of tapa.concat([[W * 0.98, W]])) {
+      const libre = i - desde, n = Math.max(0, Math.floor((libre + g) / (ancho + g)));
+      const x = desde + (libre - (n * ancho + (n - 1) * g)) / 2;
+      for (let q = 0; q < n; q++) marcos.push({ x: x + q * (ancho + g) + b, y: sy });
+      desde = Math.max(desde, f);
+    }
+    // Como mucho seis: los más cercanos a la pantalla.
+    marcos.sort((p, q) => Math.abs(p.x + lado / 2 - W / 2) - Math.abs(q.x + lado / 2 - W / 2));
+    marcos.length = Math.min(marcos.length, 6);
+    marcos.sort((p, q) => p.x - q.x);
+    const m: Muro = { c3: { sx, sy, sw, sh }, marcos, lado };
+    this.muro = { W, H, m };
+    return m;
+  }
+
+  // Qué obra muestra cada cuadro. Las obras reales mandan: llenan primero los cuadros vacíos o con ejemplos, y una obra
+  // recién llegada entra al tiro en el cuadro que lleva más tiempo. Si hay más obras que cuadros, cada cuadro cambia
+  // cada ~8 s por la que hace más tiempo que no se ve (las nunca vistas primero, de la más nueva a la más vieja).
+  private actualizarCuadros(n: number, ahora: number) {
+    while (this.cuadros.length < n) this.cuadros.push({ obra: null, antes: null, desde: ahora });
+    this.cuadros.length = n;
+    const reales = enVivo.obras.filter(o => listaImagen(o.im));
+    const lista = reales.length >= n ? reales : reales.concat(enVivo.ejemplos.filter(o => listaImagen(o.im)));
+    const enMuro = new Set<string>();
+    for (const c of this.cuadros) if (c.obra) enMuro.add(c.obra.id);
+    const siguiente = (soloNuevas = false): Obra | null => {
+      let mejor: Obra | null = null, t = Infinity;
+      for (const o of lista) {
+        if (enMuro.has(o.id) || (soloNuevas && !o.nueva)) continue;
+        const v = this.mostrada.has(o.id) ? this.mostrada.get(o.id)! : -Infinity;
+        if (v < t) { t = v; mejor = o; }
+      }
+      return mejor;
+    };
+    const poner = (c: Cuadro, o: Obra) => {
+      if (c.obra) enMuro.delete(c.obra.id);
+      c.antes = c.obra; c.obra = o; c.desde = ahora; o.nueva = false;
+      enMuro.add(o.id); this.mostrada.set(o.id, ahora);
+    };
+    for (const c of this.cuadros) {
+      if (c.obra && !c.obra.ejemplo) continue;
+      const o = siguiente();
+      if (o && (!c.obra || !o.ejemplo)) poner(c, o);
+    }
+    const nueva = siguiente(true);
+    if (nueva) {
+      let viejo: Cuadro | null = null;
+      for (const c of this.cuadros) if (ahora - c.desde >= 2500 && (!viejo || c.desde < viejo.desde)) viejo = c;
+      if (viejo) poner(viejo, nueva);
+    }
+    if (lista.length > n) this.cuadros.forEach((c, i) => {
+      if (ahora - c.desde < CICLO_CUADRO + i * 1300) return; // cada cuadro con su ritmo: no cambian todos juntos
+      const o = siguiente(); if (o) poner(c, o);
+    });
+    if (this.mostrada.size > 200) this.mostrada.forEach((_, id) => { if (!lista.some(o => o.id === id)) this.mostrada.delete(id); });
+  }
+
+  // Un cuadro: marco negro, la obra sobre paspartú hueso (entera, sin deformarse) y la cartela con quién la hizo.
+  // Al cambiar de obra, la nueva entra con un barrido de arriba hacia abajo.
+  private cuadro(ctx: CanvasRenderingContext2D, r: { x: number; y: number }, c: Cuadro, i: number, lado: number, ahora: number) {
+    const { e } = this.d, { x, y } = r, b = BORDE * e;
+    ctx.fillStyle = C.Negro; ctx.fillRect(x - b, y - b, lado + 2 * b, lado + PIE * e + 2 * b);
+    const k = Math.min(window.devicePixelRatio || 1, 2);
+    const lamina = (o: Obra | null) => ctx.drawImage(o ? paspartu(o.im, lado, k) : vacio(CLASES[i % CLASES.length], lado, k), x, y, lado, lado);
+    const dentro = ahora - c.desde;
+    const corte = this.quieto || !c.antes || dentro >= BARRIDO_CUADRO ? lado : lado * (1 - Math.pow(1 - dentro / BARRIDO_CUADRO, 3));
+    if (corte < lado) lamina(c.antes);
+    ctx.save(); ctx.beginPath(); ctx.rect(x, y, lado, corte); ctx.clip(); lamina(c.obra); ctx.restore();
     if (corte < lado) { ctx.fillStyle = C.Amarillo; ctx.fillRect(x, y + corte - 2 * e, lado, 3 * e); }
-    const quien = corte < lado * 0.5 ? anterior : actual;
-    ctx.fillStyle = C.Hueso; ctx.font = `700 ${10 * e}px "DM Sans", sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillText(`MetroArte · hecho por ${quien.autor}`, x + 4 * e, y + lado + pie / 2 + 1 * e);
+    // cartela: la experiencia y quién la hizo
+    const o = corte < lado * 0.5 ? c.antes : c.obra;
+    const clase = o ? o.clase : CLASES[i % CLASES.length], autor = o ? autorDe(o) : null;
+    const ty = y + lado + b * 0.6, ancho = lado - 4 * e;
+    ctx.fillStyle = COLOR_CLASE[clase]; ctx.fillRect(x + 2 * e, ty + 3.5 * e, 6 * e, 6 * e);
+    ctx.fillStyle = 'rgba(244,238,227,.72)'; ctx.font = `700 ${8.5 * e}px "DM Sans", sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(ajustar(ctx, (NOMBRE_CORTO[clase] + (o && o.ejemplo ? ' · ejemplo' : '')).toUpperCase(), ancho - 10 * e), x + 11 * e, ty + 6.5 * e);
+    ctx.fillStyle = C.Hueso; ctx.font = `700 ${10.5 * e}px "DM Sans", sans-serif`;
+    ctx.fillText(ajustar(ctx, !o ? 'Tu obra aquí' : autor ? `hecho por ${autor}` : 'Sin firma', ancho), x + 2 * e, ty + 18.5 * e);
   }
 
   private boleteria(ctx: CanvasRenderingContext2D, x: number, piso: number, muro: number) {
@@ -367,26 +451,6 @@ export class Estacion {
     ctx.fillStyle = C.Celeste; ctx.fillRect(x - w / 2 + 4 * e, piso - h + 6 * e, w - 8 * e, 18 * e);
     ctx.fillStyle = C.Amarillo; ctx.fillRect(x - w / 2 + 4 * e, piso - h + 30 * e, w - 8 * e, 5 * e);
     ctx.fillStyle = C.Verde; ctx.fillRect(x - 3 * e, piso - h + 42 * e, 6 * e, 6 * e);
-  }
-
-  // Mapa de la red: líneas solo a 90° y 45° con estaciones (donde llegaría «Traza tu línea»).
-  private mapaRed(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
-    const { e } = this.d;
-    ctx.fillStyle = C.Negro; ctx.fillRect(x - 5 * e, y - 5 * e, w + 10 * e, h + 10 * e);
-    ctx.fillStyle = C.Hueso; ctx.fillRect(x, y, w, h);
-    const P = (a: number, b: number): [number, number] => [x + w * a, y + h * b];
-    const lineas: [string, [number, number][]][] = [
-      [C.Morado, [P(0.08, 0.5), P(0.4, 0.5), P(0.6, 0.3), P(0.92, 0.3)]],
-      [C.Amarillo, [P(0.5, 0.08), P(0.5, 0.4), P(0.7, 0.6), P(0.7, 0.92)]],
-      [C.Verde, [P(0.15, 0.85), P(0.3, 0.7), P(0.85, 0.7)]],
-    ];
-    ctx.lineWidth = 4 * e; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-    for (const [color, pts] of lineas) {
-      ctx.strokeStyle = color; ctx.beginPath(); pts.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py))); ctx.stroke();
-      for (const [px, py] of pts) { ctx.fillStyle = C.Hueso; ctx.beginPath(); ctx.arc(px, py, 3 * e, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = C.Negro; ctx.lineWidth = 1.5 * e; ctx.stroke(); ctx.lineWidth = 4 * e; }
-    }
-    ctx.fillStyle = C.Negro; ctx.font = `800 ${10 * e}px "DM Sans", sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-    ctx.fillText('RED', x + 5 * e, y + 4 * e);
   }
 
   private letrero(ctx: CanvasRenderingContext2D, texto: string, x: number, y: number, color: string) {
@@ -670,6 +734,68 @@ export function mosaico(semilla: number, lado: number): HTMLCanvasElement {
     mosaicos.set(k, c);
   }
   return c;
+}
+
+// ---------- láminas de los cuadros de la mezanina ----------
+// Cada obra se rasteriza una vez al tamaño del cuadro (sobre paspartú hueso, entera y sin deformarse) y después solo se
+// copia con drawImage. Se guarda por imagen: si cambia el tamaño de la pantalla, se rehace.
+const laminas = new WeakMap<HTMLImageElement, { L: number; c: HTMLCanvasElement }>();
+function paspartu(im: HTMLImageElement, lado: number, k: number): HTMLCanvasElement {
+  const L = Math.max(1, Math.round(lado * k)), hecha = laminas.get(im);
+  if (hecha && hecha.L === L) return hecha.c;
+  const c = document.createElement('canvas'); c.width = c.height = L;
+  const x = c.getContext('2d')!;
+  x.fillStyle = C.Hueso; x.fillRect(0, 0, L, L);
+  const borde = L * 0.07, caja = L - 2 * borde, f = Math.min(caja / im.naturalWidth, caja / im.naturalHeight);
+  const w = im.naturalWidth * f, h = im.naturalHeight * f, ix = (L - w) / 2, iy = (L - h) / 2;
+  x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+  x.drawImage(im, ix, iy, w, h);
+  x.strokeStyle = 'rgba(0,0,0,.18)'; x.lineWidth = Math.max(1, L / 160); x.strokeRect(ix, iy, w, h);
+  laminas.set(im, { L, c });
+  return c;
+}
+
+// Cuadro sin obra todavía: paspartú con un borde punteado y una figura geométrica del color de la experiencia que
+// invita a crear (la cartela dice «Tu obra aquí»).
+const vacios = new Map<string, HTMLCanvasElement>();
+function vacio(clase: ClaseObra, lado: number, k: number): HTMLCanvasElement {
+  const L = Math.max(1, Math.round(lado * k)), llave = clase + '|' + L;
+  let c = vacios.get(llave);
+  if (c) return c;
+  c = document.createElement('canvas'); c.width = c.height = L;
+  const x = c.getContext('2d')!, color = COLOR_CLASE[clase], m = L * 0.12, t = (L - 2 * m) / 4;
+  x.fillStyle = C.Hueso; x.fillRect(0, 0, L, L);
+  x.strokeStyle = 'rgba(0,0,0,.28)'; x.lineWidth = Math.max(1, L / 110); x.setLineDash([L / 28, L / 36]);
+  x.strokeRect(m * 0.55, m * 0.55, L - m * 1.1, L - m * 1.1);
+  x.setLineDash([]);
+  // 2 × 2 figuras al centro: cuarto de círculo, triángulo, cuadrado y círculo
+  const cx = L / 2 - t, cy = L / 2 - t;
+  x.fillStyle = color;
+  x.beginPath(); x.moveTo(cx, cy + t); x.arc(cx, cy + t, t, -Math.PI / 2, 0); x.closePath(); x.fill();
+  x.beginPath(); x.moveTo(cx + t, cy); x.lineTo(cx + 2 * t, cy + t); x.lineTo(cx + t, cy + t); x.closePath(); x.fill();
+  x.fillRect(cx, cy + t, t, t);
+  x.beginPath(); x.arc(cx + 1.5 * t, cy + 1.5 * t, t / 2, 0, Math.PI * 2); x.fill();
+  x.strokeStyle = C.Negro; x.lineWidth = Math.max(1, L / 160); x.strokeRect(cx, cy, 2 * t, 2 * t);
+  vacios.set(llave, c);
+  return c;
+}
+
+// Texto que cabe en `max` px (con «…» si no); se recuerda para no medir en cada cuadro.
+const ajustes = new Map<string, string>();
+function ajustar(ctx: CanvasRenderingContext2D, texto: string, max: number): string {
+  const llave = ctx.font + '|' + Math.round(max) + '|' + texto;
+  let r = ajustes.get(llave);
+  if (r == null) {
+    r = texto;
+    if (ctx.measureText(r).width > max) {
+      let n = texto.length;
+      while (n > 1 && ctx.measureText(texto.slice(0, n).trimEnd() + '…').width > max) n--;
+      r = texto.slice(0, n).trimEnd() + '…';
+    }
+    if (ajustes.size > 300) ajustes.clear();
+    ajustes.set(llave, r);
+  }
+  return r;
 }
 
 // Precarga de todos los SVG que usa la escena.
