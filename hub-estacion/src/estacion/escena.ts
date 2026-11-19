@@ -18,6 +18,7 @@ export const C = {
   Amarillo: '#FFC20E', Verde: '#00A651', Rosa: '#FF8FB1', Morado: '#7A2E8E',
 };
 const CUERPO: Record<Lenguaje, string> = { Pixel: C.Morado, Geométrica: C.Azul, Orgánica: C.Verde };
+const SOMBRA_CUERPO: Record<Lenguaje, string> = { Pixel: '#561F66', Geométrica: '#004A8C', Orgánica: '#007A3B' };
 const SRC = {
   personaje: { pixel: './figma/personajes/personaje-pixel.svg', geometrica: './figma/personajes/personaje-geometrica.svg', organica: './figma/personajes/personaje-organica.svg' },
   araucaria: './figma/plaza/araucaria.svg', sol: './figma/plaza/sol.svg', helecho: './figma/plaza/helecho.svg', flor: './figma/plaza/flor-propia.svg', quisco: './figma/plaza/quisco.svg',
@@ -901,32 +902,86 @@ export class Estacion {
     ctx.restore();
   }
 
+  // Cuerpo al estilo Terraria (P-003): proporción chica, cabeza grande, brazos y piernas que se balancean al caminar.
+  // Tres variantes según el lenguaje: Geométrica (formas rectas), Orgánica (curvas) y Pixel (pixel duro). El cuerpo
+  // mira hacia donde camina; la cabeza (la foto o el personaje de la credencial) no se refleja.
+  // Devuelve la altura del cuello.
+  private cuerpo(ctx: CanvasRenderingContext2D, a: Avatar, s: number): number {
+    const color = CUERPO[a.p.lenguaje], sombra = SOMBRA_CUERPO[a.p.lenguaje];
+    const mueve = !this.quieto && !a.subiendo, sw = mueve ? Math.sin(a.fase * 1.8) : 0;
+    const linea = Math.max(1, 1.6 * s);
+    const K = 1.35; // el cuerpo crece para que la cabeza sea ~40 % del alto, como en Terraria
+    ctx.save(); ctx.scale(a.dir * K, K); ctx.lineJoin = 'round';
+    if (a.p.lenguaje === 'Geométrica') {
+      const pierna = (lado: number, ang: number, tono: string) => {
+        ctx.save(); ctx.translate(lado * 3 * s, -12 * s); ctx.rotate(ang);
+        ctx.fillStyle = tono; ctx.fillRect(-2.6 * s, 0, 5.2 * s, 10 * s);
+        ctx.fillStyle = C.Negro; ctx.fillRect(-2.6 * s, 9.5 * s, 7 * s, 3 * s); ctx.restore();
+      };
+      const brazo = (ang: number, tono: string) => {
+        ctx.save(); ctx.translate(0, -24.5 * s); ctx.rotate(ang);
+        ctx.fillStyle = tono; ctx.fillRect(-2.4 * s, 0, 4.8 * s, 9.5 * s); ctx.strokeStyle = C.Negro; ctx.lineWidth = linea; ctx.strokeRect(-2.4 * s, 0, 4.8 * s, 9.5 * s);
+        ctx.fillStyle = C.Hueso; ctx.fillRect(-2.2 * s, 9.5 * s, 4.4 * s, 3.4 * s); ctx.strokeRect(-2.2 * s, 9.5 * s, 4.4 * s, 3.4 * s); ctx.restore();
+      };
+      brazo(sw * 0.65, sombra); pierna(-1, -sw * 0.5, '#2A2A2A');
+      pierna(1, sw * 0.5, C.Negro);
+      ctx.beginPath(); ctx.moveTo(-7.5 * s, -27 * s); ctx.lineTo(7.5 * s, -27 * s); ctx.lineTo(6 * s, -12 * s); ctx.lineTo(-6 * s, -12 * s); ctx.closePath();
+      ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = C.Negro; ctx.lineWidth = linea; ctx.stroke();
+      ctx.fillStyle = C.Hueso; ctx.beginPath(); ctx.moveTo(-3.5 * s, -27 * s); ctx.lineTo(3.5 * s, -27 * s); ctx.lineTo(0, -22 * s); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = C.Amarillo; ctx.fillRect(2 * s, -20 * s, 3 * s, 3 * s); // insignia
+      ctx.fillStyle = C.Negro; ctx.fillRect(-6.2 * s, -14.5 * s, 12.4 * s, 2.2 * s); // cinturón
+      brazo(-sw * 0.65, color);
+    } else if (a.p.lenguaje === 'Orgánica') {
+      const pierna = (lado: number, f: number, tono: string) => {
+        const pie = lado * 2.5 * s + f * 5 * s;
+        ctx.strokeStyle = tono; ctx.lineWidth = 4.6 * s; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(lado * 3 * s, -13 * s); ctx.quadraticCurveTo(lado * 3 * s + f * 4 * s + 1.5 * s, -6 * s, pie, -1.5 * s); ctx.stroke();
+        ctx.fillStyle = tono; ctx.beginPath(); ctx.ellipse(pie + 1.6 * s, -0.8 * s, 3.6 * s, 2 * s, 0, 0, Math.PI * 2); ctx.fill();
+      };
+      const brazo = (f: number, tono: string) => {
+        const mx = f * 5 * s, my = -16 * s;
+        ctx.strokeStyle = C.Negro; ctx.lineWidth = 5.6 * s; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(0, -24 * s); ctx.quadraticCurveTo(mx * 0.3 - 1.5 * s, -19 * s, mx, my); ctx.stroke();
+        ctx.strokeStyle = tono; ctx.lineWidth = 3.8 * s; ctx.stroke();
+        ctx.fillStyle = C.Hueso; ctx.beginPath(); ctx.arc(mx, my + 0.5 * s, 2.4 * s, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = C.Negro; ctx.lineWidth = linea * 0.8; ctx.stroke();
+      };
+      brazo(sw, sombra); pierna(-1, -sw, '#3A2A1E');
+      pierna(1, sw, '#2A1E14');
+      ctx.beginPath(); ctx.moveTo(-6 * s, -11 * s);
+      ctx.bezierCurveTo(-9.5 * s, -15 * s, -9 * s, -27 * s, -2 * s, -27.5 * s); ctx.quadraticCurveTo(0, -26 * s, 2 * s, -27.5 * s);
+      ctx.bezierCurveTo(9 * s, -27 * s, 9.5 * s, -15 * s, 6 * s, -11 * s); ctx.quadraticCurveTo(0, -9 * s, -6 * s, -11 * s); ctx.closePath();
+      ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = C.Negro; ctx.lineWidth = linea; ctx.stroke();
+      ctx.strokeStyle = 'rgba(244,238,227,.75)'; ctx.lineWidth = Math.max(1, 1.2 * s); ctx.lineCap = 'round'; // hoja bordada
+      ctx.beginPath(); ctx.moveTo(-3 * s, -14 * s); ctx.quadraticCurveTo(-1 * s, -20 * s, 3 * s, -21 * s); ctx.quadraticCurveTo(1.5 * s, -16 * s, -3 * s, -14 * s); ctx.stroke();
+      brazo(-sw, color);
+    } else {
+      // Pixel: grilla dura de 2,6 px (a escala), cuatro cuadros de caminata
+      const p = 2.6 * s, f = mueve ? Math.floor(a.fase * 1.15) % 4 : 0;
+      const R = (cx: number, cy: number, w: number, h: number, c: string) => { ctx.fillStyle = c; ctx.fillRect(Math.round(cx * p), Math.round(cy * p), Math.ceil(w * p), Math.ceil(h * p)); };
+      const pasos = [[0, 0], [1, -1], [0, 0], [-1, 1]][f], brazos = [0, 1, 0, -1][f];
+      // brazo de atrás y pierna de atrás (más oscuros)
+      R(-1 - brazos, -9, 2, 4, C.Negro); R(-1 - brazos, -9, 2, 3, sombra); R(-1 - brazos, -6, 2, 1, '#D9CDB7');
+      R(-2 + pasos[1], -5, 2, 5, '#2A2A2A'); R(-2 + pasos[1], -1, 3, 1, C.Negro);
+      R(0 + pasos[0], -5, 2, 5, C.Negro); R(0 + pasos[0], -1, 3, 1, C.Negro);
+      // torso con contorno, sombra y cinturón
+      R(-3, -11, 6, 7, C.Negro); R(-2.5, -10.5, 5, 6, color); R(1, -10.5, 1.5, 6, sombra); R(-2.5, -10.5, 5, 1, C.Hueso);
+      R(-2.5, -5.5, 5, 1, C.Negro); R(-0.5, -9, 1, 1, C.Amarillo);
+      // brazo de adelante
+      R(0 + brazos, -10, 2, 5, C.Negro); R(0.3 + brazos, -9.7, 1.4, 3.7, color); R(0.3 + brazos, -6, 1.4, 1, C.Hueso);
+      ctx.restore();
+      return -11 * p * K;
+    }
+    ctx.restore();
+    return -27 * s * K;
+  }
+
   private avatar(ctx: CanvasRenderingContext2D, a: Avatar, [x, y]: [number, number]) {
     const { u } = this.d;
-    const s = u * (0.9 + a.hondo * 0.25), paso = this.quieto ? 0 : Math.floor(a.fase) % 2;
-    const color = CUERPO[a.p.lenguaje], alto = 38 * s, cabeza = 30 * s;
+    const s = u * (0.9 + a.hondo * 0.25), cabeza = 31 * s;
     ctx.save(); ctx.translate(x, y);
     // sombra
-    ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(0, 0, 14 * s, 4 * s, 0, 0, Math.PI * 2); ctx.fill();
-    if (a.p.lenguaje === 'Pixel') {
-      const p = 4 * s;
-      ctx.fillStyle = C.Negro; ctx.fillRect(-3 * p, -alto, 6 * p, alto - 3 * p);
-      ctx.fillStyle = color; ctx.fillRect(-2.5 * p, -alto + 0.5 * p, 5 * p, alto - 4 * p);
-      ctx.fillStyle = C.Negro;
-      ctx.fillRect(-2 * p, -3 * p - (paso ? p : 0), 1.5 * p, 3 * p + (paso ? p : 0));
-      ctx.fillRect(0.5 * p, -3 * p - (paso ? 0 : p), 1.5 * p, 3 * p + (paso ? 0 : p));
-    } else if (a.p.lenguaje === 'Geométrica') {
-      ctx.fillStyle = C.Negro;
-      const pierna = paso ? 5 * s : -5 * s;
-      ctx.fillRect(-8 * s + pierna * 0.4, -14 * s, 5 * s, 14 * s); ctx.fillRect(3 * s - pierna * 0.4, -14 * s, 5 * s, 14 * s);
-      ctx.fillStyle = color; ctx.strokeStyle = C.Negro; ctx.lineWidth = 2 * s;
-      ctx.beginPath(); ctx.moveTo(-14 * s, -alto); ctx.lineTo(14 * s, -alto); ctx.lineTo(0, -12 * s); ctx.closePath(); ctx.fill(); ctx.stroke();
-    } else {
-      ctx.strokeStyle = C.Negro; ctx.lineWidth = 5 * s; ctx.lineCap = 'round';
-      const b = paso ? 4 * s : -4 * s;
-      ctx.beginPath(); ctx.moveTo(-5 * s, -14 * s); ctx.lineTo(-5 * s + b, -1 * s); ctx.moveTo(5 * s, -14 * s); ctx.lineTo(5 * s - b, -1 * s); ctx.stroke();
-      ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(0, -alto * 0.62, 13 * s, alto * 0.42, 0, 0, Math.PI * 2); ctx.fill();
-    }
+    ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(0, 0, 12 * s, 3.5 * s, 0, 0, Math.PI * 2); ctx.fill();
+    const cuello = this.cuerpo(ctx, a, s), alto = -cuello - cabeza * 0.04;
     // cabeza: la foto (o el personaje) de la credencial, en un círculo
     const cy = -alto - cabeza * 0.45;
     ctx.save();
