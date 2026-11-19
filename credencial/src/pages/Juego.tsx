@@ -3,7 +3,7 @@ import { escucharCreaciones, faltaParaFlyer, obtener, progresoJuego, remoto, sum
 import { Bienvenida } from '../components/Bienvenida';
 import type { Tema } from '../temas';
 import { HACIA_JUEGO, tomarEntrada, useDeslizar } from '../lib/deslizar';
-import { AFICHES, aficheDe } from '../lib/afiches';
+import { AFICHES } from '../lib/afiches';
 import type { DatosCarta } from '../pixel/render';
 import type { Ir, PonerTema } from '../App';
 
@@ -74,14 +74,15 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
           <b className="cuenta">{Math.min(encontrados, meta)} de {meta}{extra > 0 && <small> +{extra}</small>}</b>
         </header>
         <ol className="ranuras-afiche" aria-label="Afiches encontrados">
-          {Array.from({ length: meta }, (_, i) => afiches[i]).map((id, i) => {
-            const a = id ? aficheDe(id) : undefined;
+          {/* Los 5 afiches de la sede: cada uno se ve cuando se encuentra. La meta (3) sigue en el contador. */}
+          {AFICHES.map(a => {
+            const hallado = afiches.includes(a.id);
             return (
-              <li key={i} className={id ? 'lleno' : ''}>
-                {a ? <img src={a.img} alt={`Afiche ${a.nombre}`} /> : id ? <b>{id}</b> : (
+              <li key={a.id} className={hallado ? 'lleno' : ''}>
+                {hallado ? <img src={a.img} alt={`Afiche ${a.nombre}`} /> : (
                   <>
                     <span className="material-symbols-outlined" aria-hidden="true">wallpaper</span>
-                    <span className="sr-only">Afiche {i + 1}: por encontrar</span>
+                    <span className="sr-only">Afiche por encontrar</span>
                   </>
                 )}
               </li>
