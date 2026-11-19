@@ -94,6 +94,20 @@ export async function verificarPin(pin: string): Promise<boolean> {
 }
 
 // ---------- la persona que juega en esta mesa (dura la sesión; el quiosco la borra) ----------
+// Plan 016 (excepción): la credencial abre el Fotomatón en el celular con ?codigo=SD-XXXXX&desde=credencial.
+// La persona entra ya con su código y la flecha «volver» la lleva de vuelta a su credencial (no al menú de las tablets).
+const LLAVE_VOLVER = 'sd:volver';
+export function codigoDesdeUrl(app: string): string | null {
+  const q = new URLSearchParams(location.search);
+  const c = (q.get('codigo') || '').trim().toUpperCase();
+  if (!CODIGO.test(c)) return null;
+  entrarJugador(c, app);
+  try { if (q.get('desde') === 'credencial') sessionStorage.setItem(LLAVE_VOLVER, '../../credencial/dist/#/juego'); } catch { /* nada */ }
+  q.delete('codigo'); q.delete('desde');
+  try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); } catch { /* nada */ }
+  return c;
+}
+export const volverA = (porDefecto: string) => { try { return sessionStorage.getItem(LLAVE_VOLVER) || porDefecto; } catch { return porDefecto; } };
 const LLAVE_JUGADOR = 'sd:jugador';
 // `ganado`: las experiencias de esta mesa que ya sumaron su paso al timbre 2 (una mesa puede tener varias).
 export function jugador(): { codigo: string; ganado: string[] } | null {
