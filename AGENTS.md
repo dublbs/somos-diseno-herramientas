@@ -109,6 +109,8 @@ Desde nov 2026 dos personas iteran la plataforma, cada una con su propio agente 
   - Credencial (celular): `…/credencial/dist/` · PC madre (staff): `…/admin/dist/` · HUB: `…/hub-estacion/dist/`
 - **Decisiones vigentes (planes 009–011, Amaro, 13 nov; el equipo se alinea a ellas):**
   - **Timbres:** 1 Inscripción · 2 Creación (4 experiencias distintas) · 3 Cacería (3 afiches) · 4 Secreto (jefe final o plan B). El canje pide los 4.
+  - **Creación doble (19 nov, sin tocar la base):** cada 30 min, los primeros 10 (`OFERTA` en `shared/juego.ts`), o con el modo
+    emergencia del staff en cada tablet (`?staff` → «Creación doble»), cada creación anota 2 pasos: con 2 experiencias cae el timbre 2.
   - **Hora punta reemplaza al Vagón.**
   - **La credencial es opcional para jugar** («Jugar sin credencial»).
   - **«Llévatela» con QR** en todas las experiencias.

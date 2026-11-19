@@ -96,6 +96,11 @@ Método para lo demás: el mismo de la auditoría del Teatro. Por cada experienc
 
 ## 6. Decisiones (13 nov, Amaro)
 - **D1 · «4 creaciones»:** 4 experiencias **distintas**, aunque sean en la misma mesa.
+  - **Cambio del 19 nov (durante el evento, sin acceso a la base):** la meta del servidor sigue en 4 pasos, pero hay
+    **creación doble**: cada 30 minutos, los primeros 10 (:00–:10 y :30–:40, reloj de cada equipo), o cuando el staff
+    enciende el modo emergencia en una tablet, cada creación anota dos pasos (`app` y `app·doble`). Con 2 experiencias
+    cae el timbre. Lo anuncian el menú de las tablets, la entrada del modo juego y el inventario de la credencial.
+    Código: `shared/juego.ts` (`OFERTA`, `creacionDoble()`, `otorgarCreacion()`).
 - **D2 · El juego Pixel cuenta** como una de las 4 experiencias.
 - **D3 · HUB:** los trenes siguen llegando y partiendo del andén, sin rayados.
 - **D4 · Arte del juego:** se genera aquí con acabado medio; después se lleva a Figma.

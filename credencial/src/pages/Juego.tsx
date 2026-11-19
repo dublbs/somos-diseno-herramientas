@@ -5,6 +5,7 @@ import { BarraTimbres } from '../components/BarraTimbres';
 import type { Tema } from '../temas';
 import { HACIA_JUEGO, tomarEntrada, useDeslizar } from '../lib/deslizar';
 import { AFICHES } from '../lib/afiches';
+import { horaOferta } from '../../../shared/juego';
 import { eleccionInicial, MiniFlyer, useDatosFlyer } from '../flyer/usarFlyer';
 import type { DatosCarta } from '../pixel/render';
 import type { Ir, PonerTema } from '../App';
@@ -30,6 +31,8 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
   const [nuevo, setNuevo] = useState(''); // la casilla que acaba de llenarse
   const [entra] = useState(tomarEntrada);
   const [comoSeJuega, setComoSeJuega] = useState(false);
+  const [oferta, setOferta] = useState(() => horaOferta());
+  useEffect(() => { const id = setInterval(() => setOferta(horaOferta()), 15000); return () => clearInterval(id); }, []);
   useDeslizar(dir => { if (dir === -HACIA_JUEGO) ir(`#/c/${codigo}`); });
 
   const cargar = useCallback(() => Promise.all([obtener(codigo), progresoJuego(codigo)])
@@ -123,7 +126,10 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
             );
           })}
         </ul>
-        <p className="ayuda">Crea en {creacion.meta} experiencias distintas con tu código <b>{codigo}</b>: cada una llega aquí al momento.</p>
+        {/* Creación doble (shared/juego.ts): durante la oferta cada creación en las tablets suma 2 pasos. */}
+        <p className="ayuda">{oferta.activa
+          ? <><b className="doble">¡Creación doble hasta las {oferta.hora}!</b> En las tablets cada creación vale por 2. Tu código: <b>{codigo}</b>.</>
+          : <>Crea en las tablets con tu código <b>{codigo}</b>. Próxima <b className="doble">creación doble</b> (vale por 2): {oferta.hora}.</>}</p>
         {/* Lo principal es escanear el QR de la tablet (une la mesa a la credencial); la Cabina también se puede abrir en el celular. */}
         <div className="inventario-acciones">
           <button type="button" className="btn primario" onClick={() => ir('#/escanear')}>
