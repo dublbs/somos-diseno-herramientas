@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { escucharCreaciones, faltaParaFlyer, obtener, progresoJuego, remoto, sumarCreacion, textoFaltaCanje, textoFaltaFlyer, type ProgresoJuego } from '../lib/store';
 import { Bienvenida } from '../components/Bienvenida';
 import type { Tema } from '../temas';
 import { HACIA_JUEGO, tomarEntrada, useDeslizar } from '../lib/deslizar';
 import { AFICHES } from '../lib/afiches';
+import { eleccionInicial, MiniFlyer, useDatosFlyer } from '../flyer/usarFlyer';
 import type { DatosCarta } from '../pixel/render';
 import type { Ir, PonerTema } from '../App';
 
@@ -46,6 +47,9 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
   useEffect(() => { if (!remoto) return; const id = setInterval(cargar, 20000); return () => clearInterval(id); }, [cargar]);
   useEffect(() => { if (!estado) return; const t = setTimeout(() => setEstado(''), 4000); return () => clearTimeout(t); }, [estado]);
   useEffect(() => { if (!nuevo) return; const t = setTimeout(() => setNuevo(''), 2600); return () => clearTimeout(t); }, [nuevo]);
+  // B-016: la miniatura de «Tu flyer» usa la misma elección guardada y la misma función que el flyer que se descarga.
+  const eleccion = useMemo(() => (datos && progreso ? eleccionInicial(codigo, datos, progreso) : null), [codigo, datos, progreso]);
+  const { flyer } = useDatosFlyer(codigo, datos, progreso, eleccion);
 
   if (error) {
     return (
@@ -123,10 +127,13 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
       </section>
 
       <button type="button" className={'panel-juego tarjeta-flyer' + (abierto ? ' abierta' : '')} onClick={abrirFlyer} aria-disabled={!abierto}>
-        <span className="material-symbols-outlined tarjeta-flyer-icono" aria-hidden="true">{abierto ? 'auto_awesome' : 'image'}</span>
+        <span className="tarjeta-flyer-mini">
+          <MiniFlyer flyer={flyer} />
+          {!abierto && <span className="material-symbols-outlined tarjeta-flyer-candado" aria-hidden="true">lock</span>}
+        </span>
         <span className="tarjeta-flyer-texto">
           <b>Tu flyer</b>
-          <small>{abierto ? (conFlyer ? 'Timbre listo · arma otro cuando quieras' : 'Ármalo con lo que juntaste y gana el timbre 4') : textoFaltaFlyer(falta)}</small>
+          <small>{abierto ? (conFlyer ? 'Timbre listo · arma otro cuando quieras' : 'Así va tu flyer. Ármalo y gana el timbre 4') : `Así se verá. ${textoFaltaFlyer(falta)}`}</small>
         </span>
         <span className="cuenta">{conFlyer ? 'Listo' : abierto ? 'Abrir' : '4'}</span>
       </button>

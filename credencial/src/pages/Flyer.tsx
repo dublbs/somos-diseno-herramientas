@@ -1,25 +1,17 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { faltaParaFlyer, fotoDe, obtener, progresoJuego, sellarFlyer, textoFaltaFlyer, type ProgresoJuego } from '../lib/store';
+import React, { useEffect, useRef, useState } from 'react';
+import { faltaParaFlyer, obtener, progresoJuego, sellarFlyer, textoFaltaFlyer, type ProgresoJuego } from '../lib/store';
 import { guardarArchivo } from '../lib/descargar';
-import { useImagenes } from '../lib/imagenes';
-import { aficheDe } from '../lib/afiches';
 import { aBlob, type DatosCarta } from '../pixel/render';
-import { PERSONAJES, personajeDe } from '../temas';
+import { PERSONAJES } from '../temas';
 import { EXPERIENCIAS } from './Juego';
-import { cargarFuentes, flyerEnLienzo, FLYER, FRASES, pintarFlyer, semillaNueva, type DatosFlyer, type PiezaFlyer } from '../flyer/componer';
-import { porId, VISUALES, type Visual } from '../../../shared/marcos';
+import { cargarFuentes, flyerEnLienzo, FLYER, FRASES, pintarFlyer, semillaNueva } from '../flyer/componer';
+import { eleccionInicial, guardarEleccion, MAX_CREACIONES, nombreApp, useDatosFlyer, useFuentesFlyer, type Eleccion } from '../flyer/usarFlyer';
+import { VISUALES } from '../../../shared/marcos';
 import type { Ir, PonerTema } from '../App';
 
 // «Tu flyer» (plan 012 §8): 3 pasos, solo con toques. 1 · Lenguaje, 2 · Tus piezas (hasta 3 creaciones y 1 afiche;
 // tu personaje va siempre) con «Mezclar», 3 · Tu frase. «Guardar mi flyer» lo descarga o comparte y da el timbre 4.
 type Paso = 'lenguaje' | 'piezas' | 'frase';
-const MAX_CREACIONES = 3;
-interface Eleccion { lenguaje: Visual; creaciones: string[]; afiche: string; frase: string; semilla: number }
-const llave = (codigo: string) => 'sd:flyer:' + codigo;
-function leerEleccion(codigo: string): Partial<Eleccion> {
-  try { return JSON.parse(localStorage.getItem(llave(codigo)) || '{}'); } catch { return {}; }
-}
-const nombreApp = (app: string) => EXPERIENCIAS.find(x => x.app === app)?.nombre ?? 'Creación';
 const iconoApp = (app: string) => EXPERIENCIAS.find(x => x.app === app)?.icono ?? 'category';
 const quieto = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
@@ -31,50 +23,21 @@ export const Flyer: React.FC<{ codigo: string; ir: Ir; ponerTema: PonerTema }> =
   const [paso, setPaso] = useState<Paso>('lenguaje');
   const [estado, setEstado] = useState('');
   const [guardando, setGuardando] = useState(false);
-  const [fuentes, setFuentes] = useState(false);
   const [mezcla, setMezcla] = useState(0); // para la sacudida al mezclar
   const lienzo = useRef<HTMLCanvasElement>(null);
 
-  useEffect(() => { cargarFuentes().then(() => setFuentes(true)); }, []);
+  const fuentes = useFuentesFlyer();
   useEffect(() => {
     Promise.all([obtener(codigo), progresoJuego(codigo)]).then(([d, p]) => {
       setDatos(d); setProgreso(p); ponerTema(d.marco);
-      // Por defecto: el lenguaje de tu credencial, tus 3 creaciones más nuevas (primero las con imagen) y tu último afiche.
-      const guardada = leerEleccion(codigo);
-      const apps = Object.values(p.creaciones).sort((a, b) => Number(!!b.png) - Number(!!a.png) || b.creado - a.creado).map(c => c.app);
-      const afiches = p.afiches.filter(id => aficheDe(id));
-      const creaciones = (guardada.creaciones ?? apps.slice(0, MAX_CREACIONES)).filter(a => apps.includes(a));
-      setEleccion({
-        lenguaje: guardada.lenguaje && VISUALES.includes(guardada.lenguaje) ? guardada.lenguaje : porId(d.marco).visual,
-        creaciones: creaciones.length || !apps.length ? creaciones : apps.slice(0, MAX_CREACIONES),
-        afiche: guardada.afiche && afiches.includes(guardada.afiche) ? guardada.afiche : afiches[afiches.length - 1] ?? '',
-        frase: guardada.frase && (FRASES as readonly string[]).includes(guardada.frase) ? guardada.frase : FRASES[0],
-        semilla: guardada.semilla ?? semillaNueva(),
-      });
+      setEleccion(eleccionInicial(codigo, d, p));
     }).catch(e => setError((e as Error).message));
   }, [codigo, ponerTema]);
-  useEffect(() => { if (eleccion) try { localStorage.setItem(llave(codigo), JSON.stringify(eleccion)); } catch { /* sin almacenamiento */ } }, [codigo, eleccion]);
+  useEffect(() => { if (eleccion) guardarEleccion(codigo, eleccion); }, [codigo, eleccion]);
   useEffect(() => { if (!estado) return; const t = setTimeout(() => setEstado(''), 5000); return () => clearTimeout(t); }, [estado]);
 
-  // Imágenes: las miniaturas que llegaron de las tablets, los afiches y el personaje (o la foto) de la credencial.
-  const creacionesDisp = useMemo(() => (progreso ? Object.values(progreso.creaciones).sort((a, b) => b.creado - a.creado) : []), [progreso]);
-  const afichesDisp = useMemo(() => (progreso ? progreso.afiches.map(aficheDe).filter((a): a is NonNullable<typeof a> => !!a) : []), [progreso]);
-  const foto = datos?.receta.retrato === 'foto' ? fotoDe(codigo) : null;
-  const srcPersonaje = !datos ? null : foto ?? (datos.receta.retrato === 'personaje' ? personajeDe(datos.receta.id).src : PERSONAJES.find(p => p.visual === eleccion?.lenguaje)?.src ?? PERSONAJES[0].src);
-  const troquelado = !!datos && !foto && (datos.receta.retrato === 'personaje' ? datos.receta.id !== 'organica' : eleccion?.lenguaje !== 'Orgánica');
-  const srcs = [srcPersonaje, ...creacionesDisp.map(c => c.png ?? null), ...afichesDisp.map(a => a.img)];
-  const imgs = useImagenes(srcs);
-  const imgCreacion = (app: string) => imgs[1 + creacionesDisp.findIndex(c => c.app === app)] ?? null;
-  const imgAfiche = (id: string) => imgs[1 + creacionesDisp.length + afichesDisp.findIndex(a => a.id === id)] ?? null;
-
-  const flyer: DatosFlyer | null = useMemo(() => {
-    if (!datos || !eleccion) return null;
-    const piezas: PiezaFlyer[] = eleccion.creaciones.map(app => ({ tipo: 'creacion' as const, img: imgCreacion(app), etiqueta: nombreApp(app) }));
-    const a = aficheDe(eleccion.afiche);
-    if (a) piezas.push({ tipo: 'afiche', img: imgAfiche(a.id), etiqueta: `Afiche ${a.nombre}` });
-    return { lenguaje: eleccion.lenguaje, piezas, personaje: imgs[0], troquelado, frase: eleccion.frase, nombre: datos.nombre, semilla: eleccion.semilla };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [datos, eleccion, troquelado, ...imgs]);
+  // La misma elección y los mismos datos que la miniatura de la vista Juego (flyer/usarFlyer.tsx).
+  const { flyer, creacionesDisp, afichesDisp } = useDatosFlyer(codigo, datos, progreso, eleccion);
 
   useEffect(() => {
     const c = lienzo.current;
@@ -142,6 +105,7 @@ export const Flyer: React.FC<{ codigo: string; ir: Ir; ponerTema: PonerTema }> =
       <section className="flyer-vista" aria-label="Vista previa de tu flyer">
         <canvas key={mezcla} ref={lienzo} width={FLYER.ancho} height={FLYER.alto} className={'flyer-lienzo' + (mezcla && !quieto() ? ' mezclado' : '')}
           role="img" aria-label={`Tu flyer: «${eleccion.frase}», lenguaje ${eleccion.lenguaje}, ${flyer?.piezas.length ?? 0} piezas y tu personaje`} />
+        <span className="flyer-etiqueta" aria-hidden="true">Vista previa · así se descarga</span>
         <p className="progreso flyer-estado" role="status" hidden={!estado}>{estado}</p>
       </section>
 

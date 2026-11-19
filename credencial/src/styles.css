@@ -293,9 +293,13 @@ label.btn { cursor: pointer; }
 }
 
 /* --- Timbre 4 · «Tu flyer» (plan 012 §8) --- */
-.tarjeta-flyer { width: 100%; min-height: 56px; display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 10px; text-align: left; cursor: pointer; font: inherit; }
-.tarjeta-flyer-icono { font-size: 28px; width: 40px; height: 40px; display: grid; place-items: center; border-radius: var(--rb); background: var(--chip); color: var(--muted); }
-.tarjeta-flyer.abierta .tarjeta-flyer-icono { background: var(--accent); color: var(--on-accent); }
+.tarjeta-flyer { width: 100%; min-height: 56px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; text-align: left; cursor: pointer; font: inherit; }
+/* B-016: miniatura en vivo del flyer (mismo pintarFlyer que la descarga, a escala). */
+.tarjeta-flyer-mini { position: relative; display: block; height: var(--alto-mini-flyer, 84px); aspect-ratio: 4 / 5; border: 2px solid var(--ink); border-radius: 4px; overflow: hidden; background: #000; transform: rotate(-3deg); }
+.tarjeta-flyer-mini canvas { display: block; width: 100%; height: 100%; }
+.tarjeta-flyer[aria-disabled="true"] .tarjeta-flyer-mini canvas { filter: grayscale(.85) brightness(.7); }
+.tarjeta-flyer-candado { position: absolute; inset: 0; display: grid; place-items: center; font-size: 24px; color: #F4EEE3; }
+@media (max-height: 760px) { .tarjeta-flyer { --alto-mini-flyer: 64px; } }
 .tarjeta-flyer-texto { min-width: 0; display: grid; gap: 1px; }
 .tarjeta-flyer-texto b { font: 800 16px/1.1 var(--fuente-tit); }
 [data-visual="Pixel"] .tarjeta-flyer-texto b { font-weight: 700; font-size: 13px; }
@@ -314,9 +318,11 @@ label.btn { cursor: pointer; }
 .flyer-lienzo.mezclado { animation: mezclar .32s cubic-bezier(.2, .9, .3, 1.3); }
 [data-visual="Pixel"] .flyer-lienzo.mezclado { animation-timing-function: steps(4, end); }
 @keyframes mezclar { from { transform: scale(.94) rotate(-1.5deg); opacity: .5 } }
+.flyer-etiqueta { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 1; padding: 3px 10px; font: 700 11px "DM Sans", sans-serif; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; color: #F4EEE3; background: rgba(0, 0, 0, .6); border-radius: 999px; pointer-events: none; }
 .flyer-estado { position: absolute; left: 8px; right: 8px; bottom: 8px; margin: 0; z-index: 2; box-shadow: 0 6px 18px rgba(0, 0, 0, .3); }
 .flyer-estado[hidden] { display: none; }
 .pestanas-grilla.tres { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.flyer .pestanas-grilla button { min-height: 48px; }
 .flyer-panel { min-height: 0; overflow: hidden; display: grid; padding: 6px; background: var(--surface); color: var(--ink); border: var(--borde); border-radius: var(--r); }
 [data-visual="Orgánica"] .flyer-panel { border-radius: 24px; padding: 8px 10px; }
 .flyer-lenguajes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
