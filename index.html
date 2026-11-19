@@ -65,10 +65,21 @@ body{min-height:100dvh;font:400 var(--h-tam-texto)/1.4 var(--h-fuente);-webkit-f
 footer{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--h-e2) var(--h-e4);padding-top:var(--h-e4);border-top:var(--h-trazo) solid var(--h-borde);font-size:var(--h-tam-chico);color:var(--h-texto-2)}
 footer .h-btn{text-decoration:none}
 
+/* «Crea tu credencial»: QR siempre a mano en la barra (shared/qr-crear-credencial.svg, scripts/qr-crear-credencial.mjs) */
+.m-barra-acciones{display:flex;align-items:center;gap:var(--h-e2)}
+.m-qr{width:min(440px,calc(100% - 32px));max-height:calc(100dvh - 32px);padding:var(--h-e5);border:var(--h-trazo) solid var(--h-borde);
+  border-radius:calc(var(--h-radio) + 8px);background:var(--h-superficie);color:var(--h-texto);box-shadow:var(--h-sombra-flotante);text-align:center}
+.m-qr::backdrop{background:rgba(26,26,26,.55)}
+.m-qr[open]{display:grid;gap:var(--h-e3)}
+.m-qr h2{margin:0;font:700 26px/1.15 var(--h-fuente-titulo)}
+.m-qr p{margin:0;color:var(--h-texto-2);text-wrap:pretty}
+.m-qr img{width:min(320px,100%);aspect-ratio:1;justify-self:center;image-rendering:pixelated;background:#fff;border-radius:var(--h-radio)}
+.m-qr .h-btn{justify-self:center;min-width:160px}
 @media (max-width:700px){
   .m-barra,.m-contenido{padding-left:max(var(--h-e4),env(safe-area-inset-left,0px));padding-right:max(var(--h-e4),env(safe-area-inset-right,0px))}
   .m-marca-sub{display:none}
   #btn-fullscreen .h-btn-texto{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+  #btn-crear-credencial .h-btn-texto{font-size:var(--h-tam-chico)}
   #btn-fullscreen{padding:0;width:var(--h-toque)}
   .m-filtro{flex-basis:100%}
   .m-filtro .h-seg>button{font-size:var(--h-tam-chico);padding:0 4px}
@@ -85,10 +96,35 @@ footer .h-btn{text-decoration:none}
       <p class="m-marca-sub">INACAP Santiago Centro · Semana del Diseño 2026</p>
     </div>
   </div>
-  <button class="h-btn" id="btn-fullscreen" type="button" aria-label="Alternar pantalla completa">
-    <span class="material-symbols-outlined h-icono" aria-hidden="true">open_in_full</span><span class="h-btn-texto" id="fs-texto">Pantalla completa</span>
-  </button>
+  <div class="m-barra-acciones">
+    <button class="h-btn h-primario" id="btn-crear-credencial" type="button" aria-haspopup="dialog" aria-controls="dlg-crear-credencial">
+      <span class="material-symbols-outlined h-icono" aria-hidden="true">qr_code_2</span><span class="h-btn-texto">Crea tu credencial</span>
+    </button>
+    <button class="h-btn" id="btn-fullscreen" type="button" aria-label="Alternar pantalla completa">
+      <span class="material-symbols-outlined h-icono" aria-hidden="true">open_in_full</span><span class="h-btn-texto" id="fs-texto">Pantalla completa</span>
+    </button>
+  </div>
 </header>
+
+<dialog class="m-qr" id="dlg-crear-credencial" aria-labelledby="dlg-crear-titulo">
+  <h2 id="dlg-crear-titulo">Crea tu credencial</h2>
+  <p>Escanea con la cámara de tu celular, elige tu marco y empieza a juntar timbres.</p>
+  <img src="shared/qr-crear-credencial.svg" alt="QR para crear tu credencial en el celular" width="320" height="320">
+  <form method="dialog"><button class="h-btn" type="submit">Listo</button></form>
+</dialog>
+<script>
+(function () {
+  var dlg = document.getElementById('dlg-crear-credencial');
+  var btn = document.getElementById('btn-crear-credencial');
+  var t = 0;
+  btn.addEventListener('click', function () {
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+    clearTimeout(t); t = setTimeout(function () { if (dlg.open) dlg.close(); }, 120000); // no queda abierto si se van
+  });
+  // Tocar fuera de la ventana la cierra.
+  dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close(); });
+})();
+</script>
 
 <div class="m-contenido">
   <section class="m-intro" aria-labelledby="titulo">
