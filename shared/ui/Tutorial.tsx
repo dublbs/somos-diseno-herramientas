@@ -5,6 +5,13 @@ import React, { useEffect, useRef, useState } from 'react';
 
 const Icono: React.FC<{ nombre: string }> = ({ nombre }) => <span className="material-symbols-outlined" aria-hidden="true">{nombre}</span>;
 
+// Pedido de terminar la sesión de la mesa ya (lo atiende el Quiosco; si no hay Quiosco, se recarga).
+export const EVENTO_TERMINAR = 'sd:terminar-mesa';
+// Termina la sesión de la mesa: el Quiosco borra la credencial asociada y lo creado y vuelve al inicio.
+export function terminarMesa() {
+  const atendido = !window.dispatchEvent(new Event(EVENTO_TERMINAR, { cancelable: true }));
+  if (!atendido) { try { sessionStorage.clear(); } catch { /* nada */ } location.reload(); }
+}
 export interface PasoTutorial { icono: string; texto: React.ReactNode }
 export interface AccionTutorial { texto: string; icono: string; alTocar: () => void }
 
@@ -54,15 +61,20 @@ export const Quiosco: React.FC<{ app: string; activo?: boolean; limpiar?: string
     const tocar = () => { ultimo.current = performance.now(); setQuedan(null); };
     const eventos = ['pointerdown', 'keydown', 'wheel'] as const;
     eventos.forEach(e => window.addEventListener(e, tocar, { passive: true }));
+    const reiniciar = () => {
+      window.clearInterval(reloj);
+      try { limpiar.forEach(k => localStorage.removeItem(k)); sessionStorage.clear(); } catch { /* sin almacenamiento */ }
+      if (alReiniciar) alReiniciar(); else location.reload();
+    };
     const reloj = window.setInterval(() => {
       const resta = total - (performance.now() - ultimo.current);
-      if (resta <= 0) {
-        window.clearInterval(reloj);
-        try { limpiar.forEach(k => localStorage.removeItem(k)); sessionStorage.clear(); } catch { /* sin almacenamiento */ }
-        if (alReiniciar) alReiniciar(); else location.reload();
-      } else setQuedan(resta <= aviso ? Math.ceil(resta / 1000) : null);
+      if (resta <= 0) reiniciar();
+      else setQuedan(resta <= aviso ? Math.ceil(resta / 1000) : null);
     }, 250);
-    return () => { eventos.forEach(e => window.removeEventListener(e, tocar)); window.clearInterval(reloj); };
+    // «Terminar y liberar la mesa» (botón QR de arriba, plan 014): el mismo reinicio, sin esperar.
+    const terminar = (e: Event) => { e.preventDefault(); reiniciar(); };
+    window.addEventListener(EVENTO_TERMINAR, terminar);
+    return () => { eventos.forEach(e => window.removeEventListener(e, tocar)); window.clearInterval(reloj); window.removeEventListener(EVENTO_TERMINAR, terminar); };
   }, [activo, app, total]);
 
   if (quedan === null) return null;
