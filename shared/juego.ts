@@ -18,7 +18,9 @@ export const ESTACIONES: Estacion[] = [
 export const ACTIVAS = ESTACIONES.filter(e => e.activa).map(e => e.n);
 export const completa = (sellos: number[]) => ACTIVAS.every(n => sellos.includes(n));
 
-export const CODIGO = /^SD-[A-Z2-9]{5}$/;
+// Los códigos los genera Supabase en hexadecimal (0-9 y A-F, credencial/supabase/schema.sql); el modo demo usa A-Z y 2-9.
+// La regla acepta los dos, igual que el check de la base (^SD-[A-Z0-9]{5}$).
+export const CODIGO = /^SD-[A-Z0-9]{5}$/;
 export const normalizarCodigo = (c: string) => {
   const t = c.toUpperCase().replace(/[^A-Z0-9]/g, '');
   return t.startsWith('SD') ? 'SD-' + t.slice(2, 7) : 'SD-' + t.slice(0, 5);
