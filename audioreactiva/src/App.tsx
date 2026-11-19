@@ -1,18 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { jugador, otorgarCreacion } from '../../shared/juego';
 import { publicar } from '../../shared/datos';
-import { BarraFlotante, Boton, BotonIcono, Icono, LienzoAjustado, MarcoHerramienta, SeccionPanel, Segmento, useAviso } from '../../shared/ui/Herramienta';
+import { BarraFlotante, Boton, BotonIcono, Icono, MarcoHerramienta, SeccionPanel, Segmento, useAviso } from '../../shared/ui/Herramienta';
 import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
 import { Llevatela } from '../../shared/ui/Llevatela';
 import { Motor, SILENCIO, type Rasgos } from './audio/motor';
 import { ESTILOS, PISTAS, TEMPOS, type Pista, type Tempo } from './audio/estilos';
 import { Compositor, ESCENAS } from './escenas/escenas';
 import { grabarEnVivo, puedeGrabar } from './lib/archivos';
+import { cargarFuentes, copiarCentro, crearTarjeta, fotoTarjeta } from './lib/tarjeta';
 import './styles.css';
 
 const QUIETO = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 const SEG_LOOP = 6;
-const LADO_MAX = 1080; // px del lienzo (y de la foto y el video)
+// La escena llena todo el lienzo (T-010). Resolución: la del equipo (hasta 2×) y, si alcanza, al menos 1080 px en el
+// lado corto, que es el cuadro que va a la tarjeta; con un tope de píxeles para que la tablet dibuje a 30 cuadros.
+const LADO_TARJETA = 1080, PIXELES_MAX = 1_700_000;
 const NOMBRE_PISTA: Record<Pista, { nombre: string; icono: string }> = {
   bateria: { nombre: 'Batería', icono: 'graphic_eq' },
   bajo: { nombre: 'Bajo', icono: 'water' },
@@ -29,6 +32,8 @@ export const App: React.FC = () => {
   const lienzo = useRef<HTMLCanvasElement>(null);
   const zona = useRef<HTMLDivElement>(null);
   const dedo = useRef<HTMLDivElement>(null);
+  const guia = useRef<HTMLDivElement>(null);
+  const alCuadro = useRef<((c: HTMLCanvasElement) => void) | null>(null); // mientras graba: copia el centro a la tarjeta
   const luces = useRef<Partial<Record<Pista, HTMLElement | null>>>({});
   const ultimo = useRef<Rasgos>(SILENCIO);
   const dedos = useRef(new Map<number, { x: number; y: number }>());
@@ -85,7 +90,7 @@ export const App: React.FC = () => {
       for (let k = 0; k < cuadros; k++) {
         const golpe = k === 10 && (accion === 'bum' || accion === 'chas');
         const r = { ...SILENCIO, quieto, manoTipo: golpe ? accion as 'bum' | 'chas' : null, nuevo: { ...SILENCIO.nuevo, mano: golpe } };
-        comp.dibujar(ctx, S, 1 / 30, r, esc, est, accion === 'dedo' && k >= 10 ? { x: 0.8, y: 0.25 } : null);
+        comp.dibujar(ctx, S, S, 1 / 30, r, esc, est, accion === 'dedo' && k >= 10 ? { x: 0.8, y: 0.25 } : null);
         salida.push(c.toDataURL());
       }
       return salida;
@@ -100,8 +105,14 @@ export const App: React.FC = () => {
     const ctx = c.getContext('2d')!;
     const comp = new Compositor();
     const ro = new ResizeObserver(() => {
-      const lado = Math.min(LADO_MAX, Math.round(c.clientWidth * Math.min(window.devicePixelRatio || 1, 2)));
-      if (lado && c.width !== lado) { c.width = c.height = lado; }
+      const cw = c.clientWidth, ch = c.clientHeight;
+      if (!cw || !ch) return;
+      const k = Math.min(Math.max(Math.min(window.devicePixelRatio || 1, 2), LADO_TARJETA / Math.min(cw, ch)), Math.sqrt(PIXELES_MAX / (cw * ch)));
+      const W = Math.round(cw * k), H = Math.round(ch * k);
+      if (c.width !== W || c.height !== H) { c.width = W; c.height = H; }
+      // la guía marca el cuadro central (lo que se lleva la persona), en píxeles de pantalla
+      const lado = Math.min(cw, ch);
+      guia.current?.style.setProperty('--lado', lado + 'px');
     });
     ro.observe(c);
     let raf = 0, antes = performance.now(), acumulado = 0;
@@ -114,7 +125,8 @@ export const App: React.FC = () => {
       r.quieto = QUIETO;
       if (QUIETO) { r.bombo *= 0.4; r.caja *= 0.4; r.hat *= 0.5; r.mano *= 0.5; }
       ultimo.current = r;
-      comp.dibujar(ctx, c.width, QUIETO ? dt * 0.6 : dt, r, vivo.current.escena, vivo.current.estado, manoPos.current);
+      comp.dibujar(ctx, c.width, c.height, QUIETO ? dt * 0.6 : dt, r, vivo.current.escena, vivo.current.estado, manoPos.current);
+      alCuadro.current?.(c);
       for (const p of PISTAS) luces.current[p]?.style.setProperty('--v', String(Math.min(1, nivelPista(r, p)).toFixed(2)));
     };
     raf = requestAnimationFrame(cuadro);
@@ -153,16 +165,23 @@ export const App: React.FC = () => {
   const alternarPista = (p: Pista) => setActivas(a => { const n = { ...a, [p]: !a[p] }; motor.current.ponerPista(p, n[p]); return n; });
 
   // La foto también es una creación: suma al inventario y al timbre 2, igual que el loop (QA 18 nov).
-  const foto = () => lienzo.current!.toBlob(b => {
-    if (!b) return;
-    setLlevar(b);
-    publicar('audio', { escena: escenaId }, jugador()?.codigo ?? null).catch(() => { /* sin red */ });
-    otorgarCreacion('audioreactiva');
-  }, 'image/png');
+  // Foto y loop: solo el cuadro central, en la tarjeta 1080 × 1350 con la franja común (T-010).
+  const foto = async () => {
+    try {
+      const b = await fotoTarjeta(lienzo.current!);
+      setLlevar(b);
+      publicar('audio', { escena: escenaId }, jugador()?.codigo ?? null).catch(() => { /* sin red */ });
+      otorgarCreacion('audioreactiva');
+    } catch (e) { avisar((e as Error).message); }
+  };
   const grabar = async () => {
     setGrabando(0.001);
     try {
-      const { blob } = await grabarEnVivo(lienzo.current!, SEG_LOOP, 30, setGrabando, motor.current.flujo);
+      await cargarFuentes();
+      const tarjeta = crearTarjeta();
+      copiarCentro(tarjeta, lienzo.current!);
+      alCuadro.current = c => copiarCentro(tarjeta, c);
+      const { blob } = await grabarEnVivo(tarjeta, SEG_LOOP, 30, setGrabando, motor.current.flujo).finally(() => { alCuadro.current = null; });
       setLlevar(blob);
       publicar('audio', { escena: escenaId }, jugador()?.codigo ?? null).catch(() => { /* sin red */ });
       otorgarCreacion('audioreactiva');
@@ -229,13 +248,14 @@ export const App: React.FC = () => {
         </SeccionPanel>
       </>}
     >
-      <LienzoAjustado proporcion={1} className="ar-lienzo">
+      <div className="ar-lienzo">
         <canvas ref={lienzo} className="ar-canvas" role="img" aria-label={`Escena ${escena.nombre} al ritmo de ${estilo.nombre}`} />
         <div ref={zona} className={'ar-zona' + (tocando ? ' tocando' : '')} onPointerDown={bajar} onPointerMove={mover} onPointerUp={soltar} onPointerCancel={soltar} onLostPointerCapture={soltar}>
           <div ref={dedo} className="ar-dedo" aria-hidden="true" />
           <span className="ar-eje ar-eje-x" aria-hidden="true">← apagado · brillante →</span>
           <span className="ar-eje ar-eje-y" aria-hidden="true">↑ eco</span>
         </div>
+        <div ref={guia} className={'ar-guia' + (grabando ? ' grabando' : '')} aria-hidden="true" />
         {sonando && (<>
           <button type="button" className="ar-pad ar-pad-izq" aria-label={`Bum: golpe grave. ${escena.manos.bum}`} {...pad('bum')}><Icono nombre="circle" />Bum</button>
           <button type="button" className="ar-pad ar-pad-der" aria-label={`Chas: platillo y acorde. ${escena.manos.chas}`} {...pad('chas')}><Icono nombre="auto_awesome" />Chas</button>
@@ -243,7 +263,7 @@ export const App: React.FC = () => {
         {!sonando && (
           <div className="ar-empezar"><Boton icono="play_arrow" texto="Toca para que suene" variante="primario" onClick={empezar} /></div>
         )}
-      </LienzoAjustado>
+      </div>
     </MarcoHerramienta>
     {llevar && <Llevatela blob={llevar} app="audioreactiva" titulo={llevar.type.startsWith('video/') ? 'Tu loop está listo' : 'Tu cuadro está listo'} conCredencial={!!jugador()?.codigo} alCerrar={() => setLlevar(null)} />}
     <Quiosco app="audioreactiva" limpiar={['sd:audioreactiva']} alReiniciar={() => { motor.current.apagar(); location.reload(); }} />

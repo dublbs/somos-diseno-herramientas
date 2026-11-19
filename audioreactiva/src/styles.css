@@ -1,7 +1,17 @@
 @import '../../shared/ui/herramienta.css';
 
-/* Estación Audioreactiva sobre el marco v2 (plan 012). La escena es el lienzo; encima, la zona del dedo y los pads. */
-.ar-lienzo { background: #000; overflow: hidden; }
+/* Estación Audioreactiva sobre el marco v2 (plan 012). La escena es el lienzo; encima, la zona del dedo y los pads.
+   T-010: la escena llena todo el escenario (ancho y alto); la guía marca el cuadro central, que es lo que va a la tarjeta. */
+.ar-lienzo { position: relative; width: 100%; height: 100%; justify-self: stretch; align-self: stretch; background: #000; overflow: hidden; box-shadow: var(--h-sombra-chica); }
+.ar-guia { position: absolute; left: 50%; top: 50%; width: var(--lado, 0); height: var(--lado, 0); transform: translate(-50%, -50%); pointer-events: none;
+  --g: rgba(255,255,255,.75); --l: 28px; --t: 3px;
+  background:
+    linear-gradient(var(--g), var(--g)) top left / var(--l) var(--t), linear-gradient(var(--g), var(--g)) top left / var(--t) var(--l),
+    linear-gradient(var(--g), var(--g)) top right / var(--l) var(--t), linear-gradient(var(--g), var(--g)) top right / var(--t) var(--l),
+    linear-gradient(var(--g), var(--g)) bottom left / var(--l) var(--t), linear-gradient(var(--g), var(--g)) bottom left / var(--t) var(--l),
+    linear-gradient(var(--g), var(--g)) bottom right / var(--l) var(--t), linear-gradient(var(--g), var(--g)) bottom right / var(--t) var(--l);
+  background-repeat: no-repeat; filter: drop-shadow(0 0 1px rgba(0,0,0,.6)); opacity: .55; transition: opacity var(--h-mov); }
+.ar-guia.grabando { opacity: 1; box-shadow: 0 0 0 9999px rgba(0,0,0,.28); }
 .ar-canvas { display: block; width: 100%; height: 100%; }
 
 /* Zona del dedo: arrastrar cambia sonido e imagen (multitáctil: manda el centro de los dedos) */
