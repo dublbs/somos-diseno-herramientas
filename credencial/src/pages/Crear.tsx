@@ -103,7 +103,7 @@ export const Crear: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTem
                 </div>
               ) : (
                 <div className="foto-paso">
-                  <p>Fotomatón sin efectos: tu selfie queda dentro del marco.</p>
+                  <p>Cabina sin efectos: tu selfie queda dentro del marco.</p>
                   <button type="button" className={'btn' + (foto ? '' : ' primario')} onClick={() => setCamara(true)}>
                     <span className="material-symbols-outlined" aria-hidden="true">photo_camera</span>{foto ? 'Otra foto' : 'Sacar foto'}
                   </button>

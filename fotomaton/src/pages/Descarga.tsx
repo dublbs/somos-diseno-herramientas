@@ -4,7 +4,7 @@ import { obtenerTarjeta } from '../lib/publicar';
 
 // Experiencias que usan esta página para su QR (plan 011). Sin `?app=` es el Fotomatón.
 const EXPERIENCIAS: Record<string, { nombre: string; que: string; archivo: string }> = {
-  fotomaton: { nombre: 'Fotomatón', que: 'tu tarjeta del Fotomatón CMYK', archivo: 'fotomaton' },
+  fotomaton: { nombre: 'Cabina de fotos', que: 'tu tarjeta de la Cabina de fotos', archivo: 'fotomaton' },
   graffiti: { nombre: 'Graffiti y Tags', que: 'tu muro', archivo: 'graffiti' },
   mosaicos: { nombre: 'Taller de Mosaicos', que: 'tu mosaico', archivo: 'mosaico' },
   grabado: { nombre: 'Taller de Grabado', que: 'tu grabado', archivo: 'grabado' },

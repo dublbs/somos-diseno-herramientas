@@ -21,7 +21,7 @@ export function Editor({ foto, marco, celda, tinta, apagadas, revelando, cambian
   const bloqueado = ocupado || revelando || cambiando || !foto;
   const estado = foto && !revelando ? textoCara(foto.cara) : 'Revelando tu trama…';
   return (
-    <MarcoHerramienta titulo="Fotomatón" volver={volver} ayuda="Se guarda en 1080 × 1350, listo para historias y feed"
+    <MarcoHerramienta titulo="Cabina de fotos" volver={volver} ayuda="Se guarda en 1080 × 1350, listo para historias y feed"
       acciones={acciones} anchoPanel={320} panel={panel} aviso={aviso}
       primario={{ texto: ocupado ? 'Preparando…' : 'Llévatela', icono: 'ios_share', onClick: alLlevatela, disabled: bloqueado }}
       herramientas={<div className="pie-foto"><p className="estado-foto" role="status">{estado}</p>

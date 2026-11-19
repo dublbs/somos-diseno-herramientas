@@ -18,11 +18,11 @@ export interface Pieza {
 
 export const CREACIONES: Clase[] = ['mosaico', 'grabado', 'graffiti', 'juego', 'foto'];
 export const NOMBRE_CLASE: Record<Clase, string> = {
-  mosaico: 'Taller de Mosaicos', grabado: 'Taller de Grabado', graffiti: 'Graffiti y Tags', juego: 'Hora punta', foto: 'Fotomatón CMYK', credencial: 'Credencial',
+  mosaico: 'Taller de Mosaicos', grabado: 'Taller de Grabado', graffiti: 'Graffiti y Tags', juego: 'Hora punta', foto: 'Cabina de fotos', credencial: 'Credencial',
 };
 
 // Para las tarjetas chicas.
-export const NOMBRE_CORTO: Record<Clase, string> = { mosaico: 'Mosaicos', grabado: 'Grabado', graffiti: 'Graffiti', juego: 'Hora punta', foto: 'Fotomatón', credencial: 'Credencial' };
+export const NOMBRE_CORTO: Record<Clase, string> = { mosaico: 'Mosaicos', grabado: 'Grabado', graffiti: 'Graffiti', juego: 'Hora punta', foto: 'Cabina', credencial: 'Credencial' };
 
 const MAX = 40;
 

@@ -11,7 +11,7 @@ createRoot(document.getElementById('app')!).render(
     <HashRouter>
       <Routes>
         <Route path="/f/:id" element={<Descarga />} />
-        <Route path="*" element={<PuertaJuego app="fotomaton" titulo="Fotomatón" visual="Pixel"><App /></PuertaJuego>} />
+        <Route path="*" element={<PuertaJuego app="fotomaton" titulo="Cabina de fotos" visual="Pixel"><App /></PuertaJuego>} />
       </Routes>
     </HashRouter>
   </StrictMode>,
