@@ -37,3 +37,9 @@ El código quita los enlaces, pero cualquiera podría escribir otra dirección e
   en el mismo celular. La persona entra ya con su código (no lo escribe) y la flecha ← la devuelve a «Jugar» en su
   credencial, no al menú de las tablets. Su foto suma al timbre Creación como en la tablet.
 - `?codigo=` lo lee `PuertaJuego` (`codigoDesdeUrl` en `shared/juego.ts`) y lo borra de la dirección al entrar.
+
+## Modos que quedan (19 nov)
+- **Flip:** la dirección simple (`hub-estacion/dist/`) ya muestra solo personas reales. `?prueba=0` no hace falta.
+- **Respaldo de la Flip:** `?galeria`, desde la página de accesos.
+- **Staff en tablets:** `?staff`, respaldo de emergencia (plan 015). Lo normal lo maneja el PC madre.
+- Los demás modos (`?rapido`, `?hora`, `?quiosco`, `?ver`, `?cuerpos`) son para pruebas internas y no se comparten.
