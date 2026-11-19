@@ -102,6 +102,33 @@ textarea { resize: vertical; min-height: 64px; }
 .hallazgo.resuelto { opacity: .6; }
 .hallazgo p { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 
+/* Empezar: fase actual, mis pasos, roles y orden */
+.ahora { background: var(--accent); color: var(--on-accent); padding: 14px 16px; display: grid; gap: 8px; }
+.ahora h2 { font: 800 20px/1.2 var(--sans); }
+.ahora p { margin: 0; }
+.ahora .acciones .btn { background: transparent; color: var(--on-accent); border-color: var(--on-accent); }
+.roles { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.rol { background: var(--surface); border: 1px solid var(--line); padding: 14px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.rol.mio { border: 2px solid var(--accent); }
+.rol h3 { font: 800 17px/1.2 var(--sans); }
+.rol p { margin: 0; font-size: 14px; }
+.personas { display: flex; flex-wrap: wrap; gap: 4px; }
+.persona { background: var(--chip); padding: 2px 8px; font-size: 12px; font-weight: 600; }
+.minibarra { display: flex; height: 6px; background: var(--chip); overflow: hidden; }
+.minibarra span { display: block; height: 100%; }
+.fases { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.fase { background: var(--surface); border: 1px solid var(--line); padding: 14px; display: grid; gap: 8px; }
+.fase.actual { border: 2px solid var(--accent); }
+.fase .tit { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; }
+.fase h3 { font: 800 17px/1.2 var(--sans); }
+.fase p { margin: 0; font-size: 14px; }
+.chips-pasos { display: flex; flex-wrap: wrap; gap: 4px; }
+.cp { font: 600 12px var(--mono); padding: 4px 7px; border: 1.5px solid var(--line); background: var(--bg); min-height: 30px; }
+.cp.ok { background: var(--ok); border-color: var(--ok); color: #000; } .cp.falla { background: var(--falla); border-color: var(--falla); color: #fff; }
+.cp.medias { background: var(--medias); border-color: var(--medias); color: #000; } .cp.noap { background: var(--noap); border-color: var(--noap); color: #fff; }
+.cp.mio { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; font-size: 12px; color: var(--muted); }
+
 /* Avance */
 .tabla-c { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; background: var(--surface); }
@@ -117,7 +144,8 @@ th { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06e
     <div class="barra" id="barra" aria-hidden="true"></div>
     <div class="cifras" id="cifras"></div>
     <nav class="pestanas" role="tablist" aria-label="Vistas">
-      <button role="tab" id="tab-pasos" aria-selected="true" data-vista="pasos">Pasos</button>
+      <button role="tab" id="tab-empezar" aria-selected="true" data-vista="empezar">Empezar</button>
+      <button role="tab" id="tab-pasos" aria-selected="false" data-vista="pasos">Pasos</button>
       <button role="tab" id="tab-hallazgos" aria-selected="false" data-vista="hallazgos">Hallazgos</button>
       <button role="tab" id="tab-avance" aria-selected="false" data-vista="avance">Avance por sección</button>
     </nav>
@@ -132,7 +160,22 @@ th { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06e
     <p class="vacio" id="yo" style="margin:0">Tus registros quedan con tu nombre de claude.ai.</p>
   </section>
 
-  <div id="vista-pasos">
+  <div id="vista-empezar" style="display:grid;gap:18px">
+    <section class="ahora" id="ahora" aria-live="polite"></section>
+    <section id="mis" style="display:grid;gap:8px"></section>
+    <section style="display:grid;gap:10px" aria-labelledby="t-roles">
+      <div><h2 id="t-roles" style="font:800 20px/1.2 var(--sans)">1 · Elige tu rol</h2>
+      <p class="vacio" style="margin:4px 0 0">Cada rol tiene sus pasos. Si son menos de 6 personas, alguien toma dos (por ejemplo «Encargado de mesa» + «Ojo en el HUB», o «Visitante de casos raros» + cualquier visitante). Si son más, repitan roles: dos iPhone prueban mejor que uno.</p></div>
+      <div class="roles" id="roles"></div>
+    </section>
+    <section style="display:grid;gap:10px" aria-labelledby="t-fases">
+      <div><h2 id="t-fases" style="font:800 20px/1.2 var(--sans)">2 · Sigan el orden</h2>
+      <p class="vacio" style="margin:4px 0 0">Coordinación marca la fase en curso y todos la ven arriba. Cada cuadrito es un paso: toca uno para abrirlo. Los de tu rol tienen borde azul. ~2 h 15 min en total.</p></div>
+      <ol class="fases" id="fases"></ol>
+    </section>
+  </div>
+
+  <div id="vista-pasos" hidden>
     <div style="display:grid;gap:10px">
       <div class="filtros" id="filtros" role="group" aria-label="Sección"></div>
       <div class="filtros" id="filtro-estado" role="group" aria-label="Estado"></div>
@@ -178,6 +221,7 @@ th { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06e
   var registros = [], hallazgos = [], perfiles = {};
   var filtroSec = 'todas', filtroEst = 'todos', filtroH = 'abiertos', texto = '';
   var abiertos = new Set();
+  var asign = {}, faseActual = null;
   var borradores = {}, elegidos = {}; // lo que cada persona está escribiendo: sobrevive a los redibujos
 
   function h(tag, attrs, hijos) {
@@ -195,6 +239,28 @@ th { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06e
   function leerLocal(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function hora(t) { try { return new Date(t).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } }
   function nombre(id) { return (perfiles[id] && perfiles[id].name) || (id === yoId ? 'Tú' : 'Alguien'); }
+
+  // Roles: los de cada persona viven en roles/<id persona> = { roles: [...] }
+  var ROL_DE = {}; ROLES.forEach(function (r) { r.pasos.forEach(function (i) { (ROL_DE[i] = ROL_DE[i] || []).push(r.nombre); }); });
+  TODOS.forEach(function (i) { (ROL_DE[i] = ROL_DE[i] || []).push('Todo el grupo'); });
+  function misRoles() { return (yoId && asign[yoId]) || []; }
+  function misPasos() {
+    var set = {}; misRoles().forEach(function (rid) { var r = ROLES.filter(function (x) { return x.id === rid; })[0]; if (r) r.pasos.forEach(function (i) { set[i] = 1; }); });
+    if (misRoles().length) TODOS.forEach(function (i) { set[i] = 1; });
+    return set;
+  }
+  function tituloDe(id) { for (var i = 0; i < PASOS.length; i++) if (PASOS[i][0] === id) return PASOS[i][1]; return id; }
+  function saltar(id) {
+    filtroSec = misPasos()[id] ? 'mis' : 'todas'; filtroEst = 'todos'; texto = ''; document.getElementById('buscar').value = '';
+    abiertos.add(id); ir('pasos'); filtros(); lista();
+    var el = document.getElementById('paso-' + id); if (el) el.scrollIntoView({ block: 'start' });
+  }
+  function minibarra(ids, u) {
+    var c = { ok: 0, medias: 0, falla: 0, noap: 0 }; ids.forEach(function (i) { var r = u[i]; if (r && c[r.estado] !== undefined) c[r.estado]++; });
+    var b = h('div', { class: 'minibarra', 'aria-hidden': 'true' });
+    [['ok', 'var(--ok)'], ['medias', 'var(--medias)'], ['falla', 'var(--falla)'], ['noap', 'var(--noap)']].forEach(function (x) { b.appendChild(h('span', { style: 'width:' + (100 * c[x[0]] / ids.length) + '%;background:' + x[1] })); });
+    return { barra: b, hechos: c.ok + c.medias + c.falla + c.noap, fallas: c.falla };
+  }
 
   var equipo = document.getElementById('equipo');
   equipo.value = leerLocal('pg:equipo') || '';
@@ -226,8 +292,10 @@ th { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06e
   // ---------- Pasos ----------
   function filtros() {
     var f = document.getElementById('filtros'); f.textContent = '';
-    [{ id: 'todas', nombre: 'Todas' }].concat(SECCIONES).forEach(function (s) {
-      f.appendChild(h('button', { class: 'chip', type: 'button', 'aria-pressed': String(filtroSec === s.id), text: s.id === 'todas' ? 'Todas' : s.id + ' · ' + s.nombre,
+    var base = [{ id: 'todas', nombre: 'Todas' }];
+    if (misRoles().length) base.unshift({ id: 'mis', nombre: 'Mis pasos' });
+    base.concat(SECCIONES).forEach(function (s) {
+      f.appendChild(h('button', { class: 'chip', type: 'button', 'aria-pressed': String(filtroSec === s.id), text: s.id === 'todas' ? 'Todas' : s.id === 'mis' ? '★ Mis pasos' : s.id + ' · ' + s.nombre,
         onclick: function () { filtroSec = s.id; guardarLocal('pg:sec', s.id); filtros(); lista(); } }));
     });
     var e = document.getElementById('filtro-estado'); e.textContent = '';
@@ -252,6 +320,7 @@ th { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06e
       h('div', { class: 'bloque' }, [h('span', { class: 'etq', text: 'Qué debería pasar' }), h('p', { text: p[3] })]),
     ]));
     if (p[4]) cuerpo.appendChild(h('p', { class: 'requiere', text: 'Necesita: ' + p[4] }));
+    if (ROL_DE[id]) cuerpo.appendChild(h('p', { class: 'tags', style: 'margin:0', text: 'Lo prueba: ' + ROL_DE[id].join(' · ') }));
 
     // Formulario
     var elegido = elegidos[id] || null;
@@ -311,9 +380,11 @@ th { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06e
     var u = ultimo(), cont = document.getElementById('lista'); cont.textContent = '';
     var hubo = false;
     SECCIONES.forEach(function (s) {
-      if (filtroSec !== 'todas' && filtroSec !== s.id) return;
+      if (filtroSec !== 'todas' && filtroSec !== 'mis' && filtroSec !== s.id) return;
+      var mios = filtroSec === 'mis' ? misPasos() : null;
       var pasos = PASOS.filter(function (p) {
         if (p[0][0] !== s.id) return false;
+        if (mios && !mios[p[0]]) return false;
         var est = u[p[0]] ? u[p[0]].estado : 'nada';
         if (filtroEst !== 'todos' && est !== filtroEst) return false;
         if (texto && (p[0] + ' ' + p[1] + ' ' + p[2] + ' ' + p[3]).toLowerCase().indexOf(texto) < 0) return false;
@@ -382,6 +453,78 @@ th { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06e
     });
   }
 
+  // ---------- Empezar ----------
+  function empezar() {
+    var u = ultimo();
+    // Fase en curso
+    var ah = document.getElementById('ahora'); ah.textContent = '';
+    var f = FASES.filter(function (x) { return x.n === faseActual; })[0];
+    ah.appendChild(h('span', { class: 'etq', style: 'color:inherit;opacity:.8', text: f ? 'Ahora · fase ' + f.n + ' de ' + (FASES.length - 1) : 'Todavía no empieza' }));
+    ah.appendChild(h('h2', { text: f ? f.nombre : 'Elijan su rol y escriban su equipo' }));
+    ah.appendChild(h('p', { text: f ? f.que + ' (' + f.quien + ', ~' + f.min + ' min)' : 'Coordinación toca «Empezar la fase 0» cuando estén listos.' }));
+    var mover = function (n) { if (!db || !puedeEscribir) return; db.doc('estado/fase').set({ n: n, t: Date.now(), autor: yoId || '' }).catch(function () {}); };
+    var acc = h('div', { class: 'acciones' });
+    if (f && f.n > 0) acc.appendChild(h('button', { class: 'btn', type: 'button', disabled: !puedeEscribir, text: '← Fase anterior', onclick: function () { mover(f.n - 1); } }));
+    if (!f) acc.appendChild(h('button', { class: 'btn', type: 'button', disabled: !puedeEscribir, text: 'Empezar la fase 0', onclick: function () { mover(0); } }));
+    else if (f.n < FASES.length - 1) acc.appendChild(h('button', { class: 'btn', type: 'button', disabled: !puedeEscribir, text: 'Pasar a la fase ' + (f.n + 1) + ' →', onclick: function () { mover(f.n + 1); } }));
+    acc.appendChild(h('span', { style: 'font-size:12px;opacity:.85', text: 'Lo mueve Coordinación.' }));
+    ah.appendChild(acc);
+
+    // Mis próximos pasos
+    var mis = document.getElementById('mis'); mis.textContent = '';
+    var mios = misPasos();
+    if (!misRoles().length) {
+      mis.appendChild(h('p', { class: 'aviso', style: 'margin:0', text: 'Toma un rol abajo y aquí te aparecerán tus próximos pasos de cada fase.' }));
+    } else {
+      var enFase = f ? f.pasos : PASOS.map(function (p) { return p[0]; });
+      var pend = enFase.filter(function (i) { return mios[i] && !u[i]; });
+      var nombres = misRoles().map(function (rid) { var r = ROLES.filter(function (x) { return x.id === rid; })[0]; return r ? r.nombre : rid; });
+      mis.appendChild(h('h2', { style: 'font:800 18px/1.2 var(--sans)', text: 'Tus próximos pasos' + (f ? ' en la fase ' + f.n : '') }));
+      mis.appendChild(h('p', { class: 'vacio', style: 'margin:0', text: 'Tu rol: ' + nombres.join(' + ') + '. Toca un paso para abrirlo y registrar. «★ Mis pasos» en la pestaña Pasos muestra todos los tuyos.' }));
+      var ch = h('div', { class: 'chips-pasos' });
+      pend.forEach(function (i) { ch.appendChild(h('button', { class: 'cp mio', type: 'button', title: tituloDe(i), text: i + ' · ' + tituloDe(i), onclick: function () { saltar(i); } })); });
+      if (!pend.length) ch.appendChild(h('p', { class: 'vacio', style: 'margin:0', text: f ? 'No te queda nada sin registrar en esta fase. Ayuda a otro rol o revisa los hallazgos.' : 'Ya registraste todos tus pasos.' }));
+      mis.appendChild(ch);
+    }
+
+    // Roles
+    var rc = document.getElementById('roles'); rc.textContent = '';
+    ROLES.forEach(function (r) {
+      var quienes = Object.keys(asign).filter(function (uid) { return (asign[uid] || []).indexOf(r.id) >= 0; });
+      var mio = misRoles().indexOf(r.id) >= 0, mb = minibarra(r.pasos, u);
+      var per = h('div', { class: 'personas' });
+      quienes.forEach(function (uid) { per.appendChild(h('span', { class: 'persona', text: nombre(uid) })); });
+      if (!quienes.length) per.appendChild(h('span', { class: 'vacio', style: 'font-size:13px', text: 'Nadie todavía' }));
+      var btn = h('button', { class: mio ? 'btn' : 'btn prim', type: 'button', disabled: !puedeEscribir || !yoId, text: mio ? 'Dejar este rol' : 'Tomar este rol', onclick: function () {
+        var ahora = misRoles().slice(), k = ahora.indexOf(r.id);
+        if (k >= 0) ahora.splice(k, 1); else ahora.push(r.id);
+        btn.disabled = true;
+        db.doc('roles/' + yoId).set({ roles: ahora, t: Date.now() }).catch(function () { btn.disabled = false; });
+      } });
+      rc.appendChild(h('article', { class: 'rol' + (mio ? ' mio' : '') }, [
+        h('span', { class: 'etq', text: r.pasos.length + ' pasos · ' + mb.hechos + ' registrados' + (mb.fallas ? ' · ' + mb.fallas + ' fallan' : '') }),
+        h('h3', { text: r.nombre }), mb.barra,
+        h('p', { text: r.tarea }), h('p', { class: 'vacio', text: 'Equipo: ' + r.equipo }),
+        per, h('div', { class: 'acciones' }, [btn]),
+      ]));
+    });
+
+    // Fases
+    var fc = document.getElementById('fases'); fc.textContent = '';
+    FASES.forEach(function (x) {
+      var mb = minibarra(x.pasos, u), ch = h('div', { class: 'chips-pasos' });
+      x.pasos.forEach(function (i) {
+        var est = u[i] ? u[i].estado : '';
+        ch.appendChild(h('button', { class: 'cp ' + est + (mios[i] ? ' mio' : ''), type: 'button', title: tituloDe(i) + (est ? ' · ' + NOMBRE_ESTADO[est] : ' · sin probar'), text: i, onclick: function () { saltar(i); } }));
+      });
+      fc.appendChild(h('li', { class: 'fase' + (x.n === faseActual ? ' actual' : '') }, [
+        h('div', { class: 'tit' }, [h('span', { class: 'etq', text: 'Fase ' + x.n + ' · ~' + x.min + ' min' + (x.n === faseActual ? ' · EN CURSO' : '') }), h('h3', { text: x.nombre })]),
+        h('p', { text: x.que }), h('p', { class: 'vacio', text: 'Quién: ' + x.quien + ' · ' + mb.hechos + ' de ' + x.pasos.length + ' registrados' + (mb.fallas ? ' · ' + mb.fallas + ' fallan' : '') }),
+        mb.barra, ch,
+      ]));
+    });
+  }
+
   // ---------- Avance ----------
   function avance() {
     var u = ultimo(), tb = document.getElementById('tabla-avance'); tb.textContent = '';
@@ -395,7 +538,7 @@ th { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06e
 
   // ---------- Vistas ----------
   function ir(v) {
-    ['pasos', 'hallazgos', 'avance'].forEach(function (x) {
+    ['empezar', 'pasos', 'hallazgos', 'avance'].forEach(function (x) {
       document.getElementById('vista-' + x).hidden = x !== v;
       document.getElementById('tab-' + x).setAttribute('aria-selected', String(x === v));
     });
@@ -403,12 +546,13 @@ th { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06e
   }
   document.querySelectorAll('.pestanas button').forEach(function (b) { b.addEventListener('click', function () { ir(b.getAttribute('data-vista')); }); });
 
-  function todo() { cabecera(); lista(); listaH(); avance(); }
+  function todo() { cabecera(); empezar(); filtros(); lista(); listaH(); avance(); }
   function cargarPerfiles() {
     if (!user) return;
     var ids = {};
     registros.forEach(function (r) { if (r.autor) ids[r.autor] = 1; });
     hallazgos.forEach(function (r) { if (r.autor) ids[r.autor] = 1; });
+    Object.keys(asign).forEach(function (i) { ids[i] = 1; });
     var faltan = Object.keys(ids).filter(function (i) { return !perfiles[i]; });
     if (!faltan.length) return;
     user.profiles(faltan).then(function (ps) { Object.assign(perfiles, ps || {}); todo(); }).catch(function () {});
@@ -429,7 +573,7 @@ th { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06e
     var listo = 0;
     function cargado() { listo++; if (listo === 2) { clearTimeout(limite); } }
     if (user) {
-      user.id().then(function (i) { yoId = i; }).catch(function () {});
+      user.id().then(function (i) { yoId = i; if (filtroSec === 'todas' && misRoles().length) filtroSec = 'mis'; todo(); }).catch(function () {});
       user.me().then(function (m) { if (m && m.name) document.getElementById('yo').textContent = 'Registras como ' + m.name + '.'; }).catch(function () {});
       Promise.resolve(user.can('data.write')).then(function (c) {
         puedeEscribir = c !== false;
@@ -441,6 +585,13 @@ th { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06e
       registros = s.docs.map(function (d) { var x = d.data() || {}; x.id = d.id; return x; }).filter(function (x) { return x.paso && x.estado; });
       cargado(); todo(); cargarPerfiles();
     }, function (e) { clearTimeout(limite); sinRegistro('Se perdió la conexión con el registro (' + (e && e.code || 'error') + '). Recarga la página.'); });
+    db.collection('roles').onSnapshot(function (s) {
+      var a = {}; s.docs.forEach(function (d) { var x = d.data() || {}; if (Array.isArray(x.roles)) a[d.id] = x.roles.filter(function (r) { return typeof r === 'string'; }); });
+      var antes = misRoles().length; asign = a;
+      if (!antes && misRoles().length && filtroSec === 'todas') filtroSec = 'mis';
+      todo(); cargarPerfiles();
+    }, function () {});
+    db.doc('estado/fase').onSnapshot(function (d) { var x = d.data(); faseActual = x && typeof x.n === 'number' ? x.n : null; todo(); }, function () {});
     db.collection('hallazgos').orderBy('t', 'desc').limit(1000).onSnapshot(function (s) {
       hallazgos = s.docs.map(function (d) { var x = d.data() || {}; x.id = d.id; return x; }).filter(function (x) { return x.titulo; });
       cargado(); todo(); cargarPerfiles();

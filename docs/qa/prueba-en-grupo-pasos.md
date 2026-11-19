@@ -1,10 +1,33 @@
 # Prueba en grupo · pauta de todos los procesos (19 nov)
 
-Registro compartido (resultados y hallazgos, se llena en vivo): https://claude.ai/artifact/REc4CHF26rvsZC6rDG7Kwd
+Registro compartido (roles, fase en curso, resultados y hallazgos, en vivo): https://claude.ai/artifact/REc4CHF26rvsZC6rDG7Kwd
 
-Cada paso: **qué hacer**, **qué debería pasar** y lo que necesita. En la página cada persona marca Funciona / A medias / Falla / No aplica, con nota y equipo; los hallazgos van en su pestaña. Al terminar, los hallazgos pasan a un documento `docs/tasks/NNN-correcciones-*.md` (regla de AGENTS.md).
+Total: 139 pasos en 15 secciones, repartidos en 6 roles y 8 fases (~135 min). Al terminar, los hallazgos pasan a `docs/tasks/NNN-correcciones-*.md` (regla de AGENTS.md).
 
-Total: 139 pasos en 15 secciones.
+## Roles
+Si son menos de 6 personas, alguien toma dos. Si son más, repitan roles. Las pruebas «a la vez» (X01, X02, X03, X04, X05, X06, X07, X08) son de todos.
+
+| Rol | Qué hace | Equipo | Pasos |
+|---|---|---|---|
+| **Coordinación · PC madre** | Prepara todo antes de empezar, dirige las fases («uno, dos, tres, ¡ya!» en las pruebas a la vez), prueba cada vista del PC madre y cierra la prueba. | PC madre (y su celular para avisos) | P01 P02 P03 P04 P05 P06 P07 P08 P09 P10 P11 P12 P13 S01 S02 S03 S04 S05 S06 S07 S08 S09 S10 S11 S12 S13 S14 S15 S16 Z01 Z02 Z03 |
+| **Visitante con iPhone** | Hace todo el recorrido de un visitante en iPhone: crea su credencial, juega en Fotomatón y Mosaicos, caza afiches, arma el flyer y canjea. | Su iPhone + las tablets | C01 C02 C03 C04 C05 C06 C07 C08 C09 C10 C11 C12 C13 C14 C15 C16 C17 C18 C19 C20 C21 C22 C23 C24 C25 C26 C27 C28 C29 C30 T01 T02 T03 T04 T05 T09 T10 T11 T12 T13 T19 F01 F02 F03 F04 F05 F06 M01 M02 M03 M04 M05 M06 |
+| **Visitante con Android** | El mismo recorrido en Android (lo que cambia entre teléfonos sale aquí). Juega en Teatro, Graffiti y Hora punta. | Su Android + las tablets | C01 C02 C03 C04 C05 C06 C07 C08 C09 C10 C11 C12 C13 C14 C15 C16 C17 C18 C19 C20 C21 C22 C23 C24 C25 C26 C27 T01 T02 T03 T04 T05 T09 T10 T11 T12 T13 T19 L01 L02 L03 L04 L05 G01 G02 G03 G04 G05 G06 H01 H02 H03 |
+| **Visitante de casos raros** | Intenta romperlo: códigos mal escritos, jugar sin credencial, sin red, credenciales ajenas. Juega en Audioreactiva y Grabado. | Cualquier celular + las tablets | T06 T07 T08 T18 C28 C29 C30 A01 A02 A03 A04 R01 R02 R03 R04 X09 |
+| **Encargado de mesa** | Hace lo que hará el staff en las mesas: ayudar a entrar, timbrar a mano, liberar la mesa y revisar los reinicios desde el PC madre. | Junto a las tablets | E01 E02 E03 E04 E05 T10 T14 T15 T16 T17 |
+| **Ojo en el HUB** | Mira la Flip toda la prueba: anota cuánto tarda en aparecer cada cosa, si los contadores coinciden con el PC madre y si algo se traba. | Frente a la Flip (con un celular para registrar) | U01 U02 U03 U04 U05 U06 U07 U08 U09 U10 |
+
+## Orden de la prueba
+
+| Fase | Min | Quién | Qué | Pasos |
+|---|---|---|---|---|
+| **0 · Preparación** | 20 | Coordinación | Dejar todo listo. El resto del grupo elige su rol y escribe su equipo. | P01 P02 P03 P04 P05 P06 P07 P08 P09 P10 P11 P12 P13 |
+| **1 · Llegada: la credencial** | 10 | Visitantes · Ojo en el HUB | Cada visitante escanea el QR de la entrada y crea su credencial. El HUB anota cuándo aparece cada persona. | C01 C02 C03 C04 C05 C06 C07 C08 C09 C10 C11 C12 C13 C14 U01 U02 |
+| **2 · Tablets: entrar y crear** | 35 | Visitantes · Encargado de mesa · Ojo en el HUB | Cada visitante entra a sus experiencias (por QR y por código) y se lleva lo creado. El encargado ayuda y prueba los reinicios. El HUB mira las creaciones. | T01 T02 T03 T04 T05 T06 T07 T08 T09 T10 T11 T12 T13 T14 T15 T16 T17 T18 T19 F01 F02 F03 F04 F05 F06 M01 M02 M03 M04 M05 M06 L01 L02 L03 L04 L05 G01 G02 G03 G04 G05 G06 H01 H02 H03 A01 A02 A03 A04 R01 R02 R03 R04 E01 E02 E03 E04 E05 C15 C21 C22 U03 U04 U05 |
+| **3 · Cacería y flyer** | 15 | Visitantes | Encontrar los afiches por la sede (con cámara y con código) y armar el flyer. | C16 C17 C18 C19 C20 C23 C24 |
+| **4 · Canje y PC madre** | 15 | Coordinación · Visitantes | Canjear con PIN en el celular y en el PC madre. Coordinación recorre todas las vistas del panel. | C25 C26 C27 S01 S02 S03 S04 S05 S06 S07 S08 S09 S10 S11 S12 S13 S14 S15 S16 U08 U09 |
+| **5 · Todos a la vez** | 15 | Todo el grupo | Coordinación cuenta «uno, dos, tres, ¡ya!» y todos hacen lo mismo al mismo tiempo. | X01 X02 X03 X04 X05 X06 X07 X08 X09 |
+| **6 · Casos raros** | 10 | Visitante de casos raros · Ojo en el HUB | Lo que no debería pasar en el evento, pero va a pasar. | C28 C29 C30 U06 U07 U10 |
+| **7 · Cierre** | 15 | Coordinación · todos | Exportar el CSV, revisar juntos los hallazgos abiertos y dejar la base en cero para el evento. | Z01 Z02 Z03 |
 
 ## P · Preparación
 Staff · PC madre, tablets, Flip. Antes de abrir la prueba. Si algo de aquí falla, lo de abajo también.

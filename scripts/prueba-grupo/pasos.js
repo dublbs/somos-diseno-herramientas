@@ -189,4 +189,41 @@ var PASOS = [
   ['Z02', 'Empezar de cero', 'Admin → Configuración → «Empezar de cero» → escribir BORRAR TODO → «Borrar todo» → confirmar.', '«Listo: se borraron N credenciales y M cosas del HUB.» Tablets y HUB se reinician solos en ≤30 s. Siguen el staff, el PIN, el premio y su stock.', 'Migración 010'],
   ['Z03', 'Las credenciales de prueba ya no abren', 'Abrir en un celular una credencial de la prueba.', '«No encontramos esa credencial». El celular ofrece crear una nueva.', ''],
 ];
-if (typeof module !== 'undefined') module.exports = { SECCIONES: SECCIONES, PASOS: PASOS };
+
+// ---------- Roles: cada persona toma uno (o dos si son pocos) ----------
+function rango(l, a, b) { var o = []; for (var i = a; i <= b; i++) o.push(l + (i < 10 ? '0' : '') + i); return o; }
+var ROLES = [
+  { id: 'coord', nombre: 'Coordinación · PC madre', equipo: 'PC madre (y su celular para avisos)',
+    tarea: 'Prepara todo antes de empezar, dirige las fases («uno, dos, tres, ¡ya!» en las pruebas a la vez), prueba cada vista del PC madre y cierra la prueba.',
+    pasos: [].concat(rango('P', 1, 13), rango('S', 1, 16), rango('Z', 1, 3)) },
+  { id: 'iphone', nombre: 'Visitante con iPhone', equipo: 'Su iPhone + las tablets',
+    tarea: 'Hace todo el recorrido de un visitante en iPhone: crea su credencial, juega en Fotomatón y Mosaicos, caza afiches, arma el flyer y canjea.',
+    pasos: [].concat(rango('C', 1, 30), rango('T', 1, 5), rango('T', 9, 13), ['T19'], rango('F', 1, 6), rango('M', 1, 6)) },
+  { id: 'android', nombre: 'Visitante con Android', equipo: 'Su Android + las tablets',
+    tarea: 'El mismo recorrido en Android (lo que cambia entre teléfonos sale aquí). Juega en Teatro, Graffiti y Hora punta.',
+    pasos: [].concat(rango('C', 1, 27), rango('T', 1, 5), rango('T', 9, 13), ['T19'], rango('L', 1, 5), rango('G', 1, 6), rango('H', 1, 3)) },
+  { id: 'borde', nombre: 'Visitante de casos raros', equipo: 'Cualquier celular + las tablets',
+    tarea: 'Intenta romperlo: códigos mal escritos, jugar sin credencial, sin red, credenciales ajenas. Juega en Audioreactiva y Grabado.',
+    pasos: [].concat(['T06', 'T07', 'T08', 'T18'], rango('C', 28, 30), rango('A', 1, 4), rango('R', 1, 4), ['X09']) },
+  { id: 'mesa', nombre: 'Encargado de mesa', equipo: 'Junto a las tablets',
+    tarea: 'Hace lo que hará el staff en las mesas: ayudar a entrar, timbrar a mano, liberar la mesa y revisar los reinicios desde el PC madre.',
+    pasos: [].concat(rango('E', 1, 5), ['T10', 'T14', 'T15', 'T16', 'T17']) },
+  { id: 'hub', nombre: 'Ojo en el HUB', equipo: 'Frente a la Flip (con un celular para registrar)',
+    tarea: 'Mira la Flip toda la prueba: anota cuánto tarda en aparecer cada cosa, si los contadores coinciden con el PC madre y si algo se traba.',
+    pasos: rango('U', 1, 10) },
+];
+// Las pruebas «a la vez» son de todos.
+var TODOS = rango('X', 1, 8);
+
+// ---------- El orden de la prueba ----------
+var FASES = [
+  { n: 0, nombre: 'Preparación', min: 20, quien: 'Coordinación', que: 'Dejar todo listo. El resto del grupo elige su rol y escribe su equipo.', pasos: rango('P', 1, 13) },
+  { n: 1, nombre: 'Llegada: la credencial', min: 10, quien: 'Visitantes · Ojo en el HUB', que: 'Cada visitante escanea el QR de la entrada y crea su credencial. El HUB anota cuándo aparece cada persona.', pasos: [].concat(rango('C', 1, 14), ['U01', 'U02']) },
+  { n: 2, nombre: 'Tablets: entrar y crear', min: 35, quien: 'Visitantes · Encargado de mesa · Ojo en el HUB', que: 'Cada visitante entra a sus experiencias (por QR y por código) y se lleva lo creado. El encargado ayuda y prueba los reinicios. El HUB mira las creaciones.', pasos: [].concat(rango('T', 1, 19), rango('F', 1, 6), rango('M', 1, 6), rango('L', 1, 5), rango('G', 1, 6), rango('H', 1, 3), rango('A', 1, 4), rango('R', 1, 4), rango('E', 1, 5), ['C15', 'C21', 'C22', 'U03', 'U04', 'U05']) },
+  { n: 3, nombre: 'Cacería y flyer', min: 15, quien: 'Visitantes', que: 'Encontrar los afiches por la sede (con cámara y con código) y armar el flyer.', pasos: [].concat(rango('C', 16, 20), rango('C', 23, 24)) },
+  { n: 4, nombre: 'Canje y PC madre', min: 15, quien: 'Coordinación · Visitantes', que: 'Canjear con PIN en el celular y en el PC madre. Coordinación recorre todas las vistas del panel.', pasos: [].concat(rango('C', 25, 27), rango('S', 1, 16), ['U08', 'U09']) },
+  { n: 5, nombre: 'Todos a la vez', min: 15, quien: 'Todo el grupo', que: 'Coordinación cuenta «uno, dos, tres, ¡ya!» y todos hacen lo mismo al mismo tiempo.', pasos: rango('X', 1, 9) },
+  { n: 6, nombre: 'Casos raros', min: 10, quien: 'Visitante de casos raros · Ojo en el HUB', que: 'Lo que no debería pasar en el evento, pero va a pasar.', pasos: [].concat(rango('C', 28, 30), ['U06', 'U07', 'U10']) },
+  { n: 7, nombre: 'Cierre', min: 15, quien: 'Coordinación · todos', que: 'Exportar el CSV, revisar juntos los hallazgos abiertos y dejar la base en cero para el evento.', pasos: rango('Z', 1, 3) },
+];
+if (typeof module !== 'undefined') module.exports = { SECCIONES: SECCIONES, PASOS: PASOS, ROLES: ROLES, FASES: FASES, TODOS: TODOS };
