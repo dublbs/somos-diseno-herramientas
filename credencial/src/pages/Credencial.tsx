@@ -9,6 +9,7 @@ import { TIMBRES, type Tema } from '../temas';
 import type { Ir, PonerTema } from '../App';
 import { ACTIVAS, completa as estaCompleta } from '../../../shared/juego';
 import { activarAvisos, enIphoneSinInstalar, estadoAvisos, type EstadoAvisos } from '../lib/push';
+import { useInstalar } from '../lib/instalar';
 import { HACIA_JUEGO, tomarEntrada, useDeslizar } from '../lib/deslizar';
 import { Bienvenida, bienvenidaVista } from '../components/Bienvenida';
 
@@ -39,6 +40,13 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
     catch (e) { setEstado((e as Error).message); }
   };
 
+  // «Agregar a inicio»: con un toque donde el navegador lo permite; si no, los pasos (iPhone o menú del navegador).
+  const { modo: instalar, instalar: pedirInstalar } = useInstalar();
+  const [pasosInstalar, setPasosInstalar] = useState(false);
+  const agregarAInicio = async () => {
+    if (instalar === 'directo') { if (await pedirInstalar()) setEstado('Listo: abre la credencial desde tu pantalla de inicio.'); return; }
+    setPasosInstalar(true);
+  };
   // Si llegó desde el QR de una mesa sin credencial (plan 014), al crearla queda jugando en esa mesa.
   useEffect(() => {
     const m = tomarMesaPendiente();
@@ -126,7 +134,33 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
           })()}
         </span>
       </button>
-      {avisos === 'pedir' && (
+      {instalar !== 'instalada' && (
+        <button type="button" className="avisos" onClick={agregarAInicio}>
+          <span className="material-symbols-outlined" aria-hidden="true">add</span>Agregar a inicio
+        </button>
+      )}
+      {pasosInstalar && (
+        <div className="hoja-instalar" role="dialog" aria-modal="true" aria-labelledby="instalar-t" onClick={e => { if (e.target === e.currentTarget) setPasosInstalar(false); }}>
+          <div className="hoja">
+            <h2 id="instalar-t">Agregar a inicio</h2>
+            {instalar === 'iphone' ? (
+              <ol>
+                <li>Toca <b>Compartir</b> <span className="material-symbols-outlined" aria-label="(ícono de compartir)">ios_share</span> en la barra del navegador.</li>
+                <li>Baja y elige <b>Agregar a inicio</b>.</li>
+                <li>Toca <b>Agregar</b>. Abre la credencial desde ese ícono: así también te llegan los avisos.</li>
+              </ol>
+            ) : (
+              <ol>
+                <li>Abre el <b>menú del navegador</b> (los tres puntos ⋮).</li>
+                <li>Elige <b>Instalar app</b> o <b>Agregar a pantalla de inicio</b>.</li>
+                <li>Confirma. Abre la credencial desde ese ícono.</li>
+              </ol>
+            )}
+            <button type="button" className="btn primario" onClick={() => setPasosInstalar(false)}>Entendido</button>
+          </div>
+        </div>
+      )}
+      {instalar === 'instalada' && avisos === 'pedir' && (
         <button type="button" className="avisos" onClick={pedirAvisos}>
           <span className="material-symbols-outlined" aria-hidden="true">auto_awesome</span>Recibir avisos del evento
         </button>
