@@ -78,6 +78,9 @@ export function interpretar(texto: string): Lectura {
   if (s) return { tipo: 'afiche', secreto: s[1].toUpperCase() };
   const a = texto.match(/#\/afiche\/([A-Za-z0-9]+)/);
   if (a) return { tipo: 'afiche', secreto: a[1].toUpperCase() };
+  // El QR de una tablet para jugar (plan 014) se abre como una ruta más.
+  const m = texto.indexOf('#/mesa?');
+  if (m >= 0) return { tipo: 'sello', ruta: texto.slice(m) };
   const i = texto.indexOf('#/sello/');
   if (i >= 0) return { tipo: 'sello', ruta: texto.slice(i) };
   return { tipo: 'otro' };
