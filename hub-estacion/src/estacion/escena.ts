@@ -1,7 +1,7 @@
 import { GLIFOS, AVANCE, normalizar } from '../../../shared/pixelfont';
 import type { Lenguaje, Persona } from './fuente';
 import { imagen, raster } from './imagenes';
-import { c3EnTiempo, dibujarC3 } from '../../../shared/c3-tunel.js';
+import { dibujarEnVivo, PIEZAS_TEATRO } from './envivo';
 import { enVivo, listaImagen, autorDe, type Obra, type ClaseObra } from './vivo';
 import { NOMBRE_CORTO } from '../galeria/piezas';
 import { ACTIVAS } from '../../../shared/juego';
@@ -481,10 +481,10 @@ export class Estacion {
     const m = this.disponerMuro(), { sx, sy, sw, sh } = m.c3;
     ctx.fillStyle = C.Negro; ctx.fillRect(sx - 6 * e, sy - 6 * e, sw + 12 * e, sh + 12 * e);
     ctx.save(); ctx.beginPath(); ctx.rect(sx, sy, sw, sh); ctx.clip(); ctx.translate(sx, sy);
-    dibujarC3(ctx, sw, sh, c3EnTiempo(this.quieto ? 2000 : this.reloj));
+    const titulo = dibujarEnVivo(ctx, sw, sh, this.quieto ? 2000 : this.reloj, this.quieto ? performance.now() : this.reloj);
     ctx.restore();
     ctx.fillStyle = C.Negro; ctx.font = `700 ${11 * e}px "DM Sans", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    ctx.fillText('EN VIVO · ESTACIÓN AUDIOREACTIVA', W / 2, sy + sh + 10 * e);
+    ctx.fillText(titulo, W / 2, sy + sh + 10 * e);
     // boletería y máquinas de carga (izquierda)
     this.boleteria(ctx, W * 0.22, piso, muro);
     for (const x of [W * 0.285, W * 0.305]) this.maquina(ctx, x, piso);
@@ -1158,5 +1158,5 @@ function ajustar(ctx: CanvasRenderingContext2D, texto: string, max: number): str
 
 // Precarga de todos los SVG que usa la escena.
 export const TODAS_LAS_IMAGENES = [
-  ...Object.values(SRC.personaje), SRC.araucaria, SRC.sol, SRC.helecho, SRC.flor, SRC.quisco, ...SRC.vagon,
+  ...Object.values(SRC.personaje), SRC.araucaria, SRC.sol, SRC.helecho, SRC.flor, SRC.quisco, ...SRC.vagon, ...Object.values(PIEZAS_TEATRO),
 ];
