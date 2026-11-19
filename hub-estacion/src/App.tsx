@@ -7,6 +7,8 @@ import { crearEjemplos } from './galeria/ejemplos';
 import { remoto, URL_SB, cabeceras } from '../../shared/datos';
 import { ACTIVAS } from '../../shared/juego';
 import './styles.css';
+// QR para crear la credencial (scripts/qr-crear-credencial.mjs): el mismo que muestra el menú de las tablets.
+import qrCrear from '../../shared/qr-crear-credencial.svg';
 
 // HUB «Estación Somos Diseño»: vive en la pantalla flip y en los Mac del evento.
 // Parámetros de prueba: ?hora=19 fija la hora del cielo · ?rapido=8 acelera el reloj (trenes, vagón y eventos).
@@ -27,6 +29,15 @@ export const App: React.FC = () => {
   const [avisos, setAvisos] = useState<Aviso[]>([]);
   const [hora, setHora] = useState(() => new Date());
   const [listo, setListo] = useState(false);
+  // QR «Crea tu credencial»: se cierra con Esc, tocando fuera, con «Listo» o solo a los 2 minutos (la pantalla no queda tapada).
+  const [qrAbierto, setQrAbierto] = useState(false);
+  useEffect(() => {
+    if (!qrAbierto) return;
+    const t = window.setTimeout(() => setQrAbierto(false), 120000);
+    const tecla = (e: KeyboardEvent) => { if (e.key === 'Escape') setQrAbierto(false); };
+    window.addEventListener('keydown', tecla);
+    return () => { clearTimeout(t); window.removeEventListener('keydown', tecla); };
+  }, [qrAbierto]);
 
   useEffect(() => { precargar(TODAS_LAS_IMAGENES).then(() => setListo(true)); }, []);
   // Plan 017: el PC madre puede pedir que el HUB se recargue (al quitar algo del HUB o al borrar una credencial).
@@ -119,10 +130,23 @@ export const App: React.FC = () => {
           {avisos.slice(0, 1).map(a => <li key={a.id}>{a.texto}</li>)}
         </ol>
         <time className="hora">{(HORA_FIJA != null ? `${String(Math.floor(HORA_FIJA)).padStart(2, '0')}:00` : hora.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false }))}</time>
+        <button type="button" className="crear-credencial" onClick={() => setQrAbierto(true)} aria-haspopup="dialog">
+          <img src={qrCrear} alt="" />Crea tu credencial
+        </button>
         <button type="button" className="completa" onClick={pantallaCompleta} aria-label="Pantalla completa">⛶</button>
       </header>
       <canvas ref={lienzo} className="escena" role="img" aria-label={`Estación con ${resumen.personas} personas: andén Pixel, mezanina Geométrica y plaza Orgánica`} />
       {!listo && <p className="cargando">Abriendo la estación…</p>}
+      {qrAbierto && (
+        <div className="qr-capa" onClick={() => setQrAbierto(false)}>
+          <div className="qr-caja" role="dialog" aria-modal="true" aria-labelledby="qr-crear-t" onClick={e => e.stopPropagation()}>
+            <h2 id="qr-crear-t">Crea tu credencial</h2>
+            <p>Escanea con la cámara de tu celular, elige tu marco y empieza a juntar timbres.</p>
+            <img src={qrCrear} alt="QR para crear tu credencial en el celular" />
+            <button type="button" onClick={() => setQrAbierto(false)}>Listo</button>
+          </div>
+        </div>
+      )}
       <span className="demo">{remoto ? 'En vivo' : 'Este equipo'}{PRUEBA ? ' · con personas de prueba' : ''}</span>
     </div>
   );
