@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Accesos · Somos Diseño</title>
+<meta name="robots" content="noindex">
+<style>
+  :root { --bg: #F4EEE3; --surface: #FFFDF8; --ink: #111111; --muted: #5C564D; --line: #D9D0BF; --accent: #0062B8; --on-accent: #FFFFFF; --chip: #EAE2D3; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #15130F; --surface: #1F1C17; --ink: #F4EEE3; --muted: #B3AA9B; --line: #3A352D; --accent: #7FC8F8; --on-accent: #0B1A26; --chip: #2A261F; color-scheme: dark } }
+  :root[data-theme="dark"] { --bg: #15130F; --surface: #1F1C17; --ink: #F4EEE3; --muted: #B3AA9B; --line: #3A352D; --accent: #7FC8F8; --on-accent: #0B1A26; --chip: #2A261F; color-scheme: dark }
+  :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 400 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  main { max-width: 880px; margin: 0 auto; padding-block: 24px 48px; display: grid; gap: 22px; }
+  h1 { margin: 0; font-size: 26px; line-height: 1.15; letter-spacing: -.01em; text-wrap: balance; }
+  h2 { margin: 0 0 10px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  p { margin: 0; color: var(--muted); }
+  .grupo { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  a.tarjeta { display: grid; gap: 4px; padding: 16px; background: var(--surface); border: 2px solid var(--ink); color: var(--ink); text-decoration: none; min-height: 88px; }
+  a.tarjeta:hover, a.tarjeta:focus-visible { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  a.tarjeta:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  a.tarjeta b { font-size: 17px; }
+  a.tarjeta span { font-size: 13px; color: inherit; opacity: .8; }
+  .nota { padding: 12px 14px; background: var(--chip); border-left: 4px solid var(--accent); color: var(--ink); font-size: 14px; }
+  code { font: 500 13px ui-monospace, monospace; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p>Somos Diseño · Semana del Diseño</p>
+    <h1>Accesos del evento</h1>
+    <p>Todo desde esta página. Abre cada enlace en el equipo que corresponde.</p>
+  </header>
+
+  <section aria-labelledby="t-flip">
+    <h2 id="t-flip">Pantalla Flip (HUB)</h2>
+    <div class="grupo">
+      <a class="tarjeta" href="../hub-estacion/dist/?prueba=0"><b>HUB en vivo</b><span>La pantalla grande. Solo personas reales.</span></a>
+      <a class="tarjeta" href="../hub-estacion/dist/?galeria"><b>HUB · galería de respaldo</b><span>Si el HUB en vivo falla.</span></a>
+    </div>
+  </section>
+
+  <section aria-labelledby="t-madre">
+    <h2 id="t-madre">PC madre (staff)</h2>
+    <div class="grupo">
+      <a class="tarjeta" href="../admin/dist/"><b>PC madre</b><span>Panel del staff. Pide cuenta de staff.</span></a>
+    </div>
+  </section>
+
+  <section aria-labelledby="t-tablets">
+    <h2 id="t-tablets">Tablets · experiencias</h2>
+    <div class="grupo">
+      <a class="tarjeta" href="../"><b>Menú de experiencias</b><span>Las 7 experiencias. Es lo que ve el visitante en la tablet.</span></a>
+      <a class="tarjeta" href="../?staff"><b>Menú con staff</b><span>Muestra también la credencial y el HUB. Para el equipo.</span></a>
+    </div>
+  </section>
+
+  <section aria-labelledby="t-cel">
+    <h2 id="t-cel">Celular · credencial</h2>
+    <div class="grupo">
+      <a class="tarjeta" href="../credencial/dist/"><b>Credencial</b><span>Lo que ve el visitante en su celular.</span></a>
+    </div>
+  </section>
+
+  <section aria-labelledby="t-prueba">
+    <h2 id="t-prueba">Prueba en grupo</h2>
+    <div class="grupo">
+      <a class="tarjeta" href="https://claude.ai/artifact/REc4CHF26rvsZC6rDG7Kwd"><b>Pauta y registro</b><span>139 pasos, roles y fases. Se abre con claude.ai.</span></a>
+    </div>
+  </section>
+
+  <p class="nota">Este enlace no tiene contraseña. Solo el PC madre pide cuenta de staff; las demás pantallas son públicas por diseño. No lo publiques en redes.</p>
+</main>
+</body>
+</html>
