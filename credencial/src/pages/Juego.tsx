@@ -10,10 +10,10 @@ import type { Ir, PonerTema } from '../App';
 // Vista Juego (plan 010): se llega deslizando desde la credencial. Cacería de afiches (timbre 3) e inventario
 // de creación: lo que la persona crea en cada mesa con su código llega al momento (timbre 2).
 export const EXPERIENCIAS = [
-  { app: 'juego', nombre: 'Juego Pixel', icono: 'route' }, // reemplaza al Vagón (plan 009 §2)
+  { app: 'juego', nombre: 'Hora punta', icono: 'route' }, // reemplaza al Vagón (plan 009 §2)
   { app: 'graffiti', nombre: 'Graffiti', icono: 'format_paint' },
   { app: 'mosaicos', nombre: 'Mosaicos', icono: 'grid_view' },
-  { app: 'audioreactiva', nombre: 'Audio', icono: 'graphic_eq' },
+  { app: 'audioreactiva', nombre: 'Audio\u00ADreactiva', icono: 'graphic_eq' },
   { app: 'teatro', nombre: 'Teatro', icono: 'movie' },
   { app: 'grabado', nombre: 'Grabado', icono: 'texture' },
   { app: 'fotomaton', nombre: 'Fotomatón', icono: 'photo_camera' },
@@ -92,7 +92,7 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
         <p className="ayuda">
           {conTimbre3
             ? `¡Timbre de Cacería listo! Colección: ${encontrados} de ${AFICHES.length} afiches.`
-            : 'Busca los afiches con el sello de la cacería por la sede y apúntales con la cámara.'}
+            : 'Busca los afiches de la cacería por la sede y apúntales con la cámara.'}
         </p>
         <button type="button" className="btn primario" onClick={() => ir('#/afiches')}>
           <span className="material-symbols-outlined" aria-hidden="true">photo_camera</span>Buscar afiches
@@ -137,7 +137,7 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
           <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Credencial
         </button>
         <button type="button" className="btn" onClick={() => ir('#/escanear')}>
-          <span className="material-symbols-outlined" aria-hidden="true">highlight_alt</span>Código
+          <span className="material-symbols-outlined" aria-hidden="true">approval</span>Timbrar
         </button>
         <button type="button" className="btn" onClick={() => setComoSeJuega(true)}>¿Cómo se juega?</button>
       </div>

@@ -24,6 +24,7 @@ export interface DatosCarta {
   marco: string; // id de shared/marcos.ts (PM02, PM05, GM02, GM05, OM02, OM05)
   sellos: number[]; // 1..SELLOS
   canjeado?: boolean; // el premio de la credencial completa ya se entregó (lo valida el staff con su PIN)
+  avance?: Partial<Record<number, string>>; // en el álbum, el avance de los timbres que faltan («3 de 4 hechas»)
 }
 // Imágenes ya cargadas: la foto o el personaje, y los 4 timbres del lenguaje del marco.
 export interface Recursos { retrato: HTMLImageElement | null; timbres: (HTMLImageElement | null)[] }
@@ -247,7 +248,7 @@ export function pintarAlbum(ctx: CanvasRenderingContext2D, d: DatosCarta, rec: R
     // El timbre se nombra por lo que lo otorga (plan 005, bloque D); el dibujo sigue siendo el del lenguaje.
     // Cómo se consigue: hasta 2 líneas (en Pixel la letra no se puede achicar más, así que el texto salta de línea).
     const est = ESTACIONES[i], interlinea = 9;
-    const lineas = partirLineas(ctx, tema.visual, tengo ? '¡Conseguido!' : est.como, 6, s, cw - 16);
+    const lineas = partirLineas(ctx, tema.visual, tengo ? '¡Conseguido!' : d.avance?.[n] ?? est.como, 6, s, cw - 16);
     // El nombre queda a la misma altura en toda la fila; una sola línea se centra en el espacio de dos.
     const tope = y + ch - 13 - interlinea, base = tope + (2 - lineas.length) * interlinea / 2;
     escribir(ctx, tema.visual, est.nombre, x + cw / 2, tope - 17, 9, tema.tinta, s, 'centro', cw - 16);

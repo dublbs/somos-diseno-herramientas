@@ -82,6 +82,9 @@ Las experiencias son **herramientas de diseño** con la anatomía de Figma UI3 y
 - Un commit por tarea, mensajes convencionales: `tipo(app): descripción` (`feat`, `fix`, `docs`, `refactor`, `chore`).
 - Antes de terminar: `npm --prefix <app> run build` verde.
 - Si algo bloquea o la tarea es ambigua, escribir el bloqueo en la tarea y detenerse. No improvisar arquitectura.
+- **Después de cada QA, revisión o simulación:** dejar la bitácora en `docs/qa/` y un documento de tareas
+  `docs/tasks/NNN-correcciones-*.md` con **todas** las correcciones (también las que no se aplican, con su motivo) y
+  la lista de lo que quedó sin comprobar. Después se aplican desde ese documento, marcando cada tarea.
 - No inventar arte: los assets vienen de Figma (Claude Code tiene el MCP) o se generan con un script, y quedan en `<app>/public/figma/` con un manifiesto (ej. `docs/plans/002-graffiti/assets.manifest.md`).
 - No commitear `.env`, claves de Supabase ni `node_modules`. No reescribir historia.
 - Respetar `prefers-reduced-motion` y objetivos táctiles de al menos 48 px (44 solo en lo que aún no migra a v2).
