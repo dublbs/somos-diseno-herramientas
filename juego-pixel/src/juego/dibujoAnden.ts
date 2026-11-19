@@ -5,6 +5,7 @@ import { HUESO, type Aviso } from './comun';
 import type { Imagenes } from './dibujoCruce';
 import { sombra } from './dibujoCruce';
 import { avanzarEfectos, dibujarManchas, dibujarParticulas, sacudida } from './efectos';
+import { textoConPlaca } from './texto';
 import { lienzoCarro } from './metro';
 import { dibujarBola, dibujarGris, dibujarPinta, type Pose } from './personajes';
 import { PIEZAS, sprite } from './sprites';
@@ -161,10 +162,8 @@ export function dibujarAvisos(ctx: CanvasRenderingContext2D, m: Marco, avisos: A
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (const a of avisos) {
     if (!a.texto) continue;
-    ctx.font = `700 ${Math.round(c * 0.42)}px "Silkscreen", monospace`;
     const yy = Y(a.y) - (1 - a.t / 900) * c * 0.8;
-    ctx.fillStyle = '#000'; ctx.fillText(a.texto, X(a.x + 0.4) + 3, yy + 3);
-    ctx.fillStyle = color; ctx.fillText(a.texto, X(a.x + 0.4), yy);
+    textoConPlaca(ctx, a.texto, X(a.x + 0.4), yy, c * 0.42, color); // B-010: placa oscura, se lee sobre cualquier fondo
   }
 }
 

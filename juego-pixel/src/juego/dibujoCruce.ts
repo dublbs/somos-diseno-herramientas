@@ -2,6 +2,7 @@ import { ANCHO, META, QUIETO_AVISO, fila, type Cruce, type Fila, type Vehiculo }
 import { LATA, LATA_PROPORCION, sprite } from './sprites';
 import { lienzoCarro, lienzoFuelle, lienzoTrompa } from './metro';
 import { lienzoPinta } from './personajes';
+import { textoConPlaca } from './texto';
 
 // Dibuja el nivel 1 (El cruce) en vista isométrica 3/4 (plan 009-juego-pixel, ronda 2): el motor no cambia, solo el dibujo.
 // Mundo: x crece a lo largo del carril, y hacia adelante (filas) y z hacia arriba, todo en celdas.
@@ -180,16 +181,12 @@ export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto:
   // Puntos que suben y aviso de quedarse quieto.
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (const a of e.avisos) {
-    ctx.font = `700 ${Math.round(c * 0.36)}px "Silkscreen", monospace`;
     const [px, py] = P(a.x + 0.5, a.y + 0.5, 1.4 + (1 - a.t / 900) * 0.9);
-    ctx.fillStyle = NEGRO; ctx.fillText(a.texto, px + 3, py + 3);
-    ctx.fillStyle = '#FFC20E'; ctx.fillText(a.texto, px, py);
+    textoConPlaca(ctx, a.texto, px, py, c * 0.36, '#FFC20E'); // B-010: placa oscura, se lee sobre cualquier fondo
   }
   if (!e.fin && !e.llego && e.quieto > QUIETO_AVISO && Math.floor(ahora / 250) % 2 === 0) {
-    ctx.font = `700 ${Math.round(c * 0.5)}px "Silkscreen", monospace`;
     const [px, py] = P(jx + 0.5, jy + 0.5, 2.3);
-    ctx.fillStyle = NEGRO; ctx.fillText('¡Muévete!', px + 3, py + 3);
-    ctx.fillStyle = '#FF8FB1'; ctx.fillText('¡Muévete!', px, py);
+    textoConPlaca(ctx, '¡Muévete!', px, py, c * 0.5, '#FF8FB1');
   }
 
   // ——— Partes ———
