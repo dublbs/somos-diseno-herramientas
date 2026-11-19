@@ -46,12 +46,29 @@ const Flecha: React.FC<{ giro: number; tam?: number }> = ({ giro, tam = 28 }) =>
     <path fill="currentColor" d="M3 0h2v1h1v1h1v1h1v2h-3v3h-2v-3h-3v-2h1v-1h1v-1h1z" />
   </svg>
 );
-const Lata: React.FC<{ color: string; tam?: number }> = ({ color, tam = 18 }) => (
-  <svg viewBox="0 0 8 8" width={tam} height={tam} aria-hidden="true" shapeRendering="crispEdges">
-    <path fill="#000" d="M1 0h6v1h1v6h-1v1h-6v-1h-1v-6h1z" /><path fill="#B9B9B3" d="M1 1h6v1h-6zM1 6h6v1h-6z" />
-    <path fill={color} d="M1 2h6v4h-6z" /><path fill="#fff" d="M2 3h1v2h-1z" />
+// Lata de spray del HUD (B-010): la pintura que queda se ve como el nivel dentro de la lata (`lleno`, 0 a 1).
+const LataHud: React.FC<{ color: string; lleno: number; tam?: number }> = ({ color, lleno, tam = 34 }) => {
+  const f = Math.max(0, Math.min(1, lleno)), alto = Math.round(9 * f);
+  return (
+    <svg viewBox="0 0 10 16" width={Math.round(tam * 10 / 16)} height={tam} aria-hidden="true" shapeRendering="crispEdges">
+      <path fill="#000" d="M4 0h2v2h-2z" /><path fill="#B9B9B3" d="M4 1h2v1h-2z" />
+      <path fill="#000" d="M1 2h8v14h-8z" />
+      <path fill={color} d="M2 3h6v2h-6z" />
+      <path fill="#4A453E" d="M2 6h6v9h-6z" />
+      {alto > 0 && <path fill={color} d={`M2 ${15 - alto}h6v${alto}h-6z`} />}
+      <path fill="#fff" fillOpacity=".55" d="M3 6h1v9h-1z" />
+    </svg>
+  );
+};
+// Pieza del mural (B-010, antes un rombo rosado sin explicación): el corazón pixel de las piezas.
+const PiezaIco: React.FC = () => (
+  <svg viewBox="0 0 7 7" width="22" height="22" aria-hidden="true" shapeRendering="crispEdges">
+    <path fill="#000" d="M1 0h2v1h1v-1h2v1h1v3h-1v1h-1v1h-1v1h-1v-1h-1v-1h-1v-1h-1v-3h1z" />
+    <path fill="#FFC20E" d="M1 1h2v1h1v-1h2v3h-1v1h-1v1h-1v-1h-1v-1h-1z" /><path fill="#fff" d="M1 1h1v1h-1z" />
   </svg>
 );
+// Lata llena (botón Lanzar y tarjeta de llegada): la misma lata de spray del HUD.
+const Lata: React.FC<{ color: string; tam?: number }> = ({ color, tam = 18 }) => <LataHud color={color} lleno={1} tam={tam} />;
 const Corazon: React.FC<{ lleno: boolean }> = ({ lleno }) => (
   <svg viewBox="0 0 7 7" width="20" height="20" aria-hidden="true" shapeRendering="crispEdges">
     <path fill="#000" d="M1 0h2v1h1v-1h2v1h1v3h-1v1h-1v1h-1v1h-1v-1h-1v-1h-1v-1h-1v-3h1z" />
@@ -92,13 +109,13 @@ const Reglas: React.FC<{ nivel: Nivel }> = ({ nivel }) => nivel === 'jefe' ? (
   </ul>
 ) : nivel === 'anden' ? (
   <ul className="reglas">
-    <li><b>◀ ▶</b> caminar, <b>Saltar</b> o <b>▲</b> salta, <b>▼</b> bajas de la viga.</li>
+    <li>Izquierda: <b>◀ ▶</b> caminar y <b>Bajar</b> de la viga. Derecha: <b>Saltar</b> y <b>Lanzar</b>.</li>
     <li><b>Lanza pintura</b>: 3 golpes de color y el Gris queda en una bola. Sin latas, la pintura hueso necesita 5.</li>
     <li><b>Camina contra la bola</b> y rueda. Cada Gris suelta una <b>pieza</b>: ve a buscarla.</li>
   </ul>
 ) : (
   <ul className="reglas">
-    <li><b>Avanza</b> fila por fila hasta el metro ({META} filas). Toca el lienzo o el botón Avanzar.</li>
+    <li><b>Avanza</b> fila por fila hasta el metro ({META} filas): botón Avanzar a la derecha o toca el lienzo. A la izquierda, <b>◀ ▶</b> y <b>Atrás</b>.</li>
     <li><b>Junta latas</b>: cada una son {TIROS_POR_LATA} tiros de color en el andén.</li>
     <li>Esquiva autos, micros y el metro. No te quedes quieto.</li>
   </ul>
@@ -121,6 +138,7 @@ export const App: React.FC = () => {
   const [puntos, setPuntos] = useState(0);
   const [resumen, setResumen] = useState<Resumen | null>(null);
   const [hud, setHud] = useState({ latas: [] as string[], tiros: 0, piezas: 0, vidas: VIDAS, golpes: 0, color: HUESO });
+  const tirosIniciales = hud.latas.length * TIROS_POR_LATA; // la lata del HUD se vacía de este total a 0 en el andén
   const [motivo, setMotivo] = useState('');
   const [pausa, setPausa] = useState(false);
   const [mejor, setMejor] = useState(leerMejor);
@@ -358,35 +376,45 @@ export const App: React.FC = () => {
           onPointerDown={alBajar} onPointerUp={alSoltar} onPointerCancel={() => { toque.current = null; }} />
 
         <div className="hud" aria-label="Lo que llevas">
-          {verVidas && <div className="chip" aria-label={`${plural(hud.vidas, 'vida')}`}>{Array.from({ length: nivel === 'jefe' ? VIDAS_JEFE : VIDAS }, (_, i) => <Corazon key={i} lleno={i < hud.vidas} />)}</div>}
-          <div className="chip" aria-label={plural(hud.latas.length, 'lata')}>
-            <Lata color={hud.latas.at(-1) ?? HUESO} /> <b>{hud.latas.length}</b>
-            {nivel === 'anden' && <span className="chip-sub">{plural(hud.tiros, 'tiro')}</span>}
-          </div>
-          {nivel !== 'cruce' && <div className="chip" aria-label={plural(hud.piezas, 'pieza')}><span className="pieza-ico" aria-hidden="true" /> <b>{hud.piezas}</b></div>}
+          {verVidas && <div className="hud-chip" aria-label={`${plural(hud.vidas, 'vida')}`}>{Array.from({ length: nivel === 'jefe' ? VIDAS_JEFE : VIDAS }, (_, i) => <Corazon key={i} lleno={i < hud.vidas} />)}</div>}
+          {/* B-010: la lata muestra cuánto queda (nivel dentro de la lata y número grande). */}
+          {nivel === 'cruce' ? (
+            <div className="hud-chip chip-lata" aria-label={plural(hud.latas.length, 'lata')}>
+              <LataHud color={hud.latas.at(-1) ?? HUESO} lleno={hud.latas.length ? 1 : 0} /> <b>{hud.latas.length}</b><span className="chip-sub">{hud.latas.length === 1 ? 'lata' : 'latas'}</span>
+            </div>
+          ) : nivel === 'anden' ? (
+            <div className="hud-chip chip-lata" aria-label={hud.tiros ? `Quedan ${plural(hud.tiros, 'tiro')} de color` : 'Sin latas: pintura hueso'}>
+              <LataHud color={hud.color} lleno={hud.tiros && tirosIniciales ? hud.tiros / tirosIniciales : 1} /> <b>{hud.tiros ? hud.tiros : '∞'}</b><span className="chip-sub">{hud.tiros ? (hud.tiros === 1 ? 'tiro' : 'tiros') : 'hueso'}</span>
+            </div>
+          ) : (
+            <div className="hud-chip chip-lata" aria-label={`Pintura ${NOMBRE_PINTURA[hud.color]?.toLowerCase() ?? ''}, sin límite`}>
+              <LataHud color={hud.color} lleno={1} /> <b>∞</b><span className="chip-sub">pintura</span>
+            </div>
+          )}
+          {nivel !== 'cruce' && <div className="hud-chip" aria-label={plural(hud.piezas, 'pieza') + ' del mural'}><PiezaIco /> <b>{hud.piezas}</b><span className="chip-sub">{hud.piezas === 1 ? 'pieza' : 'piezas'}</span></div>}
           {nivel === 'jefe' && (
-            <div className="chip hud-jefe" role="meter" aria-label="Color recuperado" aria-valuemin={0} aria-valuemax={GOLPES_JEFE} aria-valuenow={hud.golpes}>
+            <div className="hud-chip hud-jefe" role="meter" aria-label="Color recuperado" aria-valuemin={0} aria-valuemax={GOLPES_JEFE} aria-valuenow={hud.golpes}>
               <span className="chip-sub">Color</span>
               <span className="barra-color">{Array.from({ length: GOLPES_JEFE }, (_, i) => <i key={i} style={{ background: i < hud.golpes ? '#E2001A' : undefined }} />)}</span>
             </div>
           )}
-          {nivel === 'cruce' && <div className="chip" aria-label={`Fila ${Math.min(cruce.current.maxY, META)} de ${META}`}><span className="material-symbols-outlined" aria-hidden="true">train</span> <b>{Math.min(cruce.current.maxY, META)}/{META}</b></div>}
+          {nivel === 'cruce' && <div className="hud-chip" aria-label={`Fila ${Math.min(cruce.current.maxY, META)} de ${META}`}><span className="material-symbols-outlined" aria-hidden="true">train</span> <b>{Math.min(cruce.current.maxY, META)}/{META}</b></div>}
         </div>
 
-        {/* Controles a ambos lados: moverse a la izquierda, acciones a la derecha. */}
+        {/* Controles para la tablet tomada con las dos manos (B-010): el pulgar izquierdo se mueve (◀ ▼ ▶ en una fila,
+            en la esquina inferior izquierda) y el derecho avanza, salta y lanza (esquina inferior derecha). Todo ≥ 64 px. */}
         {enJuego && !intro && !pausa && (
           <>
             <div className="mando izq" role="group" aria-label="Moverse">
-              <button type="button" className="tecla arriba" aria-label={nivel === 'cruce' ? 'Avanzar' : 'Saltar'} {...control('arriba')}><Flecha giro={0} /></button>
-              <button type="button" className="tecla izq" aria-label="Izquierda" {...control('izq')}><Flecha giro={-90} /></button>
-              <button type="button" className="tecla der" aria-label="Derecha" {...control('der')}><Flecha giro={90} /></button>
-              <button type="button" className="tecla abajo" aria-label={nivel === 'cruce' ? 'Retroceder' : 'Bajar'} {...control('abajo')}><Flecha giro={180} /></button>
+              <button type="button" className="tecla izq" aria-label="Izquierda" {...control('izq')}><Flecha giro={-90} tam={34} /></button>
+              <button type="button" className="tecla abajo" aria-label={nivel === 'cruce' ? 'Retroceder' : 'Bajar de la viga'} {...control('abajo')}><Flecha giro={180} tam={28} /><span>{nivel === 'cruce' ? 'Atrás' : 'Bajar'}</span></button>
+              <button type="button" className="tecla der" aria-label="Derecha" {...control('der')}><Flecha giro={90} tam={34} /></button>
             </div>
             <div className="mando der" role="group" aria-label="Acciones">
               {nivel === 'cruce' ? (
                 <button type="button" className="tecla grande" {...control('arriba')}><Flecha giro={0} tam={34} /><span>Avanzar</span></button>
               ) : (<>
-                <button type="button" className="tecla saltar" {...control('arriba')}><Flecha giro={0} /><span>Saltar</span></button>
+                <button type="button" className="tecla saltar" {...control('arriba')}><Flecha giro={0} tam={30} /><span>Saltar</span></button>
                 <button type="button" className="tecla grande" {...control('lanzar')} aria-label={`Lanzar pintura ${NOMBRE_PINTURA[hud.color]?.toLowerCase() ?? ''}`}>
                   <Lata color={hud.color} tam={34} /><span>Lanzar</span>
                 </button>

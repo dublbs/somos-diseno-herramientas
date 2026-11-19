@@ -4,6 +4,7 @@ import { ALTO_A, ANCHO_A } from './anden';
 import { dibujarAvisos, dibujarGrises, dibujarJugador, dibujarTiros, escenario, marco, pasoEfectos } from './dibujoAnden';
 import type { Imagenes } from './dibujoCruce';
 import { avanzarEfectos, dibujarManchas, dibujarParticulas, sacudida } from './efectos';
+import { textoConPlaca } from './texto';
 import { ALTO_JEFE, ANCHO_JEFE, GOLPES_GRIS, GOLPES_JEFE, VIGAS_JEFE, type Jefe } from './jefe';
 import { dibujarGris, dibujarInacapin } from './personajes';
 import { PIEZAS, sprite } from './sprites';
@@ -106,8 +107,7 @@ export function dibujarJefe(ctx: CanvasRenderingContext2D, ancho: number, alto: 
     }
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.font = `700 ${Math.round(c * 0.62)}px "Silkscreen", monospace`;
-    ctx.fillStyle = '#000'; ctx.fillText('¡Le devolviste el color!', X(ANCHO_A / 2) + 4, Y(2.6) + 4);
-    ctx.fillStyle = '#FFC20E'; ctx.fillText('¡Le devolviste el color!', X(ANCHO_A / 2), Y(2.6));
+    textoConPlaca(ctx, '¡Le devolviste el color!', X(ANCHO_A / 2), Y(2.6), c * 0.62, '#FFC20E');
   }
   dibujarAvisos(ctx, m, e.avisos, '#FFC20E');
   ctx.restore();

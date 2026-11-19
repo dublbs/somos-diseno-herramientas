@@ -33,22 +33,28 @@ html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: non
 
 /* HUD: lo que llevas, arriba a la izquierda; la barra del jefe, arriba al centro. */
 .hud { position: absolute; top: 10px; left: 10px; display: flex; gap: 8px; flex-wrap: wrap; pointer-events: none; max-width: 60%; }
-.chip { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; background: rgba(255, 255, 255, .88); border: 2px solid #000; border-radius: 8px; font: 700 16px/1 "Silkscreen", monospace; box-shadow: 3px 3px 0 #000; }
-.chip-sub { font: 600 13px "DM Sans", sans-serif; color: var(--hp-texto2); margin-left: 4px; }
-.pieza-ico { width: 16px; height: 16px; background: #FF8FB1; border: 2px solid #000; transform: rotate(45deg) scale(.8); }
+/* B-010: placas oscuras, se leen sobre cualquier fondo (vereda hueso, pasto, calle o andén). */
+.hud-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 4px 12px 4px 8px; box-sizing: border-box; background: rgba(20, 18, 16, .9); color: #F4EEE3;
+  border: 2px solid #000; border-radius: 8px; font: 700 22px/1 "Silkscreen", monospace; box-shadow: 3px 3px 0 rgba(0, 0, 0, .45); }
+.hud-chip b { font: 700 24px/1 "DM Sans", system-ui, sans-serif; font-variant-numeric: tabular-nums; min-width: 1ch; } /* los números de Silkscreen (4, 7) no se leían a esta escala */
+.hud-chip .material-symbols-outlined { color: #7FC8F8; font-size: 24px; }
+.chip-sub { font: 600 14px "DM Sans", sans-serif; color: #CFC8BC; margin-left: 2px; }
 .barra-color { display: inline-flex; gap: 2px; margin-left: 2px; }
-.barra-color i { display: block; width: 18px; height: 14px; background: #8F8F8A; border: 2px solid #000; }
+.barra-color i { display: block; width: 18px; height: 16px; background: #5A5A55; border: 2px solid #F4EEE3; }
+/* jefe */
 .hud-jefe .chip-sub { margin: 0 2px 0 0; }
 
-/* Controles a ambos lados: semitransparentes, de 64 px o más y multitáctiles. */
-.mando { position: absolute; bottom: max(14px, env(safe-area-inset-bottom)); display: grid; gap: 6px; touch-action: none; user-select: none; -webkit-user-select: none; }
-.mando.izq { left: 14px; grid-template-columns: repeat(3, 70px); grid-template-rows: repeat(3, 70px); }
-.mando.der { right: 14px; grid-auto-flow: column; align-items: end; gap: 12px; }
-.tecla { display: grid; place-items: center; align-content: center; gap: 2px; min-width: 64px; min-height: 64px; padding: 0; border: 3px solid #000; border-radius: 12px; background: rgba(255, 255, 255, .6); color: #000; box-shadow: 3px 3px 0 rgba(0, 0, 0, .55); cursor: pointer; touch-action: none; -webkit-tap-highlight-color: transparent; font: 700 12px "Silkscreen", monospace; }
+/* Controles (B-010): tablet tomada con las dos manos. Pulgar izquierdo: ◀ ▼ ▶ en una fila, abajo a la izquierda.
+   Pulgar derecho: Avanzar (cruce) o Saltar y Lanzar (andén y jefe), abajo a la derecha. Semitransparentes, ≥ 64 px. */
+.mando { position: absolute; bottom: max(12px, env(safe-area-inset-bottom)); display: grid; gap: 8px; touch-action: none; user-select: none; -webkit-user-select: none; }
+.mando.izq { left: max(12px, env(safe-area-inset-left)); grid-template-columns: 80px 72px 80px; grid-template-rows: 80px; align-items: end; }
+.mando.der { right: max(12px, env(safe-area-inset-right)); grid-auto-flow: column; align-items: end; gap: 10px; }
+.tecla { display: grid; place-items: center; align-content: center; gap: 2px; min-width: 64px; min-height: 64px; padding: 0; border: 3px solid #000; border-radius: 14px; background: rgba(255, 255, 255, .55); color: #000; box-shadow: 3px 3px 0 rgba(0, 0, 0, .55); cursor: pointer; touch-action: none; -webkit-tap-highlight-color: transparent; font: 700 12px "Silkscreen", monospace; }
 .tecla:active { background: rgba(255, 194, 14, .85); transform: translate(2px, 2px); box-shadow: 1px 1px 0 rgba(0, 0, 0, .55); }
-.mando.izq .arriba { grid-area: 1 / 2; } .mando.izq .izq { grid-area: 2 / 1; } .mando.izq .der { grid-area: 2 / 3; } .mando.izq .abajo { grid-area: 3 / 2; }
-.tecla.saltar { width: 84px; height: 84px; }
-.tecla.grande { width: 116px; height: 116px; border-radius: 50%; font-size: 13px; }
+.mando.izq .izq, .mando.izq .der { width: 80px; height: 80px; }
+.mando.izq .abajo { width: 72px; height: 72px; }
+.tecla.saltar { width: 88px; height: 88px; margin-bottom: 18px; }
+.tecla.grande { width: 112px; height: 112px; border-radius: 50%; font-size: 13px; }
 @media (prefers-reduced-motion: reduce) { .tecla:active { transform: none; } }
 
 /* Tarjetas: entrada de cada nivel, pausa, pasos y fin. */
@@ -65,15 +71,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: non
 .retrato { image-rendering: pixelated; }
 @media (max-height: 760px) { .caja { gap: 7px; padding: 14px 18px; } .reglas { font-size: 14px; } .caja h2 { font-size: 19px; } }
 
-/* Ronda 3: en el andén y el jefe la arena usa todo el alto; los controles son más compactos y van sobre sus bordes.
-   Izquierda: ▲ ▼ arriba y ◀ ▶ grandes abajo. Derecha: Saltar y Lanzar. */
-.hp:not([data-nivel="cruce"]) .mando.izq { grid-template-columns: repeat(2, 76px); grid-template-rows: 56px 76px; left: 10px; }
-.hp:not([data-nivel="cruce"]) .mando.izq .arriba { grid-area: 1 / 1; }
-.hp:not([data-nivel="cruce"]) .mando.izq .abajo { grid-area: 1 / 2; }
-.hp:not([data-nivel="cruce"]) .mando.izq .izq { grid-area: 2 / 1; }
-.hp:not([data-nivel="cruce"]) .mando.izq .der { grid-area: 2 / 2; }
-.hp:not([data-nivel="cruce"]) .mando.der { right: 10px; gap: 8px; }
-.hp:not([data-nivel="cruce"]) .tecla { background: rgba(255, 255, 255, .5); min-width: 56px; min-height: 56px; }
-.hp:not([data-nivel="cruce"]) .tecla.saltar { width: 76px; height: 76px; }
-.hp:not([data-nivel="cruce"]) .tecla.grande { width: 100px; height: 100px; }
+/* En el andén y el jefe la arena usa todo el alto: los controles van sobre sus bordes, un poco más transparentes. */
+.hp:not([data-nivel="cruce"]) .tecla { background: rgba(255, 255, 255, .45); }
 .hp:not([data-nivel="cruce"]) .hud { top: 8px; left: 8px; }
