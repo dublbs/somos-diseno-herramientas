@@ -14,7 +14,7 @@ Cómo se llenan las columnas:
 
 | ID | Fecha | Gravedad | Qué | Evidencia | Pasa a |
 |---|---|---|---|---|---|
-| F-002 | 19 nov | Media | **Ronda de feedback de Amaro (UI), experiencia por experiencia.** Texto completo abajo, en «F-002 en detalle». | Chat de Amaro, después del evento | T-004…T-012, B-006…B-010 |
+| F-002 | 19 nov | Media | **Ronda de feedback de Amaro (UI), experiencia por experiencia.** Texto completo abajo, en «F-002 en detalle». | Chat de Amaro, después del evento | T-004…T-012, B-006…B-010 (lo que entra mañana de 8 a 10: `manana.md`) |
 | E-007 | 19 nov | Media | Lo que **no se probó** en la revisión del 19 nov. Los flujos que escriben en producción (crear credencial, subir por «Llévatela», canjear) se dejaron fuera para no ensuciar los datos del evento. Tampoco se probó en las tablets reales (permiso de cámara de la Cabina, cacería con afiche impreso, audio de Audioreactiva) | Revisión de Claude (sesión de Amaro) | Personas |
 | E-006 | 19 nov | Media | `docs/tasks/008-teatro.md` tiene 20 tareas sin marcar, aunque la ronda 3 pasó el Teatro al kit v2 (#39). No se sabe cuáles siguen pendientes | `git log origin/main -- loops/` | T-001 |
 | E-005 | 19 nov | Media | Hay PR abiertos y viejos que pueden estar superados por lo que ya se mergeó: **#34** (18 commits, correcciones del QA; #49 y #51 tocaron lo mismo), **#48** («Terminar y liberar la mesa») y **#38** («Agregar a inicio»). Además, #35 es de imgbot y toca imágenes de todas las apps | Lista de PR del 19 nov | B-003 |

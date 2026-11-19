@@ -6,7 +6,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
 **El orden de este archivo es la prioridad.** Se toma la primera tarea en estado «Lista».
 
 ## T-004 · La pantalla completa no se pierde al entrar a una experiencia
-- Estado: Lista
+- Estado: Después del evento (no entra en la ventana de 8 a 10, ver `manana.md`)
 - Origen: F-002
 - Contexto: el navegador **siempre** sale de pantalla completa al cambiar de página, porque cada experiencia es otra
   página (`<app>/dist/`). Eso no se arregla con JavaScript.
@@ -62,7 +62,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
   limpia.
 
 ## T-008 · Teatro: escenario arriba y piezas con mejor dibujo
-- Estado: **Bloqueada (Felipe confirma)**. `loops/` es de Felipe y Amaro lo pide en F-002. Pasa a «Lista» cuando
+- Estado: Lista solo para Felipe mañana (`manana.md`); el Guanaco, después del evento
   Felipe escriba «ok» aquí.
 - Archivos: `loops/src/` (panel y piezas Huemul, Pez y Guanaco).
 - Cambio:
@@ -76,7 +76,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
   resoluciones.
 
 ## T-009 · Graffiti: el muro del vagón como el metro de la web
-- Estado: Lista
+- Estado: Después del evento (no entra en la ventana de 8 a 10, ver `manana.md`)
 - Origen: F-002
 - Referencias:
   - `docs/equipo/referencias/metro-web-pixel.png`: el metro Pixel de la web. Manda esta.
@@ -92,7 +92,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
 - Aceptación: puesto junto a la referencia, se reconoce el mismo tren. Los demás muros no cambian.
 
 ## T-010 · Audioreactiva a todo el lienzo
-- Estado: Lista
+- Estado: Después del evento (no entra en la ventana de 8 a 10, ver `manana.md`)
 - Origen: F-002
 - Archivos: `audioreactiva/src/`.
 - Cambio:
@@ -105,7 +105,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
   encuadrada.
 
 ## T-011 · Grabado: el taco aparece animado y nada se pixela
-- Estado: Lista
+- Estado: Mañana solo si sobra tiempo (`manana.md`)
 - Origen: F-002
 - Archivos: `grabado/src/`.
 - Cambio:
@@ -118,7 +118,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
   ve al poner un taco.
 
 ## T-012 · Cabina: cambiar el marco «pizarra» por uno de calle
-- Estado: Lista. Antes de construir, propón 2 opciones en el PR borrador y espera que Amaro elija.
+- Estado: Mañana: solo quitar la pizarra de la lista de marcos (`manana.md`). El marco de calle nuevo, después del evento: antes de construirlo, propón 2 opciones en el PR borrador y espera que Amaro elija
 - Origen: F-002
 - Archivos: `shared/marcos.ts` (`PM01`, «pizarra», línea ~56), el asset del marco y `scripts/marcos-*.py` si se
   genera. Lo usan la Cabina y la credencial.
@@ -130,7 +130,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
 - Aceptación: el marco nuevo funciona en la Cabina y en la credencial, y la pizarra ya no aparece.
 
 ## T-002 · Script de verificación de pantalla para todas las experiencias
-- Estado: Lista
+- Estado: Después del evento (no entra en la ventana de 8 a 10, ver `manana.md`)
 - Origen: regla de pantalla de `AGENTS.md`. Hoy cada agente la hace a mano y de forma distinta.
 - Archivos: nuevo `scripts/qa-pantalla/verificar.mjs` y `scripts/qa-pantalla/README.md`. No toca las apps.
 - Cambio:
@@ -153,7 +153,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
   - el README explica cómo correrlo.
 
 ## T-003 · Pasada de pantalla después del evento y hallazgos
-- Estado: Bloqueada (depende de T-002)
+- Estado: Después del evento (no entra en la ventana de 8 a 10, ver `manana.md`)
 - Origen: E-007
 - Archivos: `docs/qa/pantalla-<fecha>.md` y la sección «Hallazgos» de este archivo.
 - Cambio:
@@ -162,7 +162,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
 - Aceptación: el informe existe y Amaro o Felipe pueden pasar cada falla a una tarea.
 
 ## T-001 · Qué falta del Teatro: auditoría de solo lectura
-- Estado: Lista
+- Estado: Después del evento (no entra en la ventana de 8 a 10, ver `manana.md`)
 - Origen: E-006
 - Archivos: lectura de `loops/` y `docs/tasks/008-teatro.md`. Escribe solo `docs/qa/teatro-estado.md`.
 - Cambio:
