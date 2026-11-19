@@ -17,7 +17,8 @@ Pedido del 18 nov: «que las tablets solo tengan las experiencias, el celular so
 El código quita los enlaces, pero cualquiera podría escribir otra dirección en el navegador. Para eso:
 
 ### Tablets Lenovo TB128FU (Android)
-1. Abrir Chrome en `https://dublbs.github.io/somos-diseno-herramientas/` (el menú) y ponerlo en pantalla completa.
+1. Abrir Chrome en `https://dublbs.github.io/somos-diseno-herramientas/` (el menú). El menú ya no tiene botón de
+   pantalla completa (19 nov): la pantalla completa del navegador se pierde al entrar a cada experiencia, así que no servía.
 2. **Fijar la app:** Ajustes → Seguridad → Más ajustes de seguridad → **Fijar aplicaciones** → activar, con «Pedir PIN
    para dejar de fijar». Luego, en Recientes, tocar el ícono de Chrome → **Fijar**. Así no se sale de Chrome.
 3. La barra de direcciones de Chrome sigue a la vista. Si se quiere quitar del todo, la alternativa es un navegador de
