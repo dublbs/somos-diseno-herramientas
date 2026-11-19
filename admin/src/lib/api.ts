@@ -43,8 +43,10 @@ export async function quienSoy(): Promise<Staff | null> {
 }
 
 // ---------- personas y timbres ----------
+// La tabla trae las más recientes; el total real sale de resumen_evento() (QA del PC madre, Q2).
+export const LIMITE_PERSONAS = 300;
 export async function personas(busqueda = ''): Promise<Persona[]> {
-  let q = exigir().from('personas').select('*').order('creada', { ascending: false }).limit(300);
+  let q = exigir().from('personas').select('*').order('creada', { ascending: false }).limit(LIMITE_PERSONAS);
   const b = busqueda.trim();
   if (b) q = q.or(`codigo.ilike.%${b}%,nombre.ilike.%${b}%`);
   const { data, error: e } = await q;
@@ -115,7 +117,7 @@ export const reiniciarMesas = (mesa?: string) => ponerConfig(mesa ? 'mesas_reini
 // ---------- avisos ----------
 export async function enviarAviso(a: { titulo: string; cuerpo: string; url?: string; codigo?: string | null }): Promise<{ enviadas: number; fallidas: number }> {
   const { data, error: e } = await exigir().functions.invoke('notificar', { body: a });
-  if (e) throw new Error(e.message);
+  if (e) throw new Error('No se pudo enviar el aviso. Revisa que la función «notificar» y sus claves VAPID estén configuradas en Supabase.');
   if (data?.error) throw new Error(data.error === 'solo_staff' ? 'Tu cuenta no está en la lista del staff.' : data.error);
   return data as { enviadas: number; fallidas: number };
 }

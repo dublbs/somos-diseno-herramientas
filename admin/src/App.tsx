@@ -168,7 +168,11 @@ const Personas: React.FC<{ staff: api.Staff }> = ({ staff }) => {
   const borrar = (p: api.Persona) => { if (confirm(`¿Borrar la credencial ${p.codigo} (${p.nombre})? Se borran sus timbres y avisos, y sale del HUB.`)) hacer(async () => { await api.borrarPersona(p.id); if (abierta?.id === p.id) setAbierta(null); }, 'Credencial borrada.'); };
   const exportar = () => hacer(async () => { descargarCsv(await api.todasLasPersonas()); }, 'CSV descargado.');
 
-  const total = lista.length, completas = lista.filter(p => completa(p.sellos)).length, canjeadas = lista.filter(p => p.canjeado).length;
+  // Con más de LIMITE_PERSONAS la lista se corta: las cifras salen del resumen de la base (QA del PC madre, Q2).
+  const [res, setRes] = useState<api.Resumen | null>(null);
+  useEffect(() => { const traer = () => api.resumen().then(setRes).catch(() => setRes(null)); traer(); const id = setInterval(traer, 15000); return () => clearInterval(id); }, []);
+  const cortada = !busqueda.trim() && lista.length >= api.LIMITE_PERSONAS;
+  const total = res?.credenciales ?? lista.length, completas = res?.completas ?? lista.filter(p => completa(p.sellos)).length, canjeadas = res?.canjes ?? lista.filter(p => p.canjeado).length;
   return (
     <section>
       <header className="cabecera">
@@ -180,6 +184,8 @@ const Personas: React.FC<{ staff: api.Staff }> = ({ staff }) => {
       </header>
       {aviso && <p className="aviso" role="status">{aviso}</p>}
       {abierta && <FichaPersona p={lista.find(x => x.id === abierta.id) ?? abierta} alCerrar={() => setAbierta(null)} />}
+      {cortada && <p className="aviso" role="status">Se muestran las {api.LIMITE_PERSONAS} credenciales más recientes. Para encontrar a alguien más, busca por código o nombre.</p>}
+      <div className="tabla-c">
       <table className="tabla">
         <thead><tr><th>Código</th><th>Nombre</th><th>Lenguaje</th>{ESTACIONES.map(e => <th key={e.n} className="centro-col" title={e.nombre}>{e.n}</th>)}<th title="Experiencias distintas (timbre 2)">Creación</th><th title="Afiches encontrados (timbre 3)">Cacería</th><th>Avisos</th><th>Canje</th><th>Hora</th><th></th></tr></thead>
         <tbody>
@@ -217,6 +223,7 @@ const Personas: React.FC<{ staff: api.Staff }> = ({ staff }) => {
           {!lista.length && <tr><td colSpan={13} className="vacio">Todavía no hay credenciales{busqueda ? ' con esa búsqueda' : ''}.</td></tr>}
         </tbody>
       </table>
+      </div>
     </section>
   );
 };
@@ -363,6 +370,7 @@ const Avisos: React.FC = () => {
   return (
     <section>
       <header className="cabecera"><div><h1>Avisos</h1><p className="ayuda">Notificaciones a los celulares que activaron «Recibir avisos» en su credencial. Suscritos ahora: <b className="mono">{suscritos}</b>.</p></div></header>
+      {suscritos === 0 && <p className="aviso" role="status">Ningún celular tiene los avisos activados, así que un aviso no le llegaría a nadie. Para que se puedan activar, la credencial necesita la clave VAPID.</p>}
       {aviso && <p className="aviso" role="status">{aviso}</p>}
       <div className="dos">
         <form className="tarjeta" onSubmit={enviar}>

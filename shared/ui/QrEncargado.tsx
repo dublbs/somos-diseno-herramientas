@@ -80,7 +80,7 @@ export const QrEncargado: React.FC<{ app: string; x?: string }> = ({ app, x = '5
   return (<>
     <button type="button" aria-label="QR: crear credencial o timbre Creación" title="QR de la credencial"
       onClick={() => { setListo(desbloqueado()); setAbierto(true); }}
-      style={{ position: 'fixed', left: x, top: 4, transform: 'translateX(-50%)', zIndex: 999, width: 44, height: 44, borderRadius: 22, border: '2px solid #000', background: '#F4EEE3', color: '#000', opacity: 0.55, display: 'grid', placeItems: 'center', padding: 0, cursor: 'pointer', fontSize: 22 }}>
+      style={{ position: 'fixed', left: x, top: 4, transform: 'translateX(-50%)', zIndex: 999, width: 48, height: 48, borderRadius: 24, border: '2px solid #000', background: '#F4EEE3', color: '#000', opacity: 0.55, display: 'grid', placeItems: 'center', padding: 0, cursor: 'pointer', fontSize: 22 }}>
       <Icono nombre="qr_code_2" />
     </button>
     {abierto && (
