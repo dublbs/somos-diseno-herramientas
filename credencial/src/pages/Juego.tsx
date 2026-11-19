@@ -116,6 +116,9 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
           })}
         </ul>
         <p className="ayuda">Crea en {creacion.meta} experiencias distintas con tu código <b>{codigo}</b>: cada una llega aquí al momento.</p>
+        <a className="btn" href={`../../fotomaton/dist/?codigo=${codigo}&desde=credencial`}>
+          <span className="material-symbols-outlined" aria-hidden="true">photo_camera</span>Abrir el Fotomatón aquí
+        </a>
       </section>
 
       <button type="button" className={'panel-juego tarjeta-flyer' + (abierto ? ' abierta' : '')} onClick={abrirFlyer} aria-disabled={!abierto}>
