@@ -78,9 +78,7 @@ footer .h-btn{text-decoration:none}
 @media (max-width:700px){
   .m-barra,.m-contenido{padding-left:max(var(--h-e4),env(safe-area-inset-left,0px));padding-right:max(var(--h-e4),env(safe-area-inset-right,0px))}
   .m-marca-sub{display:none}
-  #btn-fullscreen .h-btn-texto{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
   #btn-crear-credencial .h-btn-texto{font-size:var(--h-tam-chico)}
-  #btn-fullscreen{padding:0;width:var(--h-toque)}
   .m-filtro{flex-basis:100%}
   .m-filtro .h-seg>button{font-size:var(--h-tam-chico);padding:0 4px}
 }
@@ -99,9 +97,6 @@ footer .h-btn{text-decoration:none}
   <div class="m-barra-acciones">
     <button class="h-btn h-primario" id="btn-crear-credencial" type="button" aria-haspopup="dialog" aria-controls="dlg-crear-credencial">
       <span class="material-symbols-outlined h-icono" aria-hidden="true">qr_code_2</span><span class="h-btn-texto">Crea tu credencial</span>
-    </button>
-    <button class="h-btn" id="btn-fullscreen" type="button" aria-label="Alternar pantalla completa">
-      <span class="material-symbols-outlined h-icono" aria-hidden="true">open_in_full</span><span class="h-btn-texto" id="fs-texto">Pantalla completa</span>
     </button>
   </div>
 </header>
@@ -816,25 +811,6 @@ footer .h-btn{text-decoration:none}
   ["pointerdown", "keydown", "scroll"].forEach(ev => window.addEventListener(ev, resetTimerInactividad, { passive: true }));
   resetTimerInactividad();
 
-  // Botón Pantalla Completa
-  const btnFs = document.getElementById("btn-fullscreen");
-  const fsTexto = document.getElementById("fs-texto");
-  const fsIcono = btnFs && btnFs.querySelector(".material-symbols-outlined");
-  if (btnFs) {
-    btnFs.addEventListener("click", () => {
-      resetTimerInactividad();
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen?.().catch(() => {});
-      } else {
-        document.exitFullscreen?.().catch(() => {});
-      }
-    });
-    // El texto sigue al estado real (también cuando se sale con Esc o con el gesto del sistema)
-    document.addEventListener("fullscreenchange", () => {
-      if (fsTexto) fsTexto.textContent = document.fullscreenElement ? "Salir de pantalla completa" : "Pantalla completa";
-      if (fsIcono) fsIcono.textContent = document.fullscreenElement ? "close" : "open_in_full";
-    });
-  }
 })();
 </script>
 <script type="module">
