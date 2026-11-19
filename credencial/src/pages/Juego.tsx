@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { escucharCreaciones, faltaParaFlyer, obtener, progresoJuego, remoto, sumarCreacion, textoFaltaCanje, textoFaltaFlyer, type ProgresoJuego } from '../lib/store';
 import { Bienvenida } from '../components/Bienvenida';
+import { BarraTimbres } from '../components/BarraTimbres';
 import type { Tema } from '../temas';
 import { HACIA_JUEGO, tomarEntrada, useDeslizar } from '../lib/deslizar';
 import { AFICHES } from '../lib/afiches';
@@ -72,6 +73,8 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
 
   return (
     <main className={'pantalla juego' + (entra ? ` entra-${entra}` : '')}>
+      <BarraTimbres sellos={datos.sellos} tema={tema} />
+      <span className="pista-borde izquierda" aria-hidden="true"><span className="material-symbols-outlined">chevron_left</span></span>
       <section className="panel-juego caceria" aria-labelledby="titulo-caceria">
         <header>
           <h2 id="titulo-caceria">Cacería de afiches</h2>
