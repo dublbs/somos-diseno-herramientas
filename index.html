@@ -49,6 +49,7 @@ body{min-height:100dvh;font:400 var(--h-tam-texto)/1.4 var(--h-fuente);-webkit-f
 .tarjeta:has(.btn-entrar:focus-visible){outline:2px solid var(--h-acento);outline-offset:3px}
 .miniatura{position:relative;aspect-ratio:16/10;margin:var(--h-e2) var(--h-e2) 0;border-radius:var(--h-radio);background:var(--h-superficie-2);overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
 .miniatura canvas{display:block;width:100%;height:100%}
+.miniatura img{display:block;width:100%;height:100%;object-fit:cover}
 .badge-estado{position:absolute;top:var(--h-e2);right:var(--h-e2);z-index:2;padding:4px 10px;border-radius:999px;background:var(--h-superficie);color:var(--h-acento);font:700 12px/1.2 var(--h-fuente);box-shadow:var(--h-sombra-chica)}
 .cuerpo{flex:1;display:grid;align-content:start;gap:var(--h-e2);padding:var(--h-e4) var(--h-e4) var(--h-e3)}
 .cuerpo h2{margin:0;font:700 19px/1.2 var(--h-fuente-titulo);letter-spacing:-.01em}
@@ -167,7 +168,8 @@ footer .h-btn{text-decoration:none}
       <!-- 4b. HORA PUNTA (juego Pixel; reemplaza al Vagón, plan 009) -->
       <li class="tarjeta" data-lenguajes="pixel" id="exp-juego">
         <div class="miniatura">
-          <canvas id="cv-juego" aria-hidden="true"></canvas>
+          <!-- T-006: captura del nivel 1 del juego actual (juego-pixel/dist, Pinta y micros), no un dibujo aparte. -->
+          <img src="shared/vistas/hora-punta.webp" width="880" height="550" alt="" decoding="async">
           <span class="badge-estado">Nuevo</span>
         </div>
         <div class="cuerpo">
@@ -659,166 +661,6 @@ footer .h-btn{text-decoration:none}
         const { width: W, height: H } = cvAudio;
         if (!window.somosC3) { ctx.fillStyle = HEX.Hueso; ctx.fillRect(0, 0, W, H); return; }
         window.somosC3.dibujarC3(ctx, W, H, window.somosC3.c3EnTiempo(quieto ? 2000 : t));
-      }
-    });
-  }
-
-  // 4b. Hora punta: el cruce isométrico del nivel 1 (como juego-pixel/src/juego/dibujoCruce.ts, misma proyección y
-  // colores): veredas, calles con autos y micros, la vía del metro con su tren, la plaza, latas de pintura que flotan,
-  // el personaje que salta fila por fila y, al fondo, el pórtico del METRO. Para ajustarlo basta editar ESCENA_HP.
-  const cvJuego = document.getElementById("cv-juego");
-  if (cvJuego) {
-    const ctx = cvJuego.getContext("2d");
-    const pj = new Image(); pj.src = "juego-pixel/dist/figma/personaje.svg";
-    const metroImg = new Image(); metroImg.src = "juego-pixel/dist/figma/metro-lateral.svg";
-    const KX = 0.2, FX = 0.42, FY = 0.8, ZZ = 0.75;                 // proyección de dibujoCruce.ts
-    const SUELO = {
-      vereda: ["#D9D0C1", "#B5AA97", "#C2B8A6", 0.14], plaza: ["#5DAA6E", "#3E7F4E", "#4C9A5E", 0.14],
-      calle: ["#3D3A36", "#2A2825", "#4A4641", 0], metro: ["#77726A", "#5A564F", "#8A857C", 0], estacion: ["#0062B8", "#004A8C", "#2B4BD8", 0.14]
-    };
-    // Filas de abajo (0, la partida) hacia arriba. Calles: dir, velocidad (celdas/s) y vehículos [tipo, color, x inicial].
-    const ESCENA_HP = {
-      celda: 37, columnas: 13, camX: 6.4, camY: 3.5, salto: 650, // ms por salto del personaje
-      filas: [
-        { tipo: "vereda", cosas: [[1, "banca"], [10, "basurero"]] },
-        { tipo: "calle", dir: 1, vel: 1.5, autos: [["auto", "#FFC20E", 0], ["micro", "", 6], ["auto", "#FF8FB1", 12]] },
-        { tipo: "calle", dir: -1, vel: 2.1, autos: [["auto", "#2B4BD8", 2], ["auto", "#00A651", 9]], latas: [[8, "#FFC20E"]] },
-        { tipo: "vereda", cosas: [[2, "basurero"], [11, "banca"]], latas: [[4, "#FF8FB1"]] },
-        { tipo: "metro", tren: { cada: 5200, dura: 2600 } },
-        { tipo: "plaza", cosas: [[0, "arbol"], [3, "arbol"], [10, "arbol"]], latas: [[7, "#7FC8F8"]] },
-        { tipo: "estacion", portico: true }
-      ]
-    };
-    const sombra = (hex, f) => { const n = parseInt(hex.slice(1), 16); return "#" + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => Math.round(v * f).toString(16).padStart(2, "0")).join(""); };
-    const LATA = [".kkkkkk.", "kssssssk", "kBBBBBBk", "kBhBBBBk", "kBhBBBBk", "kBBBBBBk", "kBBBBBBk", ".kkkkkk."];
-    const LATA_C = { k: "#000", s: "#B9B9B3", h: "#F4EEE3" };
-    miniaturas.push({
-      cv: cvJuego, ctx,
-      draw: t => {
-        const { width: W, height: H } = cvJuego, k = W / VW, E = ESCENA_HP, c = E.celda, ms = quieto ? 2600 : t;
-        const lw = 1.4, OX = VW / 2, OY = VH * 0.72;
-        ctx.setTransform(k, 0, 0, k, 0, 0); ctx.imageSmoothingEnabled = false;
-        const P = (x, y, z) => [OX + (x - E.camX) * c + (y - E.camY) * FX * c, OY + (x - E.camX) * KX * c - (y - E.camY) * FY * c - z * ZZ * c];
-        const cara = (pts, color, borde = true) => {
-          ctx.beginPath(); ctx.moveTo(...pts[0]); for (let i = 1; i < pts.length; i++) ctx.lineTo(...pts[i]); ctx.closePath();
-          ctx.fillStyle = color; ctx.fill(); if (borde) { ctx.lineWidth = lw; ctx.strokeStyle = "#000"; ctx.lineJoin = "miter"; ctx.stroke(); }
-        };
-        const caja = (x0, x1, y0, y1, z0, z1, color, fr = sombra(color, 0.8), co = sombra(color, 0.6)) => {
-          cara([P(x0, y0, z0), P(x1, y0, z0), P(x1, y0, z1), P(x0, y0, z1)], fr);
-          cara([P(x1, y0, z0), P(x1, y1, z0), P(x1, y1, z1), P(x1, y0, z1)], co);
-          cara([P(x0, y0, z1), P(x1, y0, z1), P(x1, y1, z1), P(x0, y1, z1)], color);
-        };
-        const plano = (x0, x1, y0, y1, z, color, borde = false) => cara([P(x0, y0, z), P(x1, y0, z), P(x1, y1, z), P(x0, y1, z)], color, borde);
-        const sombraSuelo = (x0, x1, y0, y1, z) => { ctx.globalAlpha = 0.28; plano(x0 + 0.12, x1 + 0.12, y0 - 0.1, y1 - 0.1, z + 0.002, "#000"); ctx.globalAlpha = 1; };
-
-        ctx.fillStyle = "#2B4BD8"; ctx.fillRect(0, 0, VW, VH);
-        const xa = -8, xb = E.columnas + 6, ciclo = E.columnas + 8;
-        const paso = Math.floor(ms / E.salto) % E.filas.length, arco = quieto ? 0 : Math.sin(((ms % E.salto) / E.salto) * Math.PI);
-        for (let y = E.filas.length - 1; y >= 0; y--) {
-          const f = E.filas[y], [top, frente, junta, h] = SUELO[f.tipo];
-          if (h) cara([P(xa, y, 0), P(xb, y, 0), P(xb, y, h), P(xa, y, h)], frente, false);
-          plano(xa, xb, y, y + 1, h, top);
-          ctx.lineWidth = 1; ctx.strokeStyle = junta; ctx.beginPath();
-          if (f.tipo === "vereda" || f.tipo === "estacion") for (let x = xa; x <= xb; x++) { const a = P(x, y, h), b = P(x, y + 1, h); ctx.moveTo(...a); ctx.lineTo(...b); }
-          ctx.stroke();
-          if (f.tipo === "calle") {
-            if (E.filas[y + 1] && E.filas[y + 1].tipo === "calle") for (let x = xa; x < xb; x++) plano(x + 0.15, x + 0.65, y + 0.95, y + 1.05, 0.001, "#F4EEE3");
-            if (!E.filas[y - 1] || E.filas[y - 1].tipo !== "calle") plano(xa, xb, y, y + 0.07, 0.001, "#FFC20E");
-          }
-          if (f.tipo === "metro") {
-            for (let x = xa; x < xb; x += 0.5) plano(x, x + 0.18, y + 0.12, y + 0.88, 0.001, "#7A5A3A");
-            for (const r of [0.28, 0.66]) caja(xa, xb, y + r, y + r + 0.06, 0, 0.06, "#C9C9C4", "#9A9A94", "#7A7A74");
-          }
-          const cosas = [];
-          for (const [x, o] of f.cosas || []) cosas.push([x, () => obstaculo(x, y, h, o)]);
-          for (const [x, color] of f.latas || []) cosas.push([x, () => lata(x, y, h, color)]);
-          for (const [tipo, color, x0] of f.autos || []) {
-            const largo = tipo === "micro" ? 3 : 2;
-            const x = (((x0 + (ms / 1000) * f.vel * f.dir) % ciclo) + ciclo) % ciclo - 4;
-            cosas.push([x, () => vehiculo(tipo, color, x, y, largo, f.dir)]);
-          }
-          if (f.tren) {
-            const u = ms % f.tren.cada;
-            if (u < f.tren.dura) { const xt = -12 + (u / f.tren.dura) * (E.columnas + 16); cosas.push([xt, () => tren(xt, y)]); }
-          }
-          if (y === paso) cosas.push([5.5, () => personaje(5, y, h)]);
-          cosas.sort((a, b) => a[0] - b[0]).forEach(([, d]) => d());
-          if (f.portico) portico(y, h);
-        }
-        const bruma = ctx.createLinearGradient(0, 0, 0, VH * 0.3);
-        bruma.addColorStop(0, "#2B4BD8"); bruma.addColorStop(1, "rgba(43,75,216,0)");
-        ctx.fillStyle = bruma; ctx.fillRect(0, 0, VW, VH * 0.3);
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-        function obstaculo(x, y, h, o) {
-          if (o === "arbol") {
-            sombraSuelo(x + 0.15, x + 0.85, y + 0.15, y + 0.85, h);
-            caja(x + 0.36, x + 0.64, y + 0.36, y + 0.64, h, h + 0.55, "#7A5A3A");
-            caja(x + 0.12, x + 0.88, y + 0.16, y + 0.84, h + 0.55, h + 1.15, "#00A651");
-          } else if (o === "banca") {
-            caja(x + 0.08, x + 0.92, y + 0.34, y + 0.7, h + 0.22, h + 0.32, "#A0703F");
-            caja(x + 0.08, x + 0.92, y + 0.66, y + 0.76, h + 0.32, h + 0.68, "#A0703F");
-          } else {
-            caja(x + 0.25, x + 0.75, y + 0.28, y + 0.74, h, h + 0.62, "#00A651");
-            caja(x + 0.22, x + 0.78, y + 0.25, y + 0.77, h + 0.62, h + 0.72, "#2E7D46");
-          }
-        }
-        function lata(x, y, h, color) {
-          const flota = quieto ? 0.25 : 0.25 + Math.sin(ms / 260 + x + y) * 0.1, giro = quieto ? 1 : Math.cos(ms / 300 + x * 1.7);
-          sombraSuelo(x + 0.3, x + 0.7, y + 0.35, y + 0.65, h);
-          const [px, py] = P(x + 0.5, y + 0.5, h + flota), t = c * 0.5, w = Math.max(t * 0.22, t * Math.abs(giro)), u = w / 8, v = t / 8;
-          LATA.forEach((fila, j) => [...fila].forEach((ch, i) => { if (ch === ".") return; ctx.fillStyle = ch === "B" ? color : LATA_C[ch]; ctx.fillRect(px - w / 2 + i * u, py - t + j * v, u + 0.3, v + 0.3); }));
-        }
-        function vehiculo(tipo, color, x0, y, largo, dir) {
-          const x1 = x0 + largo;
-          sombraSuelo(x0 + 0.05, x1 - 0.05, y + 0.14, y + 0.86, 0);
-          if (tipo === "micro") {
-            caja(x0, x1, y + 0.12, y + 0.88, 0.1, 1.0, "#F4EEE3", "#DDD5C6", "#BDB4A3");
-            const [a] = [P(x0, y + 0.12, 1.0)], L = largo * c, Hh = 0.9 * ZZ * c;
-            ctx.save(); ctx.transform(1, KX, 0, 1, a[0], a[1]);
-            ctx.fillStyle = "#0062B8"; ctx.fillRect(0, Hh * 0.55, L, Hh * 0.16);
-            ctx.fillStyle = "#000"; ctx.fillRect(0, Hh * 0.12, L, Hh * 0.32);
-            ctx.fillStyle = "#7FC8F8"; for (let i = 0; i < largo * 2; i++) ctx.fillRect(i * c * 0.5 + c * 0.08, Hh * 0.15, c * 0.36, Hh * 0.24);
-            ctx.restore();
-            return;
-          }
-          caja(x0, x1, y + 0.16, y + 0.84, 0.12, 0.5, color);
-          const cx0 = dir > 0 ? x0 + 0.35 : x0 + 0.65;
-          caja(cx0, cx0 + 1, y + 0.24, y + 0.76, 0.5, 0.82, color);
-          const a = P(cx0, y + 0.24, 0.82), Hh = 0.32 * ZZ * c;
-          ctx.save(); ctx.transform(1, KX, 0, 1, a[0], a[1]); ctx.fillStyle = "#7FC8F8";
-          ctx.fillRect(c * 0.08, Hh * 0.18, c * 0.38, Hh * 0.6); ctx.fillRect(c * 0.54, Hh * 0.18, c * 0.38, Hh * 0.6); ctx.restore();
-        }
-        function tren(xt, y) {
-          const LARGO = 3.34;
-          for (let i = 0; i < 3; i++) {
-            const x0 = xt + i * LARGO + 0.04, x1 = x0 + LARGO - 0.08, lider = i === 2;
-            caja(x0, x1, y + 0.1, y + 0.9, 0.08, 1.1, "#F4EEE3", "#DDD5C6", lider ? "#FFC20E" : "#BDB4A3");
-            if (metroImg.complete && metroImg.naturalWidth) {
-              const a = P(x0, y + 0.1, 1.1); ctx.save(); ctx.transform(1, KX, 0, 1, a[0], a[1]);
-              ctx.drawImage(metroImg, 0, 0, (x1 - x0) * c, 1.02 * ZZ * c); ctx.restore();
-            }
-          }
-        }
-        function personaje(x, y, h) {
-          const z = h + arco * 0.55;
-          ctx.globalAlpha = 0.3; plano(x + 0.22, x + 0.78, y + 0.3, y + 0.7, h + 0.002, "#000"); ctx.globalAlpha = 1;
-          const [px, py] = P(x + 0.5, y + 0.45, z), t = c * 0.98;
-          if (pj.complete && pj.naturalWidth) ctx.drawImage(pj, px - t / 2, py - t * 0.9, t, t);
-          else caja(x + 0.25, x + 0.75, y + 0.3, y + 0.7, z, z + 0.8, "#00A651");
-        }
-        function portico(y, h) {
-          const a = 3.4, b = 8.6;
-          caja(a, a + 0.5, y + 0.6, y + 1.0, h, h + 1.7, "#0062B8");
-          caja(b - 0.5, b, y + 0.6, y + 1.0, h, h + 1.7, "#0062B8");
-          caja(a - 0.3, b + 0.3, y + 0.55, y + 1.05, h + 1.7, h + 2.45, "#2B4BD8");
-          const p0 = P(a - 0.3, y + 0.55, h + 2.45), L = (b - a + 0.6) * c, Hh = 0.75 * ZZ * c;
-          ctx.save(); ctx.transform(1, KX, 0, 1, p0[0], p0[1]);
-          ctx.fillStyle = "#F4EEE3"; ctx.fillRect(L * 0.2, Hh * 0.14, L * 0.6, Hh * 0.72);
-          ctx.fillStyle = "#0062B8"; ctx.font = `700 ${Math.round(Hh * 0.62)}px "Silkscreen", monospace`;
-          ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("METRO", L / 2, Hh * 0.52);
-          ctx.restore();
-        }
       }
     });
   }
