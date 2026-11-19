@@ -12,6 +12,8 @@ import { activarAvisos, enIphoneSinInstalar, estadoAvisos, type EstadoAvisos } f
 import { useInstalar } from '../lib/instalar';
 import { HACIA_JUEGO, tomarEntrada, useDeslizar } from '../lib/deslizar';
 import { Bienvenida, bienvenidaVista } from '../components/Bienvenida';
+import { BarraTimbres } from '../components/BarraTimbres';
+import { DeslizarJugar } from '../components/DeslizarJugar';
 
 const quieto = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 const VACIA: DatosCarta = { nombre: '', codigo: '', receta: { retrato: 'personaje', id: 'pixel' }, marco: 'PM05', sellos: [] };
@@ -116,6 +118,7 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
 
   return (
     <main className={'pantalla credencial' + (entra ? ` entra-${entra}` : '')}>
+      <BarraTimbres sellos={datos.sellos} tema={tema} gana={poniendo || null} />
       <button type="button" className="giro" onClick={girar}
         aria-label={`Girar credencial. Ahora: ${lado === 'frente' ? 'credencial' : 'álbum de timbres'}`}>
         <span className={'carta-caja' + (volteando ? ' volteando' : '')}>
@@ -166,18 +169,17 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
         </button>
       )}
       <p className="progreso" role="status">
-        {estado || (datos.canjeado ? 'Premio canjeado. ¡Gracias por jugar!' : llena ? '¡Credencial completa! Canjea tu premio con el equipo.' : (lado === 'frente' ? `${completos} de ${ACTIVAS.length} timbres · toca para ver el álbum` : `${completos} de ${ACTIVAS.length} timbres · tu inventario está en «Jugar»`))}
+        {estado || (datos.canjeado ? 'Premio canjeado. ¡Gracias por jugar!' : llena ? '¡Credencial completa! Canjea tu premio con el equipo.' : (lado === 'frente' ? 'Toca la credencial para ver el álbum' : 'Tu álbum · tu inventario está al deslizar'))}
       </p>
+      {/* B-017: en vez del botón «Jugar», deslizar a la derecha (también se puede tocar). */}
+      <DeslizarJugar onJugar={() => ir('#/juego')} />
+      <span className="pista-borde" aria-hidden="true"><span className="material-symbols-outlined">chevron_right</span></span>
       <div className="acciones-movil">
         {llena && (
           <button type="button" className="btn primario" onClick={() => ir('#/canje')}>
             <span className="material-symbols-outlined" aria-hidden="true">approval</span>{datos.canjeado ? 'Canjeado' : 'Canjear'}
           </button>
         )}
-        {/* La vista Juego también se abre deslizando; este botón es la alternativa sin gesto. */}
-        <button type="button" className={'btn' + (llena ? '' : ' primario')} onClick={() => ir('#/juego')}>
-          <span className="material-symbols-outlined" aria-hidden="true">auto_awesome</span>Jugar
-        </button>
         <button type="button" className="btn" onClick={descargar}>
           <span className="material-symbols-outlined" aria-hidden="true">download</span>Guardar
         </button>

@@ -93,7 +93,7 @@ label.btn { cursor: pointer; }
 .pie-movil input { min-height: 48px; min-width: 0; padding: 0 12px; border: 2px solid var(--ink); border-radius: var(--rb); background: var(--bg); color: var(--ink); font: 600 16px "DM Sans", sans-serif; text-transform: uppercase; }
 
 /* --- Credencial --- */
-.credencial { grid-template-rows: minmax(0, 1fr) auto auto auto; }
+.credencial { position: relative; grid-template-rows: auto minmax(0, 1fr); grid-auto-rows: auto; }
 .giro { min-height: 0; display: grid; place-items: center; container-type: size; border: 0; background: none; padding: 0; cursor: pointer; }
 .giro { perspective: 900px; }
 .carta-caja { position: relative; display: block; width: min(100cqw, calc(100cqh * 240 / 384)); aspect-ratio: 240 / 384; }
@@ -246,7 +246,7 @@ label.btn { cursor: pointer; }
 @keyframes entra-der { from { transform: translateX(28%); opacity: 0 } }
 [data-visual="Pixel"] .entra-izquierda, [data-visual="Pixel"] .entra-derecha { animation-timing-function: steps(4, end); }
 
-.juego { grid-template-rows: minmax(0, 1fr) auto auto auto auto; }
+.juego { position: relative; grid-template-rows: auto minmax(0, 1fr) auto auto auto auto; }
 .panel-juego { min-height: 0; display: grid; gap: 8px; padding: 10px; background: var(--surface); color: var(--ink); border: var(--borde); border-radius: var(--r); }
 [data-visual="Pixel"] .panel-juego { box-shadow: var(--sombra-btn); }
 [data-visual="Orgánica"] .panel-juego { box-shadow: 0 18px 40px -22px rgba(0, 0, 0, .55); }
@@ -293,9 +293,13 @@ label.btn { cursor: pointer; }
 }
 
 /* --- Timbre 4 · «Tu flyer» (plan 012 §8) --- */
-.tarjeta-flyer { width: 100%; min-height: 56px; display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 10px; text-align: left; cursor: pointer; font: inherit; }
-.tarjeta-flyer-icono { font-size: 28px; width: 40px; height: 40px; display: grid; place-items: center; border-radius: var(--rb); background: var(--chip); color: var(--muted); }
-.tarjeta-flyer.abierta .tarjeta-flyer-icono { background: var(--accent); color: var(--on-accent); }
+.tarjeta-flyer { width: 100%; min-height: 56px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; text-align: left; cursor: pointer; font: inherit; }
+/* B-016: miniatura en vivo del flyer (mismo pintarFlyer que la descarga, a escala). */
+.tarjeta-flyer-mini { position: relative; display: block; height: var(--alto-mini-flyer, 84px); aspect-ratio: 4 / 5; border: 2px solid var(--ink); border-radius: 4px; overflow: hidden; background: #000; transform: rotate(-3deg); }
+.tarjeta-flyer-mini canvas { display: block; width: 100%; height: 100%; }
+.tarjeta-flyer[aria-disabled="true"] .tarjeta-flyer-mini canvas { filter: grayscale(.85) brightness(.7); }
+.tarjeta-flyer-candado { position: absolute; inset: 0; display: grid; place-items: center; font-size: 24px; color: #F4EEE3; }
+@media (max-height: 760px) { .tarjeta-flyer { --alto-mini-flyer: 64px; } }
 .tarjeta-flyer-texto { min-width: 0; display: grid; gap: 1px; }
 .tarjeta-flyer-texto b { font: 800 16px/1.1 var(--fuente-tit); }
 [data-visual="Pixel"] .tarjeta-flyer-texto b { font-weight: 700; font-size: 13px; }
@@ -314,9 +318,11 @@ label.btn { cursor: pointer; }
 .flyer-lienzo.mezclado { animation: mezclar .32s cubic-bezier(.2, .9, .3, 1.3); }
 [data-visual="Pixel"] .flyer-lienzo.mezclado { animation-timing-function: steps(4, end); }
 @keyframes mezclar { from { transform: scale(.94) rotate(-1.5deg); opacity: .5 } }
+.flyer-etiqueta { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 1; padding: 3px 10px; font: 700 11px "DM Sans", sans-serif; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; color: #F4EEE3; background: rgba(0, 0, 0, .6); border-radius: 999px; pointer-events: none; }
 .flyer-estado { position: absolute; left: 8px; right: 8px; bottom: 8px; margin: 0; z-index: 2; box-shadow: 0 6px 18px rgba(0, 0, 0, .3); }
 .flyer-estado[hidden] { display: none; }
 .pestanas-grilla.tres { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.flyer .pestanas-grilla button { min-height: 48px; }
 .flyer-panel { min-height: 0; overflow: hidden; display: grid; padding: 6px; background: var(--surface); color: var(--ink); border: var(--borde); border-radius: var(--r); }
 [data-visual="Orgánica"] .flyer-panel { border-radius: 24px; padding: 8px 10px; }
 .flyer-lenguajes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
@@ -384,3 +390,105 @@ a.btn { text-decoration: none; }
 .hoja-instalar .hoja { background: var(--bg, #F4EEE3); color: var(--ink); border-radius: 16px 16px 0 0; padding: 20px 20px calc(20px + env(safe-area-inset-bottom)); display: grid; gap: 12px; }
 .hoja-instalar h2 { margin: 0; font-size: 20px; }
 .hoja-instalar ol { margin: 0; padding-left: 20px; display: grid; gap: 8px; font-size: 15px; line-height: 1.4; }
+
+/* ===== B-017 · Una interfaz más de juego ===== */
+/* Barra de los 4 timbres, siempre visible arriba de la credencial y de la vista Juego. */
+.barra-timbres { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 5px 10px 5px 6px;
+  background: var(--surface); color: var(--ink); border: var(--borde); border-radius: var(--r); }
+[data-visual="Pixel"] .barra-timbres { box-shadow: var(--sombra-btn); }
+[data-visual="Orgánica"] .barra-timbres { border-radius: 999px; padding-left: 8px; }
+.barra-timbres-ranuras { margin: 0; padding: 0; list-style: none; display: flex; gap: 5px; }
+.barra-timbres-ranuras li { width: 34px; height: 34px; display: grid; place-items: center; border: 2px dashed var(--line); border-radius: var(--rb); background: var(--bg);
+  font: 800 14px var(--fuente-tit); color: var(--muted); }
+[data-visual="Orgánica"] .barra-timbres-ranuras li { border-radius: 50%; }
+.barra-timbres-ranuras li.lleno { border: 2px solid var(--ink); background: var(--accent); }
+.barra-timbres-ranuras li img { width: 118%; height: 118%; object-fit: contain; transform: rotate(-6deg); }
+.barra-timbres-medidor { height: 10px; border-radius: 999px; background: var(--chip); overflow: hidden; outline: 2px solid var(--ink); outline-offset: -2px; }
+[data-visual="Pixel"] .barra-timbres-medidor, [data-visual="Geométrica"] .barra-timbres-medidor { border-radius: 0; }
+.barra-timbres-medidor span { display: block; height: 100%; background: var(--accent); border-right: 2px solid var(--ink); transition: width .6s cubic-bezier(.2, .9, .3, 1.2); }
+.barra-timbres-cuenta { font: 800 16px var(--fuente-tit); white-space: nowrap; }
+[data-visual="Pixel"] .barra-timbres-cuenta { font: 700 13px "Silkscreen", monospace; }
+
+/* «Desliza para jugar»: pista con ficha que se arrastra (también se toca). */
+.deslizar-jugar { position: relative; width: 100%; height: 58px; padding: 4px; display: flex; align-items: center; overflow: hidden; cursor: pointer;
+  border: var(--borde); border-radius: var(--rb); background: var(--ink); color: var(--surface); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+[data-visual="Orgánica"] .deslizar-jugar { border-radius: 999px; }
+[data-visual="Pixel"] .deslizar-jugar { box-shadow: var(--sombra-btn); }
+.deslizar-jugar::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: calc(56px + var(--avance, 0) * (100% - 56px)); background: var(--accent); opacity: .35; }
+.deslizar-jugar:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.deslizar-ficha { position: relative; z-index: 2; flex: none; width: 48px; height: 48px; display: grid; place-items: center; background: var(--accent); color: var(--on-accent);
+  border: 2px solid var(--surface); border-radius: var(--rb); box-shadow: 0 2px 0 rgba(0, 0, 0, .35); }
+[data-visual="Orgánica"] .deslizar-ficha { border-radius: 50%; }
+.deslizar-ficha .material-symbols-outlined { font-size: 30px; }
+.deslizar-jugar.soltando .deslizar-ficha { transition: transform .25s cubic-bezier(.2, .9, .3, 1.3); }
+.deslizar-jugar:not(.arrastrando) .deslizar-ficha { animation: ficha-empuja 2.4s ease-in-out infinite; }
+.deslizar-texto { position: absolute; inset: 0 44px 0 60px; display: grid; place-items: center; z-index: 1; opacity: calc(1 - var(--avance, 0) * 1.6);
+  font: 800 16px var(--fuente-tit); letter-spacing: .01em; white-space: nowrap;
+  background: linear-gradient(100deg, var(--surface) 40%, var(--accent) 50%, var(--surface) 60%) 0 0 / 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: brillo-texto 2.4s linear infinite; }
+[data-visual="Pixel"] .deslizar-texto { font: 700 12px "Silkscreen", monospace; }
+[data-visual="Geométrica"] .deslizar-texto { text-transform: uppercase; font-size: 14px; letter-spacing: .05em; }
+.deslizar-flechas { position: absolute; right: 14px; top: 50%; z-index: 1; display: flex; gap: 2px; transform: translateY(-50%); opacity: calc(1 - var(--avance, 0) * 2); }
+.deslizar-flechas i { width: 10px; height: 10px; border: solid color-mix(in srgb, var(--accent) 60%, var(--surface)); border-width: 3px 3px 0 0; transform: rotate(45deg); animation: flecha 1.2s ease-in-out infinite; }
+.deslizar-flechas i:nth-child(2) { animation-delay: .15s; }
+.deslizar-flechas i:nth-child(3) { animation-delay: .3s; }
+@keyframes brillo-texto { from { background-position: 100% 0 } to { background-position: -50% 0 } }
+@keyframes flecha { 0%, 100% { opacity: .25 } 40% { opacity: 1 } }
+@keyframes ficha-empuja { 0%, 70%, 100% { transform: translateX(0) } 80% { transform: translateX(14px) } 90% { transform: translateX(0) } }
+[data-visual="Pixel"] .deslizar-texto { animation-timing-function: steps(12, end); }
+[data-visual="Pixel"] .deslizar-flechas i { animation-timing-function: steps(2, end); }
+
+/* Pista en el borde derecho de la credencial: hay algo más hacia allá. */
+.pista-borde { position: absolute; right: 0; top: 46%; z-index: 1; width: 22px; height: 64px; display: grid; place-items: center; pointer-events: none;
+  background: var(--accent); color: var(--on-accent); border: var(--borde); border-right: 0; border-radius: 12px 0 0 12px; animation: pista-borde 1.6s ease-in-out infinite; }
+.pista-borde .material-symbols-outlined { font-size: 22px; }
+@keyframes pista-borde { 50% { transform: translateX(-5px) } }
+/* En Juego, la misma pista a la izquierda: deslizando hacia allá se vuelve a la credencial. */
+.pista-borde.izquierda { right: auto; left: 0; top: 50%; width: 16px; border: var(--borde); border-left: 0; border-radius: 0 12px 12px 0; background: var(--surface); color: var(--ink); animation-name: pista-borde-izq; }
+@keyframes pista-borde-izq { 50% { transform: translateX(5px) } }
+
+/* Cartas del álbum: lo que falta se ve como una carta boca abajo (dorso con el patrón del marco);
+   lo que se ganó, boca arriba con marco hueso, sombra y un leve giro. */
+.ranuras-afiche li, .recursos li { --dorso: linear-gradient(color-mix(in srgb, var(--tema-banda) 72%, transparent), color-mix(in srgb, var(--tema-banda) 72%, transparent)), var(--tema-patron) center / calc(var(--tema-tam, 96px) * .5) repeat, var(--tema-banda); }
+.ranuras-afiche li:not(.lleno), .recursos li:not(.lleno) { border: 2px solid var(--ink); border-radius: 7px; background: var(--dorso); color: var(--tema-tinta);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--tema-tinta) 45%, transparent); }
+[data-visual="Orgánica"] .ranuras-afiche li { border-radius: 10px; }
+.ranuras-afiche li:not(.lleno) .material-symbols-outlined { opacity: .9; }
+.recursos li:not(.lleno) .material-symbols-outlined { opacity: .95; }
+.ranuras-afiche li.lleno, .recursos li.lleno { border: 2px solid var(--ink); border-radius: 7px; box-shadow: 2px 3px 0 var(--ink), inset 0 0 0 3px #F4EEE3; }
+[data-visual="Orgánica"] .ranuras-afiche li.lleno, [data-visual="Orgánica"] .recursos li.lleno { border-radius: 10px; box-shadow: 0 6px 12px -6px rgba(0, 0, 0, .55), inset 0 0 0 3px #F4EEE3; }
+.ranuras-afiche li.lleno img { padding: 3px; border-radius: 6px; }
+.ranuras-afiche li.lleno:nth-child(odd), .recursos li.lleno:nth-child(odd) { transform: rotate(-2.5deg); }
+.ranuras-afiche li.lleno:nth-child(even), .recursos li.lleno:nth-child(even) { transform: rotate(2deg); }
+.recursos li:not(.lleno) > span:not(.material-symbols-outlined):not(.sr-only) { padding: 0 4px; border-radius: 3px; background: color-mix(in srgb, var(--tema-banda) 85%, transparent); }
+.recursos li.con-imagen img { inset: 3px; width: calc(100% - 6px); height: calc(100% - 6px); border-radius: 4px; }
+
+@media (max-height: 760px) {
+  .caceria .ayuda { display: none; } /* en pantallas bajas, «Buscar afiches» ya lo dice: los afiches ganan alto */
+  .caceria { grid-template-rows: auto minmax(0, 1fr) auto; }
+  .barra-timbres { padding-top: 3px; padding-bottom: 3px; }
+  .barra-timbres-ranuras li { width: 30px; height: 30px; }
+  .deslizar-jugar { height: 54px; padding: 2px 4px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .deslizar-texto, .deslizar-flechas i, .pista-borde, .deslizar-jugar:not(.arrastrando) .deslizar-ficha { animation: none; }
+  .deslizar-texto { color: var(--surface); background: none; }
+  .deslizar-flechas i { opacity: 1; }
+  .barra-timbres-medidor span, .deslizar-jugar.soltando .deslizar-ficha { transition: none; }
+}
+
+/* B-017, trozo 3 · animaciones cortas al ganar */
+/* El timbre que llega salta en su ranura de la barra; el medidor se llena con rebote (transición de arriba). */
+.barra-timbres-ranuras li.salta { animation: salta-timbre .9s cubic-bezier(.2, .9, .3, 1.4) both; position: relative; z-index: 1; }
+.barra-timbres-ranuras li.salta::after { content: ""; position: absolute; inset: -4px; border-radius: inherit; border: 3px solid var(--accent); animation: tinta .8s ease-out .2s both; pointer-events: none; }
+@keyframes salta-timbre { 0% { transform: scale(.3) rotate(-25deg); opacity: 0 } 55% { transform: scale(1.4) rotate(8deg); opacity: 1 } 80% { transform: scale(.92) rotate(-3deg) } 100% { transform: scale(1) rotate(0) } }
+[data-visual="Pixel"] .barra-timbres-ranuras li.salta { animation-timing-function: steps(6, end); }
+/* La credencial completa: la barra brilla una vez. */
+.barra-timbres.completa .barra-timbres-medidor span { background: linear-gradient(100deg, var(--accent) 35%, #F4EEE3 50%, var(--accent) 65%) 0 0 / 300% 100%; animation: brillo-texto 2.8s linear infinite; }
+/* Una creación que llega desde una mesa se da vuelta como una carta. */
+.recursos li.nuevo { animation: carta-vuelta .8s cubic-bezier(.2, .9, .3, 1.25) both; }
+@keyframes carta-vuelta { 0% { transform: perspective(400px) rotateY(180deg) scale(.85) } 60% { transform: perspective(400px) rotateY(-12deg) scale(1.12) } 100% { transform: perspective(400px) rotateY(0) scale(1) } }
+[data-visual="Pixel"] .recursos li.nuevo { animation-timing-function: steps(6, end); }
+@media (prefers-reduced-motion: reduce) {
+  .barra-timbres-ranuras li.salta, .barra-timbres-ranuras li.salta::after, .barra-timbres.completa .barra-timbres-medidor span, .recursos li.nuevo { animation: none; }
+}
