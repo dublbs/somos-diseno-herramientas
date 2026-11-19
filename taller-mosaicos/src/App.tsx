@@ -301,16 +301,6 @@ export const App: React.FC = () => {
         setEstadoMsg('Área girada 90°.');
         break;
       }
-      case 'vaciar': {
-        for (let y = 0; y < sel.h; y++) {
-          for (let x = 0; x < sel.w; x++) {
-            delete nuevas[`${sel.x + x},${sel.y + y}`];
-          }
-        }
-        setCeldas(nuevas);
-        setEstadoMsg('Área borrada.');
-        break;
-      }
     }
   };
 
@@ -440,7 +430,7 @@ export const App: React.FC = () => {
     girar: 'Toca una celda del mosaico para girarla 90°.',
     reflejar: 'Toca una celda del mosaico para reflejarla.',
     borrar: 'Toca o arrastra para borrar celdas.',
-    seleccionar: 'Arrastra para elegir un área y multiplícala: repetir, escalonar, simetría.',
+    seleccionar: 'Arrastra para elegir un área y conviértela en patrón: repetir, escalonar, espejo o simetría.',
   };
 
   if (!visto) return (
@@ -448,7 +438,7 @@ export const App: React.FC = () => {
       pasos={[
         { icono: 'grid_view', texto: 'Elige un módulo de la biblioteca.' },
         { icono: 'draw', texto: 'Toca la grilla: pon, gira y refleja.' },
-        { icono: 'repeat', texto: 'Multiplica un área, cambia la paleta y llévate tu patrón con un QR.' },
+        { icono: 'repeat', texto: 'Con Multiplicar, convierte un área en patrón. Cambia la paleta y llévatelo con un QR.' },
       ]}
       acciones={[{ texto: 'Empezar a diseñar', icono: 'grid_on', alTocar: marcarVisto }]} />
   );
@@ -475,6 +465,7 @@ export const App: React.FC = () => {
             pincel={pincel}
             onCambiarPincel={setPincel}
             sel={sel}
+            bloqueSel={sel ? bloqueDeSeleccion(sel) : null}
             onEjecutarOp={ejecutarOp}
             grilla={grilla}
             onToggleGrilla={setGrilla}

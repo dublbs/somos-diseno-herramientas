@@ -13,9 +13,15 @@
 /* Orientación: miniaturas dentro del segmento */
 .h-seg canvas { display: block; border-radius: 2px; }
 
-/* Operaciones de Multiplicar: 2 columnas de botones con ícono y nombre */
+/* Operaciones de Multiplicar (T-007): 2 columnas; cada botón lleva la vista previa de su efecto sobre el nombre */
 .ops { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--h-e2); }
-.ops .h-btn { justify-content: flex-start; padding: 0 var(--h-e3); font-size: var(--h-tam-chico); }
+.ops .op-btn.h-btn { flex-direction: column; gap: var(--h-e1); padding: var(--h-e2); font-size: var(--h-tam-chico); }
+.op-previa { display: grid; place-items: center; width: 100%; height: 60px; }
+.op-previa canvas { display: block; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
+/* Sin área elegida el botón está apagado, pero el ejemplo se tiene que leer: es lo que explica la operación. */
+.ops .op-btn.h-btn:disabled { opacity: 1; border-style: dashed; }
+.op-btn:disabled .op-previa { opacity: .8; }
+.op-btn:disabled .h-btn-texto { opacity: .5; }
 
 /* Paletas: 4 por fila */
 .paletas.h-muestras { grid-template-columns: repeat(4, minmax(0, 1fr)); }
