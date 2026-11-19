@@ -7,11 +7,10 @@ Reglas y pipeline: [`README.md`](README.md). Plan del día: [`manana.md`](manana
 **Assets:** para el HUB, Amaro autorizó crear arte nuevo sin Figma (D-002). La vara: que se vea terminado, como un
 producto real. Respeta la paleta Línea azul y los tres lenguajes: plaza Orgánica, mezanina Geométrica y andén Pixel.
 
-Orden: T-008 (Teatro, está en [`thomas.md`](thomas.md)) → P-005 → P-002 → P-001 → P-003 → P-004.
+**Esta noche Felipe hace la lista completa de [`manana.md`](manana.md)**, no solo esta cola. Aquí van las tareas del HUB, que no tienen otro dueño. Orden dentro del HUB: P-005 → P-002 → P-001 → P-003 → P-004.
 
 ## P-005 · «Mezanina» en todo el HUB
-- Estado: Mañana. Va primero porque es rápida, y solo después de que se mergee el PR de `amaro/ronda-3b` (B-002), que
-  ya trae el cambio.
+- Estado: El cambio ya viene en #55 (ronda-3b). Solo hay que revisar que no quede ninguno.
 - Cambio: `grep -rn "Mezanine" hub-estacion/src` no debe encontrar nada, tampoco en los carteles ni en el README.
 - Aceptación: en pantalla se lee «Mezanina · Geométrica».
 

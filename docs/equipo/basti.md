@@ -9,7 +9,7 @@ Reglas y pipeline: [`README.md`](README.md).
 **El agente nunca corre SQL en producción.** Escribe la migración y la prueba en local; la corre una persona.
 
 ## B-002 · Rescatar el trabajo que quedó en ramas sin PR
-- Estado: Mañana, primero (`manana.md`). Antes de tocar `claude/escaner-afiches`, pregunta a Amaro o Felipe si alguien la sigue
+- Estado: Hecha en #55 (ronda-3b y pauta-prueba-grupo; escaner-afiches ya estaba en main)
   se movió el 19 nov.
 - Origen: E-004
 - Ramas:
@@ -119,7 +119,7 @@ Reglas y pipeline: [`README.md`](README.md).
 - Aceptación: capturas antes y después de cada uno en el PR. Las 48 pruebas del motor siguen en verde.
 
 ## B-008 · Hora punta: andén, llegada del Inacapín y avance del escenario
-- Estado: Mañana, la hace **Thomas** (`manana.md`): en la mañana Basti tiene la credencial
+- Estado: Esta noche Felipe; mañana, si no la tomó, Basti (`manana.md`)
 - Origen: F-002
 - Referencias: `docs/equipo/referencias/metro-web-pixel.png` para el metro de fondo, que se queda.
 - Cambio:
@@ -134,7 +134,7 @@ Reglas y pipeline: [`README.md`](README.md).
 - Aceptación: video corto o capturas de la secuencia en el PR. Las pruebas del motor siguen en verde.
 
 ## B-009 · Hora punta: la caminata del Inacapín
-- Estado: Mañana, la hace **Thomas** (`manana.md`): en la mañana Basti tiene la credencial
+- Estado: Esta noche Felipe; mañana, si no la tomó, Basti (`manana.md`)
 - Origen: F-002
 - Archivos: `juego-pixel/src/` (`jefe.ts` y su dibujo), `juego-pixel/public/figma/inacapin.svg`. Figma: archivo
   `Yo9o3ZG2lyaEGcyxoxs89R`, sección «Inacapin · investigación del personaje versión 2».
