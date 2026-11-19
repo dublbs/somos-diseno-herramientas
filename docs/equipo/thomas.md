@@ -6,7 +6,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
 **El orden de este archivo es la prioridad.** Se toma la primera tarea en estado «Lista».
 
 ## T-004 · La pantalla completa no se pierde al entrar a una experiencia
-- Estado: Después del evento (no entra en la ventana de 8 a 10, ver `manana.md`)
+- Estado: Fuera de alcance (Amaro, 19 nov): no se hace app instalable. Mañana el staff vuelve a poner pantalla completa a mano
 - Origen: F-002
 - Contexto: el navegador **siempre** sale de pantalla completa al cambiar de página, porque cada experiencia es otra
   página (`<app>/dist/`). Eso no se arregla con JavaScript.
@@ -25,7 +25,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
 - Aceptación: instalada en la tablet, entrar y salir de 3 experiencias seguidas no muestra la barra del navegador.
 
 ## T-005 · Copy del inicio
-- Estado: Lista
+- Estado: Mañana (`manana.md`)
 - Origen: F-002
 - Archivo: `index.html`, líneas ~86–99 (marca y encabezado) y el `<title>`.
 - Cambio:
@@ -39,7 +39,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
   resoluciones.
 
 ## T-006 · Vista previa de Hora punta en el inicio
-- Estado: Lista
+- Estado: Mañana (`manana.md`)
 - Origen: F-002
 - Archivo: la miniatura de Hora punta que usa `index.html`. Busca qué imagen usa la tarjeta.
 - Cambio:
@@ -50,7 +50,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
 - Aceptación: la tarjeta muestra el juego tal como se ve hoy.
 
 ## T-007 · Mosaicos: «Multiplicar» se explica o se quita
-- Estado: Lista
+- Estado: Mañana (`manana.md`)
 - Origen: F-002 (Amaro: «si no se justifica por sí sola, es innecesario»)
 - Archivos: `taller-mosaicos/src/components/Panel.tsx`, `App.tsx`, `styles.css`.
 - Cambio:
@@ -62,7 +62,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
   limpia.
 
 ## T-008 · Teatro: escenario arriba y piezas con mejor dibujo
-- Estado: Lista solo para Felipe mañana (`manana.md`); el Guanaco, después del evento
+- Estado: Mañana, la hace **Felipe** completa, Guanaco incluido (`manana.md`)
   Felipe escriba «ok» aquí.
 - Archivos: `loops/src/` (panel y piezas Huemul, Pez y Guanaco).
 - Cambio:
@@ -76,7 +76,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
   resoluciones.
 
 ## T-009 · Graffiti: el muro del vagón como el metro de la web
-- Estado: Después del evento (no entra en la ventana de 8 a 10, ver `manana.md`)
+- Estado: Mañana (`manana.md`)
 - Origen: F-002
 - Referencias:
   - `docs/equipo/referencias/metro-web-pixel.png`: el metro Pixel de la web. Manda esta.
@@ -92,7 +92,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
 - Aceptación: puesto junto a la referencia, se reconoce el mismo tren. Los demás muros no cambian.
 
 ## T-010 · Audioreactiva a todo el lienzo
-- Estado: Después del evento (no entra en la ventana de 8 a 10, ver `manana.md`)
+- Estado: Mañana (`manana.md`)
 - Origen: F-002
 - Archivos: `audioreactiva/src/`.
 - Cambio:
@@ -105,7 +105,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
   encuadrada.
 
 ## T-011 · Grabado: el taco aparece animado y nada se pixela
-- Estado: Mañana solo si sobra tiempo (`manana.md`)
+- Estado: Mañana, la hace **Felipe** (`manana.md`)
 - Origen: F-002
 - Archivos: `grabado/src/`.
 - Cambio:
@@ -118,7 +118,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
   ve al poner un taco.
 
 ## T-012 · Cabina: cambiar el marco «pizarra» por uno de calle
-- Estado: Mañana: solo quitar la pizarra de la lista de marcos (`manana.md`). El marco de calle nuevo, después del evento: antes de construirlo, propón 2 opciones en el PR borrador y espera que Amaro elija
+- Estado: Mañana (`manana.md`). Antes de construir, propón 2 opciones en el PR borrador; Amaro elige en 5 minutos
 - Origen: F-002
 - Archivos: `shared/marcos.ts` (`PM01`, «pizarra», línea ~56), el asset del marco y `scripts/marcos-*.py` si se
   genera. Lo usan la Cabina y la credencial.
@@ -130,7 +130,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
 - Aceptación: el marco nuevo funciona en la Cabina y en la credencial, y la pizarra ya no aparece.
 
 ## T-002 · Script de verificación de pantalla para todas las experiencias
-- Estado: Después del evento (no entra en la ventana de 8 a 10, ver `manana.md`)
+- Estado: Después del evento (script o informe: no cambia lo que ve la gente; el informe de uso necesita la actividad terminada)
 - Origen: regla de pantalla de `AGENTS.md`. Hoy cada agente la hace a mano y de forma distinta.
 - Archivos: nuevo `scripts/qa-pantalla/verificar.mjs` y `scripts/qa-pantalla/README.md`. No toca las apps.
 - Cambio:
@@ -153,7 +153,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
   - el README explica cómo correrlo.
 
 ## T-003 · Pasada de pantalla después del evento y hallazgos
-- Estado: Después del evento (no entra en la ventana de 8 a 10, ver `manana.md`)
+- Estado: Después del evento (script o informe: no cambia lo que ve la gente; el informe de uso necesita la actividad terminada)
 - Origen: E-007
 - Archivos: `docs/qa/pantalla-<fecha>.md` y la sección «Hallazgos» de este archivo.
 - Cambio:
@@ -162,7 +162,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
 - Aceptación: el informe existe y Amaro o Felipe pueden pasar cada falla a una tarea.
 
 ## T-001 · Qué falta del Teatro: auditoría de solo lectura
-- Estado: Después del evento (no entra en la ventana de 8 a 10, ver `manana.md`)
+- Estado: Después del evento (script o informe: no cambia lo que ve la gente; el informe de uso necesita la actividad terminada)
 - Origen: E-006
 - Archivos: lectura de `loops/` y `docs/tasks/008-teatro.md`. Escribe solo `docs/qa/teatro-estado.md`.
 - Cambio:

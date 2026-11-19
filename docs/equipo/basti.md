@@ -9,7 +9,7 @@ Reglas y pipeline: [`README.md`](README.md).
 **El agente nunca corre SQL en producción.** Escribe la migración y la prueba en local; la corre una persona.
 
 ## B-002 · Rescatar el trabajo que quedó en ramas sin PR
-- Estado: Mañana, primero: solo `amaro/ronda-3b` (Chas y Mezanina). Las otras dos ramas, después del evento. Antes de tocar `claude/escaner-afiches`, pregunta a Amaro o Felipe si alguien la sigue
+- Estado: Mañana, primero (`manana.md`). Antes de tocar `claude/escaner-afiches`, pregunta a Amaro o Felipe si alguien la sigue
   se movió el 19 nov.
 - Origen: E-004
 - Ramas:
@@ -27,7 +27,7 @@ Reglas y pipeline: [`README.md`](README.md).
 - Aceptación: tres PR abiertos y en verde, o el motivo escrito de por qué uno no tiene sentido.
 
 ## B-006 · Hora punta: el tutorial sale con la UI antigua
-- Estado: Lista
+- Estado: Mañana (`manana.md`)
 - Origen: F-002
 - Archivos: `juego-pixel/src/App.tsx` (línea ~329, `Tutorial etiqueta="Pixel · juego"`), `juego-pixel/index.html` y
   `vite.config`.
@@ -40,7 +40,7 @@ Reglas y pipeline: [`README.md`](README.md).
 - Aceptación: las 10 capturas iguales y con el kit v2.
 
 ## B-007 · Hora punta: sprites (latas, aplastado, micros, personaje)
-- Estado: Mañana: aplastado, lágrima y puerta de la micro; las latas, si alcanza (`manana.md`)
+- Estado: Mañana (`manana.md`)
 - Origen: F-002
 - Archivos: `juego-pixel/src/` (dibujo de sprites) y `juego-pixel/public/figma/` si el arte viene de ahí.
 - Cambio:
@@ -53,7 +53,7 @@ Reglas y pipeline: [`README.md`](README.md).
 - Aceptación: capturas antes y después de cada uno en el PR. Las 48 pruebas del motor siguen en verde.
 
 ## B-008 · Hora punta: andén, llegada del Inacapín y avance del escenario
-- Estado: Después del evento (no entra en la ventana de 8 a 10, ver `manana.md`)
+- Estado: Mañana (`manana.md`)
 - Origen: F-002
 - Referencias: `docs/equipo/referencias/metro-web-pixel.png` para el metro de fondo, que se queda.
 - Cambio:
@@ -68,7 +68,7 @@ Reglas y pipeline: [`README.md`](README.md).
 - Aceptación: video corto o capturas de la secuencia en el PR. Las pruebas del motor siguen en verde.
 
 ## B-009 · Hora punta: la caminata del Inacapín
-- Estado: Después del evento (no entra en la ventana de 8 a 10, ver `manana.md`)
+- Estado: Mañana (`manana.md`)
 - Origen: F-002
 - Archivos: `juego-pixel/src/` (`jefe.ts` y su dibujo), `juego-pixel/public/figma/inacapin.svg`. Figma: archivo
   `Yo9o3ZG2lyaEGcyxoxs89R`, sección «Inacapin · investigación del personaje versión 2».
@@ -79,7 +79,7 @@ Reglas y pipeline: [`README.md`](README.md).
 - Aceptación: un GIF o una tira de cuadros en el PR.
 
 ## B-010 · Hora punta: HUD y controles de tablet
-- Estado: Mañana: solo la lata con número y los puntos legibles (`manana.md`). Los controles nuevos, después del evento
+- Estado: Mañana (`manana.md`)
 - Origen: F-002
 - Cambio:
   - **Pintura**: la lata del HUD muestra cuánto queda, con un número o una barra dentro de la lata.
@@ -94,7 +94,7 @@ Reglas y pipeline: [`README.md`](README.md).
   controles. Anota en el PR qué probaste y con quién.
 
 ## B-001 · Prueba de humo de la base en producción (solo lectura)
-- Estado: Después del evento (no entra en la ventana de 8 a 10, ver `manana.md`)
+- Estado: Después del evento (script o informe: no cambia lo que ve la gente; el informe de uso necesita la actividad terminada)
 - Origen: E-003
 - Archivos: nuevo `scripts/qa-base/prod-humo.sh` (o `.mjs`) y una sección en `docs/qa/qa-base-de-datos.md`.
 - Cambio:
@@ -109,7 +109,7 @@ Reglas y pipeline: [`README.md`](README.md).
 - Aceptación: el comando imprime una tabla RPC → estado → migración, y tras correr 008→011 todo dice «existe».
 
 ## B-003 · Informe de los PR viejos (#34, #38, #48, #35)
-- Estado: Después del evento (no entra en la ventana de 8 a 10, ver `manana.md`)
+- Estado: Después del evento (script o informe: no cambia lo que ve la gente; el informe de uso necesita la actividad terminada)
 - Origen: E-005
 - Archivos: escribe solo `docs/qa/pr-pendientes.md`.
 - Cambio, para cada PR:
@@ -122,7 +122,7 @@ Reglas y pipeline: [`README.md`](README.md).
 - Aceptación: Amaro o Felipe pueden decidir cada PR leyendo solo ese archivo.
 
 ## B-004 · Informe de uso del evento (cifras sin datos personales)
-- Estado: Después del evento (no entra en la ventana de 8 a 10, ver `manana.md`)
+- Estado: Después del evento (script o informe: no cambia lo que ve la gente; el informe de uso necesita la actividad terminada)
 - Archivos: nuevo `scripts/informe-evento.mjs` y `docs/qa/informe-evento-19nov.md`.
 - Cambio:
   - Script de solo lectura con la clave publishable. Cuenta:
