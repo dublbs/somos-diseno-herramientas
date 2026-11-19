@@ -129,7 +129,7 @@ export function App() {
   if (!visto) return (
     <>
       {input}
-      <Tutorial etiqueta="Los tres lenguajes · imagen e identidad" titulo="Fotomatón" volver={volver}
+      <Tutorial etiqueta="Los tres lenguajes · imagen e identidad" titulo="Cabina de fotos" volver={volver}
         pasos={[
           { icono: 'photo_camera', texto: 'Sácate una foto: la cámara ya muestra el efecto y el marco.' },
           { icono: 'palette', texto: 'A la derecha eliges lenguaje, marco, efecto y tinta.' },

@@ -39,7 +39,7 @@ export function Camara({ lado, marco, celda, tinta, apagadas, vivo, alFoto, alSu
 
   const estado = cam === 'error' ? 'Sin cámara: puedes subir una foto' : cam === 'tocar' ? 'Activa la cámara para empezar' : cam === 'pidiendo' ? 'Abriendo la cámara…' : personas > 1 ? `Grupo de ${personas} personas ✓` : personas === 1 ? 'Cara centrada ✓' : 'Mira a la cámara, solo o en grupo';
   return (
-    <MarcoHerramienta titulo="Fotomatón" volver={volver} ayuda="Tu foto se procesa en este dispositivo y no se guarda"
+    <MarcoHerramienta titulo="Cabina de fotos" volver={volver} ayuda="Tu foto se procesa en este dispositivo y no se guarda"
       acciones={acciones} anchoPanel={320} panel={panel} aviso={aviso}
       herramientas={<div className="pie-foto"><p className="estado-foto" role="status">{estado}</p>
         <Disparador texto="Foto" etiqueta="Sacar foto" onClick={disparar} disabled={cam !== 'lista' || !!cuenta || cambiando} /><span /></div>}>
