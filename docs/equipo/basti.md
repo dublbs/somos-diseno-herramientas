@@ -1,6 +1,6 @@
 # Cola de Basti · carril Plataforma
 
-Zona: `credencial/`, `admin/` (PC madre), `hub-estacion/` (HUB y Flip), `accesos/`, `shared/juego.ts`,
+Zona: `juego-pixel/` (Hora punta), `credencial/`, `admin/` (PC madre), `hub-estacion/` (HUB y Flip), `accesos/`, `shared/juego.ts`,
 `shared/datos.ts`, `shared/ui/Juego.tsx`, `shared/supabase/`, `scripts/qa-base/`, `docs/qa/`.
 Reglas y pipeline: [`README.md`](README.md).
 
@@ -25,6 +25,73 @@ Reglas y pipeline: [`README.md`](README.md).
   - `amaro/ronda-3b` toca `audioreactiva/`, que es del carril de Thomas: no cambies nada ahí, solo recompila. Pídele a
     Thomas que pruebe el Chas en la tablet (anótalo en el PR).
 - Aceptación: tres PR abiertos y en verde, o el motivo escrito de por qué uno no tiene sentido.
+
+## B-006 · Hora punta: el tutorial sale con la UI antigua
+- Estado: Lista
+- Origen: F-002
+- Archivos: `juego-pixel/src/App.tsx` (línea ~329, `Tutorial etiqueta="Pixel · juego"`), `juego-pixel/index.html` y
+  `vite.config`.
+- Cambio:
+  - La primera vez que se entra, el tutorial **a veces** aparece con la vista Pixel antigua (kit v1). Busca la carrera:
+    `data-ui="v2"` puesto tarde, CSS del kit v1 cargando antes, o `data-visual` aplicado al tutorial.
+  - Haz que el tutorial salga siempre con el kit v2 desde el primer cuadro.
+- Verificar: 10 cargas en frío seguidas (con `sessionStorage` vacío) en 1180×820, con captura del primer cuadro del
+  tutorial.
+- Aceptación: las 10 capturas iguales y con el kit v2.
+
+## B-007 · Hora punta: sprites (latas, aplastado, micros, personaje)
+- Estado: Lista
+- Origen: F-002
+- Archivos: `juego-pixel/src/` (dibujo de sprites) y `juego-pixel/public/figma/` si el arte viene de ahí.
+- Cambio:
+  - **Latas de spray**: que se lean como latas de pintura: cuerpo cilíndrico, tapa y válvula, brillo vertical y etiqueta
+    de color.
+  - **Aplastado**: el personaje se ve solo aplastado, como una «galleta» que rebota. Quita el charco de pintura.
+  - **Micros**: suma la puerta del medio, por donde se baja la gente. Toma como referencia las micros red de Santiago
+    que ya están (#47).
+  - **Personaje Pinta**: quita lo que parece una lágrima rosada en la cara y haz que se note el spray en la mano.
+- Aceptación: capturas antes y después de cada uno en el PR. Las 48 pruebas del motor siguen en verde.
+
+## B-008 · Hora punta: andén, llegada del Inacapín y avance del escenario
+- Estado: Lista
+- Origen: F-002
+- Referencias: `docs/equipo/referencias/metro-web-pixel.png` para el metro de fondo, que se queda.
+- Cambio:
+  - **Andén** con más trabajo de escenario: señalética, bancas, pilares, la línea amarilla del borde y luz. Usa el estilo
+    Pixel del juego.
+  - **Llegada del Inacapín**: reemplaza el aviso emergente «llegó el Inacapín» por una escena corta dentro del juego, de
+    unos 2–3 s y sin controles. El Inacapín entra (baja del metro, sale de un túnel o cae desde arriba), el escenario
+    cambia de color y empieza la pelea. Se puede saltar con un toque.
+  - **Segunda ronda de Grises**: el escenario también cambia (luz, color o un elemento nuevo) para que se sienta un
+    avance.
+  - Con `prefers-reduced-motion`, sin sacudidas de cámara.
+- Aceptación: video corto o capturas de la secuencia en el PR. Las pruebas del motor siguen en verde.
+
+## B-009 · Hora punta: la caminata del Inacapín
+- Estado: Lista
+- Origen: F-002
+- Archivos: `juego-pixel/src/` (`jefe.ts` y su dibujo), `juego-pixel/public/figma/inacapin.svg`. Figma: archivo
+  `Yo9o3ZG2lyaEGcyxoxs89R`, sección «Inacapin · investigación del personaje versión 2».
+- Cambio:
+  - Ciclo de caminata de 4 a 6 cuadros en el que se mueven **las piernas completas y los brazos**, no solo las rodillas.
+  - Expresión **más enojada**: cejas y boca.
+  - Si hace falta arte nuevo, sácalo de Figma o pídeselo a Amaro. No lo inventes.
+- Aceptación: un GIF o una tira de cuadros en el PR.
+
+## B-010 · Hora punta: HUD y controles de tablet
+- Estado: Lista
+- Origen: F-002
+- Cambio:
+  - **Pintura**: la lata del HUD muestra cuánto queda, con un número o una barra dentro de la lata.
+  - **Rombo rosado**: averigua qué es. Si sirve, dale ícono y contraste; si no, quítalo.
+  - **Puntos**: que se lean sobre cualquier fondo, con placa oscura o contorno.
+  - **Controles**: repiénsalos para una tablet sostenida con dos manos.
+    - Zonas grandes en las esquinas inferiores, de al menos 64 px.
+    - Lo que se hace con el pulgar izquierdo, a la izquierda; disparar y saltar, a la derecha.
+    - Sin tapar el juego.
+    - Prueba en 1024×768 y 1180×820.
+- Aceptación: en las capturas se lee todo el HUD sin esfuerzo, y una persona puede jugar el nivel 1 sin mirar los
+  controles. Anota en el PR qué probaste y con quién.
 
 ## B-001 · Prueba de humo de la base en producción (solo lectura)
 - Estado: Lista. El script se puede hacer ya; correrlo con sentido requiere que una persona haya corrido 008→011 (E-003).

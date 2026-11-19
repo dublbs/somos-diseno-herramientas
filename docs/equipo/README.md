@@ -37,8 +37,9 @@ Los carriles están hechos para que Thomas y Basti no choquen en los mismos arch
 
 | Carril | Persona | Zona (puede editar) | Pide permiso para |
 |---|---|---|---|
-| **Experiencias** | Thomas | `fotomaton/`, `taller-mosaicos/`, `graffiti/`, `grabado/`, `audioreactiva/`, `juego-pixel/`, `index.html`, `shared/ui/` salvo `Juego.tsx`, `shared/marcos*.ts`, `scripts/marcos-*.py` | `loops/` (Teatro es de Felipe: solo con una tarea que lo diga) |
-| **Plataforma** | Basti | `credencial/`, `admin/`, `hub-estacion/`, `accesos/`, `shared/juego.ts`, `shared/datos.ts`, `shared/ui/Juego.tsx`, `shared/supabase/`, `scripts/qa-base/`, `docs/qa/` | Correr SQL en producción: **nunca lo hace el agente**, lo hace una persona |
+| **Experiencias** | Thomas | `fotomaton/`, `taller-mosaicos/`, `graffiti/`, `grabado/`, `audioreactiva/`, `index.html`, `shared/ui/` salvo `Juego.tsx`, `shared/marcos*.ts`, `scripts/marcos-*.py` | `loops/` (Teatro es de Felipe: solo con una tarea que lo diga) |
+| **Plataforma** | Basti | `juego-pixel/` (Hora punta), `credencial/`, `admin/`, `hub-estacion/`, `accesos/`, `shared/juego.ts`, `shared/datos.ts`, `shared/ui/Juego.tsx`, `shared/supabase/`, `scripts/qa-base/`, `docs/qa/` | Correr SQL en producción: **nunca lo hace el agente**, lo hace una persona |
+| Referencias | — | `docs/equipo/referencias/` (imágenes de Amaro: metro de la web, Línea 1) | — |
 | Coordinación | Amaro, Felipe | `docs/plans/`, `docs/equipo/` (salvo estado y hallazgos), `AGENTS.md`, merges | — |
 
 - Si una tarea necesita tocar la zona del otro carril, el agente **se detiene** y lo anota como hallazgo. Amaro o
@@ -102,8 +103,8 @@ qué no, y los hallazgos que anotaste.
 ```
 **Basti**
 ```text
-Soy Basti. Trabajas en el repo dublbs/somos-diseno-herramientas, en el carril «Plataforma» (credencial, PC madre,
-HUB, juego y Supabase). Haz git fetch origin y lee, en este orden: AGENTS.md, docs/equipo/README.md,
+Soy Basti. Trabajas en el repo dublbs/somos-diseno-herramientas, en el carril «Plataforma» (Hora punta, credencial,
+PC madre, HUB, juego y Supabase). Haz git fetch origin y lee, en este orden: AGENTS.md, docs/equipo/README.md,
 docs/equipo/basti.md y shared/supabase/migraciones/README.md. Toma la primera tarea con estado «Lista» de
 docs/equipo/basti.md y síguela con las reglas de docs/equipo/README.md: rama basti/<tema> desde origin/main, PR
 borrador apenas empieces, SQL solo en migraciones nuevas e idempotentes (nunca lo corras en producción), dist solo de
