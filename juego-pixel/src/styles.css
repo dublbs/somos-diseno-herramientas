@@ -74,3 +74,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: non
 /* En el andén y el jefe la arena usa todo el alto: los controles van sobre sus bordes, un poco más transparentes. */
 .hp:not([data-nivel="cruce"]) .tecla { background: rgba(255, 255, 255, .45); }
 .hp:not([data-nivel="cruce"]) .hud { top: 8px; left: 8px; }
+
+/* Llegada del Inacapín (B-008): la escena no tiene controles; solo «Empezar», para saltarla (también sirve tocar el lienzo). */
+.hp-saltar { position: absolute; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); min-height: 56px; padding: 0 20px;
+  background: rgba(20, 18, 16, .9); color: #F4EEE3; border: 2px solid #000; box-shadow: 3px 3px 0 rgba(0, 0, 0, .45); font-size: 16px; }
+.hp-saltar:hover { background: #000; }

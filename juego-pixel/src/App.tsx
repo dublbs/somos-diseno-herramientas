@@ -10,6 +10,7 @@ import { HUESO, NOMBRE_PINTURA, TIROS_POR_LATA, type Pieza } from './juego/comun
 import { dibujarCruce, type Imagenes } from './juego/dibujoCruce';
 import { dibujarAnden } from './juego/dibujoAnden';
 import { dibujarJefe, retratoInacapin } from './juego/dibujoJefe';
+import { LLEGADA_MS } from './juego/llegada';
 import { lienzoPinta } from './juego/personajes';
 import { dibujarMural, miniaturaMural } from './juego/mural';
 import { crearTarjeta, type Resumen } from './juego/tarjeta';
@@ -23,7 +24,7 @@ const TITULO = 'Hora punta';
 const MIN_PUNTOS_CREACION = 5;
 const ESPERA_FIN = 1200; // ms entre el final del cruce y su tarjeta
 type Nivel = 'cruce' | 'anden' | 'jefe';
-type Etapa = Nivel | 'paso' | 'paso2' | 'fin';
+type Etapa = Nivel | 'paso' | 'llegada' | 'fin'; // llegada: la escena del Inacapín antes de la pelea (B-008)
 type Accion = 'arriba' | 'abajo' | 'izq' | 'der' | 'lanzar';
 const NOMBRE_NIVEL: Record<Nivel, string> = { cruce: 'Nivel 1 · El cruce', anden: 'Nivel 2 · El andén', jefe: 'Jefe · El Inacapín' };
 
@@ -129,6 +130,7 @@ export const App: React.FC = () => {
   const jefe = useRef<Jefe | null>(NIVEL === 3 ? nuevoJefe(coloresJefe(LATAS_PRUEBA, PIEZAS_PRUEBA)) : null);
   const camara = useRef(0);
   const espera = useRef(0); // ms desde que el cruce terminó (choque o llegada)
+  const llegadaMs = useRef(0); // ms de la escena de llegada del Inacapín (B-008)
   const img = useRef<Imagenes>({ personaje: null, metro: null });
   const calidad = useRef(0); // paso de densidad del lienzo (0 = la de la pantalla); ver `densidades`
   const rinde = useRef({ n: 0, suma: 0 });
@@ -155,7 +157,7 @@ export const App: React.FC = () => {
     img.current = { personaje: lienzoPinta('quieto'), metro: null }; // Pinta y el metro se dibujan en código (ronda 3)
   }, []);
 
-  const nivel: Nivel = etapa === 'jefe' || etapa === 'paso2' || (etapa === 'fin' && resumen?.nivel === 3) ? 'jefe'
+  const nivel: Nivel = etapa === 'jefe' || etapa === 'llegada' || (etapa === 'fin' && resumen?.nivel === 3) ? 'jefe'
     : etapa === 'anden' || etapa === 'paso' || (etapa === 'fin' && resumen?.nivel === 2) ? 'anden' : 'cruce';
   const enJuego = etapa === 'cruce' || etapa === 'anden' || etapa === 'jefe';
   const corre = enJuego && !pausa && !intro;
@@ -181,10 +183,14 @@ export const App: React.FC = () => {
   }, [resumir]);
 
   const bajarAlAnden = () => { anden.current = nuevoAnden(cruce.current.latas); setEtapa('anden'); setIntro(false); setPausa(false); };
-  const enfrentarJefe = () => {
+  // Andén limpio: llega el Inacapín (escena corta, sin controles) y después empieza la pelea. Un toque la adelanta.
+  const llegaJefe = () => {
     jefe.current = nuevoJefe(coloresJefe(cruce.current.latas, anden.current?.juntadas ?? []));
-    setEtapa('jefe'); setIntro(false); setPausa(false);
+    llegadaMs.current = 0; setEtapa('llegada');
   };
+  const enfrentarJefe = () => { setEtapa(e => (e === 'llegada' ? 'jefe' : e)); setIntro(false); setPausa(false); };
+  // El toque que salta la escena no cuenta en los primeros 0,4 s: así no la salta el mismo dedo que limpió el andén.
+  const saltarLlegada = () => { if (llegadaMs.current > 400) enfrentarJefe(); };
 
   // Bucle del juego: avanza el nivel que toca y lo dibuja.
   useEffect(() => {
@@ -206,17 +212,21 @@ export const App: React.FC = () => {
       const ctx = c && c.width ? c.getContext('2d')! : null;
       const a = anden.current, j = jefe.current, q = quieto();
       const mando = Math.round(190 * (c && c.clientWidth ? c.width / c.clientWidth : 1)); // alto de los controles (en vertical van bajo la arena)
-      if (j && nivel === 'jefe' && etapa !== 'paso2') {
+      if (j && nivel === 'jefe' && etapa === 'llegada') {
+        llegadaMs.current += Math.min(dt, 100);
+        if (llegadaMs.current >= LLEGADA_MS) enfrentarJefe();
+        if (ctx) dibujarJefe(ctx, c!.width, c!.height, j, img.current, t, q, mando, llegadaMs.current);
+      } else if (j && nivel === 'jefe') {
         if (corre && etapa === 'jefe') {
           avanzarJefe(j, dt);
           if (j.fin) terminar(j.fin === 'victoria' ? '¡Le devolviste el color!' : '¡El Inacapín te dejó gris!');
         }
         if (ctx) dibujarJefe(ctx, c!.width, c!.height, j, img.current, t, q, mando);
-      } else if (a && (nivel === 'anden' || etapa === 'paso2')) {
+      } else if (a && nivel === 'anden') {
         if (corre && etapa === 'anden') {
           avanzarAnden(a, dt);
           if (a.fin) terminar('¡Un Gris te borró!');
-          else if (a.limpio) setEtapa('paso2');
+          else if (a.limpio) llegaJefe();
         }
         if (ctx) dibujarAnden(ctx, c!.width, c!.height, a, img.current, t, mando, q);
       } else {
@@ -314,6 +324,7 @@ export const App: React.FC = () => {
   const alBajar = (ev: React.PointerEvent) => { toque.current = { x: ev.clientX, y: ev.clientY }; };
   const alSoltar = (ev: React.PointerEvent) => {
     const t = toque.current; toque.current = null;
+    if (etapa === 'llegada') { saltarLlegada(); return; }
     if (!t) return;
     const dx = ev.clientX - t.x, dy = ev.clientY - t.y;
     if (etapa !== 'cruce') { apretar(dy > 40 && Math.abs(dy) > Math.abs(dx) ? 'abajo' : 'arriba'); return; }
@@ -464,18 +475,10 @@ export const App: React.FC = () => {
             </div>
           </div>
         )}
-        {etapa === 'paso2' && (
-          <div className="capa" role="dialog" aria-modal="true" aria-labelledby="paso2-t">
-            <div className="caja">
-              <h2 id="paso2-t">¡Llegó el Inacapín!</h2>
-              <Retrato partes={0} tam={96} />
-              <p className="ayuda">Limpiaste el andén, pero el Inacapín se quedó gris. Tu pintura no se acaba: sale de tus colores.</p>
-              <Reglas nivel="jefe" />
-              <button type="button" className="hp-btn hp-primario" onClick={enfrentarJefe} autoFocus>
-                <span className="material-symbols-outlined" aria-hidden="true">format_paint</span>Devolverle el color
-              </button>
-            </div>
-          </div>
+        {etapa === 'llegada' && (
+          <button type="button" className="hp-btn hp-saltar" onClick={saltarLlegada} autoFocus aria-label="¡Llegó el Inacapín! Empezar la pelea">
+            <span className="material-symbols-outlined" aria-hidden="true">play_arrow</span>Empezar
+          </button>
         )}
         {etapa === 'fin' && resumen && (
           <div className="capa" role="dialog" aria-modal="true" aria-labelledby="fin-t">

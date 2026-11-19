@@ -4,6 +4,7 @@ import { ANCHO, META, QUIETO_FIN, avanzarCruce, fila, mover, nuevoCruce, type Cr
 import { ALTO_A, ANCHO_A, ANCHO_F, avanzarAnden, bajar, cuerpo, lanzarA, nuevoAnden, saltar, VIDAS, type Anden, type GrisA } from '../src/juego/anden';
 import { avanzarJefe, ANCHO_JEFE, VIDAS_JEFE, GOLPES_FASE, GOLPES_JEFE, fase, lanzarJ, nuevoJefe, proximoColor, saltarJ, bajarJ, type Jefe } from '../src/juego/jefe';
 import { HUESO, PINTURAS, TIROS_POR_LATA } from '../src/juego/comun';
+import { escenaLlegada, LLEGADA_MS } from '../src/juego/llegada';
 
 let ok = 0, mal = 0;
 const caso = (nombre: string, fn: () => boolean | string) => {
@@ -369,6 +370,20 @@ for (const [nombre, reac, fallo] of [['atento (0,12 s)', 120, 0], ['primera vez 
     return r.every(x => x.fin !== null);
   });
 }
+
+// ——— Llegada del Inacapín (B-008) ———
+console.log('Llegada del Inacapín');
+caso('la llegada dura entre 2 y 3 s', () => LLEGADA_MS >= 2000 && LLEGADA_MS <= 3000);
+caso('el Inacapín cae desde arriba y termina en el piso', () => {
+  const caidas = Array.from({ length: 30 }, (_, i) => escenaLlegada((i * LLEGADA_MS) / 29).cae);
+  return caidas[0] > 10 && caidas.at(-1) === 0 && caidas.every((v, i) => i === 0 || v <= caidas[i - 1]);
+});
+caso('el andén cambia de color después de la caída y termina en el del jefe', () => {
+  const a = escenaLlegada(800), b = escenaLlegada(LLEGADA_MS);
+  return a.cambio === 0 && !a.aterrizo && b.cambio === 1 && b.aterrizo && b.ruge && b.aplasta === 1;
+});
+caso('con movimiento reducido: sin caída, sin aplastón ni titileo', () =>
+  Array.from({ length: 60 }, (_, i) => escenaLlegada(i * 50, true)).every(l => l.cae === 0 && l.aplasta === 1 && !l.apagon));
 
 console.log(`\n${ok} bien, ${mal} mal`);
 if (mal) process.exit(1);
