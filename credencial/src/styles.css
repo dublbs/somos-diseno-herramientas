@@ -340,3 +340,14 @@ label.btn { cursor: pointer; }
 /* Cacería: puntajes en vivo con #/afiches?ver (para ajustar con los afiches impresos). */
 .diagnostico { margin: 0; padding: 6px 10px; font: 600 12px/1.3 var(--mono, ui-monospace, monospace); text-align: center; background: var(--surface); border: var(--borde); border-radius: var(--rb); }
 a.btn { text-decoration: none; }
+
+/* Cacería: se nota que la cámara está buscando (verde, marco que pulsa, línea que baja). */
+.afiches.escaneando .visor::after { content: ""; position: absolute; inset: 0; background: rgba(0, 166, 81, .12); pointer-events: none; }
+.afiches.escaneando .mira.afiche { border: 6px solid #00A651; overflow: hidden; animation: pulso-escaneo 1.4s ease-in-out infinite; }
+.linea-escaneo { position: absolute; left: 0; right: 0; top: 0; height: 4px; background: #00A651; box-shadow: 0 0 12px #00A651; animation: bajar-escaneo 1.8s linear infinite; }
+.visor-estado { position: absolute; top: 10px; right: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; background: #00A651; color: #000; font: 700 12px/1.2 var(--fuente-etq, system-ui); letter-spacing: .04em; text-transform: uppercase; z-index: 2; }
+.visor-estado .punto { width: 8px; height: 8px; border-radius: 50%; background: #000; }
+.afiches.escaneando .acciones-movil .btn { opacity: .75; }
+@keyframes pulso-escaneo { 50% { box-shadow: 0 0 0 999px rgba(0, 0, 0, .5), 0 0 28px 6px rgba(0, 166, 81, .85); } }
+@keyframes bajar-escaneo { from { top: 0; } to { top: calc(100% - 4px); } }
+@media (prefers-reduced-motion: reduce) { .afiches.escaneando .mira.afiche, .linea-escaneo { animation: none; } }
