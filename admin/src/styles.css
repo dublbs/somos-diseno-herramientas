@@ -104,3 +104,6 @@ button.numero:hover { background: var(--chip); }
 .btn.peligro { background: #E2001A; border-color: #E2001A; color: #fff; }
 .fichas { align-items: start; }
 .acciones .seg button { white-space: nowrap; padding: 0 12px; }
+
+/* QA del PC madre (Q4): en pantallas angostas el scroll queda en la tabla, no en la página. */
+.tabla-c { overflow-x: auto; max-width: 100%; }
