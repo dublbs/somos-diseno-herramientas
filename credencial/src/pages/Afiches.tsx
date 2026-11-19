@@ -53,12 +53,13 @@ export const Afiches: React.FC<{ ir: Ir }> = ({ ir }) => {
     'No pudimos abrir la cámara. Revisa el permiso del navegador y vuelve a entrar.';
 
   return (
-    <main className="pantalla escanear afiches">
+    <main className={`pantalla escanear afiches${estado === 'buscando' ? ' escaneando' : ''}`}>
       <div className="visor">
         {(estado === 'iniciando' || estado === 'buscando') ? (
           <>
             <video ref={video} playsInline muted autoPlay />
-            <span className="mira afiche" aria-hidden="true" />
+            <span className="mira afiche" aria-hidden="true"><span className="linea-escaneo" /></span>
+            {estado === 'buscando' && <span className="visor-estado" role="status"><span className="punto" aria-hidden="true" />Escaneando… busca un afiche</span>}
           </>
         ) : (
           <span className="material-symbols-outlined visor-icono" aria-hidden="true">wallpaper</span>
@@ -69,7 +70,7 @@ export const Afiches: React.FC<{ ir: Ir }> = ({ ir }) => {
       <p className="progreso" role="status">{mensaje}</p>
       {ver && <p className="diagnostico" aria-live="off">{diagnostico.map(d => `${nombreAfiche(d.id)} ${d.puntaje.toFixed(2)}`).join(' · ') || 'Cargando…'} · pasa con 0,34 y 0,12 de ventaja</p>}
       <div className="acciones-movil">
-        <button type="button" className="btn" onClick={() => ir('#/juego')}>Listo</button>
+        <button type="button" className="btn" onClick={() => ir('#/juego')}>{estado === 'buscando' ? 'Dejar de buscar' : 'Volver'}</button>
       </div>
     </main>
   );

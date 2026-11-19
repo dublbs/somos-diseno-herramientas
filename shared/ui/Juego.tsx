@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CODIGO, EVENTO_TIMBRE, configRemota, entrarJugador, entrarSinCredencial, sinCredencial, guardarConfig, hashPin, idMesa, jugador, leerConfig, normalizarCodigo, pideReinicio, pinDeDemo, traerConfigRemota, verificarPin, type ConfigMesa, type DetalleCreacion } from '../juego';
+import { CODIGO, EVENTO_TIMBRE, codigoDesdeUrl, existeCredencial, configRemota, entrarJugador, entrarSinCredencial, sinCredencial, guardarConfig, hashPin, idMesa, jugador, leerConfig, normalizarCodigo, pideReinicio, pinDeDemo, traerConfigRemota, verificarPin, type ConfigMesa, type DetalleCreacion } from '../juego';
 import { BotonAccion, Interruptor } from './Kit';
 import { QrEncargado, QrJugar } from './QrEncargado';
 
@@ -12,10 +12,13 @@ const esStaff = () => new URLSearchParams(location.search).has('staff');
 // encargadoX: posición horizontal del botón del encargado (QrEncargado), si la app tiene algo arriba al centro.
 export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string; encargadoX?: string; children: React.ReactNode }> = ({ app, titulo, visual, encargadoX, children }) => {
   const [config, setConfig] = useState<ConfigMesa>(leerConfig);
-  const [codigo, setCodigo] = useState(() => jugador()?.codigo ?? null);
+  const [codigo, setCodigo] = useState(() => codigoDesdeUrl(app) ?? jugador()?.codigo ?? null);
   const [libre, setLibre] = useState(sinCredencial);
   const [ganado, setGanado] = useState<DetalleCreacion | null>(null);
   const [staff, setStaff] = useState(esStaff);
+  // Al entrar con el código, un aviso corto confirma con qué credencial se juega y que lo creado suma (QA 18 nov, T-05).
+  const [recien, setRecien] = useState<string | null>(null);
+  useEffect(() => { if (!recien) return; const t = setTimeout(() => setRecien(null), 7000); return () => clearTimeout(t); }, [recien]);
 
   useEffect(() => { if (!document.documentElement.dataset.visual) document.documentElement.dataset.visual = visual; }, [visual]);
   useEffect(() => {
@@ -37,9 +40,10 @@ export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string
   }, []);
 
   if (staff) return <PanelStaff app={app} alSalir={() => { setConfig(leerConfig()); setStaff(false); history.replaceState(null, '', location.pathname); }} />;
-  if (config.modoJuego && !codigo && !libre) return <Desbloqueo app={app} titulo={titulo} alEscanear={c => setCodigo(c)} alEntrar={c => { entrarJugador(c, app); setCodigo(c); }} alSinCredencial={() => { entrarSinCredencial(); setLibre(true); }} alStaff={() => setStaff(true)} />;
+  if (config.modoJuego && !codigo && !libre) return <Desbloqueo app={app} titulo={titulo} alEscanear={c => { setCodigo(c); setRecien(c); }} alEntrar={c => { entrarJugador(c, app); setCodigo(c); setRecien(c); }} alSinCredencial={() => { entrarSinCredencial(); setLibre(true); }} alStaff={() => setStaff(true)} />;
   return (<>
     {children}
+    {recien && <p className="k-juego-aviso" role="status"><Icono nombre="approval" /><span>Juegas con <b>{recien}</b>: lo que te lleves de aquí suma a tu credencial.</span></p>}
     <QrEncargado app={app} x={encargadoX} />
     {ganado && (
       <div className="k-quiosco" role="dialog" aria-modal="true" aria-labelledby="timbre-t">
@@ -66,10 +70,16 @@ export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string
 const Desbloqueo: React.FC<{ app: string; titulo: string; alEscanear: (codigo: string) => void; alEntrar: (codigo: string) => void; alSinCredencial: () => void; alStaff: () => void }> = ({ app, titulo, alEscanear, alEntrar, alSinCredencial, alStaff }) => {
   const [valor, setValor] = useState('SD-');
   const [error, setError] = useState('');
-  const entrar = (e: React.FormEvent) => {
+  const [revisando, setRevisando] = useState(false);
+  const entrar = async (e: React.FormEvent) => {
     e.preventDefault();
     const c = normalizarCodigo(valor);
     if (!CODIGO.test(c)) { setError('El código tiene la forma SD-XXXXX y está en tu credencial.'); return; }
+    // Un código mal escrito con la forma correcta dejaba jugar sin sumar nada: se pregunta a la base (sin red, se deja pasar).
+    setRevisando(true);
+    const existe = await existeCredencial(c);
+    setRevisando(false);
+    if (existe === false) { setError(`No encontramos la credencial ${c}. Revisa el código bajo tu nombre, en el celular.`); return; }
     alEntrar(c);
   };
   return (
@@ -88,7 +98,7 @@ const Desbloqueo: React.FC<{ app: string; titulo: string; alEscanear: (codigo: s
             onChange={e => { setValor(e.target.value.toUpperCase()); setError(''); }} aria-invalid={!!error} aria-describedby="codigo-error" />
           {error && <p id="codigo-error" className="k-ayuda k-juego-error" role="alert">{error}</p>}
           <div className="k-tutorial-acciones">
-            <button type="submit" className="k-btn k-primario"><Icono nombre="check" />Entrar</button>
+            <button type="submit" className="k-btn k-primario" disabled={revisando}><Icono nombre="check" />{revisando ? 'Revisando…' : 'Entrar'}</button>
             <BotonAccion icono="play_arrow" texto="Jugar sin credencial" onClick={alSinCredencial} />
             <BotonAccion icono="tune" texto="Staff" onClick={alStaff} />
           </div>
