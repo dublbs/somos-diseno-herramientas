@@ -1,10 +1,6 @@
 <svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g id="Pixel &#194;&#183; Sistema">
 <g id="Pixel / FA10 &#194;&#183; Personaje / sticker">
-<g id="Troquel (borde y sombra)" filter="url(#filter0_d_294_54606)">
-<path d="M32 96L48 48L56 40H184L192 48L208 96V192L184 216H56L32 192V96Z" fill="#F4EEE3"/>
-<path d="M32 96L48 48L56 40H184L192 48L208 96V192L184 216H56L32 192V96Z" stroke="#F4EEE3" stroke-width="28" stroke-linejoin="round"/>
-</g>
 <g id="Figura">
 <path id="color verde" d="M56 48H72V64H56V48ZM168 48H184V64H168V48ZM72 64H88V80H72V64ZM152 64H168V80H152V64ZM56 80H184V96H56V80ZM40 96H200V112H40V96ZM40 112H56V128H40V112ZM88 112H152V128H88V112ZM184 112H200V128H184V112ZM40 128H200V144H40V128ZM56 144H184V160H56V144ZM40 160H56V192H40V160ZM72 160H104V176H72V160ZM136 160H168V176H136V160ZM184 160H200V192H184V160ZM72 176H88V192H72V176ZM152 176H168V192H152V176ZM56 192H88V208H56V192ZM152 192H184V208H152V192Z" fill="#00A651"/>
 <path id="color hueso" d="M56 112H72V128H56V112ZM168 112H184V128H168V112Z" fill="#F4EEE3"/>
@@ -12,14 +8,4 @@
 </g>
 </g>
 </g>
-<defs>
-<filter id="filter0_d_294_54606" x="18" y="26" width="210" height="210" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-<feFlood flood-opacity="0" result="BackgroundImageFix"/>
-<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
-<feOffset dx="6" dy="6"/>
-<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0"/>
-<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_294_54606"/>
-<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_294_54606" result="shape"/>
-</filter>
-</defs>
 </svg>

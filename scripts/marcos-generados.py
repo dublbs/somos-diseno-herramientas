@@ -267,10 +267,8 @@ def metro():
     g.rect(162.5, 20, 200, 40, ROJO)                                     # número de la línea, en rojo
     texto(g, 181.25 - ancho_texto('L1') / 2, 23.75, 'L1', HUESO)
     g.rect(Z0, Z0, Z1, Z1, FOTO)
-    # brillo celeste del vidrio y limpiaparabrisas (sobre la foto)
+    # brillo celeste del vidrio (sobre la foto). Sin limpiaparabrisas: la diagonal negra se leía como un error (B-011)
     sobre.rect(Z0, Z0, Z0 + 15, Z0 + 2.5, CELESTE); sobre.rect(Z0, Z0, Z0 + 2.5, Z0 + 12.5, CELESTE)
-    for k in range(9):
-        sobre.rect(60 + k * 5, 190 - k * 2.5, 65 + k * 5, 192.5 - k * 2.5, NEGRO)
     # panel bajo: faros redondos (aro negro, luz amarilla y brillo) y un rombo genérico al centro
     for cx in (52.5, 187.5):
         g.donde(lambda x, y, cx=cx: math.hypot(x - cx, y - 211.25) <= 9, NEGRO, 2.5)

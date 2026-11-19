@@ -9,7 +9,7 @@ export function marcarBienvenida(codigo: string) { try { localStorage.setItem(LL
 
 const TARJETAS = [
   { timbre: 2, titulo: 'Crea en las tablets', texto: 'Haz algo en 4 experiencias distintas. Escribe tu código en la tablet y lo que hagas llega a tu inventario.' },
-  { timbre: 3, titulo: 'Caza 3 afiches', texto: 'Hay afiches de la campaña repartidos por la sede. Encuéntralos y apúntales con «Buscar afiches».' },
+  { timbre: 3, titulo: 'Caza 3 afiches', texto: 'Hay afiches repartidos por la sede. Encuéntralos y apúntales con «Buscar afiches».' },
   { timbre: 4, titulo: 'Arma tu flyer y canjea tu bolsa', texto: 'Con lo que juntaste armas tu flyer aquí mismo. Con los 4 timbres, muestra tu credencial al equipo y llévate tu bolsa.' },
 ];
 

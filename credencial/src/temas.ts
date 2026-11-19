@@ -53,7 +53,7 @@ const HUESO = '#F4EEE3', NEGRO = '#000000';
 export const TEMAS: Tema[] = [
   { marco: 'PM02', visual: 'Pixel', banda: '#7A2E8E', tinta: HUESO, acento: '#FF8FB1', sobreAcento: NEGRO, patron: './figma/patron-pixel-surcos.svg', tamPatron: 72 },
   { marco: 'PM05', visual: 'Pixel', banda: NEGRO, tinta: HUESO, acento: '#FFC20E', sobreAcento: NEGRO, patron: './figma/patron-pixel-lateral.svg', tamPatron: 72 },
-  { marco: 'GM02', visual: 'Geométrica', banda: '#7A2E8E', tinta: HUESO, acento: '#FFC20E', sobreAcento: NEGRO, patron: './figma/patron-geo-allqa.svg', tamPatron: 44, velo: 0.78 },
+  { marco: 'GM02', visual: 'Geométrica', banda: '#7A2E8E', tinta: HUESO, acento: '#FFC20E', sobreAcento: NEGRO, patron: './figma/patron-geo-allqa-celeste.svg', tamPatron: 44, velo: 0.62 },
   { marco: 'GM05', visual: 'Geométrica', banda: NEGRO, tinta: HUESO, acento: '#00A651', sobreAcento: NEGRO, patron: './figma/patron-geo-damero.svg' },
   { marco: 'OM02', visual: 'Orgánica', banda: '#0062B8', tinta: HUESO, acento: '#FFC20E', sobreAcento: NEGRO, patron: './figma/patron-org-mediosol.svg', tamPatron: 72, velo: 0.9 },
   { marco: 'OM05', visual: 'Orgánica', banda: '#FF8FB1', tinta: NEGRO, acento: '#0062B8', sobreAcento: HUESO, patron: './figma/patron-org-anillos.svg' },
