@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CODIGO, EVENTO_TIMBRE, configRemota, entrarJugador, entrarSinCredencial, sinCredencial, guardarConfig, hashPin, idMesa, jugador, leerConfig, normalizarCodigo, pideReinicio, pinDeDemo, traerConfigRemota, verificarPin, type ConfigMesa, type DetalleCreacion } from '../juego';
+import { CODIGO, EVENTO_TIMBRE, codigoDesdeUrl, configRemota, entrarJugador, entrarSinCredencial, sinCredencial, guardarConfig, hashPin, idMesa, jugador, leerConfig, normalizarCodigo, pideReinicio, pinDeDemo, traerConfigRemota, verificarPin, type ConfigMesa, type DetalleCreacion } from '../juego';
 import { BotonAccion, Interruptor } from './Kit';
 import { QrEncargado, QrJugar } from './QrEncargado';
 
@@ -12,7 +12,7 @@ const esStaff = () => new URLSearchParams(location.search).has('staff');
 // encargadoX: posición horizontal del botón del encargado (QrEncargado), si la app tiene algo arriba al centro.
 export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string; encargadoX?: string; children: React.ReactNode }> = ({ app, titulo, visual, encargadoX, children }) => {
   const [config, setConfig] = useState<ConfigMesa>(leerConfig);
-  const [codigo, setCodigo] = useState(() => jugador()?.codigo ?? null);
+  const [codigo, setCodigo] = useState(() => codigoDesdeUrl(app) ?? jugador()?.codigo ?? null);
   const [libre, setLibre] = useState(sinCredencial);
   const [ganado, setGanado] = useState<DetalleCreacion | null>(null);
   const [staff, setStaff] = useState(esStaff);
