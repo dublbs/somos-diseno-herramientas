@@ -194,16 +194,43 @@ label.btn { cursor: pointer; }
 .pill.reiniciar .material-symbols-outlined { font-size: 15px; }
 .pill.reiniciar.seguro { background: #FFC20E; color: #000; border-color: #000; }
 
-/* --- Cámara de la selfie --- */
-.camara { position: fixed; inset: 0; z-index: 30; display: grid; grid-template-rows: minmax(0, 1fr) auto auto; gap: 10px; background: #000; padding: max(12px, env(safe-area-inset-top, 0px)) 12px max(12px, env(safe-area-inset-bottom, 0px)); }
-.camara-visor { position: relative; min-height: 0; display: grid; place-items: center; overflow: hidden; border-radius: var(--r); background: #111; }
+/* --- Cámara de la selfie (B-013): como una app de cámara --- */
+.camara { image-rendering: auto; position: fixed; inset: 0; z-index: 30; display: grid; grid-template-rows: minmax(0, 1fr) auto auto; gap: 14px; background: #000; color: #F4EEE3; padding: max(12px, env(safe-area-inset-top, 0px)) 12px max(14px, env(safe-area-inset-bottom, 0px)); }
+.camara-visor { position: relative; min-height: 0; display: grid; place-items: center; overflow: hidden; border-radius: 18px; background: #111; container-type: size; --d: min(78cqw, 64cqh); }
+[data-visual="Pixel"] .camara-visor, [data-visual="Geométrica"] .camara-visor { border-radius: 6px; }
 .camara-visor video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-.camara-guia { position: absolute; inset: 14% 16%; border: 3px dashed rgba(244, 238, 227, .75); border-radius: 50%; pointer-events: none; }
+/* Afuera del círculo se oscurece con un borde suave; adentro queda la imagen limpia. */
+.camara-velo { position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, transparent 0 calc(var(--d) / 2 - 1px), rgba(0, 0, 0, .28) calc(var(--d) / 2 + 3px), rgba(0, 0, 0, .62) calc(var(--d) / 2 + 48px)); }
+/* Aro fino y nítido (el navegador lo suaviza): color del lenguaje, con un filo oscuro para leerse sobre cualquier fondo. */
+.camara-guia { position: absolute; left: 50%; top: 50%; width: var(--d); aspect-ratio: 1; border-radius: 50%; pointer-events: none;
+  transform: translate(-50%, -50%); border: 3px solid var(--accent); box-shadow: 0 0 0 1px rgba(0, 0, 0, .35), inset 0 0 0 1px rgba(0, 0, 0, .35);
+  animation: guia-entra .35s cubic-bezier(.2, .8, .3, 1) both; }
+.camara-pista { position: absolute; left: 50%; top: calc(50% - var(--d) / 2 - 44px); transform: translateX(-50%); margin: 0; padding: 6px 12px; white-space: nowrap;
+  font: 700 13px "DM Sans", sans-serif; letter-spacing: .02em; color: #F4EEE3; background: rgba(0, 0, 0, .55); border-radius: 999px; }
 .camara-msj { margin: 0; padding: 16px; color: #F4EEE3; text-align: center; max-width: 30ch; }
-.camara-acciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; }
-.camara-acciones .btn:not(.primario) { background: #F4EEE3; color: #000; }
+.camara-abriendo { position: absolute; opacity: .8; }
+.camara-flash { position: absolute; inset: 0; background: #fff; pointer-events: none; animation: destello .18s ease-out both; }
+@keyframes guia-entra { from { transform: translate(-50%, -50%) scale(1.12); opacity: 0 } }
+@keyframes destello { from { opacity: .9 } to { opacity: 0 } }
 .camara .aviso-movil { color: #FFC20E; text-align: center; }
-.camara-acciones .disparador { min-height: 56px; }
+/* Barra de abajo: Cancelar · disparador · Galería */
+.camara-acciones { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; padding: 0 4px; }
+.camara-lado { min-height: 48px; min-width: 48px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 4px 8px;
+  border: 0; background: transparent; color: #F4EEE3; font: 600 13px "DM Sans", sans-serif; cursor: pointer; border-radius: 12px; -webkit-tap-highlight-color: transparent; }
+.camara-lado .material-symbols-outlined { font-size: 26px; }
+.camara-lado:active { background: rgba(244, 238, 227, .14); }
+.camara-lado:focus-visible, .disparador:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+/* Disparador: aro hueso y centro con el color del lenguaje, que se hunde al apretar. */
+.disparador, .disparador-hueco { width: 76px; height: 76px; }
+.disparador { position: relative; display: grid; place-items: center; padding: 0; border: 4px solid #F4EEE3; border-radius: 50%; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.disparador-centro { width: 58px; height: 58px; border-radius: 50%; background: var(--accent); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .25); transition: transform .12s ease-out, filter .12s ease-out; }
+.disparador:active .disparador-centro, .disparador:disabled .disparador-centro { transform: scale(.84); filter: brightness(.85); }
+.disparador:disabled { cursor: default; }
+@media (prefers-reduced-motion: reduce) {
+  .camara-guia { animation: none; }
+  .disparador-centro { transition: none; }
+}
 
 /* Avisos (Web Push): un botón chico sobre el progreso; desaparece al aceptar o bloquear. */
 .avisos { justify-self: center; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1.5px solid var(--ink); border-radius: var(--rb); background: var(--surface); color: var(--ink); font: 600 13px "DM Sans", sans-serif; cursor: pointer; }

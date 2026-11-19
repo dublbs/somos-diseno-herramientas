@@ -9,6 +9,7 @@ export const Camara: React.FC<{ onFoto: (dataUrl: string) => void; onCerrar: () 
   const video = useRef<HTMLVideoElement>(null);
   const [estado, setEstado] = useState<'abriendo' | 'lista' | 'sin-camara'>('abriendo');
   const [aviso, setAviso] = useState('');
+  const [flash, setFlash] = useState(false);
   const cerrar = useRef(onCerrar);
   cerrar.current = onCerrar;
 
@@ -38,7 +39,12 @@ export const Camara: React.FC<{ onFoto: (dataUrl: string) => void; onCerrar: () 
     const ctx = c.getContext('2d')!;
     ctx.translate(c.width, 0); ctx.scale(-1, 1); // espejo, como se ve en pantalla
     ctx.drawImage(v, 0, 0, c.width, c.height);
-    onFoto(c.toDataURL('image/jpeg', 0.85));
+    const url = c.toDataURL('image/jpeg', 0.85);
+    // Destello corto, como en una app de cámara (sin destello con «reducir movimiento»).
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { onFoto(url); return; }
+    setFlash(true);
+    try { navigator.vibrate?.(15); } catch { /* sin vibración */ }
+    setTimeout(() => onFoto(url), 180);
   };
   const alElegirArchivo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const archivo = e.target.files?.[0];
@@ -49,19 +55,30 @@ export const Camara: React.FC<{ onFoto: (dataUrl: string) => void; onCerrar: () 
 
   return (
     <div className="camara" role="dialog" aria-modal="true" aria-label="Cámara para tu selfie">
-      <div className="camara-visor">
+      <div className={'camara-visor' + (estado === 'lista' ? ' lista' : '')}>
         {estado !== 'sin-camara'
           ? <video ref={video} playsInline muted autoPlay />
           : <p className="camara-msj">No pudimos abrir la cámara. Revisa el permiso del navegador o elige una foto de tu galería.</p>}
-        {estado === 'lista' && <span className="camara-guia" aria-hidden="true" />}
+        {estado === 'abriendo' && <p className="camara-msj camara-abriendo" role="status">Abriendo la cámara…</p>}
+        {estado === 'lista' && (
+          <>
+            {/* Máscara suave alrededor del círculo y el aro con el color del lenguaje */}
+            <span className="camara-velo" aria-hidden="true" />
+            <span className="camara-guia" aria-hidden="true" />
+            <p className="camara-pista">Tu cara dentro del círculo</p>
+          </>
+        )}
+        {flash && <span className="camara-flash" aria-hidden="true" />}
       </div>
       {aviso && <p className="aviso-movil" role="alert">{aviso}</p>}
       <div className="camara-acciones">
-        <button type="button" className="btn" onClick={onCerrar}><span className="material-symbols-outlined" aria-hidden="true">close</span>Cancelar</button>
+        <button type="button" className="camara-lado" onClick={onCerrar}>
+          <span className="material-symbols-outlined" aria-hidden="true">close</span>Cancelar
+        </button>
         {estado === 'lista'
-          ? <button type="button" className="btn primario disparador" onClick={disparar} aria-label="Sacar foto"><span className="material-symbols-outlined" aria-hidden="true">photo_camera</span>Sacar</button>
-          : null}
-        <label className="btn">
+          ? <button type="button" className="disparador" onClick={disparar} disabled={flash} aria-label="Sacar foto"><span className="disparador-centro" aria-hidden="true" /></button>
+          : <span className="disparador-hueco" aria-hidden="true" />}
+        <label className="camara-lado">
           <input type="file" accept="image/*" hidden onChange={alElegirArchivo} aria-label="Elegir una foto de la galería" />
           <span className="material-symbols-outlined" aria-hidden="true">image</span>Galería
         </label>
