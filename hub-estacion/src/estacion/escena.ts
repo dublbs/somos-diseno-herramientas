@@ -5,6 +5,7 @@ import { c3EnTiempo, dibujarC3 } from '../../../shared/c3-tunel.js';
 import { enVivo, listaImagen, autorDe, type Obra, type ClaseObra } from './vivo';
 import { NOMBRE_CORTO } from '../galeria/piezas';
 import { ACTIVAS } from '../../../shared/juego';
+import { carro, FILAS } from './metro';
 
 // Estación Somos Diseño: corte de una estación en tres niveles.
 //   Plaza Orgánica (arriba) · Mezanina Geométrica (medio) · Andén Pixel (abajo).
@@ -21,8 +22,6 @@ const SRC = {
   personaje: { pixel: './figma/personajes/personaje-pixel.svg', geometrica: './figma/personajes/personaje-geometrica.svg', organica: './figma/personajes/personaje-organica.svg' },
   araucaria: './figma/plaza/araucaria.svg', sol: './figma/plaza/sol.svg', helecho: './figma/plaza/helecho.svg', flor: './figma/plaza/flor-propia.svg', quisco: './figma/plaza/quisco.svg',
   vagon: ['./figma/vagon/personaje.svg', './figma/vagon/spray.svg', './figma/vagon/tarro-pintura.svg', './figma/vagon/plumon.svg', './figma/vagon/senal-rodillo.svg', './figma/vagon/zapatilla.svg'],
-  // Metro de Figma (Pixel · FA08): lateral del carro como módulo que se repite (240 × 240).
-  metro: { l1: './figma/metro/linea1-lateral.svg', l4: './figma/metro/linea4-lateral.svg' },
 };
 // Grabados de prueba para los banderines de la plaza (taco + tinta + papel), hasta que lleguen los de la experiencia.
 const GRABADOS = [
@@ -91,6 +90,7 @@ export class Estacion {
   cuadros: Cuadro[] = []; // los cuadros de la mezanina, con la obra que muestra cada uno
   private mostrada = new Map<string, number>(); // id de la obra → cuándo entró por última vez a un cuadro
   private muro: { W: number; H: number; m: Muro } | null = null;
+  private capaAnden: { llave: string; c: HTMLCanvasElement } | null = null;
 
   constructor(d: Disposicion, gente: Persona[], azar: () => number, quieto: boolean) {
     this.d = d; this.azar = azar; this.quieto = quieto;
@@ -128,7 +128,7 @@ export class Estacion {
     if (timbres >= ACTIVAS.length) this.confeti(a);
   }
 
-  // Estado del tren: x del frente (0 = fuera por la derecha) y si tiene puertas abiertas.
+  // Estado del tren: x del frente (0 = fuera por la derecha). `abierto` = detenido en el andén.
   tren() {
     const ciclo = this.reloj % PERIODO_TREN, n = Math.floor(this.reloj / PERIODO_TREN);
     const largo = this.d.W * 0.78, parado = (this.d.W - largo) / 2;
@@ -202,7 +202,7 @@ export class Estacion {
     this.andenPixel(ctx);
     this.escaleras(ctx);
     const visibles = this.avatares.map(a => ({ a, pos: this.posicion(a) })).sort((p, q) => p.pos[1] - q.pos[1]);
-    for (const { a, pos } of visibles) this.avatar(ctx, a, pos);
+    for (const { a, pos } of visibles) if (!this.tapadaPorTren(a, pos[0])) this.avatar(ctx, a, pos);
     this.trenDibujo(ctx);
     for (const q of this.particulas) { ctx.globalAlpha = Math.min(1, q.vida); ctx.fillStyle = q.color; ctx.fillRect(q.x - q.r, q.y - q.r, q.r * 2, q.r * 2); }
     ctx.globalAlpha = 1;
@@ -473,51 +473,158 @@ export class Estacion {
   }
 
   // ---------- ANDÉN · Pixel ----------
-  // Muro de azulejos con la franja de la línea y el nombre de la estación, afiches con stickers, letrero colgante,
-  // luminarias, bancas, la franja táctil amarilla y la vía.
+  // Muro de azulejos con la franja de la línea y el nombre de la estación, pilares (con los stickers del plumón y la
+  // zapatilla pegados), mapa de la red, afiches, luminarias, bancas, basurero, extintor, el piso de baldosas, la franja
+  // táctil amarilla del borde y la vía. Todo lo quieto se pinta una vez por tamaño de pantalla (capaAnden) y después
+  // solo se copia; encima van el letrero colgante y el cartel del nivel.
   private andenPixel(ctx: CanvasRenderingContext2D) {
-    const { W, u, e, anden, via } = this.d;
-    ctx.fillStyle = C.Hueso; ctx.fillRect(0, anden.y, W, anden.h);
-    const t = 18 * u;
-    ctx.strokeStyle = 'rgba(0,0,0,.08)'; ctx.lineWidth = 1;
-    for (let y = anden.y; y < anden.suelo; y += t) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-    for (let x = 0; x < W; x += t) { ctx.beginPath(); ctx.moveTo(x, anden.y); ctx.lineTo(x, anden.suelo); ctx.stroke(); }
-    // cielo y luminarias
-    ctx.fillStyle = C.Negro; ctx.fillRect(0, anden.y, W, 8 * u);
-    for (let x = W * 0.04; x < W; x += W * 0.08) { ctx.fillStyle = C.Hueso; ctx.fillRect(x, anden.y + 8 * u, 60 * e, 5 * e); }
-    // franja de la línea con el nombre de la estación, dos veces (como en los muros de la Línea 1)
-    const fy = anden.y + anden.h * 0.2, fh = 34 * u;
-    ctx.fillStyle = C.Morado; ctx.fillRect(0, fy, W, fh);
-    ctx.fillStyle = C.Rosa; ctx.fillRect(0, fy + fh, W, 5 * u);
-    const tam = Math.max(2, Math.round(3.4 * u)), texto = 'ESTACION';
-    const ancho = (normalizar(texto).length * AVANCE - 1) * tam;
-    for (const cx of [W * 0.45, W * 0.82]) this.textoPixel(ctx, texto, cx - ancho / 2, fy + (fh - 7 * tam) / 2, tam, C.Hueso);
-    // afiches con stickers Pixel (y alguno pegado suelto)
-    for (const [k, cx] of [[0, W * 0.34], [1, W * 0.63]] as const) {
-      const lado = Math.min(anden.suelo - fy - fh - 30 * u, 110 * e), x = cx - lado / 2, y = fy + fh + 16 * u;
-      ctx.fillStyle = C.Negro; ctx.fillRect(x - 4 * e, y - 4 * e, lado + 8 * e, lado + 8 * e);
-      ctx.fillStyle = k ? C.Amarillo : C.Celeste; ctx.fillRect(x, y, lado, lado);
-      const im = imagen(SRC.vagon[(k * 2 + Math.floor(this.reloj / 20000)) % SRC.vagon.length]);
-      if (im) ctx.drawImage(raster(im, lado * 0.8, lado * 0.8), x + lado * 0.1, y + lado * 0.1);
+    const { W, H, u, anden } = this.d;
+    const k = Math.min(window.devicePixelRatio || 1, 2), llave = `${W}|${H}|${k}`;
+    if (!this.capaAnden || this.capaAnden.llave !== llave) {
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(W * k)); c.height = Math.max(1, Math.round(anden.h * k));
+      const x = c.getContext('2d')!;
+      x.setTransform(k, 0, 0, k, 0, -anden.y * k);
+      const completa = this.fondoAnden(x);
+      // Si falta alguna imagen (todavía cargando), se vuelve a pintar en el próximo cuadro.
+      this.capaAnden = { llave: completa ? llave : '', c };
     }
-    // letrero colgante
+    ctx.drawImage(this.capaAnden.c, 0, anden.y, W, anden.h);
     this.letrero(ctx, 'Dirección Plaza →', W * 0.5, anden.y + 8 * u, C.Morado);
-    // piso del andén, bancas y franja táctil
-    ctx.fillStyle = '#D9CDB7'; ctx.fillRect(0, anden.suelo - 6 * u, W, via - anden.suelo - 4 * u);
-    for (const x of [W * 0.3, W * 0.7]) {
-      ctx.fillStyle = C.Negro; ctx.fillRect(x - 40 * e, anden.suelo - 4 * u - 26 * e, 80 * e, 8 * e);
-      ctx.fillRect(x - 34 * e, anden.suelo - 4 * u - 18 * e, 5 * e, 18 * e); ctx.fillRect(x + 29 * e, anden.suelo - 4 * u - 18 * e, 5 * e, 18 * e);
-      ctx.fillStyle = C.Morado; ctx.fillRect(x - 40 * e, anden.suelo - 4 * u - 32 * e, 80 * e, 6 * e);
-    }
-    ctx.fillStyle = C.Amarillo; ctx.fillRect(0, via - 18 * u, W, 8 * u);
-    ctx.fillStyle = '#C79A00';
-    for (let x = 4 * u; x < W; x += 12 * u) ctx.fillRect(x, via - 15.5 * u, 3 * u, 3 * u);
-    // vía
-    ctx.fillStyle = '#2A2A2A'; ctx.fillRect(0, via - 10 * u, W, anden.y + anden.h - via + 10 * u);
-    ctx.fillStyle = '#6B6B6B';
-    for (let x = 0; x < W; x += 28 * u) ctx.fillRect(x, via + 4 * u, 14 * u, 6 * u);
-    ctx.fillStyle = C.Hueso; ctx.fillRect(0, via, W, 3 * u);
     this.cartel(ctx, 'Andén · Pixel', W * 0.015, anden.y + 14 * u, C.Morado);
+  }
+
+  // Devuelve false si alguna imagen todavía no estaba.
+  private fondoAnden(ctx: CanvasRenderingContext2D): boolean {
+    const { W, u, anden, via } = this.d;
+    const q = Math.max(2, Math.round(4 * u)), linea = Math.max(1, Math.round(1.5 * u));
+    let completa = true;
+    let semilla = 41; const azar = () => ((semilla = (semilla * 9301 + 49297) % 233280) / 233280);
+    const R = (x: number, y: number, w: number, h: number, color: string) => { ctx.fillStyle = color; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+    const suelo = anden.suelo - 6 * u;
+    // muro de azulejos, con alguno de color salpicado
+    R(0, anden.y, W, suelo - anden.y, C.Hueso);
+    const t = 6 * q;
+    for (let y = anden.y; y < suelo; y += t) for (let x = 0; x < W; x += t) {
+      const v = azar();
+      if (v < 0.035) R(x, y, t, t, '#DCEFFB'); else if (v < 0.06) R(x, y, t, t, '#EBDDF0');
+      R(x, y, t, linea, 'rgba(0,0,0,.09)'); R(x, y, linea, t, 'rgba(0,0,0,.09)');
+      R(x + linea, y + linea, q, linea, 'rgba(255,255,255,.7)');
+    }
+    // cielo: losa negra, cornisa y luminarias con su luz
+    R(0, anden.y, W, 8 * u, C.Negro); R(0, anden.y + 8 * u, W, q, '#3A3A3A');
+    for (let x = W * 0.05; x < W; x += W * 0.1) {
+      const w = 16 * q, y = anden.y + 8 * u + q;
+      const g = ctx.createLinearGradient(0, y, 0, y + 22 * q);
+      g.addColorStop(0, 'rgba(255,236,170,.35)'); g.addColorStop(1, 'rgba(255,236,170,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + w, y); ctx.lineTo(x + w + 6 * q, y + 22 * q); ctx.lineTo(x - 6 * q, y + 22 * q); ctx.closePath(); ctx.fill();
+      R(x - q, y, w + 2 * q, 2 * q, C.Negro); R(x, y + q, w, q, '#FFF6D8');
+    }
+    // franja de la línea con el nombre de la estación (como en los muros de la Línea 1)
+    const fy = anden.y + anden.h * 0.13, fh = 34 * u;
+    R(0, fy - linea, W, linea, C.Negro); R(0, fy, W, fh, C.Morado); R(0, fy + fh, W, 5 * u, C.Rosa); R(0, fy + fh + 5 * u, W, linea, C.Negro);
+    const tam = Math.max(2, Math.round(3.4 * u));
+    for (const [texto, cx] of [['ESTACION', W * 0.47], ['SOMOS DISEÑO', W * 0.73]] as const) {
+      const ancho = (normalizar(texto).length * AVANCE - 1) * tam;
+      this.textoPixel(ctx, texto, cx - ancho / 2 + tam, fy + (fh - 7 * tam) / 2 + tam, tam, '#4A1757'); // sombra
+      this.textoPixel(ctx, texto, cx - ancho / 2, fy + (fh - 7 * tam) / 2, tam, C.Hueso);
+    }
+    const abajo = fy + fh + 5 * u + linea; // desde aquí hasta el piso va lo que cuelga en el muro
+    // pilares con la franja que los envuelve
+    const pw = 14 * q, pilares = [W * 0.34, W * 0.6, W * 0.86];
+    for (const px of pilares) {
+      const x0 = px - pw / 2, y0 = anden.y + 8 * u + q;
+      R(x0 - linea, y0, pw + 2 * linea, suelo - y0, C.Negro);
+      R(x0, y0, pw, suelo - y0, '#EDE5D6'); R(x0 + pw - 3 * q, y0, 3 * q, suelo - y0, '#D9CDB7'); R(x0 + q, y0, q, suelo - y0, '#FFFFFF');
+      R(x0 - q, y0, pw + 2 * q, 2 * q, C.Negro); // capitel
+      R(x0, fy, pw, fh, '#6A2580'); R(x0 + pw - 3 * q, fy, 3 * q, fh, '#57206A'); R(x0, fy + fh, pw, 5 * u, '#F07AA0');
+      R(x0 - q, suelo - 4 * q, pw + 2 * q, 4 * q, '#3A3A3A'); R(x0 - q, suelo - 4 * q, pw + 2 * q, linea, C.Negro); // zócalo
+    }
+    // stickers pegados en los pilares: el plumón y la zapatilla, con su borde blanco, un ángulo y su sombra
+    const pegar = (src: string, cx: number, cy: number, lado: number, giro: number) => {
+      const im = imagen(src); if (!im) { completa = false; return; }
+      const b = Math.max(2, 3 * u);
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(giro);
+      ctx.globalAlpha = 0.22; ctx.drawImage(entintar(im, C.Negro, lado), -lado / 2 + 2 * u, -lado / 2 + 3 * u); ctx.globalAlpha = 1;
+      const blanco = entintar(im, '#FFFFFF', lado);
+      for (let a = 0; a < 8; a++) ctx.drawImage(blanco, -lado / 2 + Math.cos(a * Math.PI / 4) * b, -lado / 2 + Math.sin(a * Math.PI / 4) * b);
+      const w = lado * Math.min(1, im.naturalWidth / im.naturalHeight || 1), h = lado * Math.min(1, im.naturalHeight / im.naturalWidth || 1);
+      ctx.drawImage(raster(im, w, h), -w / 2, -h / 2);
+      ctx.restore();
+    };
+    const lado = pw * 0.9, medio = (abajo + suelo - 4 * q) / 2;
+    pegar(SRC.vagon[3], pilares[0], medio, lado, -0.16);
+    pegar(SRC.vagon[5], pilares[2], medio + 2 * q, lado, 0.13);
+    // mapa de la red
+    const my = abajo + 3 * q, mh = Math.min(suelo - my - 4 * q, 26 * q), mw = Math.min(46 * q, W * 0.1), mx = pilares[0] + pw / 2 + 6 * q;
+    if (mh > 8 * q) {
+      R(mx - linea, my - linea, mw + 2 * linea, mh + 2 * linea, C.Negro); R(mx, my, mw, mh, '#FBF7EF'); R(mx, my, mw, 4 * q, C.Negro);
+      this.textoPixel(ctx, 'RED', mx + q, my + q * 0.5, Math.max(1, Math.round(q / 2)), C.Hueso);
+      const lineas: [string, number, number][] = [[C.Morado, 0.3, 0], [C.Azul, 0.62, -1], [C.Verde, 0.9, 0]];
+      for (const [color, f, d] of lineas) {
+        const ly = my + 4 * q + (mh - 4 * q) * f, x0 = mx + 2 * q, x1 = mx + mw - 2 * q;
+        R(x0, ly, (x1 - x0) * 0.45, q, color);
+        R(x0 + (x1 - x0) * 0.45, ly + Math.min(0, d * 3 * q), q, Math.abs(d) * 3 * q + q, color);
+        R(x0 + (x1 - x0) * 0.45, ly + d * 3 * q, (x1 - x0) * 0.55, q, color);
+        for (let s = 0; s < 4; s++) { const sx = x0 + (x1 - x0) * (s / 3) - q / 2, sy = s < 2 ? ly : ly + d * 3 * q; R(sx - q / 2, sy - q / 2, 2 * q, 2 * q, C.Negro); R(sx, sy, q, q, C.Hueso); }
+      }
+      const ex = mx + 2 * q + (mw - 4 * q) / 3, ey = my + 4 * q + (mh - 4 * q) * 0.3; // «usted está aquí»
+      R(ex - q, ey - q, 3 * q, 3 * q, C.Rosa);
+    }
+    // afiches de las experiencias
+    const afiche = (cx: number, fondo: string, src: string, texto: string) => {
+      const ah = Math.min(suelo - abajo - 7 * q, 30 * q), aw = ah * 0.95, ax = cx - aw / 2, ay = abajo + 3 * q;
+      if (ah < 10 * q) return;
+      R(ax - linea * 2, ay - linea * 2, aw + 4 * linea, ah + 4 * linea, C.Negro); R(ax, ay, aw, ah, fondo);
+      for (let y = ay + q; y < ay + ah * 0.7; y += 2 * q) R(ax, y, aw, q * 0.5, 'rgba(255,255,255,.18)');
+      const im = imagen(src); if (!im) completa = false;
+      else { const l = aw * 0.72; ctx.drawImage(raster(im, l, l), cx - l / 2, ay + ah * 0.08); }
+      const tt = Math.max(1, Math.min(Math.round(q / 2), Math.floor((aw - 2 * q) / (normalizar(texto).length * AVANCE)))), ancho = (normalizar(texto).length * AVANCE - 1) * tt;
+      R(ax, ay + ah - 9 * tt - q, aw, 9 * tt + q, C.Negro);
+      this.textoPixel(ctx, texto, cx - ancho / 2, ay + ah - 8 * tt - q / 2, tt, C.Amarillo);
+    };
+    afiche(pilares[1] - pw / 2 - 16 * q, C.Celeste, SRC.vagon[1], 'TAGS');
+    afiche(pilares[1] + pw / 2 + 24 * q, C.Amarillo, SRC.vagon[0], 'JUEGA');
+    afiche(pilares[2] + pw / 2 + 16 * q, C.Rosa, SRC.vagon[2], 'PINTA');
+    // bancas Pixel contra el muro
+    const banca = (cx: number) => {
+      const w = 26 * q, y = suelo;
+      R(cx - w / 2, y - 12 * q, w, 3 * q, C.Negro); R(cx - w / 2 + q, y - 11 * q, w - 2 * q, q, C.Morado); // respaldo
+      R(cx - w / 2 - q, y - 7 * q, w + 2 * q, 3 * q, C.Negro); R(cx - w / 2, y - 6 * q, w, q, '#9A4CB0'); // asiento
+      for (const lx of [cx - w / 2 + 2 * q, cx + w / 2 - 4 * q]) R(lx, y - 5 * q, 2 * q, 5 * q, C.Negro);
+      R(cx - w / 2 + 2 * q, y - 9 * q, q, 2 * q, C.Negro); R(cx + w / 2 - 3 * q, y - 9 * q, q, 2 * q, C.Negro);
+    };
+    banca(W * 0.5); banca(W * 0.73);
+    // basurero junto al pilar del medio
+    {
+      const bx = pilares[1] + pw / 2 + 3 * q, w = 6 * q, h = 9 * q, y = suelo;
+      R(bx - linea, y - h - linea, w + 2 * linea, h + linea, C.Negro); R(bx, y - h, w, h, '#5E6B6B'); R(bx + q, y - h + 2 * q, q, h - 3 * q, '#7C8A8A');
+      R(bx - q, y - h - q, w + 2 * q, 2 * q, C.Negro); R(bx + q, y - h - q, w - 2 * q, q, '#2A2A2A'); R(bx + 2 * q, y - h + 3 * q, 2 * q, 2 * q, C.Verde);
+    }
+    // extintor en su gabinete, al lado del último pilar
+    {
+      const ex = pilares[2] - pw / 2 - 11 * q, w = 8 * q, h = 15 * q, y = suelo - 6 * q;
+      R(ex - linea, y - h - linea, w + 2 * linea, h + 2 * linea, C.Negro); R(ex, y - h, w, h, '#FBF7EF');
+      R(ex + 2 * q, y - h + 3 * q, 4 * q, h - 5 * q, '#E2001A'); R(ex + 3 * q, y - h + 2 * q, 2 * q, q, C.Negro); R(ex + 2 * q, y - h + 6 * q, q, 4 * q, '#FF5A6E');
+      R(ex, y - h, w, q, '#E2001A');
+    }
+    // piso de baldosas, con el zócalo del muro
+    R(0, suelo, W, via - 18 * u - suelo, '#D9CDB7');
+    R(0, suelo, W, linea, C.Negro);
+    const bh = 3 * q, bw = 8 * q;
+    for (let y = suelo + linea, f = 0; y < via - 18 * u; y += bh, f++) for (let x = (f % 2) * -bw / 2; x < W; x += bw) {
+      R(x, y, bw - linea, Math.min(bh, via - 18 * u - y) - linea, f % 2 ? '#D3C6AE' : '#DDD2BD');
+    }
+    // franja táctil amarilla del borde (con sus botones) y el canto del andén
+    R(0, via - 18 * u, W, 8 * u, C.Amarillo);
+    for (let x = 4 * u; x < W; x += 12 * u) R(x, via - 15.5 * u, 3 * u, 3 * u, '#C79A00');
+    R(0, via - 10 * u, W, linea * 2, C.Negro);
+    // vía: foso con balasto, durmientes y riel
+    R(0, via - 10 * u + linea * 2, W, anden.y + anden.h - via + 10 * u, '#2A2A2A');
+    for (let i = 0; i < W / (3 * q); i++) R(azar() * W, via - 8 * u + azar() * 8 * u, q, q, azar() < 0.5 ? '#3B3B3B' : '#4A4540');
+    for (let x = 0; x < W; x += 28 * u) R(x, via + 4 * u, 14 * u, 6 * u, '#6B6B6B');
+    R(0, via, W, 3 * u, C.Hueso); R(0, via + 3 * u, W, linea, '#6B6B6B');
+    return completa;
   }
 
   // Escaleras mecánicas vistas de perfil, como en un corte de la estación: descanso abajo y arriba, peldaños
@@ -573,29 +680,30 @@ export class Estacion {
     tramo(escB, mezz.suelo + mezz.fondo / 2, escB - tramoB, plaza.suelo + plaza.fondo / 2);
   }
 
-  // El tren usa el lateral del metro de Figma (Pixel · FA08): el módulo de 240 se repite a lo largo de cada carro.
+  // El tren es el metro Pixel detallado de la web (metro.ts). Las puertas se abren del lado del andén que no se ve:
+  // el tren llega, se detiene y la gente del andén queda detrás de él, sin puertas abriéndose.
+  private altoTren() { return Math.min(this.d.anden.h * 0.6, 235 * this.d.u); }
+  // ¿Esta persona del andén queda detrás del tren? Entonces no se ve: aparece y desaparece por detrás de él.
+  private tapadaPorTren(a: Avatar, x: number) {
+    if (a.nivel !== 0 || a.subiendo) return false;
+    const t = this.tren();
+    return t.visible && x > t.x - 20 * this.d.u && x < t.x + t.largo + 20 * this.d.u;
+  }
+
   private trenDibujo(ctx: CanvasRenderingContext2D) {
     const t = this.tren();
     if (!t.visible) return;
     const { u, via } = this.d;
-    const alto = Math.min(this.d.anden.h * 0.55, 150 * u), y = via - alto - 4 * u, vagones = 3, lv = t.largo / vagones, junta = 6 * u;
-    const modulo = imagen(t.n % 2 ? SRC.metro.l4 : SRC.metro.l1);
+    const alto = this.altoTren(), p = alto / FILAS, y = via - alto, vagones = 2, lv = t.largo / vagones;
+    const n = Math.round((lv - 4 * p) / p), w = n * p;
+    ctx.save(); ctx.imageSmoothingEnabled = false;
     for (let v = 0; v < vagones; v++) {
-      const x = t.x + v * lv, w = lv - junta;
-      ctx.save(); ctx.beginPath();
-      // el primer carro tiene la trompa redondeada hacia donde va (izquierda)
-      if (v === 0) ctx.roundRect(x, y, w, alto, [alto * 0.35, 0, 0, alto * 0.1]); else ctx.rect(x, y, w, alto);
-      ctx.clip();
-      if (modulo) { const m = raster(modulo, alto, alto); for (let k = 0; k * alto < w; k++) ctx.drawImage(m, x + k * alto, y); }
-      else { ctx.fillStyle = '#E2001A'; ctx.fillRect(x, y, w, alto); }
-      if (t.abierto) { // puertas abiertas: el hueco oscuro de cada puerta del módulo
-        ctx.fillStyle = 'rgba(0,0,0,.82)';
-        for (let k = 0; k * alto < w; k++) ctx.fillRect(x + k * alto + alto * 0.29, y + alto * 0.12, alto * 0.42, alto * 0.68);
-      }
-      ctx.restore();
-      if (v === 0) { ctx.fillStyle = C.Celeste; ctx.fillRect(x + alto * 0.06, y + alto * 0.2, alto * 0.16, alto * 0.22); }
-      ctx.fillStyle = C.Negro; ctx.fillRect(x + w, y + alto * 0.25, junta, alto * 0.55);
+      const x = Math.round(t.x + v * lv);
+      ctx.drawImage(carro(n, { frente: v === 0, cola: v === vagones - 1, semilla: v + 3 * (t.n % 4) }), x, y, w, alto);
+      // fuelle entre carros
+      if (v < vagones - 1) { ctx.fillStyle = C.Negro; ctx.fillRect(x + w - p, y + 6 * p, lv - w + 2 * p, 16 * p); ctx.fillStyle = '#3A3A3A'; for (let k = 0; k < 4; k++) ctx.fillRect(x + w + p * 0.5, y + (8 + k * 3.5) * p, lv - w - p, p); }
     }
+    ctx.restore();
   }
 
   private avatar(ctx: CanvasRenderingContext2D, a: Avatar, [x, y]: [number, number]) {
@@ -800,5 +908,5 @@ function ajustar(ctx: CanvasRenderingContext2D, texto: string, max: number): str
 
 // Precarga de todos los SVG que usa la escena.
 export const TODAS_LAS_IMAGENES = [
-  ...Object.values(SRC.personaje), SRC.araucaria, SRC.sol, SRC.helecho, SRC.flor, SRC.quisco, ...SRC.vagon, SRC.metro.l1, SRC.metro.l4,
+  ...Object.values(SRC.personaje), SRC.araucaria, SRC.sol, SRC.helecho, SRC.flor, SRC.quisco, ...SRC.vagon,
 ];
