@@ -1,0 +1,450 @@
+<title>Prueba en grupo Somos Diseño</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,600;9..40,800&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: cabecera fija con el avance y las pestañas; una columna de pasos por sección, cada paso con su registro. */
+:root {
+  --bg: #F4EEE3; --surface: #FFFDF8; --ink: #111111; --muted: #5C564D; --line: #D9D0BF;
+  --accent: #0062B8; --on-accent: #FFFFFF; --chip: #EAE2D3;
+  --ok: #00A651; --falla: #D7263D; --medias: #FFC20E; --noap: #8C857A;
+  --sans: "DM Sans", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #15130F; --surface: #1F1C17; --ink: #F4EEE3; --muted: #B3AA9B; --line: #3A352D;
+  --accent: #7FC8F8; --on-accent: #0B1A26; --chip: #2A261F; --ok: #3DD68C; --falla: #FF6B7A; --medias: #FFC20E; --noap: #8C857A; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #15130F; --surface: #1F1C17; --ink: #F4EEE3; --muted: #B3AA9B; --line: #3A352D;
+  --accent: #7FC8F8; --on-accent: #0B1A26; --chip: #2A261F; --ok: #3DD68C; --falla: #FF6B7A; --medias: #FFC20E; --noap: #8C857A; color-scheme: dark }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 400 15px/1.45 var(--sans); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--ink); }
+.envoltura { max-width: 980px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.etq { font: 600 11px/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+/* Cabecera */
+.cab { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--ink); color: var(--bg); }
+.cab .envoltura { display: grid; gap: 10px; padding-block: 14px 0; }
+.cab h1 { font: 800 22px/1.1 var(--sans); letter-spacing: -.02em; }
+.cab .sub { color: color-mix(in srgb, var(--bg) 70%, transparent); font-size: 13px; }
+.barra { display: flex; height: 8px; background: color-mix(in srgb, var(--bg) 18%, transparent); overflow: hidden; }
+.barra span { display: block; height: 100%; }
+.cifras { display: flex; flex-wrap: wrap; gap: 6px 16px; font: 600 12px var(--mono); }
+.cifras b { font-size: 15px; }
+.pestanas { display: flex; gap: 2px; overflow-x: auto; }
+.pestanas button { border: 0; background: transparent; color: color-mix(in srgb, var(--bg) 75%, transparent); padding: 10px 14px; font-weight: 600; border-bottom: 3px solid transparent; white-space: nowrap; }
+.pestanas button[aria-selected="true"] { color: var(--bg); border-color: var(--medias); }
+
+main.envoltura { display: grid; gap: 18px; padding-block: 18px 64px; }
+.aviso { background: var(--chip); border-left: 4px solid var(--accent); padding: 12px 14px; font-size: 14px; }
+.aviso.error { border-color: var(--falla); }
+.quien { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); align-items: end; background: var(--surface); border: 1px solid var(--line); padding: 14px; }
+label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+input, select, textarea { background: var(--bg); border: 1.5px solid var(--line); padding: 9px 10px; min-height: 42px; width: 100%; color: var(--ink); }
+textarea { resize: vertical; min-height: 64px; }
+
+/* Filtros */
+.filtros { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1.5px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; min-height: 36px; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.buscar { max-width: 360px; }
+
+/* Secciones y pasos */
+.seccion { display: grid; gap: 10px; }
+.seccion > header { display: grid; gap: 2px; padding-top: 10px; border-top: 3px solid var(--ink); }
+.seccion h2 { font: 800 20px/1.2 var(--sans); }
+.seccion .meta { font-size: 13px; color: var(--muted); }
+.paso { scroll-margin-top: 230px; background: var(--surface); border: 1px solid var(--line); border-left: 6px solid var(--line); display: grid; }
+.paso[data-estado="ok"] { border-left-color: var(--ok); }
+.paso[data-estado="falla"] { border-left-color: var(--falla); }
+.paso[data-estado="medias"] { border-left-color: var(--medias); }
+.paso[data-estado="noap"] { border-left-color: var(--noap); }
+.paso > summary { list-style: none; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 12px 14px; cursor: pointer; }
+.paso > summary::-webkit-details-marker { display: none; }
+.paso .id { font: 600 13px var(--mono); background: var(--chip); padding: 3px 7px; }
+.paso h3 { font: 600 16px/1.3 var(--sans); }
+.pill { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; padding: 4px 8px; border: 1.5px solid currentColor; white-space: nowrap; }
+.pill.ok { color: var(--ok); } .pill.falla { color: var(--falla); } .pill.medias { color: #9A7300; } .pill.noap, .pill.nada { color: var(--noap); }
+:root[data-theme="dark"] .pill.medias { color: var(--medias); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pill.medias { color: var(--medias); } }
+.cuerpo { display: grid; gap: 12px; padding: 0 14px 14px; min-width: 0; }
+.bloques { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.bloque { display: grid; gap: 4px; min-width: 0; }
+.bloque p { margin: 0; overflow-wrap: anywhere; }
+.requiere { font-size: 13px; background: var(--chip); padding: 6px 10px; }
+.estados { display: flex; flex-wrap: wrap; gap: 6px; }
+.estados button { border: 2px solid var(--line); background: var(--bg); padding: 8px 12px; font-weight: 600; min-height: 44px; }
+.estados button[aria-pressed="true"][data-v="ok"] { background: var(--ok); border-color: var(--ok); color: #000; }
+.estados button[aria-pressed="true"][data-v="falla"] { background: var(--falla); border-color: var(--falla); color: #fff; }
+.estados button[aria-pressed="true"][data-v="medias"] { background: var(--medias); border-color: var(--medias); color: #000; }
+.estados button[aria-pressed="true"][data-v="noap"] { background: var(--noap); border-color: var(--noap); color: #fff; }
+.form { display: grid; gap: 10px; border-top: 1px dashed var(--line); padding-top: 12px; }
+.acciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { border: 2px solid var(--ink); background: var(--surface); padding: 9px 16px; font-weight: 600; min-height: 44px; }
+.btn.prim { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn:disabled { opacity: .45; cursor: default; }
+.historial { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.historial li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; font-size: 13px; align-items: start; }
+.historial .quien-h { color: var(--muted); }
+.vacio { color: var(--muted); font-size: 14px; }
+.ok-msg { color: var(--ok); font-weight: 600; font-size: 13px; }
+
+/* Hallazgos */
+.hallazgo { background: var(--surface); border: 1px solid var(--line); padding: 12px 14px; display: grid; gap: 6px; }
+.hallazgo .linea { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.grav { font: 600 11px var(--mono); text-transform: uppercase; padding: 3px 8px; color: #000; }
+.grav.bloquea { background: var(--falla); color: #fff; } .grav.importante { background: var(--medias); } .grav.menor { background: var(--chip); color: var(--ink); } .grav.idea { background: var(--accent); color: var(--on-accent); }
+.hallazgo.resuelto { opacity: .6; }
+.hallazgo p { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+
+/* Avance */
+.tabla-c { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; background: var(--surface); }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+th { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); background: var(--chip); }
+@media (max-width: 520px) { .paso > summary { grid-template-columns: auto minmax(0, 1fr); } .paso > summary .pill { grid-column: 2; justify-self: start; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header class="cab">
+  <div class="envoltura">
+    <div><h1>Prueba en grupo · Somos Diseño</h1><p class="sub" id="sub">19 nov · cada paso: qué hacer, qué debería pasar y qué pasó. Lo que registran se ve para todos al momento.</p></div>
+    <div class="barra" id="barra" aria-hidden="true"></div>
+    <div class="cifras" id="cifras"></div>
+    <nav class="pestanas" role="tablist" aria-label="Vistas">
+      <button role="tab" id="tab-pasos" aria-selected="true" data-vista="pasos">Pasos</button>
+      <button role="tab" id="tab-hallazgos" aria-selected="false" data-vista="hallazgos">Hallazgos</button>
+      <button role="tab" id="tab-avance" aria-selected="false" data-vista="avance">Avance por sección</button>
+    </nav>
+  </div>
+</header>
+
+<main class="envoltura">
+  <div id="estado-db" class="aviso">Conectando con el registro compartido…</div>
+  <section class="quien" aria-label="Quién prueba">
+    <label for="equipo">Con qué equipo pruebas<input id="equipo" list="equipos" placeholder="Ej.: iPhone 13 de Caro" autocomplete="off"></label>
+    <datalist id="equipos"><option value="Celular iPhone"><option value="Celular Android"><option value="Tablet Lenovo 1"><option value="Tablet Lenovo 2"><option value="Tablet Lenovo 3"><option value="Flip"><option value="PC madre"></datalist>
+    <p class="vacio" id="yo" style="margin:0">Tus registros quedan con tu nombre de claude.ai.</p>
+  </section>
+
+  <div id="vista-pasos">
+    <div style="display:grid;gap:10px">
+      <div class="filtros" id="filtros" role="group" aria-label="Sección"></div>
+      <div class="filtros" id="filtro-estado" role="group" aria-label="Estado"></div>
+      <input id="buscar" class="buscar" type="search" placeholder="Buscar paso (ej.: canje, QR, C16)" aria-label="Buscar paso">
+    </div>
+    <div id="lista" style="display:grid;gap:18px;margin-top:14px"></div>
+  </div>
+
+  <div id="vista-hallazgos" hidden>
+    <form id="form-hallazgo" class="quien" style="grid-template-columns:1fr" autocomplete="off">
+      <h2 style="font-size:18px">Anotar un hallazgo</h2>
+      <label for="h-titulo">Qué pasó (una línea)<input id="h-titulo" maxlength="140" required placeholder="Ej.: el QR de Graffiti no abre en iPhone"></label>
+      <div class="bloques">
+        <label for="h-paso">Paso (opcional)<input id="h-paso" list="lista-pasos" placeholder="Ej.: G06" maxlength="4"></label>
+        <label for="h-grav">Gravedad<select id="h-grav"><option value="bloquea">Bloquea el evento</option><option value="importante" selected>Importante</option><option value="menor">Menor</option><option value="idea">Idea o mejora</option></select></label>
+      </div>
+      <label for="h-detalle">Detalle: qué hiciste, qué esperabas y qué pasó<textarea id="h-detalle" maxlength="2000" rows="4"></textarea></label>
+      <div class="acciones"><button class="btn prim" id="h-guardar">Guardar hallazgo</button><span id="h-ok" class="ok-msg" role="status"></span></div>
+    </form>
+    <datalist id="lista-pasos"></datalist>
+    <div class="filtros" id="filtro-h" role="group" aria-label="Mostrar" style="margin-top:16px"></div>
+    <div id="lista-h" style="display:grid;gap:10px;margin-top:10px"></div>
+  </div>
+
+  <div id="vista-avance" hidden>
+    <div class="tabla-c"><table><thead><tr><th>Sección</th><th>Pasos</th><th>Probados</th><th>Funciona</th><th>A medias</th><th>Falla</th><th>No aplica</th></tr></thead><tbody id="tabla-avance"></tbody></table></div>
+    <p class="vacio">Cada paso cuenta con su último registro. Un paso con «Falla» sigue en rojo hasta que alguien lo vuelva a probar y registre «Funciona».</p>
+  </div>
+</main>
+
+<script>
+/*__PASOS__*/
+</script>
+<script>
+(function () {
+  var ESTADOS = [
+    { v: 'ok', t: 'Funciona' }, { v: 'medias', t: 'A medias' }, { v: 'falla', t: 'Falla' }, { v: 'noap', t: 'No aplica' },
+  ];
+  var NOMBRE_ESTADO = { ok: 'Funciona', medias: 'A medias', falla: 'Falla', noap: 'No aplica', nada: 'Sin probar' };
+  var GRAV = { bloquea: 'Bloquea', importante: 'Importante', menor: 'Menor', idea: 'Idea' };
+
+  var db = null, user = null, yoId = null, puedeEscribir = false;
+  var registros = [], hallazgos = [], perfiles = {};
+  var filtroSec = 'todas', filtroEst = 'todos', filtroH = 'abiertos', texto = '';
+  var abiertos = new Set();
+  var borradores = {}, elegidos = {}; // lo que cada persona está escribiendo: sobrevive a los redibujos
+
+  function h(tag, attrs, hijos) {
+    var e = document.createElement(tag);
+    if (attrs) for (var k in attrs) {
+      if (k === 'text') e.textContent = attrs[k];
+      else if (k === 'class') e.className = attrs[k];
+      else if (k.slice(0, 2) === 'on') e.addEventListener(k.slice(2), attrs[k]);
+      else if (attrs[k] !== undefined && attrs[k] !== null && attrs[k] !== false) e.setAttribute(k, attrs[k] === true ? '' : attrs[k]);
+    }
+    (hijos || []).forEach(function (c) { if (c != null) e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+    return e;
+  }
+  function guardarLocal(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function leerLocal(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function hora(t) { try { return new Date(t).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } }
+  function nombre(id) { return (perfiles[id] && perfiles[id].name) || (id === yoId ? 'Tú' : 'Alguien'); }
+
+  var equipo = document.getElementById('equipo');
+  equipo.value = leerLocal('pg:equipo') || '';
+  equipo.addEventListener('change', function () { guardarLocal('pg:equipo', equipo.value.trim()); });
+
+  // Último registro de cada paso
+  function ultimo() {
+    var m = {};
+    registros.forEach(function (r) { if (!m[r.paso] || r.t > m[r.paso].t) m[r.paso] = r; });
+    return m;
+  }
+
+  // ---------- Cabecera ----------
+  function cabecera() {
+    var u = ultimo(), c = { ok: 0, medias: 0, falla: 0, noap: 0 };
+    PASOS.forEach(function (p) { var r = u[p[0]]; if (r && c[r.estado] !== undefined) c[r.estado]++; });
+    var total = PASOS.length, probados = c.ok + c.medias + c.falla + c.noap;
+    var barra = document.getElementById('barra'); barra.textContent = '';
+    [['ok', 'var(--ok)'], ['medias', 'var(--medias)'], ['falla', 'var(--falla)'], ['noap', 'var(--noap)']].forEach(function (x) {
+      barra.appendChild(h('span', { style: 'width:' + (100 * c[x[0]] / total) + '%;background:' + x[1] }));
+    });
+    var abiertosH = hallazgos.filter(function (x) { return x.estado !== 'resuelto'; }).length;
+    var cif = document.getElementById('cifras'); cif.textContent = '';
+    [[probados + ' / ' + total, 'probados'], [c.ok, 'funcionan'], [c.medias, 'a medias'], [c.falla, 'fallan'], [abiertosH, 'hallazgos abiertos']].forEach(function (x) {
+      cif.appendChild(h('span', null, [h('b', { text: String(x[0]) }), ' ' + x[1]]));
+    });
+  }
+
+  // ---------- Pasos ----------
+  function filtros() {
+    var f = document.getElementById('filtros'); f.textContent = '';
+    [{ id: 'todas', nombre: 'Todas' }].concat(SECCIONES).forEach(function (s) {
+      f.appendChild(h('button', { class: 'chip', type: 'button', 'aria-pressed': String(filtroSec === s.id), text: s.id === 'todas' ? 'Todas' : s.id + ' · ' + s.nombre,
+        onclick: function () { filtroSec = s.id; guardarLocal('pg:sec', s.id); filtros(); lista(); } }));
+    });
+    var e = document.getElementById('filtro-estado'); e.textContent = '';
+    [['todos', 'Todos los estados'], ['nada', 'Sin probar'], ['falla', 'Fallan'], ['medias', 'A medias'], ['ok', 'Funcionan']].forEach(function (x) {
+      e.appendChild(h('button', { class: 'chip', type: 'button', 'aria-pressed': String(filtroEst === x[0]), text: x[1],
+        onclick: function () { filtroEst = x[0]; filtros(); lista(); } }));
+    });
+  }
+  document.getElementById('buscar').addEventListener('input', function (ev) { texto = ev.target.value.toLowerCase(); lista(); });
+
+  function tarjeta(p, u) {
+    var id = p[0], r = u[id], est = r ? r.estado : 'nada';
+    var det = h('details', { class: 'paso', 'data-estado': est, id: 'paso-' + id });
+    if (abiertos.has(id)) det.open = true;
+    det.addEventListener('toggle', function () { if (det.open) abiertos.add(id); else abiertos.delete(id); });
+    det.appendChild(h('summary', null, [
+      h('span', { class: 'id', text: id }), h('h3', { text: p[1] }), h('span', { class: 'pill ' + est, text: NOMBRE_ESTADO[est] }),
+    ]));
+    var cuerpo = h('div', { class: 'cuerpo' });
+    cuerpo.appendChild(h('div', { class: 'bloques' }, [
+      h('div', { class: 'bloque' }, [h('span', { class: 'etq', text: 'Qué hacer' }), h('p', { text: p[2] })]),
+      h('div', { class: 'bloque' }, [h('span', { class: 'etq', text: 'Qué debería pasar' }), h('p', { text: p[3] })]),
+    ]));
+    if (p[4]) cuerpo.appendChild(h('p', { class: 'requiere', text: 'Necesita: ' + p[4] }));
+
+    // Formulario
+    var elegido = elegidos[id] || null;
+    var botones = h('div', { class: 'estados', role: 'group', 'aria-label': 'Resultado' });
+    var guardar = h('button', { class: 'btn prim', type: 'button', disabled: true, text: 'Guardar registro' });
+    var msg = h('span', { class: 'ok-msg', role: 'status' });
+    ESTADOS.forEach(function (e) {
+      botones.appendChild(h('button', { type: 'button', 'data-v': e.v, 'aria-pressed': String(elegido === e.v), text: e.t, onclick: function (ev) {
+        elegido = e.v; elegidos[id] = e.v;
+        Array.prototype.forEach.call(botones.children, function (b) { b.setAttribute('aria-pressed', String(b === ev.currentTarget)); });
+        guardar.disabled = !puedeEscribir;
+      } }));
+    });
+    var nid = 'nota-' + id;
+    var nota = h('textarea', { id: nid, maxlength: '1500', rows: '2', placeholder: 'Qué pasó, qué se abrió, cuánto tardó, mensaje exacto si hubo error. Si C06: el código.' });
+    nota.value = borradores[id] || '';
+    nota.addEventListener('input', function () { borradores[id] = nota.value; });
+    if (elegido) guardar.disabled = !puedeEscribir;
+    guardar.addEventListener('click', function () {
+      if (!elegido || !db) return;
+      guardar.disabled = true; msg.textContent = 'Guardando…';
+      db.collection('registros').add({ paso: id, estado: elegido, nota: nota.value.trim().slice(0, 1500), equipo: (equipo.value || '').trim().slice(0, 80), autor: yoId || '', t: Date.now() })
+        .then(function () { msg.textContent = 'Guardado.'; nota.value = ''; elegido = null; delete borradores[id]; delete elegidos[id]; Array.prototype.forEach.call(botones.children, function (b) { b.setAttribute('aria-pressed', 'false'); }); })
+        .catch(function (e) { msg.textContent = 'No se guardó (' + (e && e.code || 'error') + '). Inténtalo otra vez.'; guardar.disabled = false; });
+    });
+    var anotar = h('button', { class: 'btn', type: 'button', text: 'Anotar hallazgo de este paso', onclick: function () {
+      ir('hallazgos'); document.getElementById('h-paso').value = id; document.getElementById('h-titulo').focus();
+    } });
+    cuerpo.appendChild(h('div', { class: 'form' }, [
+      h('span', { class: 'etq', text: '¿Qué pasó cuando lo probaste?' }), botones,
+      h('label', { for: nid }, ['Nota', nota]),
+      h('div', { class: 'acciones' }, [guardar, anotar, msg]),
+    ]));
+
+    // Historial del paso
+    var deEste = registros.filter(function (x) { return x.paso === id; }).sort(function (a, b) { return b.t - a.t; });
+    if (deEste.length) {
+      var ul = h('ul', { class: 'historial', 'aria-label': 'Registros de ' + id });
+      deEste.forEach(function (x) {
+        ul.appendChild(h('li', null, [
+          h('span', { class: 'pill ' + x.estado, text: NOMBRE_ESTADO[x.estado] || x.estado }),
+          h('div', null, [
+            h('div', { class: 'quien-h', text: nombre(x.autor) + ' · ' + hora(x.t) + (x.equipo ? ' · ' + x.equipo : '') }),
+            x.nota ? h('div', { text: x.nota }) : null,
+          ]),
+        ]));
+      });
+      cuerpo.appendChild(h('div', { class: 'form' }, [h('span', { class: 'etq', text: 'Registros (' + deEste.length + ')' }), ul]));
+    }
+    det.appendChild(cuerpo);
+    return det;
+  }
+
+  function lista() {
+    // Si alguien escribe una nota mientras llega un registro de otra persona, se le devuelve el foco y el cursor.
+    var activo = document.activeElement, foco = activo && activo.id && activo.id.indexOf('nota-') === 0 ? { id: activo.id, a: activo.selectionStart, b: activo.selectionEnd } : null;
+    var u = ultimo(), cont = document.getElementById('lista'); cont.textContent = '';
+    var hubo = false;
+    SECCIONES.forEach(function (s) {
+      if (filtroSec !== 'todas' && filtroSec !== s.id) return;
+      var pasos = PASOS.filter(function (p) {
+        if (p[0][0] !== s.id) return false;
+        var est = u[p[0]] ? u[p[0]].estado : 'nada';
+        if (filtroEst !== 'todos' && est !== filtroEst) return false;
+        if (texto && (p[0] + ' ' + p[1] + ' ' + p[2] + ' ' + p[3]).toLowerCase().indexOf(texto) < 0) return false;
+        return true;
+      });
+      if (!pasos.length) return;
+      hubo = true;
+      var sec = h('section', { class: 'seccion', 'aria-labelledby': 'sec-' + s.id }, [
+        h('header', null, [h('span', { class: 'etq', text: s.id + ' · ' + s.quien + ' · ' + s.donde }), h('h2', { id: 'sec-' + s.id, text: s.nombre }), h('p', { class: 'meta', text: s.intro, style: 'margin:0' })]),
+      ]);
+      pasos.forEach(function (p) { sec.appendChild(tarjeta(p, u)); });
+      cont.appendChild(sec);
+    });
+    if (!hubo) cont.appendChild(h('p', { class: 'vacio', text: 'Ningún paso con ese filtro.' }));
+    if (foco) { var t = document.getElementById(foco.id); if (t) { t.focus({ preventScroll: true }); try { t.setSelectionRange(foco.a, foco.b); } catch (e) {} } }
+  }
+
+  // ---------- Hallazgos ----------
+  var dl = document.getElementById('lista-pasos');
+  PASOS.forEach(function (p) { dl.appendChild(h('option', { value: p[0] }, [p[1]])); });
+  document.getElementById('form-hallazgo').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var t = document.getElementById('h-titulo'), msg = document.getElementById('h-ok'), btn = document.getElementById('h-guardar');
+    if (!db || !t.value.trim()) return;
+    btn.disabled = true; msg.textContent = 'Guardando…';
+    db.collection('hallazgos').add({
+      titulo: t.value.trim().slice(0, 140), detalle: document.getElementById('h-detalle').value.trim().slice(0, 2000),
+      paso: document.getElementById('h-paso').value.trim().toUpperCase().slice(0, 4), gravedad: document.getElementById('h-grav').value,
+      equipo: (equipo.value || '').trim().slice(0, 80), autor: yoId || '', t: Date.now(), estado: 'abierto',
+    }).then(function () { msg.textContent = 'Guardado.'; t.value = ''; document.getElementById('h-detalle').value = ''; document.getElementById('h-paso').value = ''; })
+      .catch(function (e) { msg.textContent = 'No se guardó (' + (e && e.code || 'error') + ').'; })
+      .then(function () { btn.disabled = !puedeEscribir; });
+  });
+  function filtrosH() {
+    var f = document.getElementById('filtro-h'); f.textContent = '';
+    [['abiertos', 'Abiertos'], ['bloquea', 'Bloquean'], ['resueltos', 'Resueltos'], ['todos', 'Todos']].forEach(function (x) {
+      f.appendChild(h('button', { class: 'chip', type: 'button', 'aria-pressed': String(filtroH === x[0]), text: x[1], onclick: function () { filtroH = x[0]; filtrosH(); listaH(); } }));
+    });
+  }
+  function listaH() {
+    var cont = document.getElementById('lista-h'); cont.textContent = '';
+    var orden = { bloquea: 0, importante: 1, menor: 2, idea: 3 };
+    var l = hallazgos.filter(function (x) {
+      if (filtroH === 'abiertos') return x.estado !== 'resuelto';
+      if (filtroH === 'resueltos') return x.estado === 'resuelto';
+      if (filtroH === 'bloquea') return x.gravedad === 'bloquea' && x.estado !== 'resuelto';
+      return true;
+    }).sort(function (a, b) { return (orden[a.gravedad] - orden[b.gravedad]) || (b.t - a.t); });
+    if (!l.length) { cont.appendChild(h('p', { class: 'vacio', text: hallazgos.length ? 'Nada con ese filtro.' : 'Todavía no hay hallazgos. Anota el primero con el formulario de arriba o desde un paso.' })); return; }
+    l.forEach(function (x) {
+      var resuelto = x.estado === 'resuelto';
+      var btn = h('button', { class: 'btn', type: 'button', disabled: !puedeEscribir, text: resuelto ? 'Reabrir' : 'Marcar resuelto', onclick: function () {
+        btn.disabled = true;
+        db.collection('hallazgos').doc(x.id).update({ estado: resuelto ? 'abierto' : 'resuelto' }).catch(function () { btn.disabled = false; });
+      } });
+      var irPaso = x.paso ? h('button', { class: 'chip', type: 'button', text: 'Ver ' + x.paso, onclick: function () {
+        filtroSec = x.paso[0]; filtroEst = 'todos'; abiertos.add(x.paso); ir('pasos'); filtros(); lista();
+        var el = document.getElementById('paso-' + x.paso); if (el) el.scrollIntoView({ block: 'start' });
+      } }) : null;
+      cont.appendChild(h('article', { class: 'hallazgo' + (resuelto ? ' resuelto' : '') }, [
+        h('div', { class: 'linea' }, [h('span', { class: 'grav ' + x.gravedad, text: GRAV[x.gravedad] || x.gravedad }), irPaso, h('span', { class: 'etq', text: (resuelto ? 'Resuelto · ' : '') + nombre(x.autor) + ' · ' + hora(x.t) + (x.equipo ? ' · ' + x.equipo : '') })]),
+        h('h3', { text: x.titulo, style: 'font-size:16px' }),
+        x.detalle ? h('p', { text: x.detalle }) : null,
+        h('div', { class: 'acciones' }, [btn]),
+      ]));
+    });
+  }
+
+  // ---------- Avance ----------
+  function avance() {
+    var u = ultimo(), tb = document.getElementById('tabla-avance'); tb.textContent = '';
+    SECCIONES.forEach(function (s) {
+      var ps = PASOS.filter(function (p) { return p[0][0] === s.id; }), c = { ok: 0, medias: 0, falla: 0, noap: 0 };
+      ps.forEach(function (p) { var r = u[p[0]]; if (r && c[r.estado] !== undefined) c[r.estado]++; });
+      var probados = c.ok + c.medias + c.falla + c.noap;
+      tb.appendChild(h('tr', null, [h('td', { text: s.id + ' · ' + s.nombre }), h('td', { text: String(ps.length) }), h('td', { text: String(probados) }), h('td', { text: String(c.ok) }), h('td', { text: String(c.medias) }), h('td', { text: String(c.falla) }), h('td', { text: String(c.noap) })]));
+    });
+  }
+
+  // ---------- Vistas ----------
+  function ir(v) {
+    ['pasos', 'hallazgos', 'avance'].forEach(function (x) {
+      document.getElementById('vista-' + x).hidden = x !== v;
+      document.getElementById('tab-' + x).setAttribute('aria-selected', String(x === v));
+    });
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll('.pestanas button').forEach(function (b) { b.addEventListener('click', function () { ir(b.getAttribute('data-vista')); }); });
+
+  function todo() { cabecera(); lista(); listaH(); avance(); }
+  function cargarPerfiles() {
+    if (!user) return;
+    var ids = {};
+    registros.forEach(function (r) { if (r.autor) ids[r.autor] = 1; });
+    hallazgos.forEach(function (r) { if (r.autor) ids[r.autor] = 1; });
+    var faltan = Object.keys(ids).filter(function (i) { return !perfiles[i]; });
+    if (!faltan.length) return;
+    user.profiles(faltan).then(function (ps) { Object.assign(perfiles, ps || {}); todo(); }).catch(function () {});
+  }
+
+  filtroSec = leerLocal('pg:sec') || 'todas';
+  if (filtroSec !== 'todas' && !SECCIONES.some(function (s) { return s.id === filtroSec; })) filtroSec = 'todas';
+  filtros(); filtrosH(); todo();
+
+  // ---------- Conexión ----------
+  var aviso = document.getElementById('estado-db');
+  function sinRegistro(m) { aviso.className = 'aviso error'; aviso.textContent = m; puedeEscribir = false; todo(); }
+  var limite = setTimeout(function () { sinRegistro('No se pudo conectar con el registro compartido. Puedes leer la pauta; para registrar, abre esta página en claude.ai con tu sesión iniciada.'); }, 10000);
+  if (!window.claude || !window.claude.use) { clearTimeout(limite); sinRegistro('Esta vista no tiene registro compartido. Abre la página en claude.ai para registrar.'); return; }
+  Promise.all([window.claude.use('db'), window.claude.use('user')]).then(function (r) {
+    db = r[0]; user = r[1];
+    if (!db) { clearTimeout(limite); sinRegistro('Para registrar, entra a claude.ai con tu cuenta y abre de nuevo este enlace.'); return; }
+    var listo = 0;
+    function cargado() { listo++; if (listo === 2) { clearTimeout(limite); } }
+    if (user) {
+      user.id().then(function (i) { yoId = i; }).catch(function () {});
+      user.me().then(function (m) { if (m && m.name) document.getElementById('yo').textContent = 'Registras como ' + m.name + '.'; }).catch(function () {});
+      Promise.resolve(user.can('data.write')).then(function (c) {
+        puedeEscribir = c !== false;
+        aviso.className = 'aviso'; aviso.textContent = puedeEscribir ? 'Conectado: lo que registres lo ven todos al momento. Abre un paso, marca el resultado y escribe una nota.' : 'Puedes ver, pero no registrar: pide al dueño de la página acceso para editar.';
+        todo();
+      });
+    } else { puedeEscribir = true; aviso.textContent = 'Conectado.'; }
+    db.collection('registros').orderBy('t', 'desc').limit(1000).onSnapshot(function (s) {
+      registros = s.docs.map(function (d) { var x = d.data() || {}; x.id = d.id; return x; }).filter(function (x) { return x.paso && x.estado; });
+      cargado(); todo(); cargarPerfiles();
+    }, function (e) { clearTimeout(limite); sinRegistro('Se perdió la conexión con el registro (' + (e && e.code || 'error') + '). Recarga la página.'); });
+    db.collection('hallazgos').orderBy('t', 'desc').limit(1000).onSnapshot(function (s) {
+      hallazgos = s.docs.map(function (d) { var x = d.data() || {}; x.id = d.id; return x; }).filter(function (x) { return x.titulo; });
+      cargado(); todo(); cargarPerfiles();
+    }, function (e) { clearTimeout(limite); sinRegistro('Se perdió la conexión con los hallazgos (' + (e && e.code || 'error') + '). Recarga la página.'); });
+  }).catch(function () { clearTimeout(limite); sinRegistro('No se pudo conectar con el registro compartido.'); });
+})();
+</script>
