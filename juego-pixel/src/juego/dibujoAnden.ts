@@ -103,6 +103,7 @@ export function escenario(ctx: CanvasRenderingContext2D, ancho: number, alto: nu
   ctx.globalAlpha = 0.22;
   for (let x = X(0) - ((X(0) / cw) | 0) * cw - cw; x < ancho; x += cw) ctx.drawImage(carro, x, Y(ALTO_A - 1) - ch, cw, ch);
   ctx.globalAlpha = 1;
+  utileria(ctx, m, tema);
   // El color se va: una capa gris sobre la pared mientras el jefe no lo devuelve (0 a 1).
   if (gris > 0) { ctx.fillStyle = `rgba(110,110,106,${0.5 * gris})`; ctx.fillRect(0, 0, ancho, Y(ALTO_A - 1)); }
   // Los costados de la arena, más oscuros.
@@ -116,10 +117,14 @@ export function escenario(ctx: CanvasRenderingContext2D, ancho: number, alto: nu
     if (v.y === ALTO_A - 1) {
       ctx.fillStyle = '#77726A'; ctx.fillRect(0, y, ancho, alto - y);
       ctx.fillStyle = '#5A564F'; for (let x = X(0) % c; x < ancho; x += c) ctx.fillRect(x, y + Math.round(c * 0.3), 2, alto);
-      ctx.fillStyle = '#FFC20E'; ctx.fillRect(0, y, ancho, Math.round(c * 0.18));
+      // B-008: la línea amarilla del borde, con sus botones podotáctiles y la franja de seguridad.
+      const banda = Math.round(c * 0.26), boton = Math.max(2, Math.round(c * 0.07)), paso = Math.round(c / 4);
+      ctx.fillStyle = '#FFC20E'; ctx.fillRect(0, y, ancho, banda);
+      ctx.fillStyle = '#C99700';
+      for (let x = X(0) % paso - paso; x < ancho; x += paso) for (const f of [0.3, 0.68]) ctx.fillRect(x + Math.round(paso / 2 - boton / 2), y + Math.round(banda * f - boton / 2), boton, boton);
       ctx.fillStyle = '#000';
-      for (let x = X(0) % Math.round(c / 2) - c; x < ancho; x += Math.round(c / 2)) ctx.fillRect(x, y + Math.round(c * 0.18), Math.round(c * 0.25), Math.round(c * 0.06));
-      ctx.fillRect(0, y, ancho, lw);
+      for (let x = X(0) % Math.round(c / 2) - c; x < ancho; x += Math.round(c / 2)) ctx.fillRect(x, y + banda, Math.round(c * 0.25), Math.round(c * 0.06));
+      ctx.fillRect(0, y, ancho, lw); ctx.fillRect(0, y + banda - 1, ancho, Math.max(1, Math.round(lw / 2)));
       continue;
     }
     const h = Math.round(c * 0.42);
@@ -136,6 +141,65 @@ export function escenario(ctx: CanvasRenderingContext2D, ancho: number, alto: nu
   for (const px of [X(0) - Math.round(c * 0.18), X(ANCHO_A)]) {
     ctx.fillStyle = '#000'; ctx.fillRect(px, 0, Math.round(c * 0.18), Y(ALTO_A - 1));
   }
+}
+
+// Utilería del andén (B-008), detrás de las figuras: pilares con azulejo, letreros de salida y de línea, bancas, un
+// basurero y un reloj. Pixel, con contorno negro y sombra dura, como el resto del juego. Los colores siguen al tema.
+function utileria(ctx: CanvasRenderingContext2D, m: Marco, tema: Tema) {
+  const { c, X, Y, lw } = m, piso = Y(ALTO_A - 1);
+  const caja = (x: number, y: number, w: number, h: number, fondo: string, sombra = true) => {
+    if (sombra) { ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(x + Math.round(c * 0.08), y + Math.round(c * 0.08), w, h); }
+    ctx.fillStyle = '#000'; ctx.fillRect(x - lw, y - lw, w + 2 * lw, h + 2 * lw);
+    ctx.fillStyle = fondo; ctx.fillRect(x, y, w, h);
+  };
+  const texto = (t: string, x: number, y: number, tam: number, color: string) => {
+    ctx.font = `700 ${Math.round(tam)}px "Silkscreen", monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = color; ctx.fillText(t, Math.round(x), Math.round(y));
+  };
+  // Pilares: azulejo un tono más oscuro que la pared, con capitel en la franja y zócalo oscuro.
+  const pilar = mezclaHex(tema.pared, tema.costado, 0.55), canto = mezclaHex(tema.pared, '#000000', 0.35);
+  for (const px of [4.65, 10.75]) {
+    const x = X(px), w = Math.round(c * 0.6);
+    ctx.fillStyle = canto; ctx.fillRect(x - 1, 0, w + 2, piso);
+    ctx.fillStyle = pilar; ctx.fillRect(x + 1, 0, w - 2, piso);
+    ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fillRect(x + 2, 0, Math.max(2, Math.round(c * 0.08)), piso);
+    ctx.fillStyle = canto;
+    for (let y = Math.round(c / 2); y < piso; y += Math.round(c / 2)) ctx.fillRect(x + 1, y, w - 2, 1);
+    ctx.fillStyle = tema.franja; ctx.fillRect(x - 1, Y(3.3), w + 2, Math.round(c * 0.35));
+    ctx.fillStyle = '#3A3A37'; ctx.fillRect(x - 1, piso - Math.round(c * 0.3), w + 2, Math.round(c * 0.3));
+  }
+  // Letreros de salida, a cada lado (verde, con flecha pixel).
+  const sw = Math.round(c * 2.3), sh = Math.round(c * 0.62), sy = Y(6.25);
+  for (const [lado, x] of [[-1, X(0.45)], [1, X(ANCHO_A - 0.45) - sw]] as const) {
+    caja(x, sy, sw, sh, '#00A651');
+    const fl = Math.round(c * 0.08), fx = lado < 0 ? x + Math.round(c * 0.18) : x + sw - Math.round(c * 0.18) - 5 * fl, fy = sy + Math.round(sh / 2);
+    ctx.fillStyle = HUESO;
+    for (let k = 0; k < 5; k++) { const h = (lado < 0 ? k + 1 : 5 - k) * 2 - 1; ctx.fillRect(fx + k * fl, fy - Math.round((h * fl) / 2), fl, h * fl); }
+    texto('SALIDA', x + sw / 2 - lado * c * 0.22, fy + 1, c * 0.28, HUESO);
+  }
+  // Placa de la línea junto al letrero del andén.
+  const lx = X(8) + Math.round(c * 2.3), ly = Y(0.55), ll = Math.round(c * 0.72);
+  caja(lx, ly, ll, ll, '#E2001A');
+  texto('L1', lx + ll / 2, ly + ll / 2 + 1, c * 0.34, HUESO);
+  // Reloj de andén (cuadrado pixel, marca las 8 y algo: hora punta).
+  const rx = X(8) - Math.round(c * 3.1), ry = Y(0.55), rl = Math.round(c * 0.72), u = Math.max(2, Math.round(c * 0.07));
+  caja(rx, ry, rl, rl, HUESO);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(rx + Math.round(rl / 2) - Math.round(u / 2), ry + Math.round(c * 0.12), u, Math.round(rl / 2) - Math.round(c * 0.12));
+  ctx.fillRect(rx + Math.round(rl / 2) - Math.round(c * 0.22), ry + Math.round(rl / 2), Math.round(c * 0.22), u);
+  // Bancas (asiento de listones, respaldo y patas) y un basurero, al fondo del andén.
+  for (const [a, b] of [[1.5, 3.5], [12.5, 14.5]]) {
+    const x = X(a), w = Math.round((b - a) * c), asiento = piso - Math.round(c * 0.5), alto = Math.max(3, Math.round(c * 0.12));
+    ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(x + Math.round(c * 0.1), piso - Math.round(c * 0.08), w, Math.round(c * 0.08));
+    for (const pa of [x + Math.round(c * 0.15), x + w - Math.round(c * 0.3)]) { ctx.fillStyle = '#000'; ctx.fillRect(pa, asiento, Math.round(c * 0.15), piso - asiento); }
+    caja(x, piso - Math.round(c * 1.05), w, Math.round(c * 0.32), '#7FC8F8', false);
+    ctx.fillStyle = '#2B4BD8'; ctx.fillRect(x, piso - Math.round(c * 0.8), w, Math.max(1, Math.round(c * 0.05)));
+    caja(x - Math.round(c * 0.05), asiento - alto, w + Math.round(c * 0.1), alto, '#2B4BD8', false);
+  }
+  const bx = X(9.3), bw = Math.round(c * 0.5), bh = Math.round(c * 0.7);
+  caja(bx, piso - bh, bw, bh, '#5A5A55', false);
+  ctx.fillStyle = '#000'; ctx.fillRect(bx + Math.round(bw * 0.25), piso - bh + Math.round(c * 0.1), Math.round(bw * 0.5), Math.max(2, Math.round(c * 0.06)));
+  ctx.fillStyle = '#8F8F8A'; ctx.fillRect(bx, piso - bh, Math.max(2, Math.round(c * 0.07)), bh);
 }
 
 // Sombra en el piso o la viga bajo una figura.
