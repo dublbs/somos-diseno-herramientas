@@ -60,7 +60,7 @@ export const Foto: React.FC<{ ir: Ir; ponerTema: PonerTema }> = ({ ir, ponerTema
         {datos && <MarcoVivo marco={datos.marco} retrato={imagen} modo="foto" className="marco-vivo" />}
       </section>
       <p className="progreso" role="status">
-        {aviso || (imagen ? 'Así queda en tu credencial.' : 'Fotomatón: sácate una selfie y queda dentro de tu marco.')}
+        {aviso || (imagen ? 'Así queda en tu credencial.' : 'Cabina: sácate una selfie y queda dentro de tu marco.')}
       </p>
       {imagen && (
         <label className="consentimiento">

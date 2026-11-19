@@ -84,7 +84,7 @@ function ejFoto(semilla: number) {
   dibujar(x, [SVG.pixel, SVG.geometrica, SVG.organica][semilla % 3], 135, 150, 170);
   x.fillStyle = C.Negro; x.fillRect(0, 300, 270, 38);
   x.fillStyle = C.Hueso; x.font = '800 15px "Bricolage Grotesque", sans-serif'; x.textBaseline = 'middle';
-  x.fillText('Somos Diseño', 12, 319); x.textAlign = 'right'; x.font = '700 11px "DM Sans", sans-serif'; x.fillText('Fotomatón CMYK', 258, 319);
+  x.fillText('Somos Diseño', 12, 319); x.textAlign = 'right'; x.font = '700 11px "DM Sans", sans-serif'; x.fillText('Cabina de fotos', 258, 319);
   return png(c);
 }
 

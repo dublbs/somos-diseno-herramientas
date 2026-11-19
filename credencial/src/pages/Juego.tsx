@@ -16,7 +16,7 @@ export const EXPERIENCIAS = [
   { app: 'audioreactiva', nombre: 'Audio\u00ADreactiva', icono: 'graphic_eq' },
   { app: 'teatro', nombre: 'Teatro', icono: 'movie' },
   { app: 'grabado', nombre: 'Grabado', icono: 'texture' },
-  { app: 'fotomaton', nombre: 'Fotomatón', icono: 'photo_camera' },
+  { app: 'fotomaton', nombre: 'Cabina', icono: 'photo_camera' },
 ];
 const nombreExperiencia = (app: string) => EXPERIENCIAS.find(x => x.app === app)?.nombre ?? 'creación';
 
@@ -118,7 +118,7 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
         </ul>
         <p className="ayuda">Crea en {creacion.meta} experiencias distintas con tu código <b>{codigo}</b>: cada una llega aquí al momento.</p>
         <a className="btn" href={`../../fotomaton/dist/?codigo=${codigo}&desde=credencial`}>
-          <span className="material-symbols-outlined" aria-hidden="true">photo_camera</span>Abrir el Fotomatón aquí
+          <span className="material-symbols-outlined" aria-hidden="true">photo_camera</span>Abrir la Cabina aquí
         </a>
       </section>
 

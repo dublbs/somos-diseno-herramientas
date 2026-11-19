@@ -6,7 +6,7 @@ import type { Ir } from '../App';
 // credencial; la tablet se entera sola. Sin credencial, se guarda el pedido, se crea la credencial y se completa ahí.
 const NOMBRES: Record<string, string> = {
   graffiti: 'Graffiti y Tags', mosaicos: 'Taller de Mosaicos', 'taller-mosaicos': 'Taller de Mosaicos', loops: 'Teatro de Papel',
-  grabado: 'Taller de Grabado', fotomaton: 'Fotomatón', audioreactiva: 'Estación Audioreactiva', 'juego-pixel': 'Hora punta', vagon: 'Vagón',
+  grabado: 'Taller de Grabado', fotomaton: 'Cabina de fotos', audioreactiva: 'Estación Audioreactiva', 'juego-pixel': 'Hora punta', vagon: 'Vagón',
 };
 export const nombreExperiencia = (app?: string) => (app && NOMBRES[app]) || 'la mesa';
 
