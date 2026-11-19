@@ -35,6 +35,21 @@ interface Evento { t: number; tipo: TipoEvento; vel: number; nota: number; dur: 
 
 const hz = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 const LOOK = 0.12;
+const MARGEN = 0.5, SALIDA = 0.92; // ganancia antes de la dinámica y después del limitador
+// Pads: cuántos golpes de cada uno suenan a la vez. Al tocar Chas muy rápido, cada golpe nuevo apaga el más viejo
+// (en ~6 ms, sin clic): así la mezcla no se amontona ni le pide a la tablet más voces de las que alcanza a calcular.
+const MAX_PAD = 3;
+interface GolpePad { tipo: 'bum' | 'chas'; envs: GainNode[]; fuentes: AudioScheduledSourceNode[]; fin: number }
+
+// congela una automatización en su valor actual (para cortar o agachar sin saltos)
+function sujetar(p: AudioParam, t: number) {
+  if (typeof p.cancelAndHoldAtTime === 'function') p.cancelAndHoldAtTime(t);
+  else { const v = p.value; p.cancelScheduledValues(t); p.setValueAtTime(v, t); }
+}
+// cuando la fuente termina, suelta la cadena para que no se acumulen nodos
+function alTerminar(f: AudioScheduledSourceNode, nodos: AudioNode[]) {
+  f.onended = () => { f.disconnect(); for (const n of nodos) n.disconnect(); };
+}
 
 export class Motor {
   ctx: AudioContext | null = null;
@@ -45,6 +60,8 @@ export class Motor {
 
   private an!: AnalyserNode;
   private bus = {} as Record<Pista | 'manos', GainNode>;
+  private musica!: GainNode; // las cuatro pistas en seco: se agacha un poco cuando suena un pad
+  private pads: GolpePad[] = [];
   private ecoBus = {} as Record<Pista | 'manos', GainNode>;
   private salaBus = {} as Record<Pista | 'manos', GainNode>;
   private filtro!: BiquadFilterNode;
@@ -85,7 +102,8 @@ export class Motor {
     for (let n = 1; n < N; n++) re[n] = (2 / (n * Math.PI)) * Math.sin(n * Math.PI * 0.25);
     this.pulso25 = ctx.createPeriodicWave(re, im);
 
-    // mezcla: pistas → (eco y sala) → filtro del dedo → nivel del estilo → compresor → limitador → salida
+    // mezcla: pistas → (eco y sala) → filtro del dedo → nivel del estilo → margen → compresor → limitador → salida
+    // (el limitador va al final: de ahí salen el analizador, los parlantes y la grabación del loop)
     const seco = ctx.createGain(), mezcla = ctx.createGain();
     this.eco = ctx.createDelay(2); this.ecoFb = ctx.createGain(); this.ecoFb.gain.value = 0.32;
     const ecoTono = ctx.createBiquadFilter(); ecoTono.type = 'lowpass'; ecoTono.frequency.value = 3200;
@@ -93,8 +111,9 @@ export class Motor {
     this.eco.connect(ecoTono); ecoTono.connect(this.ecoFb); this.ecoFb.connect(this.eco); ecoTono.connect(ecoSal); ecoSal.connect(mezcla);
     const sala = ctx.createConvolver(); sala.buffer = this.respuestaSala(ctx, 2.4); const salaSal = ctx.createGain(); salaSal.gain.value = 0.5;
     sala.connect(salaSal); salaSal.connect(mezcla);
+    this.musica = ctx.createGain(); this.musica.connect(seco);
     for (const p of [...PISTAS, 'manos'] as const) {
-      this.bus[p] = ctx.createGain(); this.bus[p].connect(seco);
+      this.bus[p] = ctx.createGain(); this.bus[p].connect(p === 'manos' ? seco : this.musica);
       this.ecoBus[p] = ctx.createGain(); this.ecoBus[p].connect(this.eco);
       this.salaBus[p] = ctx.createGain(); this.salaBus[p].connect(sala);
     }
@@ -102,12 +121,15 @@ export class Motor {
     this.envioEco = ctx.createGain(); this.envioEco.gain.value = 0; seco.connect(this.envioEco); this.envioEco.connect(this.eco);
     this.filtro = ctx.createBiquadFilter(); this.filtro.type = 'lowpass'; this.filtro.frequency.value = 20000; this.filtro.Q.value = 0.7;
     this.nivel = ctx.createGain();
+    // margen: la mezcla llegaba al compresor con picos de 1,2 a 1,9 y él vivía bajando 9-13 dB (apretada y, con los
+    // pads encima, rota). Con −6 dB antes, el compresor trabaja menos y el limitador solo ataja los picos.
+    const margen = ctx.createGain(); margen.gain.value = MARGEN;
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -20; comp.knee.value = 8; comp.ratio.value = 3; comp.attack.value = 0.006; comp.release.value = 0.2;
-    const lim = ctx.createDynamicsCompressor();
-    lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.08;
-    const salida = ctx.createGain(); salida.gain.value = 0.7;
-    mezcla.connect(this.filtro); this.filtro.connect(this.nivel); this.nivel.connect(comp); comp.connect(lim); lim.connect(salida);
+    const lim = ctx.createDynamicsCompressor(); // limitador: −6 dB, 20:1, ataque de 2 ms
+    lim.threshold.value = -6; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.002; lim.release.value = 0.12;
+    const salida = ctx.createGain(); salida.gain.value = SALIDA;
+    mezcla.connect(this.filtro); this.filtro.connect(this.nivel); this.nivel.connect(margen); margen.connect(comp); comp.connect(lim); lim.connect(salida);
     this.an = ctx.createAnalyser(); this.an.fftSize = 2048; this.an.smoothingTimeConstant = 0.55;
     this.an.minDecibels = -90; this.an.maxDecibels = -20;
     this.frec = new Uint8Array(this.an.frequencyBinCount); this.onda = new Float32Array(this.an.fftSize);
@@ -172,17 +194,34 @@ export class Motor {
   tocarPad(tipo: 'bum' | 'chas') {
     const ctx = this.ctx; if (!ctx || this.pausado) return;
     const t = ctx.currentTime + 0.005, [bajo, notas] = this.estilo.acordes[this.compasActual()];
+    // tope de golpes simultáneos de este pad: el más viejo se apaga rápido pero sin clic
+    this.pads = this.pads.filter(g => g.fin > t);
+    const mios = this.pads.filter(g => g.tipo === tipo);
+    while (mios.length >= MAX_PAD) {
+      const viejo = mios.shift()!; this.pads.splice(this.pads.indexOf(viejo), 1);
+      for (const e of viejo.envs) { sujetar(e.gain, t); e.gain.setTargetAtTime(0, t, 0.006); }
+      for (const f of viejo.fuentes) { try { f.stop(t + 0.05); } catch { /* ya paró */ } }
+    }
+    // si todavía suenan otros, este entra un poco más bajo: la suma queda pareja
+    const vel = 1 / Math.sqrt(1 + 0.6 * mios.length);
+    // la música se agacha un instante (~3 dB con Chas, ~2 dB con Bum) para dejarle lugar al golpe
+    const m = this.musica.gain;
+    sujetar(m, t); m.linearRampToValueAtTime(tipo === 'chas' ? 0.7 : 0.8, t + 0.012); m.setTargetAtTime(1, t + 0.1, 0.12);
+    let golpe: GolpePad;
     if (tipo === 'bum') {
       const o = ctx.createOscillator(), g = ctx.createGain(), f = hz(bajo + 24);
       o.frequency.setValueAtTime(f * 2, t); o.frequency.exponentialRampToValueAtTime(f * 0.5, t + 0.35);
-      g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
-      o.connect(g); this.enviar(g, 'manos', 0, 0.25); o.start(t); o.stop(t + 0.62);
-      this.ruidoGolpe(t, 'lowpass', 900, 0.5, 0.25, 'manos', 0.2);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.9 * vel, t + 0.002); g.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+      o.connect(g); alTerminar(o, [g, ...this.enviar(g, 'manos', 0, 0.25)]); o.start(t); o.stop(t + 0.62);
+      const r = this.ruidoGolpe(t, 'lowpass', 900, 0.5, 0.25 * vel, 'manos', 0.2);
+      golpe = { tipo, envs: [g, r.env], fuentes: [o, r.fuente], fin: t + 0.62 };
     } else {
-      this.ruidoGolpe(t, 'highpass', 2500, 0.35, 0.7, 'manos', 0.4);
+      const r = this.ruidoGolpe(t, 'highpass', 2500, 0.35, 0.7 * vel, 'manos', 0.4);
       const v: Voz = { ondas: ['square', 'sawtooth'], desafinar: [-8, 8], ataque: 0.002, caida: 0.25, sostener: 0, relajo: 0.2, filtro: 2400, filtroEnv: 2, vol: 0.07, sala: 0.4, eco: 0.3 };
-      notas.forEach(n => this.voz('manos', t, n + 12, 0.3, v));
+      const acorde = this.voz('manos', t, notas.map(n => n + 12), 0.3, v, vel);
+      golpe = { tipo, envs: [r.env, acorde.env], fuentes: [r.fuente, ...acorde.fuentes], fin: Math.max(t + 0.37, acorde.fin) };
     }
+    this.pads.push(golpe);
     this.evento(t, tipo, 1, bajo, 0.4);
   }
 
@@ -241,7 +280,7 @@ export class Motor {
     const r = e.ritmoAcordes[s];
     if (r === 'x' || r === 'o') {
       const dur = largo(e.ritmoAcordes) * d16 * 0.95, v = r === 'x' ? 1 : 0.7;
-      notas.forEach(n => this.voz('acordes', ts, n, dur, e.timbre.acordes, v));
+      this.voz('acordes', ts, notas, dur, e.timbre.acordes, v);
       this.evento(ts, 'acorde', v, notas[0], dur, 'acordes');
     } else if (r === 'a') {
       const orden = [0, 1, 2, 3, 2, 1], n = notas[orden[s % orden.length] % notas.length];
@@ -261,18 +300,21 @@ export class Motor {
     this.eventos.push({ t, tipo, vel, nota, dur });
   }
 
-  // salida de una nota o golpe: a su pista y, si corresponde, a eco y sala (que se apagan con la pista)
-  private enviar(n: AudioNode, p: Pista | 'manos', eco = 0, sala = 0) {
+  // salida de una nota o golpe: a su pista y, si corresponde, a eco y sala (que se apagan con la pista).
+  // Devuelve los envíos creados, para soltarlos cuando la nota termina.
+  private enviar(n: AudioNode, p: Pista | 'manos', eco = 0, sala = 0): AudioNode[] {
     n.connect(this.bus[p]);
-    const ctx = this.ctx!;
-    if (eco > 0) { const g = ctx.createGain(); g.gain.value = eco; n.connect(g); g.connect(this.ecoBus[p]); }
-    if (sala > 0) { const g = ctx.createGain(); g.gain.value = sala; n.connect(g); g.connect(this.salaBus[p]); }
+    const ctx = this.ctx!, creados: AudioNode[] = [];
+    if (eco > 0) { const g = ctx.createGain(); g.gain.value = eco; n.connect(g); g.connect(this.ecoBus[p]); creados.push(g); }
+    if (sala > 0) { const g = ctx.createGain(); g.gain.value = sala; n.connect(g); g.connect(this.salaBus[p]); creados.push(g); }
+    return creados;
   }
 
   // ---------------------------------------------------------------- instrumentos
-  private voz(p: Pista | 'manos', t: number, nota: number, dur: number, v: Voz, vel = 1) {
-    const ctx = this.ctx!;
-    const f = hz(nota + 12 * (v.octava ?? 0));
+  // Una o varias notas con el mismo timbre: comparten filtro, envolvente y envíos (suena igual que notas sueltas,
+  // porque todo es lineal, y cuesta la mitad de nodos).
+  private voz(p: Pista | 'manos', t: number, notas: number | number[], dur: number, v: Voz, vel = 1) {
+    const ctx = this.ctx!, lista = typeof notas === 'number' ? [notas] : notas;
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = v.q ?? 0.7;
     if (v.filtroEnv) {
       lp.frequency.setValueAtTime(Math.min(16000, v.filtro * v.filtroEnv), t);
@@ -289,15 +331,26 @@ export class Motor {
       lfo = ctx.createOscillator(); lfo.frequency.value = v.vibrato[0];
       prof = ctx.createGain(); prof.gain.value = v.vibrato[1]; lfo.connect(prof); lfo.start(t); lfo.stop(fin2);
     }
-    v.ondas.forEach((onda: Onda, i) => {
-      const o = ctx.createOscillator();
-      if (onda === 'pulso25') o.setPeriodicWave(this.pulso25); else o.type = onda;
-      o.frequency.value = f; o.detune.value = v.desafinar?.[i] ?? 0;
-      if (prof) prof.connect(o.detune);
-      const m = ctx.createGain(); m.gain.value = 1 / v.ondas.length;
-      o.connect(m); m.connect(lp); o.start(t); o.stop(fin2);
-    });
-    lp.connect(g); this.enviar(g, p, v.eco, v.sala);
+    const suma = ctx.createGain(); suma.gain.value = 1 / v.ondas.length; suma.connect(lp);
+    const fuentes: OscillatorNode[] = [];
+    for (const nota of lista) {
+      const f = hz(nota + 12 * (v.octava ?? 0));
+      v.ondas.forEach((onda: Onda, i) => {
+        const o = ctx.createOscillator();
+        if (onda === 'pulso25') o.setPeriodicWave(this.pulso25); else o.type = onda;
+        o.frequency.value = f; o.detune.value = v.desafinar?.[i] ?? 0;
+        if (prof) prof.connect(o.detune);
+        o.connect(suma); o.start(t); o.stop(fin2);
+        fuentes.push(o);
+      });
+    }
+    lp.connect(g);
+    const envios = this.enviar(g, p, v.eco, v.sala);
+    // al terminar (todas paran juntas, salvo las que un pad corta antes), suelta la cadena completa
+    let vivas = fuentes.length;
+    const soltar = () => { if (--vivas > 0) return; for (const o of fuentes) o.disconnect(); for (const n of [suma, lp, g, ...envios]) n.disconnect(); lfo?.disconnect(); prof?.disconnect(); };
+    for (const o of fuentes) o.onended = soltar;
+    return { env: g, fuentes: lfo ? [...fuentes, lfo] : fuentes, fin: fin2 };
   }
 
   private bombo(t: number, vel: number) {
@@ -305,7 +358,7 @@ export class Motor {
     const o = ctx.createOscillator(), g = ctx.createGain();
     o.frequency.setValueAtTime(b.f0, t); o.frequency.exponentialRampToValueAtTime(b.f1, t + b.caida * 0.45);
     g.gain.setValueAtTime(b.vol * vel, t); g.gain.exponentialRampToValueAtTime(0.001, t + b.caida);
-    o.connect(g); this.enviar(g, 'bateria'); o.start(t); o.stop(t + b.caida + 0.02);
+    o.connect(g); alTerminar(o, [g, ...this.enviar(g, 'bateria')]); o.start(t); o.stop(t + b.caida + 0.02);
     if (b.clic > 0) this.ruidoGolpe(t, 'highpass', 1800, 0.012, b.clic * vel * 0.4, 'bateria');
     this.evento(t, 'bombo', vel, 0, 0, 'bateria');
   }
@@ -317,7 +370,7 @@ export class Motor {
       const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'triangle';
       o.frequency.setValueAtTime(c.tono, t); o.frequency.exponentialRampToValueAtTime(c.tono * 0.75, t + c.caida * 0.5);
       g.gain.setValueAtTime(c.cuerpo * c.vol * vel, t); g.gain.exponentialRampToValueAtTime(0.001, t + c.caida * 0.6);
-      o.connect(g); this.enviar(g, 'bateria', 0, (c.sala ?? 0) * 0.5); o.start(t); o.stop(t + c.caida);
+      o.connect(g); alTerminar(o, [g, ...this.enviar(g, 'bateria', 0, (c.sala ?? 0) * 0.5)]); o.start(t); o.stop(t + c.caida);
     }
     this.evento(t, 'caja', vel, 0, 0, 'bateria');
   }
@@ -332,9 +385,11 @@ export class Motor {
     const ctx = this.ctx!;
     const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
     s.buffer = this.ruido; f.type = tipo; f.frequency.value = frec; f.Q.value = q;
-    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + caida);
-    s.connect(f); f.connect(g); this.enviar(g, p, 0, sala);
+    // 1,5 ms de subida: el ruido no arranca con un escalón (clic)
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.0015); g.gain.exponentialRampToValueAtTime(0.001, t + caida);
+    s.connect(f); f.connect(g); alTerminar(s, [f, g, ...this.enviar(g, p, 0, sala)]);
     s.start(t, Math.random() * 1.5); s.stop(t + caida + 0.02);
+    return { env: g, fuente: s };
   }
 
   // ---------------------------------------------------------------- lectura (una vez por cuadro)
