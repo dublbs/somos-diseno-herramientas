@@ -22,26 +22,78 @@ export function marco(ancho: number, alto: number, mandoAlto = 0): Marco {
   return { c, X: x => Math.round(x0 + x * c), Y: y => Math.round(y0 + y * c), lw: Math.max(2, Math.round(c / 18)), x0, y0 };
 }
 
-// Pared de la estación (azulejos hueso, franja azul, letrero), el metro detenido al fondo y las vigas con volumen.
-// La pared sigue a los lados de la arena, más oscura: la pantalla se llena entera.
-export function escenario(ctx: CanvasRenderingContext2D, ancho: number, alto: number, m: Marco, vigas: Viga[], _img: Imagenes, letrero: string, gris = 0) {
+// Tema del escenario (B-008): el andén cambia de luz y de color para que se sienta el avance. Ronda 1, la mañana
+// (hueso y franja azul, tubos apagados); ronda 2, la hora punta (luces encendidas, pared cálida y franja verde); jefe, el
+// Inacapín (pared morada en penumbra, franja roja y luz roja de alarma). Todos son colores de la paleta Línea azul o
+// sombras de ellos (el rojo es el del Inacapín, aprobado para la L1).
+export interface Tema { pared: string; costado: string; junta: string; franja: string; franja2: string; tubo: string; brillo: string; luz: number }
+export const TEMAS = {
+  ronda1: { pared: '#F4EEE3', costado: '#C9BFAE', junta: '#786446', franja: '#0062B8', franja2: '#2B4BD8', tubo: '#B9B9B3', brillo: '#FFF6C9', luz: 0 },
+  ronda2: { pared: '#F8E7C2', costado: '#C9A874', junta: '#8A6A30', franja: '#00A651', franja2: '#007A3B', tubo: '#FFF6C9', brillo: '#FFE79A', luz: 1 },
+  jefe: { pared: '#4E2C5A', costado: '#2A1730', junta: '#14091A', franja: '#E2001A', franja2: '#A80013', tubo: '#FF8FB1', brillo: '#E2001A', luz: 1 },
+} satisfies Record<string, Tema>;
+const hexRgb = (h: string) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const mezclaHex = (a: string, b: string, t: number) => {
+  const x = hexRgb(a), y = hexRgb(b);
+  return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join('');
+};
+export function mezclarTema(a: Tema, b: Tema, t: number): Tema {
+  const k = Math.max(0, Math.min(1, t));
+  if (k <= 0) return a;
+  if (k >= 1) return b;
+  return {
+    pared: mezclaHex(a.pared, b.pared, k), costado: mezclaHex(a.costado, b.costado, k), junta: mezclaHex(a.junta, b.junta, k),
+    franja: mezclaHex(a.franja, b.franja, k), franja2: mezclaHex(a.franja2, b.franja2, k), tubo: mezclaHex(a.tubo, b.tubo, k),
+    brillo: mezclaHex(a.brillo, b.brillo, k), luz: a.luz + (b.luz - a.luz) * k,
+  };
+}
+// Cambio de tema con transición (`MS_CAMBIO`). Devuelve el tema del cuadro, cuánto lleva el cambio (`p`, 0 a 1) y los ms desde que empezó.
+// Con `prefers-reduced-motion` el cambio es inmediato.
+const MS_CAMBIO = 1100;
+const cambios = new WeakMap<object, { de: Tema; a: Tema; t0: number }>();
+export function temaVivo(clave: object, objetivo: Tema, ahora: number, quieto: boolean): { tema: Tema; p: number; ms: number } {
+  let c = cambios.get(clave);
+  if (!c) { c = { de: objetivo, a: objetivo, t0: -1e9 }; cambios.set(clave, c); }
+  if (c.a !== objetivo) { c.de = mezclarTema(c.de, c.a, (ahora - c.t0) / MS_CAMBIO); c.a = objetivo; c.t0 = ahora; }
+  const p = Math.max(0, Math.min(1, (ahora - c.t0) / MS_CAMBIO));
+  return { tema: mezclarTema(c.de, c.a, quieto ? 1 : p), p, ms: ahora - c.t0 };
+}
+
+// Pared de la estación (azulejos, franja, letrero, tubos de luz), el metro detenido al fondo y las vigas con volumen.
+// La pared sigue a los lados de la arena, más oscura: la pantalla se llena entera. `parpadeo`: las luces titilan.
+export function escenario(ctx: CanvasRenderingContext2D, ancho: number, alto: number, m: Marco, vigas: Viga[], _img: Imagenes, letrero: string, gris = 0, tema: Tema = TEMAS.ronda1, parpadeo = false) {
   const { c, X, Y, lw } = m;
   ctx.imageSmoothingEnabled = false;
-  ctx.fillStyle = '#C9BFAE'; ctx.fillRect(0, 0, ancho, alto);
-  ctx.fillStyle = HUESO; ctx.fillRect(X(0), 0, ANCHO_A * c, alto);
+  ctx.fillStyle = tema.costado; ctx.fillRect(0, 0, ancho, alto);
+  ctx.fillStyle = tema.pared; ctx.fillRect(X(0), 0, ANCHO_A * c, alto);
   // azulejos (en toda la pantalla)
   const az = Math.max(4, Math.round(c / 2));
-  ctx.fillStyle = 'rgba(120,100,70,0.16)';
+  ctx.fillStyle = tema.junta; ctx.globalAlpha = 0.16;
   for (let y = Y(0) % az; y < alto; y += az) ctx.fillRect(0, y, ancho, 1);
   for (let x = X(0) % az; x < ancho; x += az) ctx.fillRect(x, 0, 1, alto);
-  // franja azul de la estación
-  ctx.fillStyle = '#0062B8'; ctx.fillRect(0, Y(3.3), ancho, Math.round(c * 0.35));
-  ctx.fillStyle = '#2B4BD8'; ctx.fillRect(0, Y(3.65), ancho, Math.round(c * 0.1));
+  ctx.globalAlpha = 1;
+  // franja de la estación
+  ctx.fillStyle = tema.franja; ctx.fillRect(0, Y(3.3), ancho, Math.round(c * 0.35));
+  ctx.fillStyle = tema.franja2; ctx.fillRect(0, Y(3.65), ancho, Math.round(c * 0.1));
+  // Tubos de luz en el techo y su luz en escalones (pixel). Apagados en la ronda 1.
+  const encendida = tema.luz * (parpadeo ? 0.15 : 1);
+  for (let k = 0; k < 4; k++) {
+    const tx = X(1.2 + k * 4), tw = Math.round(c * 1.6), th = Math.max(3, Math.round(c * 0.16)), ty = Y(0.12);
+    if (encendida > 0.02) for (let s = 0; s < 3; s++) {
+      ctx.globalAlpha = encendida * (0.16 - s * 0.045);
+      ctx.fillStyle = tema.brillo;
+      const ex = Math.round(c * (0.25 + s * 0.45));
+      ctx.fillRect(tx - ex, ty + th, tw + 2 * ex, Math.round(c * (0.9 + s * 0.9)));
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#000'; ctx.fillRect(tx - 2, ty - 2, tw + 4, th + 4);
+    ctx.fillStyle = encendida > 0.5 ? tema.tubo : '#8F8F8A'; ctx.fillRect(tx, ty, tw, th);
+  }
   // Letrero con sombra dura.
   if (letrero) {
     const lx = X(8) - Math.round(c * 1.9), ly = Y(0.45), lw2 = Math.round(c * 3.8), lh = Math.round(c * 0.9);
     ctx.fillStyle = '#000'; ctx.fillRect(lx + 4, ly + 4, lw2, lh);
-    ctx.fillStyle = '#0062B8'; ctx.fillRect(lx, ly, lw2, lh);
+    ctx.fillStyle = tema.franja; ctx.fillRect(lx, ly, lw2, lh);
     ctx.strokeStyle = '#000'; ctx.lineWidth = lw; ctx.strokeRect(lx, ly, lw2, lh);
     ctx.font = `700 ${Math.round(c * 0.42)}px "Silkscreen", monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = HUESO; ctx.fillText(letrero, X(8), ly + lh / 2);
@@ -178,7 +230,10 @@ export function dibujarAnden(ctx: CanvasRenderingContext2D, ancho: number, alto:
   avanzarEfectos(e, e.eventos, e.grises, VIGAS, pasoEfectos(e, ahora), quieto);
   const [sx, sy] = sacudida(e, c, ahora);
   ctx.save(); ctx.translate(sx, sy);
-  escenario(ctx, ancho, alto, m, VIGAS, img, 'ANDÉN');
+  // B-008: la segunda ronda de Grises enciende las luces y entibia el andén (con un titileo al cambiar).
+  const { tema, p, ms } = temaVivo(e, e.oleada >= 2 ? TEMAS.ronda2 : TEMAS.ronda1, ahora, quieto);
+  const titila = !quieto && p < 0.5 && Math.floor(ahora / 90) % 3 === 0;
+  escenario(ctx, ancho, alto, m, VIGAS, img, 'ANDÉN', 0, tema, titila);
   dibujarManchas(ctx, m, e);
   // Piezas sueltas (parpadean antes de borrarse).
   for (const p of e.piezas) {
@@ -191,5 +246,8 @@ export function dibujarAnden(ctx: CanvasRenderingContext2D, ancho: number, alto:
   dibujarJugador(ctx, m, e.jugador, e.invulnerable, e.tiros, VIGAS, ahora, quieto);
   dibujarParticulas(ctx, m, e, ancho, alto);
   dibujarAvisos(ctx, m, e.avisos);
+  if (e.oleada >= 2 && ms < 2400) { // aviso de la ronda 2 mientras cambia la luz (y un poco más)
+    textoConPlaca(ctx, 'Ronda 2 · ¡hora punta!', X(ANCHO_A / 2), Y(6.6), c * 0.5, TEMAS.ronda2.brillo);
+  }
   ctx.restore();
 }

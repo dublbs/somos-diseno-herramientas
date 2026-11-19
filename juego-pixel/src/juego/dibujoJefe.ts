@@ -1,7 +1,7 @@
 // Dibuja la pelea con el Inacapín (plan 009-juego-pixel, ronda 3) sobre la arena del andén: el Inacapín de Figma,
 // gris, que camina, se agacha, salta, escupe, embiste y recupera su rojo desde los pies con cada golpe.
 import { ALTO_A, ANCHO_A } from './anden';
-import { dibujarAvisos, dibujarGrises, dibujarJugador, dibujarTiros, escenario, marco, pasoEfectos } from './dibujoAnden';
+import { dibujarAvisos, dibujarGrises, dibujarJugador, dibujarTiros, escenario, marco, pasoEfectos, TEMAS } from './dibujoAnden';
 import type { Imagenes } from './dibujoCruce';
 import { avanzarEfectos, dibujarManchas, dibujarParticulas, sacudida } from './efectos';
 import { textoConPlaca } from './texto';
@@ -18,7 +18,8 @@ export function dibujarJefe(ctx: CanvasRenderingContext2D, ancho: number, alto: 
   avanzarEfectos(e, e.eventos, e.grises, VIGAS_JEFE, pasoEfectos(e, ahora), quieto);
   const [sx, sy] = sacudida(e, c, ahora);
   ctx.save(); ctx.translate(sx, sy);
-  escenario(ctx, ancho, alto, m, VIGAS_JEFE, img, '', 1 - rojo);
+  // B-008: con el Inacapín el andén se pone morado en penumbra, con franja y luz rojas.
+  escenario(ctx, ancho, alto, m, VIGAS_JEFE, img, '', 1 - rojo, TEMAS.jefe);
   dibujarManchas(ctx, m, e);
   const parpadeo = Math.floor(ahora / 130) % 2 === 0;
 
