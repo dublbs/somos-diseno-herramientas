@@ -9,7 +9,7 @@ Reglas y pipeline: [`README.md`](README.md).
 **El agente nunca corre SQL en producción.** Escribe la migración y la prueba en local; la corre una persona.
 
 ## B-002 · Rescatar el trabajo que quedó en ramas sin PR
-- Estado: Hecha en #55 (ronda-3b y pauta-prueba-grupo; escaner-afiches ya estaba en main)
+- Estado: Hecha en el PR «equipo, parte 2» (ronda-3b y pauta-prueba-grupo); escaner-afiches entró por #56
   se movió el 19 nov.
 - Origen: E-004
 - Ramas:

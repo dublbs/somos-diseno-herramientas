@@ -22,11 +22,11 @@ después.
 
 ## Esta noche
 **Amaro o Felipe, antes de lanzar al agente:**
-1. Mergear **#55**. Trae este plan y además junta:
-   - #54 (Cabina de fotos);
+1. Mergear el PR **«equipo, parte 2»** (el #55 ya entró). Trae este plan y además junta:
+   - #54 (Cabina de fotos), que ya entró por #58;
    - la rama `amaro/ronda-3b` (Chas de Audioreactiva, obras de la Mezanina, «Mezanina»);
    - la pauta de la prueba en grupo.
-   Es B-002 hecho, salvo `claude/escaner-afiches`, que ya está en `main`.
+   Es B-002 hecho (`claude/escaner-afiches` entró por #56). **Nota:** el #55 se mergeó con una versión temprana; el resto llegó en el PR «equipo, parte 2».
 2. Correr las migraciones **008, 009, 010 y 011** en el SQL Editor de `somos-diseno` y anotarlas en
    `shared/supabase/migraciones/README.md` (E-003).
 3. Felipe lanza su agente con el prompt de abajo.

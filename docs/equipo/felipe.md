@@ -10,7 +10,7 @@ producto real. Respeta la paleta Línea azul y los tres lenguajes: plaza Orgáni
 **Esta noche Felipe hace la lista completa de [`manana.md`](manana.md)**, no solo esta cola. Aquí van las tareas del HUB, que no tienen otro dueño. Orden dentro del HUB: P-005 → P-002 → P-001 → P-003 → P-004.
 
 ## P-005 · «Mezanina» en todo el HUB
-- Estado: El cambio ya viene en #55 (ronda-3b). Solo hay que revisar que no quede ninguno.
+- Estado: El cambio ya viene en el PR «equipo, parte 2» (ronda-3b). Solo hay que revisar que no quede ninguno.
 - Cambio: `grep -rn "Mezanine" hub-estacion/src` no debe encontrar nada, tampoco en los carteles ni en el README.
 - Aceptación: en pantalla se lee «Mezanina · Geométrica».
 
