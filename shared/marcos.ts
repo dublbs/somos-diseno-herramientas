@@ -23,10 +23,15 @@ export interface Marco {
 }
 
 const GENERADOS = MARCOS_GENERADOS as unknown as Marco[];
-export const MARCOS: Marco[] = (MARCOS_FIGMA as unknown as Marco[]).map(m => GENERADOS.find(g => g.id === m.id) ?? m);
+// Marcos retirados: no se ofrecen ni se dibujan. PM01 «Pizarra» no se entendía (F-002, T-012); si vuelve a llegar su id
+// (un enlace viejo), porId usa otro marco del mismo lenguaje.
+const RETIRADOS: Record<string, string> = { PM01: 'PM05' };
+export const MARCOS: Marco[] = (MARCOS_FIGMA as unknown as Marco[])
+  .filter(m => !(m.id in RETIRADOS))
+  .map(m => GENERADOS.find(g => g.id === m.id) ?? m);
 
 export const VISUALES: Visual[] = ['Geométrica', 'Orgánica', 'Pixel'];
-export const porId = (id: string): Marco => MARCOS.find(m => m.id === id) ?? MARCOS[0];
+export const porId = (id: string): Marco => MARCOS.find(m => m.id === (RETIRADOS[id] ?? id)) ?? MARCOS[0];
 
 export interface MarcoListo extends Marco {
   _p: [Path2D, string][];
@@ -53,7 +58,6 @@ const AJUSTES: Record<string, Ajuste> = {
   OM04: { forma: 'cuadro', mate: '#7A2E8E' },                     // el panel morado, 192 × 202
   OM05: { escala: ZONA / 117 },                                   // el cuadro más chico del túnel, 117
   OM06: { escala: ZONA / 147, forma: 'rombo' },                   // rombo de 147 (en Figma es una máscara)
-  PM01: { escala: ZONA / 100, forma: 'cuadro', mate: '#7FC8F8' }, // pizarra 140 × 100
   PM02: { escala: ZONA / 140 },                                   // disco de 140: centrado y el vinilo llena el cuadro
   PM04: { escala: ZONA / 120, forma: 'cuadro', mate: '#7FC8F8' }, // ventana 180 × 120
   PM05: { escala: ZONA / 100, forma: 'cuadro', mate: '#FFC20E' }, // ventana del metro 180 × 100
