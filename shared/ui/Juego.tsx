@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CODIGO, EVENTO_TIMBRE, codigoDesdeUrl, existeCredencial, configRemota, entrarJugador, entrarSinCredencial, sinCredencial, guardarConfig, hashPin, idMesa, jugador, leerConfig, normalizarCodigo, pideReinicio, pinDeDemo, traerConfigRemota, verificarPin, type ConfigMesa, type DetalleCreacion } from '../juego';
+import { CODIGO, EVENTO_TIMBRE, codigoDesdeUrl, existeCredencial, configRemota, entrarJugador, entrarSinCredencial, sinCredencial, guardarConfig, hashPin, idMesa, jugador, leerConfig, normalizarCodigo, pideReinicio, pinDeDemo, traerConfigRemota, verificarPin, emergenciaDoble, ponerEmergenciaDoble, horaOferta, creacionDoble, type ConfigMesa, type DetalleCreacion } from '../juego';
 import { BotonAccion, Interruptor } from './Kit';
 import { QrEncargado, QrJugar } from './QrEncargado';
 
@@ -52,6 +52,9 @@ export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string
           {ganado.avance?.otorgado ? (<>
             <h2 id="timbre-t">¡Ganaste el timbre Creación!</h2>
             <p>Ya está en tu credencial ({ganado.codigo}).</p>
+          </>) : ganado.avance && ganado.doble ? (<>
+            <h2 id="timbre-t">¡Creación doble!</h2>
+            <p>Esta creación contó por 2 en tu credencial ({ganado.codigo}). Llevas <b>{ganado.avance.pasos} de {ganado.avance.meta}</b> para el timbre Creación: con una más en otra experiencia lo ganas.</p>
           </>) : ganado.avance ? (<>
             <h2 id="timbre-t">¡Creación guardada!</h2>
             <p>Ya está en el inventario de tu credencial ({ganado.codigo}). Llevas <b>{ganado.avance.pasos} de {ganado.avance.meta}</b> experiencias para el timbre Creación: sigue creando en otras.</p>
@@ -65,6 +68,15 @@ export const PuertaJuego: React.FC<{ app: string; titulo: string; visual: string
       </div>
     )}
   </>);
+};
+
+// Creación doble (shared/juego.ts): mientras dura la oferta o el modo emergencia, la pantalla de entrada lo anuncia.
+const AvisoDoble: React.FC = () => {
+  const [ahora, setAhora] = useState(() => new Date());
+  useEffect(() => { const id = setInterval(() => setAhora(new Date()), 15000); return () => clearInterval(id); }, []);
+  if (!creacionDoble(ahora)) return null;
+  const o = horaOferta(ahora);
+  return <p className="k-juego-doble" role="status"><Icono nombre="auto_awesome" /><span><b>¡Creación doble{o.activa ? ` hasta las ${o.hora}` : ''}!</b> Lo que crees aquí vale por 2 para el timbre Creación.</span></p>;
 };
 
 const Desbloqueo: React.FC<{ app: string; titulo: string; alEscanear: (codigo: string) => void; alEntrar: (codigo: string) => void; alSinCredencial: () => void; alStaff: () => void }> = ({ app, titulo, alEscanear, alEntrar, alSinCredencial, alStaff }) => {
@@ -88,6 +100,7 @@ const Desbloqueo: React.FC<{ app: string; titulo: string; alEscanear: (codigo: s
       <main className="k-tutorial-cuerpo">
         <p className="k-tutorial-etq">Modo juego · {titulo}</p>
         <h1 className="k-tutorial-titulo">Escanea para jugar con tu credencial</h1>
+        <AvisoDoble />
         <div style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
           <QrJugar app={app} tam={220} alEntrar={alEscanear} />
           <p className="k-ayuda" style={{ maxWidth: 360, margin: 0 }}>En tu credencial toca <b>Timbrar</b> y apunta a este QR. ¿No tienes credencial? Escanéalo con la cámara del celular: te lleva a crearla y quedas jugando aquí.</p>
@@ -117,6 +130,7 @@ const PanelStaff: React.FC<{ app: string; alSalir: () => void }> = ({ app, alSal
   const [config, setConfig] = useState<ConfigMesa>(leerConfig);
   const [nuevo, setNuevo] = useState('');
   const [aviso, setAviso] = useState('');
+  const [doble, setDoble] = useState(emergenciaDoble);
   const pc = configRemota();
   const cambiar = (c: Partial<ConfigMesa>) => { const n = { ...config, ...c, manual: !!pc || config.manual }; setConfig(n); guardarConfig(n); setAviso(pc ? 'Guardado solo en esta tablet: ya no sigue al PC madre hasta que lo pidas.' : 'Guardado en esta tablet.'); };
   const seguirPc = () => { const n = { ...config, manual: false }; guardarConfig(n); setConfig(leerConfig()); setAviso('Esta tablet vuelve a seguir al PC madre.'); };
@@ -140,6 +154,7 @@ const PanelStaff: React.FC<{ app: string; alSalir: () => void }> = ({ app, alSal
               : 'Sin conexión con el PC madre: la configuración queda en esta tablet.'}</p>
             {pc && config.manual && <div className="k-tutorial-acciones"><BotonAccion icono="refresh" texto="Volver a seguir al PC madre" onClick={seguirPc} /></div>}
             <Interruptor id="modo-juego" texto="Modo juego: pedir el código de la credencial" activo={config.modoJuego} onCambiar={v => cambiar({ modoJuego: v })} />
+            <Interruptor id="creacion-doble" texto="Creación doble (emergencia): en esta tablet cada creación vale por 2, sin esperar la oferta" activo={doble} onCambiar={v => { ponerEmergenciaDoble(v); setDoble(v); setAviso(v ? 'Creación doble encendida en esta tablet (todas sus experiencias).' : 'Creación doble apagada: vuelve a la oferta de cada media hora.'); }} />
             <label className="k-etq" htmlFor="token-2">Código de la estación 2 (el mismo de los QR impresos)</label>
             <input id="token-2" className="k-juego-input" value={config.token2} autoComplete="off" onChange={e => cambiar({ token2: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4) })} />
             <label className="k-etq" htmlFor="pin-nuevo">{pc ? 'PIN de respaldo, solo para cuando esta tablet no tenga conexión (4 a 8 números)' : 'PIN nuevo para esta tablet (4 a 8 números)'}</label>

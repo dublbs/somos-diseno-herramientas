@@ -75,6 +75,10 @@ footer .h-btn{text-decoration:none}
 .m-qr p{margin:0;color:var(--h-texto-2);text-wrap:pretty}
 .m-qr img{width:min(320px,100%);aspect-ratio:1;justify-self:center;image-rendering:pixelated;background:#fff;border-radius:var(--h-radio)}
 .m-qr .h-btn{justify-self:center;min-width:160px}
+/* Creación doble (shared/juego.ts: OFERTA): cada 30 min, los primeros 10; o el modo emergencia del staff en esta tablet */
+.m-intro .m-doble{display:flex;align-items:center;gap:var(--h-e2);padding:10px 14px;border-radius:var(--h-radio);background:#FFC20E;color:#000;font-size:var(--h-tam-texto)}
+.m-intro .m-doble[hidden]{display:none}
+.m-intro .m-doble.proxima{background:var(--h-superficie);border:var(--h-trazo) solid var(--h-borde);color:var(--h-texto-2)}
 @media (max-width:700px){
   .m-barra,.m-contenido{padding-left:max(var(--h-e4),env(safe-area-inset-left,0px));padding-right:max(var(--h-e4),env(safe-area-inset-right,0px))}
   .m-marca-sub{display:none}
@@ -126,6 +130,7 @@ footer .h-btn{text-decoration:none}
     <div>
       <h1 id="titulo">Experiencias interactivas</h1>
       <p>Explora los tres lenguajes visuales del evento: Geométrico, Píxel y Orgánico. Toca una actividad para comenzar.</p>
+      <p class="m-doble" id="m-doble" role="status" hidden></p>
     </div>
     <div class="m-filtro">
       <p class="h-etq" id="filtro-etiqueta">Filtrar por lenguaje</p>
@@ -811,6 +816,24 @@ footer .h-btn{text-decoration:none}
   ["pointerdown", "keydown", "scroll"].forEach(ev => window.addEventListener(ev, resetTimerInactividad, { passive: true }));
   resetTimerInactividad();
 
+
+  // Creación doble: la misma regla que shared/juego.ts (OFERTA y la llave sd:creacion-doble). Se revisa cada 15 s.
+  const CADA = 30, DURA = 10;
+  const mDoble = document.getElementById("m-doble");
+  const hhmm = m => String(Math.floor(m / 60) % 24).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
+  function revisarDoble() {
+    if (!mDoble) return;
+    const d = new Date(), m = d.getHours() * 60 + d.getMinutes(), r = m % CADA, activa = r < DURA;
+    let emergencia = false;
+    try { emergencia = localStorage.getItem("sd:creacion-doble") === "1"; } catch (e) { /* nada */ }
+    mDoble.hidden = false;
+    mDoble.classList.toggle("proxima", !(activa || emergencia));
+    mDoble.innerHTML = '<span class="material-symbols-outlined h-icono" aria-hidden="true">auto_awesome</span><span>' + (activa || emergencia
+      ? "<b>¡Creación doble" + (activa ? " hasta las " + hhmm(m - r + DURA) : "") + "!</b> Con tu credencial, cada creación vale por 2: con 2 experiencias ganas el timbre Creación."
+      : "Próxima <b>creación doble</b> a las " + hhmm(m - r + CADA) + ": cada creación valdrá por 2.") + "</span>";
+  }
+  revisarDoble();
+  setInterval(revisarDoble, 15000);
 })();
 </script>
 <script type="module">

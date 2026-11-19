@@ -170,12 +170,31 @@ export function idMesa(): string {
   } catch { return 'MESA'; }
 }
 
+// Creación doble (19 nov, sin acceso a la base): la meta del timbre 2 sigue en 4 pasos en el servidor, pero mientras
+// dura la oferta (o el modo emergencia del staff) cada creación anota dos pasos (`app` y `app·doble`): con 2 experiencias
+// cae el timbre. La oferta sigue el reloj del equipo (iguales en todas las tablets): cada 30 min, los primeros 10.
+// El modo emergencia es por tablet (localStorage del sitio, vale para todas las experiencias de ese equipo).
+export const OFERTA = { cadaMin: 30, duraMin: 10 };
+export const CLAVE_DOBLE = '·doble';
+const LLAVE_DOBLE = 'sd:creacion-doble';
+export const emergenciaDoble = () => { try { return localStorage.getItem(LLAVE_DOBLE) === '1'; } catch { return false; } };
+export function ponerEmergenciaDoble(si: boolean) { try { if (si) localStorage.setItem(LLAVE_DOBLE, '1'); else localStorage.removeItem(LLAVE_DOBLE); } catch { /* nada */ } }
+const minutoDelDia = (d: Date) => d.getHours() * 60 + d.getMinutes();
+export const enOferta = (ahora = new Date()) => minutoDelDia(ahora) % OFERTA.cadaMin < OFERTA.duraMin;
+export const creacionDoble = (ahora = new Date()) => emergenciaDoble() || enOferta(ahora);
+// Hora (HH:MM) en que termina la oferta en curso o empieza la próxima.
+export function horaOferta(ahora = new Date()): { activa: boolean; hora: string } {
+  const m = minutoDelDia(ahora), r = m % OFERTA.cadaMin, activa = r < OFERTA.duraMin;
+  const objetivo = (activa ? m - r + OFERTA.duraMin : m - r + OFERTA.cadaMin) % (24 * 60);
+  return { activa, hora: `${String(Math.floor(objetivo / 60)).padStart(2, '0')}:${String(objetivo % 60).padStart(2, '0')}` };
+}
+
 // Las apps llaman a esto al exportar o enviar su creación. Si hay modo juego y una persona con credencial, esa
 // experiencia suma su paso al timbre 2 (una vez por sesión y por experiencia; con 4 distintas cae el timbre): se publica
 // para el HUB y el inventario (shared/datos.ts) y se muestra el aviso con el código.
 export const EVENTO_TIMBRE = 'sd:timbre-ganado';
 // avance: lo que respondió la base (null sin Supabase o si falló: la persona timbra a mano con el código de la estación 2).
-export interface DetalleCreacion { codigo: string; avance: Avance | null }
+export interface DetalleCreacion { codigo: string; avance: Avance | null; doble?: boolean }
 export function otorgarCreacion(app: string) {
   const j = jugador();
   if (!j) {
@@ -186,14 +205,22 @@ export function otorgarCreacion(app: string) {
   }
   if (j.ganado.includes(app)) return;
   marcarGanado(app, true);
-  const avisar = (avance: Avance | null) => window.dispatchEvent(new CustomEvent<DetalleCreacion>(EVENTO_TIMBRE, { detail: { codigo: j.codigo, avance } }));
+  const doble = creacionDoble();
+  const avisar = (avance: Avance | null, contoDoble = false) => window.dispatchEvent(new CustomEvent<DetalleCreacion>(EVENTO_TIMBRE, { detail: { codigo: j.codigo, avance, doble: contoDoble } }));
   if (!remoto) { publicar('timbre', { sello: 2, app }, j.codigo).catch(() => { /* nada */ }); avisar(null); return; }
   // Con Supabase la credencial queda timbrada al tiro. El HUB recibe el timbre solo si la base lo aceptó; si falló
   // (sin red, código o token malos), la experiencia no queda como ganada y la próxima exportación lo vuelve a intentar.
-  sellarRemoto(j.codigo, 2, leerConfig().token2, app).then(avance => {
-    if (avance) publicar('timbre', { sello: 2, app }, j.codigo).catch(() => { /* nada */ });
-    else marcarGanado(app, false);
-    avisar(avance);
+  const token = leerConfig().token2;
+  sellarRemoto(j.codigo, 2, token, app).then(async avance => {
+    if (!avance) { marcarGanado(app, false); avisar(null); return; }
+    // Creación doble: un segundo paso con otra clave. Si falla, queda el primero (vale por 1).
+    let contoDoble = false;
+    if (doble && !avance.otorgado) {
+      const segundo = await sellarRemoto(j.codigo, 2, token, app + CLAVE_DOBLE);
+      if (segundo) { avance = segundo; contoDoble = true; }
+    }
+    publicar('timbre', { sello: 2, app }, j.codigo).catch(() => { /* nada */ });
+    avisar(avance, contoDoble);
   });
 }
 function marcarGanado(app: string, si: boolean) {
