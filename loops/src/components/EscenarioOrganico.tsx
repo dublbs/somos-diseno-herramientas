@@ -459,6 +459,15 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
           </SeccionPanel>
         )}
 
+        {/* T-008: el escenario va arriba de la biblioteca (se elige primero). Las propiedades de la pieza elegida
+            siguen arriba de todo (regla de pantalla: propiedades arriba). */}
+        <SeccionPanel titulo="Escenario">
+          <div className="escenarios">
+            <Segmento etiqueta="Escenario" valor={escId} onCambiar={id => { setEscId(id); setSel(null); }}
+              opciones={ESCENARIOS.map(e => ({ valor: e.id, icono: ICONO_ESC[e.id], texto: e.nombre, disabled: ocupado }))} />
+          </div>
+        </SeccionPanel>
+
         <SeccionPanel titulo={lleno ? `Biblioteca · tope de ${MAX_PIEZAS}` : 'Biblioteca'}
           ayuda={lleno ? `Llegaste a ${MAX_PIEZAS} piezas: quita una para sumar otra.` : 'Toca una pieza para sumarla o arrástrala al escenario.'}>
           <div className="bandeja">
@@ -479,13 +488,6 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
                 </button>
               );
             })}
-          </div>
-        </SeccionPanel>
-
-        <SeccionPanel titulo="Escenario">
-          <div className="escenarios">
-            <Segmento etiqueta="Escenario" valor={escId} onCambiar={id => { setEscId(id); setSel(null); }}
-              opciones={ESCENARIOS.map(e => ({ valor: e.id, icono: ICONO_ESC[e.id], texto: e.nombre, disabled: ocupado }))} />
           </div>
         </SeccionPanel>
 
