@@ -92,7 +92,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
 - Aceptación: puesto junto a la referencia, se reconoce el mismo tren. Los demás muros no cambian.
 
 ## T-010 · Audioreactiva a todo el lienzo
-- Estado: Mañana (`manana.md`)
+- Estado: En revisión, PR #72 (la hizo el agente de Felipe; exportación probada en Chromium)
 - Origen: F-002
 - Archivos: `audioreactiva/src/`.
 - Cambio:
