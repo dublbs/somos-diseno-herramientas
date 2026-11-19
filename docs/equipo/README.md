@@ -12,6 +12,7 @@ Esta carpeta es el canal entre las dos partes. Lo que no está escrito aquí, en
 | [`bitacora.md`](bitacora.md) | Entrada de todo: errores, feedback, hallazgos y decisiones, con un ID (`E-NNN`, `F-NNN`, `D-NNN`) | Cualquiera agrega; Amaro o Felipe la ordenan |
 | [`thomas.md`](thomas.md) | Cola de tareas del carril **Experiencias** | Amaro o Felipe escriben las tareas; el agente de Thomas cambia el estado y agrega hallazgos |
 | [`manana.md`](manana.md) | **Plan de la mañana de la actividad: todo F-002 (menos la app instalable), quién hace qué y prompts** | Amaro, Felipe |
+| [`felipe.md`](felipe.md) | Cola de Felipe: Teatro y HUB (en la mañana de la actividad) | Amaro, Felipe |
 | [`basti.md`](basti.md) | Cola de tareas del carril **Plataforma** (juego, datos, HUB, PC madre) | Amaro o Felipe escriben las tareas; el agente de Basti cambia el estado y agrega hallazgos |
 
 Siguen valiendo `AGENTS.md` (reglas, stack, verificación de pantalla) y `shared/ui/README.md` (kit v2).

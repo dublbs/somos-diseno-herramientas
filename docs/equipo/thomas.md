@@ -105,7 +105,7 @@ Zona: `fotomaton/` (Cabina de fotos), `taller-mosaicos/`, `graffiti/`, `grabado/
   encuadrada.
 
 ## T-011 · Grabado: el taco aparece animado y nada se pixela
-- Estado: Mañana, la hace **Felipe** (`manana.md`)
+- Estado: Mañana, la hace Thomas (`manana.md`)
 - Origen: F-002
 - Archivos: `grabado/src/`.
 - Cambio:

@@ -26,6 +26,72 @@ Reglas y pipeline: [`README.md`](README.md).
     Thomas que pruebe el Chas en la tablet (anótalo en el PR).
 - Aceptación: tres PR abiertos y en verde, o el motivo escrito de por qué uno no tiene sentido.
 
+## B-011 · Credencial: quitar el limpiaparabrisas del marco Metro
+- Estado: Mañana (`manana.md`)
+- Origen: F-003
+- Archivos: `scripts/marcos-generados.py`, líneas ~272–273 (`for k in range(9): sobre.rect(...)`, los escalones negros
+  diagonales).
+- Cambio:
+  - Borra ese bucle y regenera `shared/marcos-generados.ts` con el script.
+  - Recompila los `dist/` de `credencial` y `fotomaton`. El de la Cabina es del carril de Thomas: avísale en el PR.
+- Aceptación: el marco Metro sin la línea, en la credencial y en la Cabina.
+
+## B-012 · Credencial: el Invasor y el glifo sin troquelado
+- Estado: Mañana (`manana.md`)
+- Origen: F-003
+- Archivos: `credencial/src/temas.ts`, `credencial/src/pixel/render.ts`. Busca dónde se dibuja el borde blanco del
+  sticker para el Invasor (Pixel) y el glifo (Geométrica).
+- Cambio: quita el borde de troquelado, es decir el contorno blanco y la sombra de sticker, solo en esos dos personajes.
+  El timbre de goma de los sellos no se toca.
+- Aceptación: capturas antes y después en 390×844.
+
+## B-013 · Credencial: pulir el círculo para sacar la foto
+- Estado: Mañana (`manana.md`)
+- Origen: F-003
+- Cambio:
+  - Haz que la guía y el botón de la cámara se vean cuidados: borde nítido y antialias, máscara suave alrededor del
+    círculo, un aro fino con el color del lenguaje y el botón de disparo con estado presionado.
+  - Mide al menos 48 px y respeta `prefers-reduced-motion`.
+- Aceptación: capturas antes y después. Se ve como el de una app de cámara.
+
+## B-014 · Credencial: contraste del patrón del marco Estallido
+- Estado: Mañana (`manana.md`)
+- Origen: F-003
+- Archivos: el patrón de fondo del marco «Estallido»: `shared/marcos-generados.ts`, o `marcos-figma.ts` y su script.
+- Cambio: el patrón deja de ser morado sobre morado. Usa otro tono de la paleta Línea azul que se distinga. **Solo el
+  patrón del fondo**; el marco y los demás patrones no se tocan.
+- Aceptación: el patrón se lee a 1 m de distancia en el celular.
+
+## B-015 · Credencial: texto del timbre 3
+- Estado: Mañana (`manana.md`)
+- Origen: F-003
+- Archivo: `credencial/src/components/Bienvenida.tsx`, línea 12.
+- Cambio: `texto` pasa a «Hay afiches repartidos por la sede. Encuéntralos y apúntales con «Buscar afiches».», sin «con
+  un sello». El título y la meta de 3 no cambian.
+- Aceptación: no queda la palabra «sello» en la bienvenida del timbre 3.
+
+## B-016 · Credencial: vista previa del flyer
+- Estado: Mañana (`manana.md`)
+- Origen: F-003
+- Cambio: en «Arma tu flyer aquí mismo», muestra **una miniatura en vivo** del flyer que se va a generar, que se
+  actualiza al elegir opciones. Usa la misma función que genera el flyer final, a menor escala.
+- Aceptación: lo que se ve antes coincide con lo que se descarga.
+
+## B-017 · Credencial: entrar a jugar deslizando y una interfaz más de juego
+- Estado: Mañana (`manana.md`)
+- Origen: F-003
+- Cambio:
+  - Se quedan: tocar para ver el álbum, «Cómo se juega», la cacería, el inventario y «Tu flyer».
+  - El botón «Jugar» se reemplaza por un **indicador de deslizar a la derecha**: una flecha o pista animada en el borde
+    y un gesto de swipe que lleva a la pantalla de jugar. Para accesibilidad, también funciona tocando el indicador.
+  - **Gamificar con poco:**
+    - barra o contador de progreso de los 4 timbres siempre visible;
+    - una animación corta al ganar un timbre;
+    - tarjetas con forma de «cartas» del álbum.
+  - Nada de librerías nuevas.
+- Verificar: 390×844, 412×915 y 360×740, sin scroll de página.
+- Aceptación: una persona entra a jugar deslizando sin que nadie le explique.
+
 ## B-006 · Hora punta: el tutorial sale con la UI antigua
 - Estado: Mañana (`manana.md`)
 - Origen: F-002
@@ -53,7 +119,7 @@ Reglas y pipeline: [`README.md`](README.md).
 - Aceptación: capturas antes y después de cada uno en el PR. Las 48 pruebas del motor siguen en verde.
 
 ## B-008 · Hora punta: andén, llegada del Inacapín y avance del escenario
-- Estado: Mañana (`manana.md`)
+- Estado: Mañana, la hace **Thomas** (`manana.md`): en la mañana Basti tiene la credencial
 - Origen: F-002
 - Referencias: `docs/equipo/referencias/metro-web-pixel.png` para el metro de fondo, que se queda.
 - Cambio:
@@ -68,7 +134,7 @@ Reglas y pipeline: [`README.md`](README.md).
 - Aceptación: video corto o capturas de la secuencia en el PR. Las pruebas del motor siguen en verde.
 
 ## B-009 · Hora punta: la caminata del Inacapín
-- Estado: Mañana (`manana.md`)
+- Estado: Mañana, la hace **Thomas** (`manana.md`): en la mañana Basti tiene la credencial
 - Origen: F-002
 - Archivos: `juego-pixel/src/` (`jefe.ts` y su dibujo), `juego-pixel/public/figma/inacapin.svg`. Figma: archivo
   `Yo9o3ZG2lyaEGcyxoxs89R`, sección «Inacapin · investigación del personaje versión 2».
