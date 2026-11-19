@@ -33,11 +33,15 @@ html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: non
 
 /* HUD: lo que llevas, arriba a la izquierda; la barra del jefe, arriba al centro. */
 .hud { position: absolute; top: 10px; left: 10px; display: flex; gap: 8px; flex-wrap: wrap; pointer-events: none; max-width: 60%; }
-.chip { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; background: rgba(255, 255, 255, .88); border: 2px solid #000; border-radius: 8px; font: 700 16px/1 "Silkscreen", monospace; box-shadow: 3px 3px 0 #000; }
-.chip-sub { font: 600 13px "DM Sans", sans-serif; color: var(--hp-texto2); margin-left: 4px; }
-.pieza-ico { width: 16px; height: 16px; background: #FF8FB1; border: 2px solid #000; transform: rotate(45deg) scale(.8); }
+/* B-010: placas oscuras, se leen sobre cualquier fondo (vereda hueso, pasto, calle o andén). */
+.hud-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 4px 12px 4px 8px; box-sizing: border-box; background: rgba(20, 18, 16, .9); color: #F4EEE3;
+  border: 2px solid #000; border-radius: 8px; font: 700 22px/1 "Silkscreen", monospace; box-shadow: 3px 3px 0 rgba(0, 0, 0, .45); }
+.hud-chip b { font-weight: 700; min-width: 1ch; }
+.hud-chip .material-symbols-outlined { color: #7FC8F8; font-size: 24px; }
+.chip-sub { font: 600 14px "DM Sans", sans-serif; color: #CFC8BC; margin-left: 2px; }
 .barra-color { display: inline-flex; gap: 2px; margin-left: 2px; }
-.barra-color i { display: block; width: 18px; height: 14px; background: #8F8F8A; border: 2px solid #000; }
+.barra-color i { display: block; width: 18px; height: 16px; background: #5A5A55; border: 2px solid #F4EEE3; }
+/* jefe */
 .hud-jefe .chip-sub { margin: 0 2px 0 0; }
 
 /* Controles a ambos lados: semitransparentes, de 64 px o más y multitáctiles. */
