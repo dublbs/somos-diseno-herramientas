@@ -13,7 +13,7 @@ import { dibujarJefe, retratoInacapin } from './juego/dibujoJefe';
 import { lienzoPinta } from './juego/personajes';
 import { dibujarMural, miniaturaMural } from './juego/mural';
 import { crearTarjeta, type Resumen } from './juego/tarjeta';
-import '../../shared/ui/somos-kit.css';
+import '../../shared/ui/herramienta.css'; // kit v2 (plan 012): el tutorial y las ventanas comunes salen neutras desde el primer cuadro
 import './styles.css';
 
 // «Hora punta» (plan docs/plans/009-juego-pixel.md, ronda 2): juego Pixel que reemplaza al Vagón.
@@ -127,7 +127,8 @@ export const App: React.FC = () => {
   const [sumado, setSumado] = useState(false);
   const [llevar, setLlevar] = useState<Blob | null>(null); // «Llévatela» con QR (plan 011)
 
-  useEffect(() => { document.documentElement.dataset.visual = 'Pixel'; }, []);
+  // B-006: <html data-ui="v2" data-visual="Pixel"> ya viene en index.html; esto solo lo asegura si se cargó otra página antes.
+  useEffect(() => { const h = document.documentElement; h.dataset.visual = 'Pixel'; h.dataset.ui = 'v2'; }, []);
   // `?bot=1`: deja los motores a la vista de las pruebas automáticas (Playwright). No cambia el juego.
   useEffect(() => {
     if (new URLSearchParams(location.search).get('bot') === '1') Object.assign(window, { horaPunta: { cruce, anden, jefe, acciones, calidad } });
