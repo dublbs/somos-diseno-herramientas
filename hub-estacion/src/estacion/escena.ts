@@ -91,6 +91,7 @@ export class Estacion {
   private mostrada = new Map<string, number>(); // id de la obra → cuándo entró por última vez a un cuadro
   private muro: { W: number; H: number; m: Muro } | null = null;
   private capaAnden: { llave: string; c: HTMLCanvasElement } | null = null;
+  private capaPlaza: { llave: string; c: HTMLCanvasElement } | null = null;
 
   constructor(d: Disposicion, gente: Persona[], azar: () => number, quieto: boolean) {
     this.d = d; this.azar = azar; this.quieto = quieto;
@@ -210,9 +211,12 @@ export class Estacion {
   }
 
   // ---------- PLAZA · Orgánica ----------
-  // Cielo según la hora del evento (10:00 → 20:00): día celeste, tarde dorada, atardecer rosa y lapislázuli.
+  // Cielo según la hora del evento (10:00 → 20:00): día celeste, tarde dorada, atardecer rosa y lapislázuli, con nubes de
+  // papel. Delante, la cordillera y los cerros recortados en papel, árboles nativos, pasto, el piso de maicillo,
+  // maceteros, bancas, faroles y la boca del metro con su luz cálida. Lo quieto se pinta una vez (capaPlaza) por tamaño
+  // de pantalla y por media hora (los faroles se encienden de tarde).
   private plaza(ctx: CanvasRenderingContext2D, hora: number) {
-    const { W, u, plaza } = this.d;
+    const { W, H, u, plaza } = this.d;
     const t = Math.min(1, Math.max(0, (hora - 10) / 10));
     const g = ctx.createLinearGradient(0, plaza.y, 0, plaza.suelo);
     if (t < 0.7) { g.addColorStop(0, C.Celeste); g.addColorStop(1, C.Hueso); }
@@ -226,24 +230,211 @@ export class Estacion {
       ctx.save(); ctx.translate(x + lado / 2, y + lado / 2); ctx.rotate(this.quieto ? 0 : this.reloj / 9000);
       ctx.drawImage(raster(sol, lado, lado), -lado / 2, -lado / 2); ctx.restore();
     }
-    // Suelo de la plaza
-    ctx.fillStyle = C.Verde; ctx.fillRect(0, plaza.suelo - 6 * u, W, plaza.y + plaza.h - plaza.suelo + 6 * u);
-    ctx.fillStyle = '#0B8F48';
-    for (let x = 0; x < W; x += 22 * u) ctx.fillRect(x, plaza.suelo - 6 * u, 10 * u, 4 * u);
-    // Árboles de Teatro de Papel a escala: las araucarias son árboles grandes; el helecho, el quisco y la flor, chicos y adelante.
+    // nubes de papel que avanzan muy lento
+    const nube = this.nube(plaza.h * 0.16);
+    for (let i = 0; i < 4; i++) {
+      const vx = (this.quieto ? 0 : this.reloj / 1000) * (6 + i * 2) * u, ancho = nube.width / Math.min(window.devicePixelRatio || 1, 2);
+      const x = ((W * (0.08 + i * 0.29) + vx) % (W + ancho)) - ancho, y = plaza.y + plaza.h * (0.1 + (i % 2) * 0.13);
+      ctx.drawImage(nube, x, y, ancho * (1 - (i % 2) * 0.25), nube.height / Math.min(window.devicePixelRatio || 1, 2) * (1 - (i % 2) * 0.25));
+    }
+    const k = Math.min(window.devicePixelRatio || 1, 2), noche = t >= 0.7 ? 1 : 0, llave = `${W}|${H}|${k}|${noche}`;
+    if (!this.capaPlaza || this.capaPlaza.llave !== llave) {
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(W * k)); c.height = Math.max(1, Math.round(plaza.h * k));
+      const x = c.getContext('2d')!;
+      x.setTransform(k, 0, 0, k, 0, -plaza.y * k);
+      const completa = this.fondoPlaza(x, noche === 1);
+      this.capaPlaza = { llave: completa ? llave : '', c };
+    }
+    ctx.drawImage(this.capaPlaza.c, 0, plaza.y, W, plaza.h);
+    this.banderines(ctx);
+    this.cartel(ctx, 'Plaza · Orgánica', W * 0.015, plaza.y + 14 * u, C.Verde);
+  }
+
+  // Nube de papel: tres o cuatro lóbulos hueso con un borde suave y su sombra.
+  private nubeHecha: { L: number; c: HTMLCanvasElement } | null = null;
+  private nube(alto: number): HTMLCanvasElement {
+    const k = Math.min(window.devicePixelRatio || 1, 2), L = Math.max(8, Math.round(alto * k));
+    if (this.nubeHecha && this.nubeHecha.L === L) return this.nubeHecha.c;
+    const c = document.createElement('canvas'); c.width = L * 3; c.height = L;
+    const x = c.getContext('2d')!;
+    const forma = (dy: number) => {
+      x.beginPath();
+      x.moveTo(L * 0.2, L * 0.85 + dy);
+      x.bezierCurveTo(L * 0.0, L * 0.85 + dy, L * 0.05, L * 0.45 + dy, L * 0.42, L * 0.5 + dy);
+      x.bezierCurveTo(L * 0.5, L * 0.1 + dy, L * 1.15, L * 0.05 + dy, L * 1.25, L * 0.42 + dy);
+      x.bezierCurveTo(L * 1.45, L * 0.12 + dy, L * 2.05, L * 0.2 + dy, L * 2.0, L * 0.5 + dy);
+      x.bezierCurveTo(L * 2.6, L * 0.4 + dy, L * 2.95, L * 0.85 + dy, L * 2.6, L * 0.85 + dy);
+      x.closePath();
+    };
+    forma(L * 0.06); x.fillStyle = 'rgba(43,75,216,.12)'; x.fill();
+    forma(0); x.fillStyle = '#FBF7EF'; x.fill();
+    x.strokeStyle = 'rgba(0,0,0,.35)'; x.lineWidth = Math.max(1, L * 0.025); x.stroke();
+    x.strokeStyle = 'rgba(127,200,248,.5)'; x.lineWidth = Math.max(1, L * 0.02);
+    x.beginPath(); x.moveTo(L * 0.6, L * 0.7); x.quadraticCurveTo(L * 1.2, L * 0.62, L * 1.8, L * 0.72); x.stroke();
+    this.nubeHecha = { L, c };
+    return c;
+  }
+
+  // Devuelve false si alguna imagen todavía no estaba.
+  private fondoPlaza(ctx: CanvasRenderingContext2D, noche: boolean): boolean {
+    const { W, u, e, plaza, escB, tramoB, mezz } = this.d;
+    // Si las fuentes no llegaron todavía, el letrero sale con otra: se vuelve a pintar cuando lleguen.
+    let completa = !document.fonts || document.fonts.status === 'loaded';
+    let semilla = 17; const azar = () => ((semilla = (semilla * 9301 + 49297) % 233280) / 233280);
+    const suelo = plaza.suelo, fin = plaza.y + plaza.h, trazo = Math.max(1, 2 * e);
+    const linea = (color = 'rgba(0,0,0,.55)', w = trazo) => { ctx.strokeStyle = color; ctx.lineWidth = w; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke(); };
+    // Silueta suave que pasa por puntos (curvas cuadráticas por los puntos medios).
+    const silueta = (pts: [number, number][], base: number) => {
+      ctx.beginPath(); ctx.moveTo(pts[0][0], base); ctx.lineTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length - 1; i++) { const mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (pts[i][1] + pts[i + 1][1]) / 2; ctx.quadraticCurveTo(pts[i][0], pts[i][1], mx, my); }
+      const ul = pts[pts.length - 1]; ctx.lineTo(ul[0], ul[1]); ctx.lineTo(ul[0], base); ctx.closePath();
+    };
+    // cordillera con nieve, recortada en papel
+    const cordillera: [number, number][] = [];
+    for (let i = 0; i <= 14; i++) cordillera.push([W * (i / 14) + (i ? (azar() - 0.5) * W * 0.03 : 0) - W * 0.02, suelo - plaza.h * (0.36 + (i % 2 ? 0.14 : 0) + azar() * 0.12)]);
+    cordillera[cordillera.length - 1][0] = W * 1.02;
+    const quebrada = () => { ctx.beginPath(); ctx.moveTo(cordillera[0][0], suelo); for (const [px, py] of cordillera) ctx.lineTo(px, py); ctx.lineTo(cordillera[cordillera.length - 1][0], suelo); ctx.closePath(); };
+    quebrada(); ctx.fillStyle = noche ? '#8E8FD6' : '#9FC2E6'; ctx.fill(); linea('rgba(43,75,216,.5)');
+    for (let i = 1; i < cordillera.length - 1; i += 2) { // nieve en las cumbres altas
+      const [px, py] = cordillera[i], [lx, ly] = cordillera[i - 1], [rx, ry] = cordillera[i + 1], f = 0.32;
+      const ax = px + (lx - px) * f, ay = py + (ly - py) * f, bx = px + (rx - px) * f, by = py + (ry - py) * f;
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(ax, ay);
+      ctx.lineTo(ax + (bx - ax) * 0.25, ay + (by - ay) * 0.25 - (ay - py) * 0.25); ctx.lineTo(ax + (bx - ax) * 0.45, Math.max(ay, by) + (Math.max(ay, by) - py) * 0.05);
+      ctx.lineTo(ax + (bx - ax) * 0.7, ay + (by - ay) * 0.7 - (by - py) * 0.2); ctx.lineTo(bx, by); ctx.closePath();
+      ctx.fillStyle = '#FBF7EF'; ctx.fill(); linea('rgba(43,75,216,.4)', Math.max(1, 1.5 * e));
+    }
+    // cerros verdes delante
+    const cerros: [number, number][] = [];
+    for (let i = 0; i <= 9; i++) cerros.push([W * (i / 9) - W * 0.03 + (azar() - 0.5) * W * 0.04, suelo - plaza.h * (0.14 + azar() * 0.12)]);
+    cerros[cerros.length - 1][0] = W * 1.03;
+    silueta(cerros, suelo); ctx.fillStyle = '#7CC796'; ctx.fill(); linea('rgba(11,94,51,.45)');
+    // árboles nativos (peumos y quillayes de copa redonda), detrás de la gente
+    const arbol = (x: number, alto: number, tono: number) => {
+      const copa = alto * 0.42, base = suelo + 2 * u;
+      ctx.beginPath(); ctx.moveTo(x - alto * 0.035, base); ctx.quadraticCurveTo(x - alto * 0.02, base - alto * 0.4, x - alto * 0.06, base - alto * 0.62);
+      ctx.lineTo(x + alto * 0.05, base - alto * 0.6); ctx.quadraticCurveTo(x + alto * 0.02, base - alto * 0.35, x + alto * 0.04, base); ctx.closePath();
+      ctx.fillStyle = '#7A4E2D'; ctx.fill(); linea();
+      const verdes = tono ? ['#0B8F48', '#00A651', '#3DBB6E'] : ['#1E7A45', '#2E9A58', '#5CC07E'];
+      const lobulos: [number, number, number][] = [[-0.55, 0.15, 0.62], [0.5, 0.2, 0.6], [0, -0.25, 0.75], [-0.1, 0.35, 0.65]];
+      for (let capa = 0; capa < 3; capa++) {
+        ctx.beginPath();
+        for (const [dx, dy, r] of lobulos) { const cx = x + dx * copa * 0.9 - capa * copa * 0.05, cy = base - alto * 0.72 + dy * copa - capa * copa * 0.08; ctx.moveTo(cx + r * copa * (1 - capa * 0.25), cy); ctx.arc(cx, cy, r * copa * (1 - capa * 0.25), 0, Math.PI * 2); }
+        ctx.fillStyle = verdes[capa]; ctx.fill();
+        if (capa === 0) linea('rgba(0,0,0,.45)');
+      }
+      ctx.fillStyle = 'rgba(244,238,227,.5)'; // brillos de papel
+      for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.ellipse(x + (azar() - 0.5) * copa * 1.2, base - alto * 0.78 + (azar() - 0.5) * copa * 0.8, copa * 0.09, copa * 0.04, -0.5, 0, Math.PI * 2); ctx.fill(); }
+    };
+    arbol(W * 0.035, plaza.h * 0.62, 0); arbol(W * 0.36, plaza.h * 0.5, 1); arbol(W * 0.585, plaza.h * 0.56, 0); arbol(W * 0.985, plaza.h * 0.6, 1);
+    // araucarias de Teatro de Papel
     const planta = (src: string, x: number, alto: number) => {
-      const im = imagen(src); if (!im) return;
+      const im = imagen(src); if (!im) { completa = false; return; }
       const w = alto * (im.naturalWidth / im.naturalHeight || 1);
-      ctx.drawImage(raster(im, w, alto), x - w / 2, plaza.suelo - alto + 4 * u);
+      ctx.drawImage(raster(im, w, alto), x - w / 2, suelo - alto + 4 * u);
     };
     planta(SRC.araucaria, W * 0.12, plaza.h * 0.95);
     planta(SRC.araucaria, W * 0.64, plaza.h * 0.82);
-    this.banderines(ctx);
-    this.acceso(ctx);
-    planta(SRC.helecho, W * 0.24, plaza.h * 0.17);
-    planta(SRC.quisco, W * 0.56, plaza.h * 0.2);
+    // pasto con borde ondulado y matas
+    const pasto: [number, number][] = [];
+    for (let i = 0; i <= 40; i++) pasto.push([W * (i / 40), suelo - 10 * e - (i % 2) * 5 * e - azar() * 3 * e]);
+    silueta(pasto, fin); ctx.fillStyle = C.Verde; ctx.fill(); linea('rgba(0,0,0,.4)');
+    ctx.strokeStyle = '#0B8F48'; ctx.lineWidth = Math.max(1, 1.6 * e); ctx.lineCap = 'round';
+    for (let x = 6 * e; x < W; x += 13 * e + azar() * 10 * e) {
+      const y = suelo - 4 * e - azar() * 4 * e;
+      ctx.beginPath(); ctx.moveTo(x, y + 4 * e); ctx.quadraticCurveTo(x - 1 * e, y, x - 3 * e, y - 3 * e); ctx.moveTo(x + 2 * e, y + 4 * e); ctx.quadraticCurveTo(x + 2 * e, y - 1 * e, x + 5 * e, y - 3 * e); ctx.stroke();
+    }
+    // piso de maicillo con piedrecitas; el borde de arriba es una solera suave
+    const borde: [number, number][] = [];
+    for (let i = 0; i <= 24; i++) borde.push([W * (i / 24), suelo - 3 * e + Math.sin(i * 1.7) * 1.5 * e]);
+    silueta(borde, fin); ctx.fillStyle = '#E9DCC0'; ctx.fill(); linea('#BFA77A', Math.max(1, 3 * e));
+    for (let i = 0; i < W / (5 * e); i++) {
+      const px = azar() * W, py = suelo + azar() * (fin - suelo - 6 * u), r = (0.8 + azar() * 1.8) * e;
+      ctx.fillStyle = azar() < 0.5 ? '#D6C39C' : '#F5EEDD'; ctx.beginPath(); ctx.ellipse(px, py, r * 1.4, r, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(122,78,45,.18)'; ctx.fillRect(0, fin - 6 * u, W, 6 * u);
+    // la boca del metro: el hueco por donde baja la escalera, con luz cálida que sube
+    const x0 = escB - tramoB, y0 = suelo + plaza.fondo / 2, y1 = mezz.suelo + mezz.fondo / 2, pend = (y1 - y0) / tramoB;
+    const xh = x0 + (fin - y0) / pend; // donde la escalera cruza el borde de abajo de la plaza
+    ctx.beginPath(); ctx.moveTo(x0 - 30 * e, y0 + 6 * e); ctx.lineTo(x0 + 40 * e, y0 + 6 * e); ctx.lineTo(xh + 70 * e, fin); ctx.lineTo(x0 - 30 * e, fin); ctx.closePath();
+    const luz = ctx.createLinearGradient(0, y0, 0, fin);
+    luz.addColorStop(0, '#5A3A22'); luz.addColorStop(1, '#FFC86B');
+    ctx.fillStyle = luz; ctx.fill(); linea(C.Negro, Math.max(1, 2.5 * e));
+    // acceso: techo de vidrio curvo, pilares redondeados, letrero y tótem
+    const xi = x0 - 40 * e, xf = Math.min(xi + 260 * e, escB), techo = suelo - 120 * e;
+    const halo = ctx.createRadialGradient(xi + 60 * e, suelo - 30 * e, 4 * e, xi + 60 * e, suelo - 30 * e, 140 * e);
+    halo.addColorStop(0, noche ? 'rgba(255,200,107,.55)' : 'rgba(255,200,107,.3)'); halo.addColorStop(1, 'rgba(255,200,107,0)');
+    ctx.fillStyle = halo; ctx.fillRect(xi - 120 * e, techo - 40 * e, 360 * e, 200 * e);
+    ctx.beginPath(); ctx.moveTo(xi - 10 * e, techo + 10 * e); ctx.quadraticCurveTo((xi + xf) / 2, techo - 34 * e, xf + 10 * e, techo + 10 * e);
+    ctx.lineTo(xf + 10 * e, techo + 18 * e); ctx.quadraticCurveTo((xi + xf) / 2, techo - 24 * e, xi - 10 * e, techo + 18 * e); ctx.closePath();
+    ctx.fillStyle = 'rgba(127,200,248,.6)'; ctx.fill(); linea(C.Negro, Math.max(1, 2.5 * e));
+    ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = Math.max(1, 2 * e);
+    ctx.beginPath(); ctx.moveTo(xi + 20 * e, techo + 6 * e); ctx.quadraticCurveTo((xi + xf) / 2, techo - 22 * e, xf - 40 * e, techo + 2 * e); ctx.stroke();
+    for (const px of [xi, xf - 7 * e]) {
+      ctx.fillStyle = C.Negro; ctx.beginPath(); ctx.roundRect(px, techo + 12 * e, 7 * e, suelo - techo - 10 * e, 3.5 * e); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(px + 3.5 * e, suelo + 1 * e, 9 * e, 3 * e, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    // letrero colgante «METRO» con luz
+    const lx = (xi + xf) / 2 + 30 * e, ly = techo + 22 * e;
+    ctx.fillStyle = C.Negro; ctx.fillRect(lx - 1 * e, techo + 10 * e, 2 * e, 12 * e);
+    ctx.beginPath(); ctx.roundRect(lx - 34 * e, ly, 68 * e, 22 * e, 11 * e); ctx.fill();
+    ctx.fillStyle = '#E2001A'; ctx.beginPath(); ctx.arc(lx - 22 * e, ly + 11 * e, 7 * e, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = C.Hueso; ctx.font = `800 ${11 * e}px "Bricolage Grotesque", sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('METRO', lx - 12 * e, ly + 11.5 * e);
+    ctx.fillStyle = C.Hueso; ctx.font = `800 ${8 * e}px "Bricolage Grotesque", sans-serif`; ctx.textAlign = 'center'; ctx.fillText('M', lx - 22 * e, ly + 11.5 * e);
+    // baranda alrededor de la boca
+    ctx.strokeStyle = C.Negro; ctx.lineWidth = Math.max(1, 3 * e); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x0 - 30 * e, y0 + 4 * e); ctx.lineTo(x0 - 30 * e, y0 - 26 * e); ctx.lineTo(x0 - 4 * e, y0 - 26 * e); ctx.stroke();
+    for (let b = 1; b < 3; b++) { ctx.beginPath(); ctx.moveTo(x0 - 30 * e + b * 9 * e, y0 - 26 * e); ctx.lineTo(x0 - 30 * e + b * 9 * e, y0 + 2 * e); ctx.lineWidth = Math.max(1, 1.5 * e); ctx.stroke(); }
+    // tótem de la estación
+    const tam = Math.max(1, Math.round(2 * e)), ancho = (8 * AVANCE - 1) * tam, tx = xi - ancho / 2 - 30 * e, ty = suelo - 170 * e;
+    ctx.fillStyle = C.Negro; ctx.fillRect(tx - 3 * e, ty, 6 * e, suelo - ty);
+    ctx.beginPath(); ctx.roundRect(tx - ancho / 2 - 8 * e, ty - 8 * e, ancho + 16 * e, 7 * tam + 16 * e, 6 * e); ctx.fill();
+    this.textoPixel(ctx, 'ESTACION', tx - ancho / 2, ty, tam, C.Hueso);
+    // maceteros de greda con plantas
+    const macetero = (x: number, s: number, verde: string) => {
+      const w = 34 * s, h = 26 * s, base = suelo + 6 * e;
+      ctx.fillStyle = 'rgba(0,0,0,.15)'; ctx.beginPath(); ctx.ellipse(x, base, w * 0.6, 4 * s, 0, 0, Math.PI * 2); ctx.fill();
+      for (let i = 0; i < 7; i++) { // hojas
+        const a = -Math.PI / 2 + (i - 3) * 0.42, l = (28 + (i % 3) * 8) * s;
+        ctx.beginPath(); ctx.moveTo(x, base - h + 2 * s); ctx.quadraticCurveTo(x + Math.cos(a - 0.4) * l * 0.7, base - h + Math.sin(a - 0.4) * l * 0.7, x + Math.cos(a) * l, base - h + Math.sin(a) * l);
+        ctx.quadraticCurveTo(x + Math.cos(a + 0.4) * l * 0.7, base - h + Math.sin(a + 0.4) * l * 0.7, x, base - h + 2 * s); ctx.fillStyle = i % 2 ? verde : '#0B8F48'; ctx.fill(); linea('rgba(0,0,0,.35)', Math.max(1, 1.2 * s));
+      }
+      ctx.beginPath(); ctx.moveTo(x - w / 2, base - h); ctx.lineTo(x + w / 2, base - h); ctx.quadraticCurveTo(x + w * 0.42, base - h * 0.3, x + w * 0.32, base); ctx.lineTo(x - w * 0.32, base); ctx.quadraticCurveTo(x - w * 0.42, base - h * 0.3, x - w / 2, base - h); ctx.closePath();
+      ctx.fillStyle = '#C96F45'; ctx.fill(); linea(C.Negro, Math.max(1, 1.8 * s));
+      ctx.fillStyle = '#A9552F'; ctx.fillRect(x - w / 2, base - h, w, 5 * s);
+      ctx.strokeStyle = 'rgba(244,238,227,.6)'; ctx.lineWidth = Math.max(1, 1.5 * s); ctx.beginPath(); ctx.moveTo(x - w * 0.3, base - h * 0.55); ctx.quadraticCurveTo(x, base - h * 0.4, x + w * 0.3, base - h * 0.55); ctx.stroke();
+    };
+    // bancas de madera con patas curvas
+    const banca = (x: number) => {
+      const w = 74 * e, y = suelo + 2 * e;
+      ctx.fillStyle = 'rgba(0,0,0,.15)'; ctx.beginPath(); ctx.ellipse(x, y + 3 * e, w * 0.55, 4 * e, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = C.Negro; ctx.lineWidth = Math.max(1, 3.5 * e); ctx.lineCap = 'round';
+      for (const d of [-1, 1]) { ctx.beginPath(); ctx.moveTo(x + d * w * 0.38, y); ctx.quadraticCurveTo(x + d * w * 0.3, y - 10 * e, x + d * w * 0.36, y - 14 * e); ctx.lineTo(x + d * w * 0.4, y - 34 * e); ctx.stroke(); }
+      for (const [dy, h] of [[-16, 6], [-27, 5], [-36, 5]] as const) {
+        ctx.beginPath(); ctx.roundRect(x - w / 2, y + dy * e, w, h * e, 2.5 * e); ctx.fillStyle = dy === -16 ? '#C99A5B' : '#B5844A'; ctx.fill(); linea(C.Negro, Math.max(1, 1.6 * e));
+      }
+    };
+    // faroles con luz cálida (más fuerte de tarde)
+    const farol = (x: number) => {
+      const alto = 128 * e, y = suelo + 2 * e;
+      const brillo = ctx.createRadialGradient(x, y - alto + 8 * e, 2 * e, x, y - alto + 8 * e, (noche ? 70 : 40) * e);
+      brillo.addColorStop(0, noche ? 'rgba(255,214,120,.8)' : 'rgba(255,214,120,.35)'); brillo.addColorStop(1, 'rgba(255,214,120,0)');
+      ctx.fillStyle = brillo; ctx.fillRect(x - 80 * e, y - alto - 70 * e, 160 * e, 160 * e);
+      ctx.strokeStyle = C.Negro; ctx.lineWidth = Math.max(1, 4 * e); ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - alto + 14 * e); ctx.quadraticCurveTo(x, y - alto - 4 * e, x + 10 * e, y - alto - 6 * e); ctx.stroke();
+      ctx.fillStyle = C.Negro; ctx.beginPath(); ctx.ellipse(x, y, 8 * e, 3 * e, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x + 2 * e, y - alto - 2 * e); ctx.quadraticCurveTo(x + 12 * e, y - alto - 16 * e, x + 22 * e, y - alto - 2 * e); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = noche ? '#FFE29A' : '#FFF3CF'; ctx.beginPath(); ctx.ellipse(x + 12 * e, y - alto + 3 * e, 6 * e, 8 * e, 0, 0, Math.PI * 2); ctx.fill(); linea(C.Negro, Math.max(1, 1.5 * e));
+    };
+    farol(W * 0.2); farol(W * 0.555);
+    banca(W * 0.075); banca(W * 0.4);
+    macetero(W * 0.255, e, C.Verde); macetero(W * 0.495, e * 0.85, '#3DBB6E');
+    // plantas chicas adelante: el helecho, el quisco y la flor del Teatro de Papel
+    planta(SRC.helecho, W * 0.3, plaza.h * 0.17);
+    planta(SRC.quisco, W * 0.6, plaza.h * 0.2);
     planta(SRC.flor, W * 0.46, plaza.h * 0.12);
-    this.cartel(ctx, 'Plaza · Orgánica', W * 0.015, plaza.y + 14 * u, C.Verde);
+    return completa;
   }
 
   // Banderines hechos con los grabados del Taller de Grabado, colgados de un cordel entre dos postes. Pocos, a propósito.
@@ -270,21 +461,6 @@ export class Estacion {
       else { const im = imagen(gr.taco); if (im) { const lado = w * 0.62; ctx.globalCompositeOperation = 'multiply'; ctx.drawImage(entintar(im, gr.tinta, lado), -lado / 2, h * 0.08); } }
       ctx.restore();
     }
-  }
-
-  // Acceso al metro donde llega la escalera: techo de vidrio, pilares y el tótem de la estación.
-  private acceso(ctx: CanvasRenderingContext2D) {
-    const { u, e, plaza, escB, tramoB } = this.d;
-    const xi = escB - tramoB - 40 * e, xf = Math.min(xi + 260 * e, escB), techo = plaza.suelo - 120 * e;
-    ctx.fillStyle = 'rgba(127,200,248,.45)'; ctx.fillRect(xi, techo, xf - xi, 16 * e);
-    ctx.fillStyle = C.Negro;
-    ctx.fillRect(xi - 6 * e, techo - 6 * e, xf - xi + 12 * e, 6 * e);
-    for (const x of [xi, xf - 6 * e]) ctx.fillRect(x, techo, 6 * e, plaza.suelo - techo + 2 * u);
-    // tótem
-    const tam = Math.max(1, Math.round(2 * e)), ancho = (8 * AVANCE - 1) * tam, tx = xi - ancho / 2 - 30 * e, ty = plaza.suelo - 170 * e;
-    ctx.fillRect(tx - 3 * e, ty, 6 * e, plaza.suelo - ty);
-    ctx.fillRect(tx - ancho / 2 - 8 * e, ty - 8 * e, ancho + 16 * e, 7 * tam + 16 * e);
-    this.textoPixel(ctx, 'ESTACION', tx - ancho / 2, ty, tam, C.Hueso);
   }
 
   // ---------- MEZANINA · Geométrica ----------
@@ -579,7 +755,7 @@ export class Estacion {
       for (let y = ay + q; y < ay + ah * 0.7; y += 2 * q) R(ax, y, aw, q * 0.5, 'rgba(255,255,255,.18)');
       const im = imagen(src); if (!im) completa = false;
       else { const l = aw * 0.72; ctx.drawImage(raster(im, l, l), cx - l / 2, ay + ah * 0.08); }
-      const tt = Math.max(1, Math.min(Math.round(q / 2), Math.floor((aw - 2 * q) / (normalizar(texto).length * AVANCE)))), ancho = (normalizar(texto).length * AVANCE - 1) * tt;
+      const tt = Math.max(1, Math.min(Math.round(q / 2), Math.floor((aw - q) / (normalizar(texto).length * AVANCE - 1)))), ancho = (normalizar(texto).length * AVANCE - 1) * tt;
       R(ax, ay + ah - 9 * tt - q, aw, 9 * tt + q, C.Negro);
       this.textoPixel(ctx, texto, cx - ancho / 2, ay + ah - 8 * tt - q / 2, tt, C.Amarillo);
     };
@@ -638,6 +814,12 @@ export class Estacion {
       const n = Math.max(6, Math.round(Math.abs(dy) / (11 * e))), w = dx / n, h = dy / n;
       const xa = x0 - dir * descanso, xb = x1 + dir * descanso;
       ctx.save(); ctx.lineJoin = 'round';
+      // sombra suave sobre el muro de abajo
+      for (const [k, a] of [[16, 0.07], [8, 0.09]] as const) {
+        ctx.fillStyle = `rgba(0,0,0,${a})`; ctx.beginPath();
+        ctx.moveTo(xa, y0 + fondo); ctx.lineTo(x0 + dir * fondo * 0.4, y0 + fondo); ctx.lineTo(x1 + dir * fondo * 0.4, y1 + fondo); ctx.lineTo(xb, y1 + fondo);
+        ctx.lineTo(xb, y1 + fondo + k * e); ctx.lineTo(x1 + dir * (fondo * 0.4 + k * e), y1 + fondo + k * e); ctx.lineTo(x0 + dir * (fondo * 0.4 + k * e), y0 + fondo + k * e); ctx.lineTo(xa, y0 + fondo + k * e); ctx.closePath(); ctx.fill();
+      }
       // estructura (armadura) bajo los peldaños
       ctx.fillStyle = '#9C968B'; ctx.strokeStyle = C.Negro; ctx.lineWidth = 2.5 * e;
       ctx.beginPath(); ctx.moveTo(xa, y0); ctx.lineTo(x0, y0); ctx.lineTo(x1, y1); ctx.lineTo(xb, y1);
@@ -645,10 +827,19 @@ export class Estacion {
       ctx.fill(); ctx.stroke();
       ctx.fillStyle = '#B8B2A6'; ctx.beginPath(); // franja clara del costado
       ctx.moveTo(x0 + dir * fondo * 0.15, y0 + fondo * 0.45); ctx.lineTo(x1 + dir * fondo * 0.15, y1 + fondo * 0.45); ctx.lineTo(x1 + dir * fondo * 0.3, y1 + fondo * 0.7); ctx.lineTo(x0 + dir * fondo * 0.3, y0 + fondo * 0.7); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#6B655B';
+      for (let k = 1; k < n; k += 2) { const f = k / n; ctx.beginPath(); ctx.arc(x0 + dx * f + dir * fondo * 0.22, y0 + dy * f + fondo * 0.57, 1.6 * e, 0, Math.PI * 2); ctx.fill(); }
+      ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = Math.max(1, 1.5 * e);
+      ctx.beginPath(); ctx.moveTo(xa, y0 + fondo * 0.18); ctx.lineTo(x0 + dir * fondo * 0.1, y0 + fondo * 0.18); ctx.lineTo(x1 + dir * fondo * 0.1, y1 + fondo * 0.18); ctx.lineTo(xb, y1 + fondo * 0.18); ctx.stroke();
       // baranda de vidrio
       ctx.fillStyle = 'rgba(127,200,248,.35)'; ctx.strokeStyle = C.Negro; ctx.lineWidth = 1.5 * e;
       ctx.beginPath(); ctx.moveTo(xa + dir * 8 * e, y0); ctx.lineTo(x0, y0); ctx.lineTo(x1, y1); ctx.lineTo(xb - dir * 8 * e, y1);
       ctx.lineTo(xb - dir * 8 * e, y1 - alto); ctx.lineTo(x1, y1 - alto); ctx.lineTo(x0, y0 - alto); ctx.lineTo(xa + dir * 8 * e, y0 - alto); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineCap = 'round';
+      for (const [f, w] of [[0.28, 4], [0.34, 2], [0.7, 3]] as const) {
+        const X = x0 + dx * f, Y = y0 + dy * f; ctx.lineWidth = w * e;
+        ctx.beginPath(); ctx.moveTo(X + dir * 5 * e, Y - alto + 6 * e); ctx.lineTo(X - dir * 7 * e, Y - 8 * e); ctx.stroke();
+      }
       // peldaños: huella y contrahuella, corren hacia abajo (la gente baja de la plaza al andén)
       const fase = this.quieto ? 0 : 1 - ((this.reloj / 900) % 1);
       ctx.save();
@@ -662,6 +853,8 @@ export class Estacion {
       }
       ctx.lineTo(xb, y1); ctx.lineTo(xb, y1 + 6 * e); ctx.lineTo(x1, y1 + 6 * e); ctx.lineTo(x0, y0 + 6 * e); ctx.lineTo(xa, y0 + 6 * e); ctx.closePath();
       ctx.fill(); ctx.stroke();
+      ctx.fillStyle = C.Amarillo;
+      for (let k = -1; k <= n; k++) { const px = x0 + w * (k + fase), py = y0 + h * (k + fase); ctx.fillRect(Math.min(px, px + w), py + h - 1 * e, Math.abs(w) * 0.9, 2 * e); }
       ctx.restore();
       // peines (placas) de entrada y salida
       ctx.fillStyle = C.Amarillo; ctx.fillRect(Math.min(xa, x0), y0 - 2 * e, Math.abs(descanso), 3 * e); ctx.fillRect(Math.min(x1, xb), y1 - 2 * e, Math.abs(descanso), 3 * e);
@@ -674,6 +867,8 @@ export class Estacion {
       ctx.lineTo(x0, y0 - alto); ctx.lineTo(x1, y1 - alto); ctx.lineTo(xb - dir * (8 * e + r), y1 - alto);
       ctx.arc(xb - dir * (8 * e + r), y1 - alto + r, r, -Math.PI / 2, Math.PI / 2, dir < 0);
       ctx.stroke();
+      ctx.strokeStyle = '#5A5A5A'; ctx.lineWidth = Math.max(1, 1.5 * e);
+      ctx.beginPath(); ctx.moveTo(x0, y0 - alto - 1.5 * e); ctx.lineTo(x1, y1 - alto - 1.5 * e); ctx.stroke();
       ctx.restore();
     };
     tramo(escA, anden.suelo + anden.fondo / 2, escA + tramoA, mezz.suelo + mezz.fondo / 2);
