@@ -10,6 +10,8 @@ import { AFICHES } from './afiches';
 // Probado con 78 fotos simuladas (de frente, corrido, inclinado 35°, girado, poca luz, reflejo, en la pared con
 // otros afiches): reconoce los 6 sin confundirlos; 85 imágenes que no son afiches no pasan. Falta validarlo
 // con el afiche impreso y celulares reales (prueba general del 18 nov).
+// 19 nov: vuelve el 01 Tejido (A3). Banco de 480 fotos simuladas del A3 impreso (escala, giro, trapecio, desenfoque,
+// balance de blancos, exposición, JPEG, moiré) más 132 no-afiches: ver docs/qa/caceria-afiche-01.md.
 
 const GW = 36, GH = 48;          // miniatura de la zona de la cámara (guía + 15 % de aire)
 const AIRE = 1.15;
@@ -19,6 +21,7 @@ export const UMBRAL = 0.34;      // puntaje mínimo del mejor afiche
 export const MARGEN = 0.12;      // ventaja mínima sobre el segundo
 const TINTE = 0.05;             // tinte general de la luz que se perdona (en cromaticidad)
 const SEGUIDOS = 3;              // cuadros seguidos con el mismo afiche antes de darlo por encontrado
+const NEGRO_PAPEL = 20;          // a cuánto sube el negro de la miniatura (0–255) para parecerse al afiche impreso
 
 type Canales = Float32Array[];
 interface Plantilla { tw: number; th: number; c: Canales; cr: Float32Array; cg: Float32Array; luz: Float32Array }
@@ -51,17 +54,27 @@ function normalizar(v: Float32Array) {
   return v.map(x => (x - m) / s);
 }
 
+// La miniatura como la ve la cámara en el papel: el negro impreso y fotografiado nunca es negro puro. Importa en los
+// afiches de semitono sobre negro (Tejido): la cámara promedia los puntos rosados con un negro grisáceo y ve un rosado
+// más apagado que el de la miniatura, y la prueba de color lo rechazaba. Solo levanta el negro: la forma no cambia.
+function comoPapel(rgba: ArrayLike<number>) {
+  return Uint8ClampedArray.from(rgba, (v, i) => i % 4 === 3 ? v : NEGRO_PAPEL + v * (255 - NEGRO_PAPEL) / 255);
+}
+
 // Plantillas de cada afiche a cada escala (una vez, al abrir la cámara).
 export function prepararAfiches(afiches: { id: string; rgba: ArrayLike<number>; w: number; h: number }[]): Preparado[] {
   const guiaW = GW / AIRE;
-  return afiches.map(a => ({
-    id: a.id,
-    plantillas: ESCALAS.map(s => {
-      const tw = Math.round(guiaW * s), th = Math.round(guiaW * s * (a.h / a.w));
-      const ch = canales(a.rgba, a.w, a.h, 0, 0, a.w, a.h, tw, th);
-      return { tw, th, c: ch.slice(0, 3).map(normalizar), cr: ch[3], cg: ch[4], luz: ch[0] };
-    }),
-  }));
+  return afiches.map(a => {
+    const papel = comoPapel(a.rgba);
+    return {
+      id: a.id,
+      plantillas: ESCALAS.map(s => {
+        const tw = Math.round(guiaW * s), th = Math.round(guiaW * s * (a.h / a.w));
+        const ch = canales(papel, a.w, a.h, 0, 0, a.w, a.h, tw, th);
+        return { tw, th, c: ch.slice(0, 3).map(normalizar), cr: ch[3], cg: ch[4], luz: ch[0] };
+      }),
+    };
+  });
 }
 
 // Puntaje de cada afiche con una guía centrada que ocupa `guia` (0–1) del ancho del cuadro.
