@@ -423,7 +423,7 @@ a.btn { text-decoration: none; }
 [data-visual="Pixel"] .deslizar-texto { font: 700 12px "Silkscreen", monospace; }
 [data-visual="Geométrica"] .deslizar-texto { text-transform: uppercase; font-size: 14px; letter-spacing: .05em; }
 .deslizar-flechas { position: absolute; right: 14px; top: 50%; z-index: 1; display: flex; gap: 2px; transform: translateY(-50%); opacity: calc(1 - var(--avance, 0) * 2); }
-.deslizar-flechas i { width: 10px; height: 10px; border: solid var(--accent); border-width: 3px 3px 0 0; transform: rotate(45deg); animation: flecha 1.2s ease-in-out infinite; }
+.deslizar-flechas i { width: 10px; height: 10px; border: solid color-mix(in srgb, var(--accent) 60%, var(--surface)); border-width: 3px 3px 0 0; transform: rotate(45deg); animation: flecha 1.2s ease-in-out infinite; }
 .deslizar-flechas i:nth-child(2) { animation-delay: .15s; }
 .deslizar-flechas i:nth-child(3) { animation-delay: .3s; }
 @keyframes brillo-texto { from { background-position: 100% 0 } to { background-position: -50% 0 } }
@@ -441,6 +441,22 @@ a.btn { text-decoration: none; }
 .pista-borde.izquierda { right: auto; left: 0; top: 50%; width: 16px; border: var(--borde); border-left: 0; border-radius: 0 12px 12px 0; background: var(--surface); color: var(--ink); animation-name: pista-borde-izq; }
 @keyframes pista-borde-izq { 50% { transform: translateX(5px) } }
 
+/* Cartas del álbum: lo que falta se ve como una carta boca abajo (dorso con el patrón del marco);
+   lo que se ganó, boca arriba con marco hueso, sombra y un leve giro. */
+.ranuras-afiche li, .recursos li { --dorso: linear-gradient(color-mix(in srgb, var(--tema-banda) 72%, transparent), color-mix(in srgb, var(--tema-banda) 72%, transparent)), var(--tema-patron) center / calc(var(--tema-tam, 96px) * .5) repeat, var(--tema-banda); }
+.ranuras-afiche li:not(.lleno), .recursos li:not(.lleno) { border: 2px solid var(--ink); border-radius: 7px; background: var(--dorso); color: var(--tema-tinta);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--tema-tinta) 45%, transparent); }
+[data-visual="Orgánica"] .ranuras-afiche li { border-radius: 10px; }
+.ranuras-afiche li:not(.lleno) .material-symbols-outlined { opacity: .9; }
+.recursos li:not(.lleno) .material-symbols-outlined { opacity: .95; }
+.ranuras-afiche li.lleno, .recursos li.lleno { border: 2px solid var(--ink); border-radius: 7px; box-shadow: 2px 3px 0 var(--ink), inset 0 0 0 3px #F4EEE3; }
+[data-visual="Orgánica"] .ranuras-afiche li.lleno, [data-visual="Orgánica"] .recursos li.lleno { border-radius: 10px; box-shadow: 0 6px 12px -6px rgba(0, 0, 0, .55), inset 0 0 0 3px #F4EEE3; }
+.ranuras-afiche li.lleno img { padding: 3px; border-radius: 6px; }
+.ranuras-afiche li.lleno:nth-child(odd), .recursos li.lleno:nth-child(odd) { transform: rotate(-2.5deg); }
+.ranuras-afiche li.lleno:nth-child(even), .recursos li.lleno:nth-child(even) { transform: rotate(2deg); }
+.recursos li:not(.lleno) > span:not(.material-symbols-outlined):not(.sr-only) { padding: 0 4px; border-radius: 3px; background: color-mix(in srgb, var(--tema-banda) 85%, transparent); }
+.recursos li.con-imagen img { inset: 3px; width: calc(100% - 6px); height: calc(100% - 6px); border-radius: 4px; }
+
 @media (max-height: 760px) {
   .caceria .ayuda { display: none; } /* en pantallas bajas, «Buscar afiches» ya lo dice: los afiches ganan alto */
   .caceria { grid-template-rows: auto minmax(0, 1fr) auto; }
@@ -453,4 +469,20 @@ a.btn { text-decoration: none; }
   .deslizar-texto { color: var(--surface); background: none; }
   .deslizar-flechas i { opacity: 1; }
   .barra-timbres-medidor span, .deslizar-jugar.soltando .deslizar-ficha { transition: none; }
+}
+
+/* B-017, trozo 3 · animaciones cortas al ganar */
+/* El timbre que llega salta en su ranura de la barra; el medidor se llena con rebote (transición de arriba). */
+.barra-timbres-ranuras li.salta { animation: salta-timbre .9s cubic-bezier(.2, .9, .3, 1.4) both; position: relative; z-index: 1; }
+.barra-timbres-ranuras li.salta::after { content: ""; position: absolute; inset: -4px; border-radius: inherit; border: 3px solid var(--accent); animation: tinta .8s ease-out .2s both; pointer-events: none; }
+@keyframes salta-timbre { 0% { transform: scale(.3) rotate(-25deg); opacity: 0 } 55% { transform: scale(1.4) rotate(8deg); opacity: 1 } 80% { transform: scale(.92) rotate(-3deg) } 100% { transform: scale(1) rotate(0) } }
+[data-visual="Pixel"] .barra-timbres-ranuras li.salta { animation-timing-function: steps(6, end); }
+/* La credencial completa: la barra brilla una vez. */
+.barra-timbres.completa .barra-timbres-medidor span { background: linear-gradient(100deg, var(--accent) 35%, #F4EEE3 50%, var(--accent) 65%) 0 0 / 300% 100%; animation: brillo-texto 2.8s linear infinite; }
+/* Una creación que llega desde una mesa se da vuelta como una carta. */
+.recursos li.nuevo { animation: carta-vuelta .8s cubic-bezier(.2, .9, .3, 1.25) both; }
+@keyframes carta-vuelta { 0% { transform: perspective(400px) rotateY(180deg) scale(.85) } 60% { transform: perspective(400px) rotateY(-12deg) scale(1.12) } 100% { transform: perspective(400px) rotateY(0) scale(1) } }
+[data-visual="Pixel"] .recursos li.nuevo { animation-timing-function: steps(6, end); }
+@media (prefers-reduced-motion: reduce) {
+  .barra-timbres-ranuras li.salta, .barra-timbres-ranuras li.salta::after, .barra-timbres.completa .barra-timbres-medidor span, .recursos li.nuevo { animation: none; }
 }

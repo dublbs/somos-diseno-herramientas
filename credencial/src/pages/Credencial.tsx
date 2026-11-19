@@ -110,7 +110,7 @@ export const Credencial: React.FC<{ codigo: string; aviso?: string; cara?: Cara;
 
   return (
     <main className={'pantalla credencial' + (entra ? ` entra-${entra}` : '')}>
-      <BarraTimbres sellos={datos.sellos} tema={tema} gana={poniendo || recien} />
+      <BarraTimbres sellos={datos.sellos} tema={tema} gana={poniendo || null} />
       <button type="button" className="giro" onClick={girar}
         aria-label={`Girar credencial. Ahora: ${lado === 'frente' ? 'credencial' : 'álbum de timbres'}`}>
         <span className={'carta-caja' + (volteando ? ' volteando' : '')}>
