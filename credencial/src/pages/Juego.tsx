@@ -124,9 +124,15 @@ export const Juego: React.FC<{ codigo: string; aviso?: string; ir: Ir; ponerTema
           })}
         </ul>
         <p className="ayuda">Crea en {creacion.meta} experiencias distintas con tu código <b>{codigo}</b>: cada una llega aquí al momento.</p>
-        <a className="btn" href={`../../fotomaton/dist/?codigo=${codigo}&desde=credencial`}>
-          <span className="material-symbols-outlined" aria-hidden="true">photo_camera</span>Abrir la Cabina aquí
-        </a>
+        {/* Lo principal es escanear el QR de la tablet (une la mesa a la credencial); la Cabina también se puede abrir en el celular. */}
+        <div className="inventario-acciones">
+          <button type="button" className="btn primario" onClick={() => ir('#/escanear')}>
+            <span className="material-symbols-outlined" aria-hidden="true">qr_code_2</span>Escanear QR de la mesa
+          </button>
+          <a className="btn" href={`../../fotomaton/dist/?codigo=${codigo}&desde=credencial`}>
+            <span className="material-symbols-outlined" aria-hidden="true">photo_camera</span>Cabina aquí
+          </a>
+        </div>
       </section>
 
       <button type="button" className={'panel-juego tarjeta-flyer' + (abierto ? ' abierta' : '')} onClick={abrirFlyer} aria-disabled={!abierto}>
