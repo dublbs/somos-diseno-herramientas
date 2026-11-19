@@ -20,5 +20,6 @@ La base ya está en uso. Los tres archivos base (`credencial/supabase/schema.sql
 | `009-jugar-con-qr.sql` | Jugar en una mesa escaneando el QR de la tablet con la credencial (`emparejar_mesa()`, `leer_emparejamiento()`). Plan 014. Sin ella, el celular dice «La base todavía no tiene esta función» | 19/11, Claude (sesión de Pipe), por la API de Supabase |
 | `010-gestion-pc-madre.sql` | Gestión del PC madre: borrar una credencial la saca del HUB (y limpia lo que quedó), «Quitar del HUB», «Recargar el HUB», Resumen y «Empezar de cero». Plan 017 | 19/11, Claude (sesión de Pipe), por la API de Supabase |
 | `011-qa-base.sql` | QA de la base: códigos sin choques (sin 0, O, 1 ni I), timbres simultáneos, mismo QR de mesa a la vez, canje doble, push y eventos de credenciales inexistentes. `docs/qa/qa-base-de-datos.md` | 19/11, Claude (sesión de Pipe), por la API de Supabase |
+| `012-creacion-meta-2.sql` | Timbre 2 «Creación» con meta **2** (antes 4) y timbre para quien ya tenía 2 o más experiencias | **Pendiente: correr en el SQL Editor y anotar aquí** |
 
 Funciones desplegadas en `somos-diseno`: `notificar` (plan 007), `tarjeta` y `limpiar` (Fotomatón / «Llévatela»), todas el 12–14/11.

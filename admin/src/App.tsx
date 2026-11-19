@@ -5,6 +5,9 @@ import { marcoListo } from '../../shared/marcos';
 import * as api from './lib/api';
 import './styles.css';
 
+// Timbre 2 «Creación»: experiencias distintas que pide (migración 012, 19 nov; antes 4). La base es la que decide.
+const META_CREACION = 2;
+
 // PC madre (plan 007): el panel del staff para el evento. Personas y timbres, canje con stock, mesas, avisos y configuración.
 // Corre en el PC del stand (o en cualquier navegador) con la sesión de Supabase Auth de cada persona del equipo.
 
@@ -212,7 +215,7 @@ const Personas: React.FC<{ staff: api.Staff }> = ({ staff }) => {
                   </button>
                 </td>
               ))}
-              <td className="mono">{p.creaciones ?? '–'}/4</td>
+              <td className="mono">{p.creaciones ?? '–'}/{META_CREACION}</td>
               <td className="mono">{p.portales}/3</td>
               <td className="mono">{p.avisos ? 'sí' : '—'}</td>
               <td>{p.canjeado ? <span className="pill ok">Canjeado</span> : completa(p.sellos) ? <span className="pill">Lista</span> : <span className="mono">{p.sellos.filter(n => ACTIVAS.includes(n)).length}/{ACTIVAS.length}</span>}</td>
@@ -268,7 +271,7 @@ const CanjePanel: React.FC<{ staff: api.Staff }> = ({ staff }) => {
             <div className="ficha">
               <p className="mono">{persona.codigo}</p>
               <h2>{persona.nombre}</h2>
-              <p>{marcoListo(persona.marco).visual} · timbres {persona.sellos.filter(n => ACTIVAS.includes(n)).length}/{ACTIVAS.length} · creación {persona.creaciones ?? '–'}/4 · cacería {persona.portales}/3</p>
+              <p>{marcoListo(persona.marco).visual} · timbres {persona.sellos.filter(n => ACTIVAS.includes(n)).length}/{ACTIVAS.length} · creación {persona.creaciones ?? '–'}/{META_CREACION} · cacería {persona.portales}/3</p>
               {persona.canjeado ? <p className="pill ok">Ya canjeado</p>
                 : !completa(persona.sellos) ? <p className="pill">Incompleta: faltan {ESTACIONES.filter(e => e.activa && !persona.sellos.includes(e.n)).map(e => e.nombre).join(', ')}</p>
                 : <button type="button" className="btn primario" disabled={ocupado} onClick={canjear}><Icono n="approval" />Entregar premio</button>}
@@ -608,7 +611,7 @@ const FichaPersona: React.FC<{ p: api.Persona; alCerrar: () => void }> = ({ p, a
       {aviso && <p className="aviso" role="status">{aviso}</p>}
       <p>Timbres: {ESTACIONES.map(e => `${e.n} ${p.sellos.includes(e.n) ? '✓' : '·'}`).join('   ')} {p.canjeado && <span className="pill ok">Canjeado</span>}</p>
       <div className="dos">
-        <div><p className="etq">Experiencias (timbre 2) · {creaciones.length}/4</p>
+        <div><p className="etq">Experiencias (timbre 2) · {creaciones.length}/{META_CREACION}</p>
           {pasos === null ? <p className="ayuda">Cargando…</p> : creaciones.length ? <ul className="lista">{creaciones.map(x => <li key={x.clave}>{EXPERIENCIAS[x.clave] ?? x.clave} <span className="mono ayuda">{hora(x.creado)}</span></li>)}</ul> : <p className="ayuda">Ninguna todavía.</p>}
         </div>
         <div><p className="etq">Afiches (timbre 3) · {afiches.length}/3</p>
