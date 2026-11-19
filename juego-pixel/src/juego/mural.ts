@@ -2,7 +2,7 @@
 // Una pared hueso de 4 × 3 casillas: si venciste al Inacapín Pixel, primero el trofeo; después tus piezas y tus latas,
 // cada una en un azulejo negro.
 import { HUESO, type Pieza } from './comun';
-import { LATA, PIEZAS, TROFEO, sprite } from './sprites';
+import { LATA, LATA_PROPORCION, PIEZAS, TROFEO, sprite } from './sprites';
 
 export const COLS_MURAL = 4, FILAS_MURAL = 3;
 export interface Mural { piezas: Pieza[]; latas: string[]; trofeo?: boolean }
@@ -30,7 +30,7 @@ export function dibujarMural(x: CanvasRenderingContext2D, px: number, py: number
       x.fillStyle = '#1E1C19'; x.fillRect(cx + t * 2.5, cy + t * 2.5, c - t * 5, c - t * 5);
       if (p.forma === 'trofeo') { x.fillStyle = '#2B4BD8'; x.fillRect(cx + t * 2.5, cy + t * 2.5, c - t * 5, c - t * 5); sprite(x, TROFEO, cx + mm, cy + mm, c - 2 * mm, c - 2 * mm); }
       else if (p.forma) sprite(x, PIEZAS[p.forma], cx + mm, cy + mm, c - 2 * mm, c - 2 * mm, p.color);
-      else sprite(x, LATA, cx + mm * 1.5, cy + mm * 1.5, c - 3 * mm, c - 3 * mm, p.color);
+      else { const h = c - 2.4 * mm, w = h * LATA_PROPORCION; sprite(x, LATA, cx + (c - w) / 2, cy + 1.2 * mm, w, h, p.color); }
     });
   }
   x.strokeStyle = '#000'; x.lineWidth = b * 2; x.strokeRect(px + b, py + b, ancho - 2 * b, alto - 2 * b);

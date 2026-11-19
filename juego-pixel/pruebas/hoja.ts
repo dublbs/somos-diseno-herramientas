@@ -15,3 +15,6 @@ dibujarInacapin(x, 1080, 600, 220, 1, 0.5, { boca: true });
 dibujarInacapin(x, 120, 860, 220, 1, 0.2, { ojos: 'x', blanco: false });
 dibujarInacapin(x, 360, 860, 220, 1, 1, { ojos: 'feliz' });
 dibujarInacapin(x, 600, 860, 220, -1, 0.2, { ojos: 'enojo', paso: 1 }, 0.7);
+// Latas de spray (B-007), en los colores de la pintura.
+import { LATA, LATA_PROPORCION, sprite } from '../src/juego/sprites';
+['#FF8FB1', '#FFC20E', '#7FC8F8', '#00A651', '#7A2E8E'].forEach((col, i) => sprite(x, LATA, 1060 + i * 64, 650, 90 * LATA_PROPORCION, 90, col));

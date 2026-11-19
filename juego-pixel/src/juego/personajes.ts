@@ -40,7 +40,8 @@ function estampar(ctx: CanvasRenderingContext2D, c: HTMLCanvasElement, x: number
 }
 
 // ——— Pinta: tú (16 × 16, mira a la derecha) ———
-// Gorro celeste con borde lapislázuli, cara hueso, polerón azul, pantalón lapislázuli, zapatillas hueso y la lata rosa.
+// Gorro celeste con borde lapislázuli, cara hueso, polerón azul, pantalón lapislázuli, zapatillas hueso y, en la mano,
+// la lata de spray rosa (B-007: sin la mejilla rosa bajo el ojo, que se leía como una lágrima).
 const PINTA_CABEZA: Filas = [
   '.....kkkkkk.....',
   '....kcccccwck...',
@@ -49,29 +50,41 @@ const PINTA_CABEZA: Filas = [
   '...knhhhhhhhhk..',
   '...knhhhkhhkhk..',
   '...khhhhkhhkhk..',
-  '...khhhhhhhrhk..',
+  '...khhhhhhhhhk..',
   '....kkhhhhhhk...',
 ];
+// El polerón; 'h' es la mano que sostiene la lata (más arriba al lanzar y al saltar).
 const PINTA_CUERPO: Record<'quieto' | 'lanza' | 'arriba', Filas> = {
   quieto: [
     '...kaaaaaaaak...',
-    '..kaaAaaaaaaakk.',
-    '..kaAkaaaaaakrrk',
-    '..kAAkaaaaahkrrk',
+    '..kaaAaaaaaaak..',
+    '..kaAkaaaaaahk..',
+    '..kAAkaaaaaahk..',
   ],
   lanza: [
-    '...kaaaaaaaakkk.',
-    '..kaaAaaaaaaahrk',
-    '..kaAkaaaaaaakrk',
+    '...kaaaaaaaak...',
+    '..kaaAaaaaaahk..',
+    '..kaAkaaaaaaak..',
     '..kAAkaaaaaaak..',
   ],
   arriba: [
-    '...kaaaaaaaakrrk',
-    '..kaaAaaaaaakrrk',
-    '..kaAkaaaaaaahk.',
+    '...kaaaaaaahk...',
+    '..kaaAaaaaaaak..',
+    '..kaAkaaaaaaak..',
     '..kAAkaaaaaaak..',
   ],
 };
+// La lata de spray en la mano (4 × 6, columnas 12 a 15): válvula, hombro metálico, cuerpo rosa con brillo y la mano ('h') que la agarra.
+// Se superpone al cuerpo y las piernas; ' ' deja ver lo de abajo. `arriba` es la fila de la válvula.
+const LATA_MANO: Filas = [
+  ' kk ',
+  'kssk',
+  'kwrk',
+  'hrrk',
+  'krrk',
+  'kkkk',
+];
+const LATA_ARRIBA: Record<Pose, number> = { quieto: 9, camina1: 9, camina2: 9, golpe: 9, lanza: 8, salta: 8 };
 const PINTA_PIERNAS: Record<'quieto' | 'paso' | 'junto' | 'salto', Filas> = {
   junto: ['.....kllllk.....', '....kkhhhhkk....', '....khhhhhhhk...'],
   quieto: [
@@ -91,13 +104,20 @@ const PINTA_PIERNAS: Record<'quieto' | 'paso' | 'junto' | 'salto', Filas> = {
   ],
 };
 export type Pose = 'quieto' | 'camina1' | 'camina2' | 'salta' | 'lanza' | 'golpe';
+function conLata(filas: Filas, p: Pose): Filas {
+  const y0 = LATA_ARRIBA[p];
+  return filas.map((f, j) => {
+    const l = LATA_MANO[j - y0];
+    if (!l) return f;
+    return f.slice(0, 12) + [...l].map((ch, i) => (ch === ' ' ? f[12 + i] : ch)).join('');
+  });
+}
 function filasPinta(p: Pose): Filas {
   const cuerpo = p === 'lanza' ? PINTA_CUERPO.lanza : p === 'salta' ? PINTA_CUERPO.arriba : PINTA_CUERPO.quieto;
-  const piernas = p === 'salta' ? PINTA_PIERNAS.salto : p === 'camina1' ? PINTA_PIERNAS.paso : PINTA_PIERNAS.quieto;
+  const piernas = p === 'salta' ? PINTA_PIERNAS.salto : p === 'camina1' ? PINTA_PIERNAS.paso : p === 'camina2' ? PINTA_PIERNAS.junto : PINTA_PIERNAS.quieto;
   let cabeza = PINTA_CABEZA;
   if (p === 'golpe') cabeza = cabeza.map((f, j) => (j === 5 || j === 6 ? '...khhhhwhhwhk..' : f)); // ojos en blanco
-  if (p === 'camina2') return [...cabeza, ...cuerpo, ...PINTA_PIERNAS.junto];
-  return [...cabeza, ...cuerpo, ...piernas];
+  return conLata([...cabeza, ...cuerpo, ...piernas], p);
 }
 export function lienzoPinta(p: Pose = 'quieto'): HTMLCanvasElement {
   const filas = filasPinta(p);
