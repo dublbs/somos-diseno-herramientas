@@ -7,7 +7,7 @@ import type { Imagenes } from './dibujoCruce';
 import { avanzarEfectos, dibujarManchas, dibujarParticulas, sacudida } from './efectos';
 import { textoConPlaca } from './texto';
 import { ALTO_JEFE, ANCHO_JEFE, GOLPES_GRIS, GOLPES_JEFE, VIGAS_JEFE, type Jefe } from './jefe';
-import { dibujarGris, dibujarInacapin } from './personajes';
+import { dibujarGris, dibujarInacapin, type PasoInacapin } from './personajes';
 import { PIEZAS, sprite } from './sprites';
 
 const COLORES_FIESTA = ['#E2001A', '#FF8FB1', '#FFC20E', '#7FC8F8', '#00A651', '#7A2E8E', '#F4EEE3'];
@@ -67,7 +67,8 @@ export function dibujarJefe(ctx: CanvasRenderingContext2D, ancho: number, alto: 
     if (b.estado === 'mareado') aplasta = 0.95;
     const respira = quieto || b.estado !== 'camina' ? 0 : Math.round(Math.sin(ahora / 260) * c * 0.03);
     const fiesta = celebra && !quieto ? Math.abs(Math.sin(ahora / 160)) * c * 0.7 : 0;
-    const paso = b.estado === 'camina' && !quieto ? ((Math.floor(ahora / 180) % 2) + 1) as 1 | 2 : 0;
+    // B-009: caminata de 4 cuadros (piernas y brazos); sin movimiento reducido queda de pie.
+    const paso = b.estado === 'camina' && !quieto ? ((Math.floor(ahora / 150) % 4) + 1) as PasoInacapin : 0;
     // brillo de aviso (telegrafía): su silueta en amarillo (salto o escupo) o rosado (embestida), parpadeando
     if (avisando && !celebra && (quieto || parpadeo)) {
       const col = b.estado === 'carga' ? '#FF8FB1' : '#FFC20E', o = Math.max(3, Math.round(c * 0.09));
