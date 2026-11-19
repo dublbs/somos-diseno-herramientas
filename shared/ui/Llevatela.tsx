@@ -58,8 +58,8 @@ export const Llevatela: React.FC<Props> = ({ blob, app, titulo, conCredencial, a
             {fase.f === 'error'
               ? 'Revisa la conexión e inténtalo de nuevo. Tu creación sigue solo en esta tablet.'
               : conCredencial
-                ? 'Llévatela al celular con un QR. Queda disponible 24 horas y después se borra. También llega al inventario de tu credencial.'
-                : 'Llévatela al celular con un QR. Queda disponible 24 horas y después se borra.'}
+                ? 'Llévatelo al celular con un QR. Queda disponible 24 horas y después se borra. También llega al inventario de tu credencial.'
+                : 'Llévatelo al celular con un QR. Queda disponible 24 horas y después se borra.'}
           </p>
           <div className="k-llevatela-acciones">
             <BotonAccion icono={fase.f === 'error' ? 'restart_alt' : 'ios_share'} texto={fase.f === 'error' ? 'Reintentar' : 'Generar QR'} primario onClick={subir} disabled={fase.f === 'subiendo'} />
