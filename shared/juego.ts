@@ -18,7 +18,9 @@ export const ESTACIONES: Estacion[] = [
 export const ACTIVAS = ESTACIONES.filter(e => e.activa).map(e => e.n);
 export const completa = (sellos: number[]) => ACTIVAS.every(n => sellos.includes(n));
 
-export const CODIGO = /^SD-[A-Z2-9]{5}$/;
+// Los códigos viejos de Supabase eran hexadecimales (0-9 y A-F); desde la migración 011 usan A-Z y 2-9 sin O ni I.
+// La regla acepta todos, igual que el check de la base (^SD-[A-Z0-9]{5}$).
+export const CODIGO = /^SD-[A-Z0-9]{5}$/;
 export const normalizarCodigo = (c: string) => {
   const t = c.toUpperCase().replace(/[^A-Z0-9]/g, '');
   return t.startsWith('SD') ? 'SD-' + t.slice(2, 7) : 'SD-' + t.slice(0, 5);
@@ -94,6 +96,20 @@ export async function verificarPin(pin: string): Promise<boolean> {
 }
 
 // ---------- la persona que juega en esta mesa (dura la sesión; el quiosco la borra) ----------
+// Plan 016 (excepción): la credencial abre el Fotomatón en el celular con ?codigo=SD-XXXXX&desde=credencial.
+// La persona entra ya con su código y la flecha «volver» la lleva de vuelta a su credencial (no al menú de las tablets).
+const LLAVE_VOLVER = 'sd:volver';
+export function codigoDesdeUrl(app: string): string | null {
+  const q = new URLSearchParams(location.search);
+  const c = (q.get('codigo') || '').trim().toUpperCase();
+  if (!CODIGO.test(c)) return null;
+  entrarJugador(c, app);
+  try { if (q.get('desde') === 'credencial') sessionStorage.setItem(LLAVE_VOLVER, '../../credencial/dist/#/juego'); } catch { /* nada */ }
+  q.delete('codigo'); q.delete('desde');
+  try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); } catch { /* nada */ }
+  return c;
+}
+export const volverA = (porDefecto: string) => { try { return sessionStorage.getItem(LLAVE_VOLVER) || porDefecto; } catch { return porDefecto; } };
 const LLAVE_JUGADOR = 'sd:jugador';
 // `ganado`: las experiencias de esta mesa que ya sumaron su paso al timbre 2 (una mesa puede tener varias).
 export function jugador(): { codigo: string; ganado: string[] } | null {
@@ -114,6 +130,16 @@ export function entrarJugador(codigo: string, app = 'mesa') {
 const LLAVE_CREADAS = 'sd:creadas-sin-jugador';
 function creadasSinJugador(): string[] { try { const v = JSON.parse(sessionStorage.getItem(LLAVE_CREADAS) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } }
 
+// ¿Existe esta credencial? true / false, o null si no se pudo preguntar (sin red o sin Supabase: se deja jugar).
+export async function existeCredencial(codigo: string): Promise<boolean | null> {
+  if (!remoto) return null;
+  try {
+    const r = await fetch(`${URL_SB}/rest/v1/credenciales?select=codigo&codigo=eq.${encodeURIComponent(codigo)}`, { headers: cabeceras() });
+    if (!r.ok) return null;
+    const filas = await r.json();
+    return Array.isArray(filas) ? filas.length > 0 : null;
+  } catch { return null; }
+}
 // ---------- Jugar con QR (plan 014): la tablet muestra un QR y la credencial lo escanea ----------
 // El QR lleva la mesa y un número de un solo uso; la tablet pregunta a la base hasta que alguien lo escanea.
 export const nuevoNonce = () => Array.from(crypto.getRandomValues(new Uint8Array(10)), b => 'abcdefghijkmnpqrstuvwxyz23456789'[b % 32]).join('');
@@ -159,9 +185,20 @@ export function otorgarCreacion(app: string) {
     return;
   }
   if (j.ganado.includes(app)) return;
-  try { sessionStorage.setItem(LLAVE_JUGADOR, JSON.stringify({ ...j, ganado: [...j.ganado, app] })); } catch { /* sin almacenamiento */ }
-  publicar('timbre', { sello: 2, app }, j.codigo).catch(() => { /* queda el código para timbrar a mano */ });
-  // Con Supabase la credencial queda timbrada al tiro; si falla (o sin conexión), la persona usa el código.
-  const directo = remoto ? sellarRemoto(j.codigo, 2, leerConfig().token2, app) : Promise.resolve(null);
-  directo.then(avance => window.dispatchEvent(new CustomEvent<DetalleCreacion>(EVENTO_TIMBRE, { detail: { codigo: j.codigo, avance } })));
+  marcarGanado(app, true);
+  const avisar = (avance: Avance | null) => window.dispatchEvent(new CustomEvent<DetalleCreacion>(EVENTO_TIMBRE, { detail: { codigo: j.codigo, avance } }));
+  if (!remoto) { publicar('timbre', { sello: 2, app }, j.codigo).catch(() => { /* nada */ }); avisar(null); return; }
+  // Con Supabase la credencial queda timbrada al tiro. El HUB recibe el timbre solo si la base lo aceptó; si falló
+  // (sin red, código o token malos), la experiencia no queda como ganada y la próxima exportación lo vuelve a intentar.
+  sellarRemoto(j.codigo, 2, leerConfig().token2, app).then(avance => {
+    if (avance) publicar('timbre', { sello: 2, app }, j.codigo).catch(() => { /* nada */ });
+    else marcarGanado(app, false);
+    avisar(avance);
+  });
+}
+function marcarGanado(app: string, si: boolean) {
+  const j = jugador();
+  if (!j) return;
+  const ganado = si ? [...new Set([...j.ganado, app])] : j.ganado.filter(a => a !== app);
+  try { sessionStorage.setItem(LLAVE_JUGADOR, JSON.stringify({ ...j, ganado })); } catch { /* sin almacenamiento */ }
 }

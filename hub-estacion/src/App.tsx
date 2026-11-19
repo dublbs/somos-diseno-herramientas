@@ -3,7 +3,7 @@ import { Estacion, disponer, TODAS_LAS_IMAGENES } from './estacion/escena';
 import { poblacionDePrueba, simularEventos, azar, type Evento, type Persona } from './estacion/fuente';
 import { precargar } from './estacion/imagenes';
 import { conectar } from './estacion/vivo';
-import { remoto } from '../../shared/datos';
+import { remoto, URL_SB, cabeceras } from '../../shared/datos';
 import { ACTIVAS } from '../../shared/juego';
 import './styles.css';
 
@@ -12,8 +12,7 @@ import './styles.css';
 const params = new URLSearchParams(window.location.search);
 const HORA_FIJA = params.has('hora') ? Number(params.get('hora')) : null;
 const RAPIDO = Math.max(1, Number(params.get('rapido')) || 1);
-// Personas y eventos de prueba: por defecto solo sin Supabase (en el evento, solo las reales). ?prueba=1 los fuerza y
-// ?prueba=0 los apaga (QA 18 nov: el enlace del hub abría la pantalla en vivo con 40 personas inventadas).
+// Personas de prueba: por defecto solo sin Supabase (este equipo). ?prueba=1 las fuerza, ?prueba=0 las quita.
 const PRUEBA = params.has('prueba') ? params.get('prueba') !== '0' : !remoto;
 const QUIETO = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
@@ -29,6 +28,24 @@ export const App: React.FC = () => {
   const [listo, setListo] = useState(false);
 
   useEffect(() => { precargar(TODAS_LAS_IMAGENES).then(() => setListo(true)); }, []);
+  // Plan 017: el PC madre puede pedir que el HUB se recargue (al quitar algo del HUB o al borrar una credencial).
+  // Pregunta config_mesas() cada 30 s; sin la migración 010 no llega hub_reinicio y no pasa nada.
+  useEffect(() => {
+    if (!remoto) return;
+    let visto: string | null | undefined;
+    const preguntar = () => fetch(`${URL_SB}/rest/v1/rpc/config_mesas`, { method: 'POST', headers: cabeceras(), body: '{}' })
+      .then(r => (r.ok ? r.json() : null))
+      .then((c: { hub_reinicio?: string | null } | null) => {
+        if (!c || !('hub_reinicio' in c)) return;
+        const v = c.hub_reinicio || null;
+        if (visto === undefined) visto = v;
+        else if (v !== visto) location.reload();
+      })
+      .catch(() => { /* sin red: sigue igual */ });
+    preguntar();
+    const id = setInterval(preguntar, 30000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (!listo) return;

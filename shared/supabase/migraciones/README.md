@@ -17,5 +17,8 @@ La base ya está en uso. Los tres archivos base (`credencial/supabase/schema.sql
 | `fotomaton/supabase/migrations/0001_fotomaton.sql` | Tabla y bucket privado `fotomaton` (lo usa «Llévatela» en todas las experiencias, plan 011). **Una sola vez.** | 14/11, Claude (sesión de Pipe) |
 | `006-limpiar-llevatela.sql` | Cron cada hora que llama a la función `limpiar` (borrado a 24 h de «Llévatela») | 14/11, Claude (sesión de Pipe) · probado: 200 |
 | `008-config-mesas.sql` | Las tablets siguen al PC madre: modo juego, código de la estación 2 y reinicios (`config_mesas()`), y el PIN del canje abre `?staff` (`verificar_pin_staff()`). Plan 015 | **Pendiente de correr** |
+| `009-jugar-con-qr.sql` | Jugar en una mesa escaneando el QR de la tablet con la credencial (`emparejar_mesa()`, `leer_emparejamiento()`). Plan 014. Sin ella, el celular dice «La base todavía no tiene esta función» | **Pendiente de correr** |
+| `010-gestion-pc-madre.sql` | Gestión del PC madre: borrar una credencial la saca del HUB (y limpia lo que quedó), «Quitar del HUB», «Recargar el HUB», Resumen y «Empezar de cero». Plan 017 | **Pendiente de correr** |
+| `011-qa-base.sql` | QA de la base: códigos sin choques (sin 0, O, 1 ni I), timbres simultáneos, mismo QR de mesa a la vez, canje doble, push y eventos de credenciales inexistentes. `docs/qa/qa-base-de-datos.md` | **Pendiente de correr** |
 
 Funciones desplegadas en `somos-diseno`: `notificar` (plan 007), `tarjeta` y `limpiar` (Fotomatón / «Llévatela»), todas el 12–14/11.

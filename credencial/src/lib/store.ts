@@ -41,9 +41,13 @@ async function crearCredencial({ nombre, receta, marco }: { nombre: string; rece
   const limpio = limpiarNombre(nombre);
   if (!limpio) throw new Error('Escribe un nombre.');
   if (sb) {
-    const { data, error } = await sb.from('credenciales').insert({ nombre: limpio, receta, marco }).select('codigo').single();
-    if (error) throw new Error(error.message);
-    return data.codigo as string;
+    // El código lo pone la base (migración 011: sin repetir). Si dos celulares sacan el mismo en el mismo instante,
+    // la base responde 23505 (código repetido) y se vuelve a pedir.
+    for (let intento = 0; ; intento++) {
+      const { data, error } = await sb.from('credenciales').insert({ nombre: limpio, receta, marco }).select('codigo').single();
+      if (!error) return data.codigo as string;
+      if (error.code !== '23505' || intento >= 2) throw new Error(error.code === '23505' ? 'No pudimos crear tu credencial. Inténtalo otra vez.' : error.message);
+    }
   }
   const db = leer();
   let codigo = codigoNuevo();
@@ -341,7 +345,7 @@ export async function canjear(codigo: string, pin: string) {
 export async function suscribirPush(codigo: string, endpoint: string, p256dh: string, auth: string) {
   if (!sb) return;
   const { error } = await sb.rpc('suscribir_push', { p_codigo: codigo, p_endpoint: endpoint, p_p256dh: p256dh, p_auth: auth });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(error.message.includes('credencial_no_existe') ? 'No encontramos tu credencial.' : error.message);
 }
 
 // El avatar del HUB: con la foto solo si la persona lo autoriza; si no, su personaje. Queda en este celular

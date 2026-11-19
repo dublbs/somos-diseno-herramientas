@@ -104,3 +104,8 @@ Método para lo demás: el mismo de la auditoría del Teatro. Por cada experienc
 - Tareas pendientes en orden de importancia: [`docs/tasks/009-pendientes.md`](../tasks/009-pendientes.md).
 - **D6 · Refinamiento:** auditoría hecha por Claude Code, más el feedback directo de §3.
 - **D7 · Numeración:** la cacería pasa a ser el plan **010** (PR #11); el 008 queda para el Teatro (PR #12).
+
+## Cacería: se ven los 5 afiches, se piden 3 (19 nov)
+- La meta del timbre 3 sigue en **3 afiches distintos** (`sellos_def`). El contador dice «x de 3».
+- La pantalla Jugar muestra **los 5 afiches de la sede** como lugares: cada uno aparece con su imagen cuando se encuentra y, si no, queda en blanco. Así el visitante sabe cuántos hay.
+- No cambia la base ni el canje.
