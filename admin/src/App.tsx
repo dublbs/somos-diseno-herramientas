@@ -22,12 +22,12 @@ const Icono: React.FC<{ n: string }> = ({ n }) => <span className="material-symb
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Santiago' });
 // Nombres de lo que guarda la base (pasos del timbre 2 y tipos de eventos del HUB).
 const EXPERIENCIAS: Record<string, string> = {
-  audioreactiva: 'Audioreactiva', fotomaton: 'Fotomatón', grabado: 'Grabado', graffiti: 'Graffiti', juego: 'Hora punta',
+  audioreactiva: 'Audioreactiva', fotomaton: 'Cabina', grabado: 'Grabado', graffiti: 'Graffiti', juego: 'Hora punta',
   mosaicos: 'Mosaicos', 'taller-mosaicos': 'Mosaicos', teatro: 'Teatro', loops: 'Teatro', vagon: 'Vagón',
 };
 const TIPOS: Record<string, string> = {
   credencial: 'Credencial', timbre: 'Timbre', vagon: 'Vagón', grabado: 'Grabado', mosaico: 'Mosaico', audio: 'Audioreactiva',
-  graffiti: 'Graffiti', foto: 'Fotomatón', juego: 'Hora punta',
+  graffiti: 'Graffiti', foto: 'Cabina', juego: 'Hora punta',
 };
 const normalizar = (c: string) => { const t = c.toUpperCase().replace(/[^A-Z0-9]/g, ''); return t.startsWith('SD') ? 'SD-' + t.slice(2, 7) : 'SD-' + t.slice(0, 5); };
 

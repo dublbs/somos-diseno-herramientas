@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { jugador, otorgarCreacion } from '../../shared/juego';
+import { jugador, otorgarCreacion, volverA } from '../../shared/juego';
 import { miniatura, publicar } from '../../shared/datos';
 import { MARCOS, porId, type Visual } from './data/marcos';
 import { TINTAS } from './data/tintas';
@@ -26,6 +26,9 @@ const HUB_URL = (import.meta.env.VITE_HUB_URL as string | undefined) ?? '../../'
 
 export function App() {
   const [visto, marcarVisto] = useTutorialVisto('fotomaton');
+  // Si llegó desde la credencial del celular, «volver» la lleva de vuelta ahí (plan 016). Se lee al dibujar: PuertaJuego
+  // lo anota justo antes, al leer ?codigo= de la dirección.
+  const volver = volverA(HUB_URL);
   const [paso, setPaso] = useState<Paso>('camara');
   const [visual, setVisual] = useState<Visual>(INICIAL.visual), [marcoId, setMarcoId] = useState(INICIAL.marco);
   const [celda, setCelda] = useState(INICIAL.celda), [tinta, setTinta] = useState(INICIAL.tinta);
@@ -126,7 +129,7 @@ export function App() {
   if (!visto) return (
     <>
       {input}
-      <Tutorial etiqueta="Los tres lenguajes · imagen e identidad" titulo="Fotomatón" volver={HUB_URL}
+      <Tutorial etiqueta="Los tres lenguajes · imagen e identidad" titulo="Cabina de fotos" volver={volver}
         pasos={[
           { icono: 'photo_camera', texto: 'Sácate una foto: la cámara ya muestra el efecto y el marco.' },
           { icono: 'palette', texto: 'A la derecha eliges lenguaje, marco, efecto y tinta.' },
@@ -145,12 +148,12 @@ export function App() {
       {input}
       {paso === 'camara' ? (
         <Camara lado={lado} marco={marcoMostrado} celda={celda} tinta={tinta} apagadas={placasActivas} vivo={vivo} cambiando={cambiando} textoCambio={textoCambio} alSubir={subir}
-          volver={HUB_URL} acciones={restablecerEl} panel={lateral} aviso={aviso}
+          volver={volver} acciones={restablecerEl} panel={lateral} aviso={aviso}
           alFoto={(f, c) => { revelar(); setFoto({ c: f, cara: c }); setPaso('editar'); }} />
       ) : (
         <Editor foto={foto} marco={marcoMostrado} celda={celda} tinta={tinta} apagadas={placasActivas} revelando={revelando} cambiando={cambiando}
           textoCambio={textoCambio} ocupado={ocupado} alLlevatela={llevatela} alOtra={() => setPaso('camara')}
-          volver={HUB_URL} acciones={restablecerEl} panel={lateral} aviso={aviso} />
+          volver={volver} acciones={restablecerEl} panel={lateral} aviso={aviso} />
       )}
       {paso === 'qr' && tarjeta && (
         <div className="k-quiosco" role="dialog" aria-modal="true" aria-labelledby="qr-t">

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { terminarMesa } from './Tutorial'; // «Terminar» después del QR también libera la mesa (plan 014)
 import QRCode from 'qrcode';
 import { subirCreacion } from '../llevatela';
 import { BotonAccion } from './Kit';
@@ -48,7 +49,7 @@ export const Llevatela: React.FC<Props> = ({ blob, app, titulo, conCredencial, a
           <div className="k-llevatela-qr"><img src={fase.qr} alt="Código QR para descargar tu creación en el celular" /></div>
           <p className="k-ayuda">Apunta la cámara del celular al código. Queda disponible 24 horas y después se borra.</p>
           {!fase.enServidor && <p className="k-ayuda">Sin conexión al servidor: este QR solo abre en esta tablet.</p>}
-          <div className="k-llevatela-acciones"><BotonAccion icono="check" texto="Terminar" primario onClick={alTerminar ?? alCerrar} /></div>
+          <div className="k-llevatela-acciones"><BotonAccion icono="check" texto="Terminar" primario onClick={() => { (alTerminar ?? alCerrar)(); terminarMesa(); }} /></div>
         </>) : (<>
           <h2 id="llevatela-t">{fase.f === 'error' ? 'No pudimos prepararla' : fase.f === 'subiendo' ? 'Preparando tu QR…' : titulo}</h2>
           {video
@@ -58,8 +59,8 @@ export const Llevatela: React.FC<Props> = ({ blob, app, titulo, conCredencial, a
             {fase.f === 'error'
               ? 'Revisa la conexión e inténtalo de nuevo. Tu creación sigue solo en esta tablet.'
               : conCredencial
-                ? 'Llévatela al celular con un QR. Queda disponible 24 horas y después se borra. También llega al inventario de tu credencial.'
-                : 'Llévatela al celular con un QR. Queda disponible 24 horas y después se borra.'}
+                ? 'Llévatelo al celular con un QR. Queda disponible 24 horas y después se borra. También llega al inventario de tu credencial.'
+                : 'Llévatelo al celular con un QR. Queda disponible 24 horas y después se borra.'}
           </p>
           <div className="k-llevatela-acciones">
             <BotonAccion icono={fase.f === 'error' ? 'restart_alt' : 'ios_share'} texto={fase.f === 'error' ? 'Reintentar' : 'Generar QR'} primario onClick={subir} disabled={fase.f === 'subiendo'} />

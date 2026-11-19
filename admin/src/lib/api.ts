@@ -203,6 +203,7 @@ const SONDAS: { archivo: string; que: string; fn: string; args: Record<string, u
   { archivo: '008-config-mesas.sql', que: 'Las tablets siguen al PC madre', fn: 'config_mesas', args: {} },
   { archivo: '009-jugar-con-qr.sql', que: 'Jugar en una mesa con el QR de la credencial', fn: 'leer_emparejamiento', args: { p_mesa: 'ZZ', p_nonce: 'zzzzzzzz' } },
   { archivo: '010-gestion-pc-madre.sql', que: 'Gestión del PC madre (este panel)', fn: 'resumen_evento', args: {} },
+  { archivo: '011-qa-base.sql', que: 'Códigos sin choques y timbres simultáneos (QA de la base)', fn: 'codigo_credencial', args: {} },
 ];
 export async function estadoMigraciones(): Promise<EstadoMigracion[]> {
   return Promise.all(SONDAS.map(async s => {
