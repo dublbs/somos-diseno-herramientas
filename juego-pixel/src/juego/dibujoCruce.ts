@@ -1,7 +1,8 @@
 import { ANCHO, META, QUIETO_AVISO, fila, type Cruce, type Fila, type Vehiculo } from './cruce';
-import { LATA, sprite } from './sprites';
+import { LATA, LATA_PROPORCION, sprite } from './sprites';
 import { lienzoCarro, lienzoFuelle, lienzoTrompa } from './metro';
 import { lienzoPinta } from './personajes';
+import { textoConPlaca } from './texto';
 
 // Dibuja el nivel 1 (El cruce) en vista isométrica 3/4 (plan 009-juego-pixel, ronda 2): el motor no cambia, solo el dibujo.
 // Mundo: x crece a lo largo del carril, y hacia adelante (filas) y z hacia arriba, todo en celdas.
@@ -180,16 +181,12 @@ export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto:
   // Puntos que suben y aviso de quedarse quieto.
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (const a of e.avisos) {
-    ctx.font = `700 ${Math.round(c * 0.36)}px "Silkscreen", monospace`;
     const [px, py] = P(a.x + 0.5, a.y + 0.5, 1.4 + (1 - a.t / 900) * 0.9);
-    ctx.fillStyle = NEGRO; ctx.fillText(a.texto, px + 3, py + 3);
-    ctx.fillStyle = '#FFC20E'; ctx.fillText(a.texto, px, py);
+    textoConPlaca(ctx, a.texto, px, py, c * 0.36, '#FFC20E'); // B-010: placa oscura, se lee sobre cualquier fondo
   }
   if (!e.fin && !e.llego && e.quieto > QUIETO_AVISO && Math.floor(ahora / 250) % 2 === 0) {
-    ctx.font = `700 ${Math.round(c * 0.5)}px "Silkscreen", monospace`;
     const [px, py] = P(jx + 0.5, jy + 0.5, 2.3);
-    ctx.fillStyle = NEGRO; ctx.fillText('¡Muévete!', px + 3, py + 3);
-    ctx.fillStyle = '#FF8FB1'; ctx.fillText('¡Muévete!', px, py);
+    textoConPlaca(ctx, '¡Muévete!', px, py, c * 0.5, '#FF8FB1');
   }
 
   // ——— Partes ———
@@ -242,7 +239,8 @@ export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto:
     const giro = quieto ? 1 : Math.cos(ahora / 300 + x * 1.7);
     sombraSuelo(x + 0.3, x + 0.7, y + 0.35, y + 0.65, h);
     const [px, py] = P(x + 0.5, y + 0.5, h + flota);
-    const t = Math.round(c * 0.5), w = Math.max(Math.round(t * 0.22), Math.round(t * Math.abs(giro)));
+    // La lata gira sobre su eje (se angosta y se da vuelta) sin deformar su alto.
+    const t = Math.round(c * 0.62), w = Math.max(Math.round(t * 0.12), Math.round(t * LATA_PROPORCION * Math.abs(giro)));
     sprite(ctx, LATA, px - w / 2, py - t, w, t, color, giro < 0);
   }
 
@@ -286,11 +284,16 @@ export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto:
         ctx.fillStyle = ROJO_RED; ctx.fillRect(0, Math.round(H * 0.52), L, 2 * p); // franja bajo las ventanas
         ctx.fillStyle = ROJO_RED; ctx.fillRect(0, Math.round(H * 0.74), L, Math.round(H * 0.26)); // faldón
         ctx.fillStyle = '#9E1A1F'; ctx.fillRect(0, Math.round(H * 0.74), L, p);
-        // puerta (cerca del frente)
-        const px = dir > 0 ? L - Math.round(c * 0.7) : Math.round(c * 0.25);
-        ctx.fillStyle = NEGRO; ctx.fillRect(px, Math.round(H * 0.1), Math.round(c * 0.42), Math.round(H * 0.86));
-        ctx.fillStyle = '#7FC8F8'; ctx.fillRect(px + p, Math.round(H * 0.14), Math.round(c * 0.2) - 2 * p, Math.round(H * 0.5));
-        ctx.fillRect(px + Math.round(c * 0.21) + p, Math.round(H * 0.14), Math.round(c * 0.2) - 2 * p, Math.round(H * 0.5));
+        // Puertas dobles: la de adelante (por donde se sube) y la del medio (por donde se baja la gente, B-007).
+        const puerta = (px: number) => {
+          ctx.fillStyle = NEGRO; ctx.fillRect(px, Math.round(H * 0.1), Math.round(c * 0.42), Math.round(H * 0.86));
+          ctx.fillStyle = '#7FC8F8'; ctx.fillRect(px + p, Math.round(H * 0.14), Math.round(c * 0.2) - 2 * p, Math.round(H * 0.5));
+          ctx.fillRect(px + Math.round(c * 0.21) + p, Math.round(H * 0.14), Math.round(c * 0.2) - 2 * p, Math.round(H * 0.5));
+          ctx.fillStyle = '#B9B9B3'; ctx.fillRect(px + p, Math.round(H * 0.68), Math.round(c * 0.2) - 2 * p, p); // barandas
+          ctx.fillRect(px + Math.round(c * 0.21) + p, Math.round(H * 0.68), Math.round(c * 0.2) - 2 * p, p);
+        };
+        puerta(dir > 0 ? L - Math.round(c * 0.7) : Math.round(c * 0.25));
+        puerta(Math.round(L / 2 - c * 0.21));
       });
       caja(x0 + 0.8, x1 - 0.9, y + 0.3, y + 0.7, 1.02, 1.14, '#B9B9B3'); // aire acondicionado
       enCostado(x1, y + 0.12, 1.02, () => {
@@ -375,10 +378,12 @@ export function dibujarCruce(ctx: CanvasRenderingContext2D, ancho: number, alto:
     ctx.globalAlpha = 1;
     const [px, py] = P(jx + 0.5, jy + 0.45, fz + arco - entra * 0.4);
     const t = Math.round(c * 1.05);
-    // Si te atropellan o pasa el metro, quedas aplastado (ancho y bajito) con una mancha de pintura.
+    // Si te atropellan o pasa el metro, quedas aplastado como una galleta (ancho y bajito) que rebota un par de veces
+    // y se queda quieta. Sin charco de pintura (B-007). Con movimiento reducido, queda aplastado sin rebote.
     const choque = e.fin === 'atropellado' || e.fin === 'tren';
-    const sx = choque ? 1.35 : 1, sy = choque ? 0.32 : 1;
-    if (choque) { plano(jx - 0.15, jx + 1.15, jy + 0.12, jy + 0.88, fz + 0.003, '#FF8FB1'); plano(jx + 0.1, jx + 0.9, jy + 0.3, jy + 0.7, fz + 0.004, '#FF5C8E'); }
+    const dt = choque ? ahora - v!.fin : 0;
+    const rebote = choque && !quieto ? Math.abs(Math.sin(dt / 85)) * Math.exp(-dt / 320) : 0;
+    const sy = choque ? 0.3 + rebote * 0.35 : 1, sx = choque ? 1.4 - rebote * 0.3 : 1;
     ctx.save();
     if (entra > 0.55) ctx.globalAlpha = Math.max(0, 1 - (entra - 0.55) / 0.45);
     ctx.translate(px, py); ctx.scale(sx * v!.mira, sy);

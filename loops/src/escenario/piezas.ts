@@ -457,15 +457,16 @@ const LISTA: Pieza[] = [pudu2, palomaV, solV, araucariaV, pina, helechoV, quisco
 // Tamaños en unidades del escenario (240 = alto). Un cóndor en el cielo es chico; una araucaria, alta; un huemul, mediano.
 // Mínimo y máximo dejan agrandar o achicar sin que la pieza se coma la escena ni desaparezca.
 type Perfil = { tam: number; min?: number; max?: number; movil?: boolean; colores?: ColorPieza[] };
-const AMARILLO = '#FFC20E', ROSA = '#FF8FB1', VERDE = '#00A651', HUESO = '#F4EEE3', NEGRO = '#000000';
-// Pez: el cuerpo era Lapislázuli y en el mar no se notaba. Colores que siempre contrastan con el agua azul.
+const ROSA = '#FF8FB1', HUESO = '#F4EEE3';
+// Pez: el cuerpo era Lapislázuli y en el mar no se notaba. T-008: colores medianamente realistas de peces de Chile,
+// mezclas de la paleta Línea azul que contrastan con el agua azul (y el borde de papel los recorta del fondo).
+// El primero es con el que parte.
 const tintePez = (cuerpo: string, escamas: string): Tinte => ({ '#2B4BD8': cuerpo, '#7FC8F8': escamas });
 const COLORES_PEZ: ColorPieza[] = [
-  { id: 'amarillo', nombre: 'Amarillo', hex: AMARILLO, tinte: tintePez(AMARILLO, HUESO) },
-  { id: 'rosa', nombre: 'Rosa', hex: ROSA, tinte: tintePez(ROSA, HUESO) },
-  { id: 'verde', nombre: 'Verde', hex: VERDE, tinte: tintePez(VERDE, AMARILLO) },
-  { id: 'hueso', nombre: 'Hueso', hex: HUESO, tinte: tintePez(HUESO, ROSA) },
-  { id: 'negro', nombre: 'Negro', hex: NEGRO, tinte: tintePez(NEGRO, AMARILLO) },
+  { id: 'plateado', nombre: 'Plateado (pejerrey)', hex: '#C3D2DA', tinte: tintePez('#C3D2DA', '#7FC8F8') },
+  { id: 'jurel', nombre: 'Verde azulado (jurel)', hex: '#39B59C', tinte: tintePez('#39B59C', '#C9E3E6') },
+  { id: 'congrio', nombre: 'Colorado (congrio)', hex: '#FFA178', tinte: tintePez('#FFA178', '#C46393') },
+  { id: 'corvina', nombre: 'Gris (corvina)', hex: '#9C9175', tinte: tintePez('#9C9175', HUESO) },
 ];
 // Huemul: era morado como los cerros de la Cordillera y se perdía. Parte café (su color real) y se puede cambiar.
 // Cada color trae sus cuatro tonos (cuerpo, lado lejano, vientre y hocico), mezclas de la paleta como en el generador.

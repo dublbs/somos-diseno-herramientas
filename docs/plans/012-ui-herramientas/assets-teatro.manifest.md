@@ -11,8 +11,8 @@ Feedback de Amaro (17 nov, plan 012 §4) que resuelve cada cambio entre parénte
 ## Piezas nuevas o rehechas
 | Pieza | Capas | Estados (animaciones) | Cambio | generado |
 |---|---|---|---|---|
-| `huemul` | `cola` `pata1–4` `cuerpo` `cabeza` | Camina · Pasta · Mira | Sin la raya en Y sobre el ojo (le hacía ceño): ojo redondo con brillo, hocico oscuro redondeado, orejas relajadas hacia atrás. Cuello y cabeza en una capa que gira en la base del cuello; la cola, aparte. («se ve enojado», «3 estados») | true |
-| `guanaco` | `cola` `pata1–4` `cuerpo` `cabeza` | Camina · Trota · Mira | Pecho claro, sombra en el cuello, cara gris con ojo amable y labio partido, orejas con interior claro. Cuello y cabeza en una capa. («mejorarlo y darle sus 3 animaciones») | true |
+| `huemul` | `cola` `pata1–4` `cuerpo` `cabeza` | Camina · Pasta · Mira | Sin la raya en Y sobre el ojo (le hacía ceño): ojo redondo con brillo, hocico oscuro redondeado, orejas relajadas hacia atrás. T-008: las orejas nacen en la nuca, detrás de las astas, y salen hacia atrás y arriba (forma de hoja, `oreja()` en el script). Cuello y cabeza en una capa que gira en la base del cuello; la cola, aparte. («se ve enojado», «3 estados») | true |
+| `guanaco` | `cola` `pata1–4` `cuerpo` `cabeza` | Camina · Trota · Mira | Pecho claro, sombra en el cuello, cara gris con ojo amable y labio partido, orejas con interior claro. T-008: cabeza menos infantil (cráneo chico, hocico largo que se afina, cara gris de la frente al hocico, labio claro, ojo oscuro almendrado con anillo claro, boca recta, orejas largas en punta hacia atrás). Cuello y cabeza en una capa. («mejorarlo y darle sus 3 animaciones») | true |
 | `ananuca` | `ananuca` | se mece | **Reemplaza a la Flor** en el Desierto: añañuca del desierto florido, tres flores en embudo rojo rosado con garganta amarilla sobre hojas angostas. («descartar la flor») | true |
 
 ## Cambios solo de movimiento (sin arte nuevo)
@@ -21,7 +21,7 @@ Feedback de Amaro (17 nov, plan 012 §4) que resuelve cada cambio entre parénte
 | `condor`, `gaviota`, `picaflor`, `carpintero` | Aletea/Zumba · Planea/Liba · Remonta/Revolotea/Dardo | Aletean con el movimiento de la paloma de Figma (M3): alas que casi no giran y se pliegan en el hombro (escala vertical 1 → 0,24), cuerpo que sube cuando el ala baja y se balancea apenas. El cóndor antes giraba las alas ±20° («recuperar el aleteo de la paloma»). |
 | `chucao` | Salta · Canta · Mira | Dos estados nuevos con sus capas actuales. |
 | `huemul` | — | Color elegible (Café, Morado, Rosa, Lapislázuli); parte en café porque el morado se perdía en los cerros de la Cordillera. |
-| `pez` | — | Color elegible (ya estaba en el wip): Amarillo, Rosa, Verde, Hueso, Negro. |
+| `pez` | — | Color elegible. T-008: colores medianamente realistas de peces de Chile (tintes en `src/escenario/piezas.ts`): Plateado (pejerrey, parte con este), Verde azulado (jurel), Colorado (congrio), Gris (corvina). |
 
 ## Retirado
 | Archivo | Motivo |

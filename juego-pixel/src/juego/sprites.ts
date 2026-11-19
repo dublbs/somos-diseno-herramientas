@@ -33,7 +33,13 @@ export const BOLA = S([
   '..kkkk..',
 ]);
 
-// Dibuja un sprite en (x, y) con `tam` px por pixel. `reemplazo` cambia el color 'B'.
+// Oscurece un color #RRGGBB (para la sombra 'D' del color de reemplazo).
+function oscuro(hex: string, f = 0.72) {
+  const n = parseInt(hex.slice(1), 16);
+  return '#' + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => Math.round(v * f).toString(16).padStart(2, '0')).join('');
+}
+
+// Dibuja un sprite en (x, y) con `tam` px por pixel. `reemplazo` cambia el color 'B' (y 'D', su sombra).
 const cache = new Map<string, HTMLCanvasElement>();
 export function sprite(ctx: CanvasRenderingContext2D, filas: string[], x: number, y: number, ancho: number, alto: number, reemplazo = '#FF8FB1', espejo = false) {
   const clave = filas.join('|') + reemplazo + espejo;
@@ -44,7 +50,7 @@ export function sprite(ctx: CanvasRenderingContext2D, filas: string[], x: number
     const x2 = c.getContext('2d')!;
     filas.forEach((f, j) => [...f].forEach((ch, i) => {
       if (ch === '.') return;
-      x2.fillStyle = ch === 'B' ? reemplazo : PALETA[ch];
+      x2.fillStyle = ch === 'B' ? reemplazo : ch === 'D' ? oscuro(reemplazo) : PALETA[ch];
       x2.fillRect(espejo ? f.length - 1 - i : i, j, 1, 1);
     }));
     cache.set(clave, c);
@@ -53,17 +59,28 @@ export function sprite(ctx: CanvasRenderingContext2D, filas: string[], x: number
   ctx.drawImage(c, Math.round(x), Math.round(y), Math.round(ancho), Math.round(alto));
 }
 
-// Lata de pintura (vista de frente): 'B' es el color de la pintura.
+// Lata de spray (vista de frente, 8 × 15; B-007): válvula, tapa del color, hombro metálico, cuerpo cilíndrico con
+// brillo vertical ('w') y sombra a la derecha ('D'), y la etiqueta hueso con una marca negra.
+// 'B' es el color de la pintura y 'D' el mismo color en sombra.
 export const LATA = S([
+  '...kk...',
+  '..kwsk..',
   '.kkkkkk.',
-  'kssssssk',
-  'kBBBBBBk',
-  'kBwBBBBk',
-  'kBwBBBBk',
-  'kBBBBBBk',
-  'kssssssk',
+  'kBwBBBDk',
+  'kBwBBBDk',
+  'kkkkkkkk',
+  'kswsssGk',
+  'kBwBBBDk',
+  'kBwBBBDk',
+  'khwhhhsk',
+  'khwkkhsk',
+  'kBwBBBDk',
+  'kBwBBBDk',
+  'kswsssGk',
   '.kkkkkk.',
 ]);
+// Proporción ancho / alto de la lata, para dibujarla sin deformarla.
+export const LATA_PROPORCION = LATA[0].length / LATA.length;
 
 // Gris de lado (nivel 2): el mismo Gris, caminando. Mira a la derecha.
 export const GRIS_LADO = S([

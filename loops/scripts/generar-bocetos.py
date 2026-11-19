@@ -243,6 +243,18 @@ def cuadrupedo(pieza, color, color_lejano, patas_x, cadera_y, suelo_y, partes, c
     guardar(pieza, {'cola': capa(cola, semilla + 40), 'pata1': capas['pata1'], 'pata2': capas['pata2'], 'pata3': capas['pata3'],
                     'pata4': capas['pata4'], 'cuerpo': capa(partes, semilla + 20), 'cabeza': capa(cabeza, semilla + 60)})
 
+def oreja(base, largo, ancho, angulo, n=24):
+    """Oreja en forma de hoja que NACE en `base` (pegada a la cabeza) y apunta en `angulo` grados
+    (0 = adelante, 180 = atrás, en coordenadas SVG). Ancha en el medio y en punta al final."""
+    a = math.radians(angulo); ux, uy = math.cos(a), math.sin(a); nx, ny = -uy, ux
+    lado1, lado2 = [], []
+    for k in range(n + 1):
+        t = k / n
+        w = ancho / 2 * math.sin(math.pi * min(1, t * 1.08)) ** 0.8 if t < 0.97 else 0
+        cx, cy = base[0] + ux * largo * t, base[1] + uy * largo * t
+        lado1.append((cx + nx * w, cy + ny * w)); lado2.append((cx - nx * w, cy - ny * w))
+    return lado1 + lado2[::-1]
+
 def ojo_amable(x, y, r=3.4):
     """Ojo redondo y tranquilo: blanco hueso, pupila grande y un brillo. Nada de cejas ni rayas que lo enojen."""
     return [(elipse(x, y, r, r * 1.05), HUESO), (elipse(x + r * 0.15, y + r * 0.1, r * 0.66, r * 0.72), NEGRO),
@@ -265,14 +277,14 @@ cuadrupedo('huemul', MORADO, MORADO_LEJ, [92, 104, 136, 148], 160, 206, [
 ], cabeza=[
     ([(140, 140), (146, 120), (154, 102), (164, 92), (176, 98), (172, 116), (164, 136)], MORADO),  # cuello grueso
     (elipse(168, 114, 6, 4, -40), HUESO),                                                          # garganta clara
-    *astas[3:],                                                                                    # el asta de atrás queda detrás de la oreja
-    (elipse(156, 84, 13, 5, -25), MORADO_LEJ),                                                     # oreja de atrás, relajada
+    *astas[3:],                                                                                    # el asta de atrás queda detrás de todo
+    (oreja((166, 88), 21, 8.5, 230), MORADO_LEJ),                                                  # oreja de atrás: asoma un poco más arriba
     ([(158, 94), (168, 85), (180, 87), (193, 97), (196, 104), (191, 109), (178, 109), (164, 104)], MORADO),  # cabeza, hocico redondeado
     (elipse(191, 103, 6, 5), mezcla(MORADO, NEGRO, 0.45)),                                         # hocico oscuro
     (elipse(195, 101, 2.6, 2.1), NEGRO),                                                           # nariz
     *ojo_amable(176, 95, 3.6),
-    *astas[:3],
-    (elipse(162, 82, 14, 5.5, -35), MORADO), (elipse(162, 82, 9, 2.6, -35), HUESO),               # oreja larga, hacia atrás
+    (oreja((163, 91), 25, 10.5, 210), MORADO), (oreja((158, 88.5), 17, 5, 210), HUESO),                # oreja larga «de burro», hacia atrás
+    *astas[:3],                                                                                    # las astas nacen delante de las orejas
 ], cola=[
     ([(80, 126), (70, 118), (68, 130), (76, 140)], MORADO),                                        # cola corta
     ([(76, 132), (70, 124), (72, 136)], HUESO),
@@ -283,6 +295,7 @@ cuadrupedo('huemul', MORADO, MORADO_LEJ, [92, 104, 136, 148], 160, 206, [
 # y el cuello con la cabeza es una capa aparte para pastar y mirar.
 AMARILLO_LEJ = mezcla(AMARILLO, MORADO, 0.2)
 GRIS_CARA = mezcla(NEGRO, HUESO, 0.5)
+GRIS_GUANACO = mezcla(mezcla(NEGRO, HUESO, 0.42), AMARILLO, 0.08); CLARO_GUANACO = mezcla(AMARILLO, HUESO, 0.7)
 cuadrupedo('guanaco', AMARILLO, AMARILLO_LEJ, [84, 96, 128, 140], 146, 210, [
     (elipse(110, 132, 42, 18, -2), AMARILLO),                                                      # cuerpo
     (elipse(114, 144, 30, 5.5), HUESO),                                                            # vientre blanco
@@ -290,13 +303,21 @@ cuadrupedo('guanaco', AMARILLO, AMARILLO_LEJ, [84, 96, 128, 140], 146, 210, [
 ], cabeza=[
     ([(130, 130), (136, 104), (142, 82), (148, 66), (160, 62), (162, 80), (156, 104), (152, 130)], AMARILLO),  # cuello curvo
     ([(150, 112), (156, 104), (158, 92), (154, 120)], AMARILLO_LEJ),                               # sombra del cuello
-    (elipse(152, 46, 9, 3.4, -70), AMARILLO_LEJ), (elipse(159, 45, 9, 3.4, -92), AMARILLO),       # orejas en punta
-    (elipse(159, 45, 5, 1.6, -92), mezcla(AMARILLO, HUESO, 0.5)),
-    ([(146, 62), (152, 51), (166, 50), (178, 55), (186, 62), (186, 70), (176, 73), (160, 70)], AMARILLO),  # cabeza
-    ([(166, 53), (178, 55), (186, 62), (186, 70), (176, 73), (164, 66)], GRIS_CARA),              # cara gris
-    (elipse(184, 63, 3, 2.4), NEGRO),                                                              # nariz
-    (trazo([(186, 69), (181, 70), (177, 69)], 1.3), NEGRO),                                        # labio partido (sonrisa leve)
-    *ojo_amable(163, 57, 3.2),
+    # Ronda 3 (T-008): cabeza de camélido adulto, menos infantil. Cráneo chico y hocico largo que se afina, frente
+    # recta, cara gris oscura con labios claros, ojo oscuro almendrado arriba en la cabeza (sin el blanco grande que la
+    # hacía de dibujo animado), orejas largas en punta echadas hacia atrás y la boca recta, sin sonrisa.
+    (oreja((151, 54), 17, 5.4, 244), AMARILLO_LEJ),                                                 # oreja de atrás
+    ([(146, 64), (149, 55), (156, 49), (166, 48.5), (176, 51.5), (185, 56), (190, 60.5), (191, 65), (188, 69),
+      (180, 70.5), (170, 69.5), (160, 71), (152, 72)], AMARILLO),                                  # cabeza: cráneo y hocico largo
+    ([(157, 51.5), (166, 49.6), (176, 52), (185, 56.5), (190, 60.5), (191, 65), (188, 69), (180, 70.5), (170, 69.5),
+      (162, 66), (156, 60)], GRIS_GUANACO),                                                        # cara gris: de la frente al hocico
+    (trazo([(174, 69.6), (182, 69.4), (188.5, 67.6)], [1.6, 2.2, 1.6]), CLARO_GUANACO),           # labio claro
+    (trazo([(183, 67.2), (190.5, 65.6)], 0.9), NEGRO),                                             # boca recta, partida
+    (elipse(188.4, 60.4, 1.9, 0.9, -35), NEGRO),                                                   # narina en ranura
+    (elipse(161, 57.4, 3.8, 2.8, -12), CLARO_GUANACO),                                             # anillo claro del ojo
+    (elipse(161, 57.6, 2.9, 2.1, -12), NEGRO),                                                     # ojo almendrado y oscuro
+    (elipse(160.2, 56.9, 0.7, 0.7), HUESO),                                                        # brillo chico
+    (oreja((154.5, 53), 19, 6, 252), AMARILLO), (oreja((154.8, 50.5), 12.5, 2.6, 252), CLARO_GUANACO),  # oreja larga en punta
 ], cola=[
     (trazo([(74, 124), (68, 130), (67, 140)], [7, 5.5, 3.5]), AMARILLO_LEJ),                       # cola que cae
 ], pata_ancho=6.5, semilla=71)

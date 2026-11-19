@@ -1,10 +1,11 @@
 import { GLIFOS, AVANCE, normalizar } from '../../../shared/pixelfont';
 import type { Lenguaje, Persona } from './fuente';
 import { imagen, raster } from './imagenes';
-import { c3EnTiempo, dibujarC3 } from '../../../shared/c3-tunel.js';
+import { dibujarEnVivo, PIEZAS_TEATRO } from './envivo';
 import { enVivo, listaImagen, autorDe, type Obra, type ClaseObra } from './vivo';
 import { NOMBRE_CORTO } from '../galeria/piezas';
 import { ACTIVAS } from '../../../shared/juego';
+import { carro, FILAS } from './metro';
 
 // Estación Somos Diseño: corte de una estación en tres niveles.
 //   Plaza Orgánica (arriba) · Mezanina Geométrica (medio) · Andén Pixel (abajo).
@@ -17,12 +18,11 @@ export const C = {
   Amarillo: '#FFC20E', Verde: '#00A651', Rosa: '#FF8FB1', Morado: '#7A2E8E',
 };
 const CUERPO: Record<Lenguaje, string> = { Pixel: C.Morado, Geométrica: C.Azul, Orgánica: C.Verde };
+const SOMBRA_CUERPO: Record<Lenguaje, string> = { Pixel: '#561F66', Geométrica: '#004A8C', Orgánica: '#007A3B' };
 const SRC = {
   personaje: { pixel: './figma/personajes/personaje-pixel.svg', geometrica: './figma/personajes/personaje-geometrica.svg', organica: './figma/personajes/personaje-organica.svg' },
   araucaria: './figma/plaza/araucaria.svg', sol: './figma/plaza/sol.svg', helecho: './figma/plaza/helecho.svg', flor: './figma/plaza/flor-propia.svg', quisco: './figma/plaza/quisco.svg',
   vagon: ['./figma/vagon/personaje.svg', './figma/vagon/spray.svg', './figma/vagon/tarro-pintura.svg', './figma/vagon/plumon.svg', './figma/vagon/senal-rodillo.svg', './figma/vagon/zapatilla.svg'],
-  // Metro de Figma (Pixel · FA08): lateral del carro como módulo que se repite (240 × 240).
-  metro: { l1: './figma/metro/linea1-lateral.svg', l4: './figma/metro/linea4-lateral.svg' },
 };
 // Grabados de prueba para los banderines de la plaza (taco + tinta + papel), hasta que lleguen los de la experiencia.
 const GRABADOS = [
@@ -91,6 +91,8 @@ export class Estacion {
   cuadros: Cuadro[] = []; // los cuadros de la mezanina, con la obra que muestra cada uno
   private mostrada = new Map<string, number>(); // id de la obra → cuándo entró por última vez a un cuadro
   private muro: { W: number; H: number; m: Muro } | null = null;
+  private capaAnden: { llave: string; c: HTMLCanvasElement } | null = null;
+  private capaPlaza: { llave: string; c: HTMLCanvasElement } | null = null;
 
   constructor(d: Disposicion, gente: Persona[], azar: () => number, quieto: boolean) {
     this.d = d; this.azar = azar; this.quieto = quieto;
@@ -128,7 +130,7 @@ export class Estacion {
     if (timbres >= ACTIVAS.length) this.confeti(a);
   }
 
-  // Estado del tren: x del frente (0 = fuera por la derecha) y si tiene puertas abiertas.
+  // Estado del tren: x del frente (0 = fuera por la derecha). `abierto` = detenido en el andén.
   tren() {
     const ciclo = this.reloj % PERIODO_TREN, n = Math.floor(this.reloj / PERIODO_TREN);
     const largo = this.d.W * 0.78, parado = (this.d.W - largo) / 2;
@@ -202,7 +204,7 @@ export class Estacion {
     this.andenPixel(ctx);
     this.escaleras(ctx);
     const visibles = this.avatares.map(a => ({ a, pos: this.posicion(a) })).sort((p, q) => p.pos[1] - q.pos[1]);
-    for (const { a, pos } of visibles) this.avatar(ctx, a, pos);
+    for (const { a, pos } of visibles) if (!this.tapadaPorTren(a, pos[0])) this.avatar(ctx, a, pos);
     this.trenDibujo(ctx);
     for (const q of this.particulas) { ctx.globalAlpha = Math.min(1, q.vida); ctx.fillStyle = q.color; ctx.fillRect(q.x - q.r, q.y - q.r, q.r * 2, q.r * 2); }
     ctx.globalAlpha = 1;
@@ -210,9 +212,12 @@ export class Estacion {
   }
 
   // ---------- PLAZA · Orgánica ----------
-  // Cielo según la hora del evento (10:00 → 20:00): día celeste, tarde dorada, atardecer rosa y lapislázuli.
+  // Cielo según la hora del evento (10:00 → 20:00): día celeste, tarde dorada, atardecer rosa y lapislázuli, con nubes de
+  // papel. Delante, la cordillera y los cerros recortados en papel, árboles nativos, pasto, el piso de maicillo,
+  // maceteros, bancas, faroles y la boca del metro con su luz cálida. Lo quieto se pinta una vez (capaPlaza) por tamaño
+  // de pantalla y por media hora (los faroles se encienden de tarde).
   private plaza(ctx: CanvasRenderingContext2D, hora: number) {
-    const { W, u, plaza } = this.d;
+    const { W, H, u, plaza } = this.d;
     const t = Math.min(1, Math.max(0, (hora - 10) / 10));
     const g = ctx.createLinearGradient(0, plaza.y, 0, plaza.suelo);
     if (t < 0.7) { g.addColorStop(0, C.Celeste); g.addColorStop(1, C.Hueso); }
@@ -226,24 +231,211 @@ export class Estacion {
       ctx.save(); ctx.translate(x + lado / 2, y + lado / 2); ctx.rotate(this.quieto ? 0 : this.reloj / 9000);
       ctx.drawImage(raster(sol, lado, lado), -lado / 2, -lado / 2); ctx.restore();
     }
-    // Suelo de la plaza
-    ctx.fillStyle = C.Verde; ctx.fillRect(0, plaza.suelo - 6 * u, W, plaza.y + plaza.h - plaza.suelo + 6 * u);
-    ctx.fillStyle = '#0B8F48';
-    for (let x = 0; x < W; x += 22 * u) ctx.fillRect(x, plaza.suelo - 6 * u, 10 * u, 4 * u);
-    // Árboles de Teatro de Papel a escala: las araucarias son árboles grandes; el helecho, el quisco y la flor, chicos y adelante.
+    // nubes de papel que avanzan muy lento
+    const nube = this.nube(plaza.h * 0.16);
+    for (let i = 0; i < 4; i++) {
+      const vx = (this.quieto ? 0 : this.reloj / 1000) * (6 + i * 2) * u, ancho = nube.width / Math.min(window.devicePixelRatio || 1, 2);
+      const x = ((W * (0.08 + i * 0.29) + vx) % (W + ancho)) - ancho, y = plaza.y + plaza.h * (0.1 + (i % 2) * 0.13);
+      ctx.drawImage(nube, x, y, ancho * (1 - (i % 2) * 0.25), nube.height / Math.min(window.devicePixelRatio || 1, 2) * (1 - (i % 2) * 0.25));
+    }
+    const k = Math.min(window.devicePixelRatio || 1, 2), noche = t >= 0.7 ? 1 : 0, llave = `${W}|${H}|${k}|${noche}`;
+    if (!this.capaPlaza || this.capaPlaza.llave !== llave) {
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(W * k)); c.height = Math.max(1, Math.round(plaza.h * k));
+      const x = c.getContext('2d')!;
+      x.setTransform(k, 0, 0, k, 0, -plaza.y * k);
+      const completa = this.fondoPlaza(x, noche === 1);
+      this.capaPlaza = { llave: completa ? llave : '', c };
+    }
+    ctx.drawImage(this.capaPlaza.c, 0, plaza.y, W, plaza.h);
+    this.banderines(ctx);
+    this.cartel(ctx, 'Plaza · Orgánica', W * 0.015, plaza.y + 14 * u, C.Verde);
+  }
+
+  // Nube de papel: tres o cuatro lóbulos hueso con un borde suave y su sombra.
+  private nubeHecha: { L: number; c: HTMLCanvasElement } | null = null;
+  private nube(alto: number): HTMLCanvasElement {
+    const k = Math.min(window.devicePixelRatio || 1, 2), L = Math.max(8, Math.round(alto * k));
+    if (this.nubeHecha && this.nubeHecha.L === L) return this.nubeHecha.c;
+    const c = document.createElement('canvas'); c.width = L * 3; c.height = L;
+    const x = c.getContext('2d')!;
+    const forma = (dy: number) => {
+      x.beginPath();
+      x.moveTo(L * 0.2, L * 0.85 + dy);
+      x.bezierCurveTo(L * 0.0, L * 0.85 + dy, L * 0.05, L * 0.45 + dy, L * 0.42, L * 0.5 + dy);
+      x.bezierCurveTo(L * 0.5, L * 0.1 + dy, L * 1.15, L * 0.05 + dy, L * 1.25, L * 0.42 + dy);
+      x.bezierCurveTo(L * 1.45, L * 0.12 + dy, L * 2.05, L * 0.2 + dy, L * 2.0, L * 0.5 + dy);
+      x.bezierCurveTo(L * 2.6, L * 0.4 + dy, L * 2.95, L * 0.85 + dy, L * 2.6, L * 0.85 + dy);
+      x.closePath();
+    };
+    forma(L * 0.06); x.fillStyle = 'rgba(43,75,216,.12)'; x.fill();
+    forma(0); x.fillStyle = '#FBF7EF'; x.fill();
+    x.strokeStyle = 'rgba(0,0,0,.35)'; x.lineWidth = Math.max(1, L * 0.025); x.stroke();
+    x.strokeStyle = 'rgba(127,200,248,.5)'; x.lineWidth = Math.max(1, L * 0.02);
+    x.beginPath(); x.moveTo(L * 0.6, L * 0.7); x.quadraticCurveTo(L * 1.2, L * 0.62, L * 1.8, L * 0.72); x.stroke();
+    this.nubeHecha = { L, c };
+    return c;
+  }
+
+  // Devuelve false si alguna imagen todavía no estaba.
+  private fondoPlaza(ctx: CanvasRenderingContext2D, noche: boolean): boolean {
+    const { W, u, e, plaza, escB, tramoB, mezz } = this.d;
+    // Si las fuentes no llegaron todavía, el letrero sale con otra: se vuelve a pintar cuando lleguen.
+    let completa = !document.fonts || document.fonts.status === 'loaded';
+    let semilla = 17; const azar = () => ((semilla = (semilla * 9301 + 49297) % 233280) / 233280);
+    const suelo = plaza.suelo, fin = plaza.y + plaza.h, trazo = Math.max(1, 2 * e);
+    const linea = (color = 'rgba(0,0,0,.55)', w = trazo) => { ctx.strokeStyle = color; ctx.lineWidth = w; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke(); };
+    // Silueta suave que pasa por puntos (curvas cuadráticas por los puntos medios).
+    const silueta = (pts: [number, number][], base: number) => {
+      ctx.beginPath(); ctx.moveTo(pts[0][0], base); ctx.lineTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length - 1; i++) { const mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (pts[i][1] + pts[i + 1][1]) / 2; ctx.quadraticCurveTo(pts[i][0], pts[i][1], mx, my); }
+      const ul = pts[pts.length - 1]; ctx.lineTo(ul[0], ul[1]); ctx.lineTo(ul[0], base); ctx.closePath();
+    };
+    // cordillera con nieve, recortada en papel
+    const cordillera: [number, number][] = [];
+    for (let i = 0; i <= 14; i++) cordillera.push([W * (i / 14) + (i ? (azar() - 0.5) * W * 0.03 : 0) - W * 0.02, suelo - plaza.h * (0.36 + (i % 2 ? 0.14 : 0) + azar() * 0.12)]);
+    cordillera[cordillera.length - 1][0] = W * 1.02;
+    const quebrada = () => { ctx.beginPath(); ctx.moveTo(cordillera[0][0], suelo); for (const [px, py] of cordillera) ctx.lineTo(px, py); ctx.lineTo(cordillera[cordillera.length - 1][0], suelo); ctx.closePath(); };
+    quebrada(); ctx.fillStyle = noche ? '#8E8FD6' : '#9FC2E6'; ctx.fill(); linea('rgba(43,75,216,.5)');
+    for (let i = 1; i < cordillera.length - 1; i += 2) { // nieve en las cumbres altas
+      const [px, py] = cordillera[i], [lx, ly] = cordillera[i - 1], [rx, ry] = cordillera[i + 1], f = 0.32;
+      const ax = px + (lx - px) * f, ay = py + (ly - py) * f, bx = px + (rx - px) * f, by = py + (ry - py) * f;
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(ax, ay);
+      ctx.lineTo(ax + (bx - ax) * 0.25, ay + (by - ay) * 0.25 - (ay - py) * 0.25); ctx.lineTo(ax + (bx - ax) * 0.45, Math.max(ay, by) + (Math.max(ay, by) - py) * 0.05);
+      ctx.lineTo(ax + (bx - ax) * 0.7, ay + (by - ay) * 0.7 - (by - py) * 0.2); ctx.lineTo(bx, by); ctx.closePath();
+      ctx.fillStyle = '#FBF7EF'; ctx.fill(); linea('rgba(43,75,216,.4)', Math.max(1, 1.5 * e));
+    }
+    // cerros verdes delante
+    const cerros: [number, number][] = [];
+    for (let i = 0; i <= 9; i++) cerros.push([W * (i / 9) - W * 0.03 + (azar() - 0.5) * W * 0.04, suelo - plaza.h * (0.14 + azar() * 0.12)]);
+    cerros[cerros.length - 1][0] = W * 1.03;
+    silueta(cerros, suelo); ctx.fillStyle = '#7CC796'; ctx.fill(); linea('rgba(11,94,51,.45)');
+    // árboles nativos (peumos y quillayes de copa redonda), detrás de la gente
+    const arbol = (x: number, alto: number, tono: number) => {
+      const copa = alto * 0.42, base = suelo + 2 * u;
+      ctx.beginPath(); ctx.moveTo(x - alto * 0.035, base); ctx.quadraticCurveTo(x - alto * 0.02, base - alto * 0.4, x - alto * 0.06, base - alto * 0.62);
+      ctx.lineTo(x + alto * 0.05, base - alto * 0.6); ctx.quadraticCurveTo(x + alto * 0.02, base - alto * 0.35, x + alto * 0.04, base); ctx.closePath();
+      ctx.fillStyle = '#7A4E2D'; ctx.fill(); linea();
+      const verdes = tono ? ['#0B8F48', '#00A651', '#3DBB6E'] : ['#1E7A45', '#2E9A58', '#5CC07E'];
+      const lobulos: [number, number, number][] = [[-0.55, 0.15, 0.62], [0.5, 0.2, 0.6], [0, -0.25, 0.75], [-0.1, 0.35, 0.65]];
+      for (let capa = 0; capa < 3; capa++) {
+        ctx.beginPath();
+        for (const [dx, dy, r] of lobulos) { const cx = x + dx * copa * 0.9 - capa * copa * 0.05, cy = base - alto * 0.72 + dy * copa - capa * copa * 0.08; ctx.moveTo(cx + r * copa * (1 - capa * 0.25), cy); ctx.arc(cx, cy, r * copa * (1 - capa * 0.25), 0, Math.PI * 2); }
+        ctx.fillStyle = verdes[capa]; ctx.fill();
+        if (capa === 0) linea('rgba(0,0,0,.45)');
+      }
+      ctx.fillStyle = 'rgba(244,238,227,.5)'; // brillos de papel
+      for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.ellipse(x + (azar() - 0.5) * copa * 1.2, base - alto * 0.78 + (azar() - 0.5) * copa * 0.8, copa * 0.09, copa * 0.04, -0.5, 0, Math.PI * 2); ctx.fill(); }
+    };
+    arbol(W * 0.035, plaza.h * 0.62, 0); arbol(W * 0.36, plaza.h * 0.5, 1); arbol(W * 0.585, plaza.h * 0.56, 0); arbol(W * 0.985, plaza.h * 0.6, 1);
+    // araucarias de Teatro de Papel
     const planta = (src: string, x: number, alto: number) => {
-      const im = imagen(src); if (!im) return;
+      const im = imagen(src); if (!im) { completa = false; return; }
       const w = alto * (im.naturalWidth / im.naturalHeight || 1);
-      ctx.drawImage(raster(im, w, alto), x - w / 2, plaza.suelo - alto + 4 * u);
+      ctx.drawImage(raster(im, w, alto), x - w / 2, suelo - alto + 4 * u);
     };
     planta(SRC.araucaria, W * 0.12, plaza.h * 0.95);
     planta(SRC.araucaria, W * 0.64, plaza.h * 0.82);
-    this.banderines(ctx);
-    this.acceso(ctx);
-    planta(SRC.helecho, W * 0.24, plaza.h * 0.17);
-    planta(SRC.quisco, W * 0.56, plaza.h * 0.2);
+    // pasto con borde ondulado y matas
+    const pasto: [number, number][] = [];
+    for (let i = 0; i <= 40; i++) pasto.push([W * (i / 40), suelo - 10 * e - (i % 2) * 5 * e - azar() * 3 * e]);
+    silueta(pasto, fin); ctx.fillStyle = C.Verde; ctx.fill(); linea('rgba(0,0,0,.4)');
+    ctx.strokeStyle = '#0B8F48'; ctx.lineWidth = Math.max(1, 1.6 * e); ctx.lineCap = 'round';
+    for (let x = 6 * e; x < W; x += 13 * e + azar() * 10 * e) {
+      const y = suelo - 4 * e - azar() * 4 * e;
+      ctx.beginPath(); ctx.moveTo(x, y + 4 * e); ctx.quadraticCurveTo(x - 1 * e, y, x - 3 * e, y - 3 * e); ctx.moveTo(x + 2 * e, y + 4 * e); ctx.quadraticCurveTo(x + 2 * e, y - 1 * e, x + 5 * e, y - 3 * e); ctx.stroke();
+    }
+    // piso de maicillo con piedrecitas; el borde de arriba es una solera suave
+    const borde: [number, number][] = [];
+    for (let i = 0; i <= 24; i++) borde.push([W * (i / 24), suelo - 3 * e + Math.sin(i * 1.7) * 1.5 * e]);
+    silueta(borde, fin); ctx.fillStyle = '#E9DCC0'; ctx.fill(); linea('#BFA77A', Math.max(1, 3 * e));
+    for (let i = 0; i < W / (5 * e); i++) {
+      const px = azar() * W, py = suelo + azar() * (fin - suelo - 6 * u), r = (0.8 + azar() * 1.8) * e;
+      ctx.fillStyle = azar() < 0.5 ? '#D6C39C' : '#F5EEDD'; ctx.beginPath(); ctx.ellipse(px, py, r * 1.4, r, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(122,78,45,.18)'; ctx.fillRect(0, fin - 6 * u, W, 6 * u);
+    // la boca del metro: el hueco por donde baja la escalera, con luz cálida que sube
+    const x0 = escB - tramoB, y0 = suelo + plaza.fondo / 2, y1 = mezz.suelo + mezz.fondo / 2, pend = (y1 - y0) / tramoB;
+    const xh = x0 + (fin - y0) / pend; // donde la escalera cruza el borde de abajo de la plaza
+    ctx.beginPath(); ctx.moveTo(x0 - 30 * e, y0 + 6 * e); ctx.lineTo(x0 + 40 * e, y0 + 6 * e); ctx.lineTo(xh + 70 * e, fin); ctx.lineTo(x0 - 30 * e, fin); ctx.closePath();
+    const luz = ctx.createLinearGradient(0, y0, 0, fin);
+    luz.addColorStop(0, '#5A3A22'); luz.addColorStop(1, '#FFC86B');
+    ctx.fillStyle = luz; ctx.fill(); linea(C.Negro, Math.max(1, 2.5 * e));
+    // acceso: techo de vidrio curvo, pilares redondeados, letrero y tótem
+    const xi = x0 - 40 * e, xf = Math.min(xi + 260 * e, escB), techo = suelo - 120 * e;
+    const halo = ctx.createRadialGradient(xi + 60 * e, suelo - 30 * e, 4 * e, xi + 60 * e, suelo - 30 * e, 140 * e);
+    halo.addColorStop(0, noche ? 'rgba(255,200,107,.55)' : 'rgba(255,200,107,.3)'); halo.addColorStop(1, 'rgba(255,200,107,0)');
+    ctx.fillStyle = halo; ctx.fillRect(xi - 120 * e, techo - 40 * e, 360 * e, 200 * e);
+    ctx.beginPath(); ctx.moveTo(xi - 10 * e, techo + 10 * e); ctx.quadraticCurveTo((xi + xf) / 2, techo - 34 * e, xf + 10 * e, techo + 10 * e);
+    ctx.lineTo(xf + 10 * e, techo + 18 * e); ctx.quadraticCurveTo((xi + xf) / 2, techo - 24 * e, xi - 10 * e, techo + 18 * e); ctx.closePath();
+    ctx.fillStyle = 'rgba(127,200,248,.6)'; ctx.fill(); linea(C.Negro, Math.max(1, 2.5 * e));
+    ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = Math.max(1, 2 * e);
+    ctx.beginPath(); ctx.moveTo(xi + 20 * e, techo + 6 * e); ctx.quadraticCurveTo((xi + xf) / 2, techo - 22 * e, xf - 40 * e, techo + 2 * e); ctx.stroke();
+    for (const px of [xi, xf - 7 * e]) {
+      ctx.fillStyle = C.Negro; ctx.beginPath(); ctx.roundRect(px, techo + 12 * e, 7 * e, suelo - techo - 10 * e, 3.5 * e); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(px + 3.5 * e, suelo + 1 * e, 9 * e, 3 * e, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    // letrero colgante «METRO» con luz
+    const lx = (xi + xf) / 2 + 30 * e, ly = techo + 22 * e;
+    ctx.fillStyle = C.Negro; ctx.fillRect(lx - 1 * e, techo + 10 * e, 2 * e, 12 * e);
+    ctx.beginPath(); ctx.roundRect(lx - 34 * e, ly, 68 * e, 22 * e, 11 * e); ctx.fill();
+    ctx.fillStyle = '#E2001A'; ctx.beginPath(); ctx.arc(lx - 22 * e, ly + 11 * e, 7 * e, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = C.Hueso; ctx.font = `800 ${11 * e}px "Bricolage Grotesque", sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('METRO', lx - 12 * e, ly + 11.5 * e);
+    ctx.fillStyle = C.Hueso; ctx.font = `800 ${8 * e}px "Bricolage Grotesque", sans-serif`; ctx.textAlign = 'center'; ctx.fillText('M', lx - 22 * e, ly + 11.5 * e);
+    // baranda alrededor de la boca
+    ctx.strokeStyle = C.Negro; ctx.lineWidth = Math.max(1, 3 * e); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x0 - 30 * e, y0 + 4 * e); ctx.lineTo(x0 - 30 * e, y0 - 26 * e); ctx.lineTo(x0 - 4 * e, y0 - 26 * e); ctx.stroke();
+    for (let b = 1; b < 3; b++) { ctx.beginPath(); ctx.moveTo(x0 - 30 * e + b * 9 * e, y0 - 26 * e); ctx.lineTo(x0 - 30 * e + b * 9 * e, y0 + 2 * e); ctx.lineWidth = Math.max(1, 1.5 * e); ctx.stroke(); }
+    // tótem de la estación
+    const tam = Math.max(1, Math.round(2 * e)), ancho = (8 * AVANCE - 1) * tam, tx = xi - ancho / 2 - 30 * e, ty = suelo - 170 * e;
+    ctx.fillStyle = C.Negro; ctx.fillRect(tx - 3 * e, ty, 6 * e, suelo - ty);
+    ctx.beginPath(); ctx.roundRect(tx - ancho / 2 - 8 * e, ty - 8 * e, ancho + 16 * e, 7 * tam + 16 * e, 6 * e); ctx.fill();
+    this.textoPixel(ctx, 'ESTACION', tx - ancho / 2, ty, tam, C.Hueso);
+    // maceteros de greda con plantas
+    const macetero = (x: number, s: number, verde: string) => {
+      const w = 34 * s, h = 26 * s, base = suelo + 6 * e;
+      ctx.fillStyle = 'rgba(0,0,0,.15)'; ctx.beginPath(); ctx.ellipse(x, base, w * 0.6, 4 * s, 0, 0, Math.PI * 2); ctx.fill();
+      for (let i = 0; i < 7; i++) { // hojas
+        const a = -Math.PI / 2 + (i - 3) * 0.42, l = (28 + (i % 3) * 8) * s;
+        ctx.beginPath(); ctx.moveTo(x, base - h + 2 * s); ctx.quadraticCurveTo(x + Math.cos(a - 0.4) * l * 0.7, base - h + Math.sin(a - 0.4) * l * 0.7, x + Math.cos(a) * l, base - h + Math.sin(a) * l);
+        ctx.quadraticCurveTo(x + Math.cos(a + 0.4) * l * 0.7, base - h + Math.sin(a + 0.4) * l * 0.7, x, base - h + 2 * s); ctx.fillStyle = i % 2 ? verde : '#0B8F48'; ctx.fill(); linea('rgba(0,0,0,.35)', Math.max(1, 1.2 * s));
+      }
+      ctx.beginPath(); ctx.moveTo(x - w / 2, base - h); ctx.lineTo(x + w / 2, base - h); ctx.quadraticCurveTo(x + w * 0.42, base - h * 0.3, x + w * 0.32, base); ctx.lineTo(x - w * 0.32, base); ctx.quadraticCurveTo(x - w * 0.42, base - h * 0.3, x - w / 2, base - h); ctx.closePath();
+      ctx.fillStyle = '#C96F45'; ctx.fill(); linea(C.Negro, Math.max(1, 1.8 * s));
+      ctx.fillStyle = '#A9552F'; ctx.fillRect(x - w / 2, base - h, w, 5 * s);
+      ctx.strokeStyle = 'rgba(244,238,227,.6)'; ctx.lineWidth = Math.max(1, 1.5 * s); ctx.beginPath(); ctx.moveTo(x - w * 0.3, base - h * 0.55); ctx.quadraticCurveTo(x, base - h * 0.4, x + w * 0.3, base - h * 0.55); ctx.stroke();
+    };
+    // bancas de madera con patas curvas
+    const banca = (x: number) => {
+      const w = 74 * e, y = suelo + 2 * e;
+      ctx.fillStyle = 'rgba(0,0,0,.15)'; ctx.beginPath(); ctx.ellipse(x, y + 3 * e, w * 0.55, 4 * e, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = C.Negro; ctx.lineWidth = Math.max(1, 3.5 * e); ctx.lineCap = 'round';
+      for (const d of [-1, 1]) { ctx.beginPath(); ctx.moveTo(x + d * w * 0.38, y); ctx.quadraticCurveTo(x + d * w * 0.3, y - 10 * e, x + d * w * 0.36, y - 14 * e); ctx.lineTo(x + d * w * 0.4, y - 34 * e); ctx.stroke(); }
+      for (const [dy, h] of [[-16, 6], [-27, 5], [-36, 5]] as const) {
+        ctx.beginPath(); ctx.roundRect(x - w / 2, y + dy * e, w, h * e, 2.5 * e); ctx.fillStyle = dy === -16 ? '#C99A5B' : '#B5844A'; ctx.fill(); linea(C.Negro, Math.max(1, 1.6 * e));
+      }
+    };
+    // faroles con luz cálida (más fuerte de tarde)
+    const farol = (x: number) => {
+      const alto = 128 * e, y = suelo + 2 * e;
+      const brillo = ctx.createRadialGradient(x, y - alto + 8 * e, 2 * e, x, y - alto + 8 * e, (noche ? 70 : 40) * e);
+      brillo.addColorStop(0, noche ? 'rgba(255,214,120,.8)' : 'rgba(255,214,120,.35)'); brillo.addColorStop(1, 'rgba(255,214,120,0)');
+      ctx.fillStyle = brillo; ctx.fillRect(x - 80 * e, y - alto - 70 * e, 160 * e, 160 * e);
+      ctx.strokeStyle = C.Negro; ctx.lineWidth = Math.max(1, 4 * e); ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - alto + 14 * e); ctx.quadraticCurveTo(x, y - alto - 4 * e, x + 10 * e, y - alto - 6 * e); ctx.stroke();
+      ctx.fillStyle = C.Negro; ctx.beginPath(); ctx.ellipse(x, y, 8 * e, 3 * e, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x + 2 * e, y - alto - 2 * e); ctx.quadraticCurveTo(x + 12 * e, y - alto - 16 * e, x + 22 * e, y - alto - 2 * e); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = noche ? '#FFE29A' : '#FFF3CF'; ctx.beginPath(); ctx.ellipse(x + 12 * e, y - alto + 3 * e, 6 * e, 8 * e, 0, 0, Math.PI * 2); ctx.fill(); linea(C.Negro, Math.max(1, 1.5 * e));
+    };
+    farol(W * 0.2); farol(W * 0.555);
+    banca(W * 0.075); banca(W * 0.4);
+    macetero(W * 0.255, e, C.Verde); macetero(W * 0.495, e * 0.85, '#3DBB6E');
+    // plantas chicas adelante: el helecho, el quisco y la flor del Teatro de Papel
+    planta(SRC.helecho, W * 0.3, plaza.h * 0.17);
+    planta(SRC.quisco, W * 0.6, plaza.h * 0.2);
     planta(SRC.flor, W * 0.46, plaza.h * 0.12);
-    this.cartel(ctx, 'Plaza · Orgánica', W * 0.015, plaza.y + 14 * u, C.Verde);
+    return completa;
   }
 
   // Banderines hechos con los grabados del Taller de Grabado, colgados de un cordel entre dos postes. Pocos, a propósito.
@@ -272,21 +464,6 @@ export class Estacion {
     }
   }
 
-  // Acceso al metro donde llega la escalera: techo de vidrio, pilares y el tótem de la estación.
-  private acceso(ctx: CanvasRenderingContext2D) {
-    const { u, e, plaza, escB, tramoB } = this.d;
-    const xi = escB - tramoB - 40 * e, xf = Math.min(xi + 260 * e, escB), techo = plaza.suelo - 120 * e;
-    ctx.fillStyle = 'rgba(127,200,248,.45)'; ctx.fillRect(xi, techo, xf - xi, 16 * e);
-    ctx.fillStyle = C.Negro;
-    ctx.fillRect(xi - 6 * e, techo - 6 * e, xf - xi + 12 * e, 6 * e);
-    for (const x of [xi, xf - 6 * e]) ctx.fillRect(x, techo, 6 * e, plaza.suelo - techo + 2 * u);
-    // tótem
-    const tam = Math.max(1, Math.round(2 * e)), ancho = (8 * AVANCE - 1) * tam, tx = xi - ancho / 2 - 30 * e, ty = plaza.suelo - 170 * e;
-    ctx.fillRect(tx - 3 * e, ty, 6 * e, plaza.suelo - ty);
-    ctx.fillRect(tx - ancho / 2 - 8 * e, ty - 8 * e, ancho + 16 * e, 7 * tam + 16 * e);
-    this.textoPixel(ctx, 'ESTACION', tx - ancho / 2, ty, tam, C.Hueso);
-  }
-
   // ---------- MEZANINA · Geométrica ----------
   // Boletería, máquinas de carga, la pantalla C3, los cuadros con las obras de la gente (mosaico, grabado, graffiti,
   // Hora punta y Fotomatón), letreros colgantes, torniquetes y el piso de damero.
@@ -304,10 +481,10 @@ export class Estacion {
     const m = this.disponerMuro(), { sx, sy, sw, sh } = m.c3;
     ctx.fillStyle = C.Negro; ctx.fillRect(sx - 6 * e, sy - 6 * e, sw + 12 * e, sh + 12 * e);
     ctx.save(); ctx.beginPath(); ctx.rect(sx, sy, sw, sh); ctx.clip(); ctx.translate(sx, sy);
-    dibujarC3(ctx, sw, sh, c3EnTiempo(this.quieto ? 2000 : this.reloj));
+    const titulo = dibujarEnVivo(ctx, sw, sh, this.quieto ? 2000 : this.reloj, this.quieto ? performance.now() : this.reloj);
     ctx.restore();
     ctx.fillStyle = C.Negro; ctx.font = `700 ${11 * e}px "DM Sans", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    ctx.fillText('EN VIVO · ESTACIÓN AUDIOREACTIVA', W / 2, sy + sh + 10 * e);
+    ctx.fillText(titulo, W / 2, sy + sh + 10 * e);
     // boletería y máquinas de carga (izquierda)
     this.boleteria(ctx, W * 0.22, piso, muro);
     for (const x of [W * 0.285, W * 0.305]) this.maquina(ctx, x, piso);
@@ -473,51 +650,158 @@ export class Estacion {
   }
 
   // ---------- ANDÉN · Pixel ----------
-  // Muro de azulejos con la franja de la línea y el nombre de la estación, afiches con stickers, letrero colgante,
-  // luminarias, bancas, la franja táctil amarilla y la vía.
+  // Muro de azulejos con la franja de la línea y el nombre de la estación, pilares (con los stickers del plumón y la
+  // zapatilla pegados), mapa de la red, afiches, luminarias, bancas, basurero, extintor, el piso de baldosas, la franja
+  // táctil amarilla del borde y la vía. Todo lo quieto se pinta una vez por tamaño de pantalla (capaAnden) y después
+  // solo se copia; encima van el letrero colgante y el cartel del nivel.
   private andenPixel(ctx: CanvasRenderingContext2D) {
-    const { W, u, e, anden, via } = this.d;
-    ctx.fillStyle = C.Hueso; ctx.fillRect(0, anden.y, W, anden.h);
-    const t = 18 * u;
-    ctx.strokeStyle = 'rgba(0,0,0,.08)'; ctx.lineWidth = 1;
-    for (let y = anden.y; y < anden.suelo; y += t) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-    for (let x = 0; x < W; x += t) { ctx.beginPath(); ctx.moveTo(x, anden.y); ctx.lineTo(x, anden.suelo); ctx.stroke(); }
-    // cielo y luminarias
-    ctx.fillStyle = C.Negro; ctx.fillRect(0, anden.y, W, 8 * u);
-    for (let x = W * 0.04; x < W; x += W * 0.08) { ctx.fillStyle = C.Hueso; ctx.fillRect(x, anden.y + 8 * u, 60 * e, 5 * e); }
-    // franja de la línea con el nombre de la estación, dos veces (como en los muros de la Línea 1)
-    const fy = anden.y + anden.h * 0.2, fh = 34 * u;
-    ctx.fillStyle = C.Morado; ctx.fillRect(0, fy, W, fh);
-    ctx.fillStyle = C.Rosa; ctx.fillRect(0, fy + fh, W, 5 * u);
-    const tam = Math.max(2, Math.round(3.4 * u)), texto = 'ESTACION';
-    const ancho = (normalizar(texto).length * AVANCE - 1) * tam;
-    for (const cx of [W * 0.45, W * 0.82]) this.textoPixel(ctx, texto, cx - ancho / 2, fy + (fh - 7 * tam) / 2, tam, C.Hueso);
-    // afiches con stickers Pixel (y alguno pegado suelto)
-    for (const [k, cx] of [[0, W * 0.34], [1, W * 0.63]] as const) {
-      const lado = Math.min(anden.suelo - fy - fh - 30 * u, 110 * e), x = cx - lado / 2, y = fy + fh + 16 * u;
-      ctx.fillStyle = C.Negro; ctx.fillRect(x - 4 * e, y - 4 * e, lado + 8 * e, lado + 8 * e);
-      ctx.fillStyle = k ? C.Amarillo : C.Celeste; ctx.fillRect(x, y, lado, lado);
-      const im = imagen(SRC.vagon[(k * 2 + Math.floor(this.reloj / 20000)) % SRC.vagon.length]);
-      if (im) ctx.drawImage(raster(im, lado * 0.8, lado * 0.8), x + lado * 0.1, y + lado * 0.1);
+    const { W, H, u, anden } = this.d;
+    const k = Math.min(window.devicePixelRatio || 1, 2), llave = `${W}|${H}|${k}`;
+    if (!this.capaAnden || this.capaAnden.llave !== llave) {
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(W * k)); c.height = Math.max(1, Math.round(anden.h * k));
+      const x = c.getContext('2d')!;
+      x.setTransform(k, 0, 0, k, 0, -anden.y * k);
+      const completa = this.fondoAnden(x);
+      // Si falta alguna imagen (todavía cargando), se vuelve a pintar en el próximo cuadro.
+      this.capaAnden = { llave: completa ? llave : '', c };
     }
-    // letrero colgante
+    ctx.drawImage(this.capaAnden.c, 0, anden.y, W, anden.h);
     this.letrero(ctx, 'Dirección Plaza →', W * 0.5, anden.y + 8 * u, C.Morado);
-    // piso del andén, bancas y franja táctil
-    ctx.fillStyle = '#D9CDB7'; ctx.fillRect(0, anden.suelo - 6 * u, W, via - anden.suelo - 4 * u);
-    for (const x of [W * 0.3, W * 0.7]) {
-      ctx.fillStyle = C.Negro; ctx.fillRect(x - 40 * e, anden.suelo - 4 * u - 26 * e, 80 * e, 8 * e);
-      ctx.fillRect(x - 34 * e, anden.suelo - 4 * u - 18 * e, 5 * e, 18 * e); ctx.fillRect(x + 29 * e, anden.suelo - 4 * u - 18 * e, 5 * e, 18 * e);
-      ctx.fillStyle = C.Morado; ctx.fillRect(x - 40 * e, anden.suelo - 4 * u - 32 * e, 80 * e, 6 * e);
-    }
-    ctx.fillStyle = C.Amarillo; ctx.fillRect(0, via - 18 * u, W, 8 * u);
-    ctx.fillStyle = '#C79A00';
-    for (let x = 4 * u; x < W; x += 12 * u) ctx.fillRect(x, via - 15.5 * u, 3 * u, 3 * u);
-    // vía
-    ctx.fillStyle = '#2A2A2A'; ctx.fillRect(0, via - 10 * u, W, anden.y + anden.h - via + 10 * u);
-    ctx.fillStyle = '#6B6B6B';
-    for (let x = 0; x < W; x += 28 * u) ctx.fillRect(x, via + 4 * u, 14 * u, 6 * u);
-    ctx.fillStyle = C.Hueso; ctx.fillRect(0, via, W, 3 * u);
     this.cartel(ctx, 'Andén · Pixel', W * 0.015, anden.y + 14 * u, C.Morado);
+  }
+
+  // Devuelve false si alguna imagen todavía no estaba.
+  private fondoAnden(ctx: CanvasRenderingContext2D): boolean {
+    const { W, u, anden, via } = this.d;
+    const q = Math.max(2, Math.round(4 * u)), linea = Math.max(1, Math.round(1.5 * u));
+    let completa = true;
+    let semilla = 41; const azar = () => ((semilla = (semilla * 9301 + 49297) % 233280) / 233280);
+    const R = (x: number, y: number, w: number, h: number, color: string) => { ctx.fillStyle = color; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+    const suelo = anden.suelo - 6 * u;
+    // muro de azulejos, con alguno de color salpicado
+    R(0, anden.y, W, suelo - anden.y, C.Hueso);
+    const t = 6 * q;
+    for (let y = anden.y; y < suelo; y += t) for (let x = 0; x < W; x += t) {
+      const v = azar();
+      if (v < 0.035) R(x, y, t, t, '#DCEFFB'); else if (v < 0.06) R(x, y, t, t, '#EBDDF0');
+      R(x, y, t, linea, 'rgba(0,0,0,.09)'); R(x, y, linea, t, 'rgba(0,0,0,.09)');
+      R(x + linea, y + linea, q, linea, 'rgba(255,255,255,.7)');
+    }
+    // cielo: losa negra, cornisa y luminarias con su luz
+    R(0, anden.y, W, 8 * u, C.Negro); R(0, anden.y + 8 * u, W, q, '#3A3A3A');
+    for (let x = W * 0.05; x < W; x += W * 0.1) {
+      const w = 16 * q, y = anden.y + 8 * u + q;
+      const g = ctx.createLinearGradient(0, y, 0, y + 22 * q);
+      g.addColorStop(0, 'rgba(255,236,170,.35)'); g.addColorStop(1, 'rgba(255,236,170,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + w, y); ctx.lineTo(x + w + 6 * q, y + 22 * q); ctx.lineTo(x - 6 * q, y + 22 * q); ctx.closePath(); ctx.fill();
+      R(x - q, y, w + 2 * q, 2 * q, C.Negro); R(x, y + q, w, q, '#FFF6D8');
+    }
+    // franja de la línea con el nombre de la estación (como en los muros de la Línea 1)
+    const fy = anden.y + anden.h * 0.13, fh = 34 * u;
+    R(0, fy - linea, W, linea, C.Negro); R(0, fy, W, fh, C.Morado); R(0, fy + fh, W, 5 * u, C.Rosa); R(0, fy + fh + 5 * u, W, linea, C.Negro);
+    const tam = Math.max(2, Math.round(3.4 * u));
+    for (const [texto, cx] of [['ESTACION', W * 0.47], ['SOMOS DISEÑO', W * 0.73]] as const) {
+      const ancho = (normalizar(texto).length * AVANCE - 1) * tam;
+      this.textoPixel(ctx, texto, cx - ancho / 2 + tam, fy + (fh - 7 * tam) / 2 + tam, tam, '#4A1757'); // sombra
+      this.textoPixel(ctx, texto, cx - ancho / 2, fy + (fh - 7 * tam) / 2, tam, C.Hueso);
+    }
+    const abajo = fy + fh + 5 * u + linea; // desde aquí hasta el piso va lo que cuelga en el muro
+    // pilares con la franja que los envuelve
+    const pw = 14 * q, pilares = [W * 0.34, W * 0.6, W * 0.86];
+    for (const px of pilares) {
+      const x0 = px - pw / 2, y0 = anden.y + 8 * u + q;
+      R(x0 - linea, y0, pw + 2 * linea, suelo - y0, C.Negro);
+      R(x0, y0, pw, suelo - y0, '#EDE5D6'); R(x0 + pw - 3 * q, y0, 3 * q, suelo - y0, '#D9CDB7'); R(x0 + q, y0, q, suelo - y0, '#FFFFFF');
+      R(x0 - q, y0, pw + 2 * q, 2 * q, C.Negro); // capitel
+      R(x0, fy, pw, fh, '#6A2580'); R(x0 + pw - 3 * q, fy, 3 * q, fh, '#57206A'); R(x0, fy + fh, pw, 5 * u, '#F07AA0');
+      R(x0 - q, suelo - 4 * q, pw + 2 * q, 4 * q, '#3A3A3A'); R(x0 - q, suelo - 4 * q, pw + 2 * q, linea, C.Negro); // zócalo
+    }
+    // stickers pegados en los pilares: el plumón y la zapatilla, con su borde blanco, un ángulo y su sombra
+    const pegar = (src: string, cx: number, cy: number, lado: number, giro: number) => {
+      const im = imagen(src); if (!im) { completa = false; return; }
+      const b = Math.max(2, 3 * u);
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(giro);
+      ctx.globalAlpha = 0.22; ctx.drawImage(entintar(im, C.Negro, lado), -lado / 2 + 2 * u, -lado / 2 + 3 * u); ctx.globalAlpha = 1;
+      const blanco = entintar(im, '#FFFFFF', lado);
+      for (let a = 0; a < 8; a++) ctx.drawImage(blanco, -lado / 2 + Math.cos(a * Math.PI / 4) * b, -lado / 2 + Math.sin(a * Math.PI / 4) * b);
+      const w = lado * Math.min(1, im.naturalWidth / im.naturalHeight || 1), h = lado * Math.min(1, im.naturalHeight / im.naturalWidth || 1);
+      ctx.drawImage(raster(im, w, h), -w / 2, -h / 2);
+      ctx.restore();
+    };
+    const lado = pw * 0.9, medio = (abajo + suelo - 4 * q) / 2;
+    pegar(SRC.vagon[3], pilares[0], medio, lado, -0.16);
+    pegar(SRC.vagon[5], pilares[2], medio + 2 * q, lado, 0.13);
+    // mapa de la red
+    const my = abajo + 3 * q, mh = Math.min(suelo - my - 4 * q, 26 * q), mw = Math.min(46 * q, W * 0.1), mx = pilares[0] + pw / 2 + 6 * q;
+    if (mh > 8 * q) {
+      R(mx - linea, my - linea, mw + 2 * linea, mh + 2 * linea, C.Negro); R(mx, my, mw, mh, '#FBF7EF'); R(mx, my, mw, 4 * q, C.Negro);
+      this.textoPixel(ctx, 'RED', mx + q, my + q * 0.5, Math.max(1, Math.round(q / 2)), C.Hueso);
+      const lineas: [string, number, number][] = [[C.Morado, 0.3, 0], [C.Azul, 0.62, -1], [C.Verde, 0.9, 0]];
+      for (const [color, f, d] of lineas) {
+        const ly = my + 4 * q + (mh - 4 * q) * f, x0 = mx + 2 * q, x1 = mx + mw - 2 * q;
+        R(x0, ly, (x1 - x0) * 0.45, q, color);
+        R(x0 + (x1 - x0) * 0.45, ly + Math.min(0, d * 3 * q), q, Math.abs(d) * 3 * q + q, color);
+        R(x0 + (x1 - x0) * 0.45, ly + d * 3 * q, (x1 - x0) * 0.55, q, color);
+        for (let s = 0; s < 4; s++) { const sx = x0 + (x1 - x0) * (s / 3) - q / 2, sy = s < 2 ? ly : ly + d * 3 * q; R(sx - q / 2, sy - q / 2, 2 * q, 2 * q, C.Negro); R(sx, sy, q, q, C.Hueso); }
+      }
+      const ex = mx + 2 * q + (mw - 4 * q) / 3, ey = my + 4 * q + (mh - 4 * q) * 0.3; // «usted está aquí»
+      R(ex - q, ey - q, 3 * q, 3 * q, C.Rosa);
+    }
+    // afiches de las experiencias
+    const afiche = (cx: number, fondo: string, src: string, texto: string) => {
+      const ah = Math.min(suelo - abajo - 7 * q, 30 * q), aw = ah * 0.95, ax = cx - aw / 2, ay = abajo + 3 * q;
+      if (ah < 10 * q) return;
+      R(ax - linea * 2, ay - linea * 2, aw + 4 * linea, ah + 4 * linea, C.Negro); R(ax, ay, aw, ah, fondo);
+      for (let y = ay + q; y < ay + ah * 0.7; y += 2 * q) R(ax, y, aw, q * 0.5, 'rgba(255,255,255,.18)');
+      const im = imagen(src); if (!im) completa = false;
+      else { const l = aw * 0.72; ctx.drawImage(raster(im, l, l), cx - l / 2, ay + ah * 0.08); }
+      const tt = Math.max(1, Math.min(Math.round(q / 2), Math.floor((aw - q) / (normalizar(texto).length * AVANCE - 1)))), ancho = (normalizar(texto).length * AVANCE - 1) * tt;
+      R(ax, ay + ah - 9 * tt - q, aw, 9 * tt + q, C.Negro);
+      this.textoPixel(ctx, texto, cx - ancho / 2, ay + ah - 8 * tt - q / 2, tt, C.Amarillo);
+    };
+    afiche(pilares[1] - pw / 2 - 16 * q, C.Celeste, SRC.vagon[1], 'TAGS');
+    afiche(pilares[1] + pw / 2 + 24 * q, C.Amarillo, SRC.vagon[0], 'JUEGA');
+    afiche(pilares[2] + pw / 2 + 16 * q, C.Rosa, SRC.vagon[2], 'PINTA');
+    // bancas Pixel contra el muro
+    const banca = (cx: number) => {
+      const w = 26 * q, y = suelo;
+      R(cx - w / 2, y - 12 * q, w, 3 * q, C.Negro); R(cx - w / 2 + q, y - 11 * q, w - 2 * q, q, C.Morado); // respaldo
+      R(cx - w / 2 - q, y - 7 * q, w + 2 * q, 3 * q, C.Negro); R(cx - w / 2, y - 6 * q, w, q, '#9A4CB0'); // asiento
+      for (const lx of [cx - w / 2 + 2 * q, cx + w / 2 - 4 * q]) R(lx, y - 5 * q, 2 * q, 5 * q, C.Negro);
+      R(cx - w / 2 + 2 * q, y - 9 * q, q, 2 * q, C.Negro); R(cx + w / 2 - 3 * q, y - 9 * q, q, 2 * q, C.Negro);
+    };
+    banca(W * 0.5); banca(W * 0.73);
+    // basurero junto al pilar del medio
+    {
+      const bx = pilares[1] + pw / 2 + 3 * q, w = 6 * q, h = 9 * q, y = suelo;
+      R(bx - linea, y - h - linea, w + 2 * linea, h + linea, C.Negro); R(bx, y - h, w, h, '#5E6B6B'); R(bx + q, y - h + 2 * q, q, h - 3 * q, '#7C8A8A');
+      R(bx - q, y - h - q, w + 2 * q, 2 * q, C.Negro); R(bx + q, y - h - q, w - 2 * q, q, '#2A2A2A'); R(bx + 2 * q, y - h + 3 * q, 2 * q, 2 * q, C.Verde);
+    }
+    // extintor en su gabinete, al lado del último pilar
+    {
+      const ex = pilares[2] - pw / 2 - 11 * q, w = 8 * q, h = 15 * q, y = suelo - 6 * q;
+      R(ex - linea, y - h - linea, w + 2 * linea, h + 2 * linea, C.Negro); R(ex, y - h, w, h, '#FBF7EF');
+      R(ex + 2 * q, y - h + 3 * q, 4 * q, h - 5 * q, '#E2001A'); R(ex + 3 * q, y - h + 2 * q, 2 * q, q, C.Negro); R(ex + 2 * q, y - h + 6 * q, q, 4 * q, '#FF5A6E');
+      R(ex, y - h, w, q, '#E2001A');
+    }
+    // piso de baldosas, con el zócalo del muro
+    R(0, suelo, W, via - 18 * u - suelo, '#D9CDB7');
+    R(0, suelo, W, linea, C.Negro);
+    const bh = 3 * q, bw = 8 * q;
+    for (let y = suelo + linea, f = 0; y < via - 18 * u; y += bh, f++) for (let x = (f % 2) * -bw / 2; x < W; x += bw) {
+      R(x, y, bw - linea, Math.min(bh, via - 18 * u - y) - linea, f % 2 ? '#D3C6AE' : '#DDD2BD');
+    }
+    // franja táctil amarilla del borde (con sus botones) y el canto del andén
+    R(0, via - 18 * u, W, 8 * u, C.Amarillo);
+    for (let x = 4 * u; x < W; x += 12 * u) R(x, via - 15.5 * u, 3 * u, 3 * u, '#C79A00');
+    R(0, via - 10 * u, W, linea * 2, C.Negro);
+    // vía: foso con balasto, durmientes y riel
+    R(0, via - 10 * u + linea * 2, W, anden.y + anden.h - via + 10 * u, '#2A2A2A');
+    for (let i = 0; i < W / (3 * q); i++) R(azar() * W, via - 8 * u + azar() * 8 * u, q, q, azar() < 0.5 ? '#3B3B3B' : '#4A4540');
+    for (let x = 0; x < W; x += 28 * u) R(x, via + 4 * u, 14 * u, 6 * u, '#6B6B6B');
+    R(0, via, W, 3 * u, C.Hueso); R(0, via + 3 * u, W, linea, '#6B6B6B');
+    return completa;
   }
 
   // Escaleras mecánicas vistas de perfil, como en un corte de la estación: descanso abajo y arriba, peldaños
@@ -531,6 +815,12 @@ export class Estacion {
       const n = Math.max(6, Math.round(Math.abs(dy) / (11 * e))), w = dx / n, h = dy / n;
       const xa = x0 - dir * descanso, xb = x1 + dir * descanso;
       ctx.save(); ctx.lineJoin = 'round';
+      // sombra suave sobre el muro de abajo
+      for (const [k, a] of [[16, 0.07], [8, 0.09]] as const) {
+        ctx.fillStyle = `rgba(0,0,0,${a})`; ctx.beginPath();
+        ctx.moveTo(xa, y0 + fondo); ctx.lineTo(x0 + dir * fondo * 0.4, y0 + fondo); ctx.lineTo(x1 + dir * fondo * 0.4, y1 + fondo); ctx.lineTo(xb, y1 + fondo);
+        ctx.lineTo(xb, y1 + fondo + k * e); ctx.lineTo(x1 + dir * (fondo * 0.4 + k * e), y1 + fondo + k * e); ctx.lineTo(x0 + dir * (fondo * 0.4 + k * e), y0 + fondo + k * e); ctx.lineTo(xa, y0 + fondo + k * e); ctx.closePath(); ctx.fill();
+      }
       // estructura (armadura) bajo los peldaños
       ctx.fillStyle = '#9C968B'; ctx.strokeStyle = C.Negro; ctx.lineWidth = 2.5 * e;
       ctx.beginPath(); ctx.moveTo(xa, y0); ctx.lineTo(x0, y0); ctx.lineTo(x1, y1); ctx.lineTo(xb, y1);
@@ -538,10 +828,19 @@ export class Estacion {
       ctx.fill(); ctx.stroke();
       ctx.fillStyle = '#B8B2A6'; ctx.beginPath(); // franja clara del costado
       ctx.moveTo(x0 + dir * fondo * 0.15, y0 + fondo * 0.45); ctx.lineTo(x1 + dir * fondo * 0.15, y1 + fondo * 0.45); ctx.lineTo(x1 + dir * fondo * 0.3, y1 + fondo * 0.7); ctx.lineTo(x0 + dir * fondo * 0.3, y0 + fondo * 0.7); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#6B655B';
+      for (let k = 1; k < n; k += 2) { const f = k / n; ctx.beginPath(); ctx.arc(x0 + dx * f + dir * fondo * 0.22, y0 + dy * f + fondo * 0.57, 1.6 * e, 0, Math.PI * 2); ctx.fill(); }
+      ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = Math.max(1, 1.5 * e);
+      ctx.beginPath(); ctx.moveTo(xa, y0 + fondo * 0.18); ctx.lineTo(x0 + dir * fondo * 0.1, y0 + fondo * 0.18); ctx.lineTo(x1 + dir * fondo * 0.1, y1 + fondo * 0.18); ctx.lineTo(xb, y1 + fondo * 0.18); ctx.stroke();
       // baranda de vidrio
       ctx.fillStyle = 'rgba(127,200,248,.35)'; ctx.strokeStyle = C.Negro; ctx.lineWidth = 1.5 * e;
       ctx.beginPath(); ctx.moveTo(xa + dir * 8 * e, y0); ctx.lineTo(x0, y0); ctx.lineTo(x1, y1); ctx.lineTo(xb - dir * 8 * e, y1);
       ctx.lineTo(xb - dir * 8 * e, y1 - alto); ctx.lineTo(x1, y1 - alto); ctx.lineTo(x0, y0 - alto); ctx.lineTo(xa + dir * 8 * e, y0 - alto); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineCap = 'round';
+      for (const [f, w] of [[0.28, 4], [0.34, 2], [0.7, 3]] as const) {
+        const X = x0 + dx * f, Y = y0 + dy * f; ctx.lineWidth = w * e;
+        ctx.beginPath(); ctx.moveTo(X + dir * 5 * e, Y - alto + 6 * e); ctx.lineTo(X - dir * 7 * e, Y - 8 * e); ctx.stroke();
+      }
       // peldaños: huella y contrahuella, corren hacia abajo (la gente baja de la plaza al andén)
       const fase = this.quieto ? 0 : 1 - ((this.reloj / 900) % 1);
       ctx.save();
@@ -555,6 +854,8 @@ export class Estacion {
       }
       ctx.lineTo(xb, y1); ctx.lineTo(xb, y1 + 6 * e); ctx.lineTo(x1, y1 + 6 * e); ctx.lineTo(x0, y0 + 6 * e); ctx.lineTo(xa, y0 + 6 * e); ctx.closePath();
       ctx.fill(); ctx.stroke();
+      ctx.fillStyle = C.Amarillo;
+      for (let k = -1; k <= n; k++) { const px = x0 + w * (k + fase), py = y0 + h * (k + fase); ctx.fillRect(Math.min(px, px + w), py + h - 1 * e, Math.abs(w) * 0.9, 2 * e); }
       ctx.restore();
       // peines (placas) de entrada y salida
       ctx.fillStyle = C.Amarillo; ctx.fillRect(Math.min(xa, x0), y0 - 2 * e, Math.abs(descanso), 3 * e); ctx.fillRect(Math.min(x1, xb), y1 - 2 * e, Math.abs(descanso), 3 * e);
@@ -567,63 +868,120 @@ export class Estacion {
       ctx.lineTo(x0, y0 - alto); ctx.lineTo(x1, y1 - alto); ctx.lineTo(xb - dir * (8 * e + r), y1 - alto);
       ctx.arc(xb - dir * (8 * e + r), y1 - alto + r, r, -Math.PI / 2, Math.PI / 2, dir < 0);
       ctx.stroke();
+      ctx.strokeStyle = '#5A5A5A'; ctx.lineWidth = Math.max(1, 1.5 * e);
+      ctx.beginPath(); ctx.moveTo(x0, y0 - alto - 1.5 * e); ctx.lineTo(x1, y1 - alto - 1.5 * e); ctx.stroke();
       ctx.restore();
     };
     tramo(escA, anden.suelo + anden.fondo / 2, escA + tramoA, mezz.suelo + mezz.fondo / 2);
     tramo(escB, mezz.suelo + mezz.fondo / 2, escB - tramoB, plaza.suelo + plaza.fondo / 2);
   }
 
-  // El tren usa el lateral del metro de Figma (Pixel · FA08): el módulo de 240 se repite a lo largo de cada carro.
+  // El tren es el metro Pixel detallado de la web (metro.ts). Las puertas se abren del lado del andén que no se ve:
+  // el tren llega, se detiene y la gente del andén queda detrás de él, sin puertas abriéndose.
+  private altoTren() { return Math.min(this.d.anden.h * 0.6, 235 * this.d.u); }
+  // ¿Esta persona del andén queda detrás del tren? Entonces no se ve: aparece y desaparece por detrás de él.
+  private tapadaPorTren(a: Avatar, x: number) {
+    if (a.nivel !== 0 || a.subiendo) return false;
+    const t = this.tren();
+    return t.visible && x > t.x - 20 * this.d.u && x < t.x + t.largo + 20 * this.d.u;
+  }
+
   private trenDibujo(ctx: CanvasRenderingContext2D) {
     const t = this.tren();
     if (!t.visible) return;
     const { u, via } = this.d;
-    const alto = Math.min(this.d.anden.h * 0.55, 150 * u), y = via - alto - 4 * u, vagones = 3, lv = t.largo / vagones, junta = 6 * u;
-    const modulo = imagen(t.n % 2 ? SRC.metro.l4 : SRC.metro.l1);
+    const alto = this.altoTren(), p = alto / FILAS, y = via - alto, vagones = 2, lv = t.largo / vagones;
+    const n = Math.round((lv - 4 * p) / p), w = n * p;
+    ctx.save(); ctx.imageSmoothingEnabled = false;
     for (let v = 0; v < vagones; v++) {
-      const x = t.x + v * lv, w = lv - junta;
-      ctx.save(); ctx.beginPath();
-      // el primer carro tiene la trompa redondeada hacia donde va (izquierda)
-      if (v === 0) ctx.roundRect(x, y, w, alto, [alto * 0.35, 0, 0, alto * 0.1]); else ctx.rect(x, y, w, alto);
-      ctx.clip();
-      if (modulo) { const m = raster(modulo, alto, alto); for (let k = 0; k * alto < w; k++) ctx.drawImage(m, x + k * alto, y); }
-      else { ctx.fillStyle = '#E2001A'; ctx.fillRect(x, y, w, alto); }
-      if (t.abierto) { // puertas abiertas: el hueco oscuro de cada puerta del módulo
-        ctx.fillStyle = 'rgba(0,0,0,.82)';
-        for (let k = 0; k * alto < w; k++) ctx.fillRect(x + k * alto + alto * 0.29, y + alto * 0.12, alto * 0.42, alto * 0.68);
-      }
-      ctx.restore();
-      if (v === 0) { ctx.fillStyle = C.Celeste; ctx.fillRect(x + alto * 0.06, y + alto * 0.2, alto * 0.16, alto * 0.22); }
-      ctx.fillStyle = C.Negro; ctx.fillRect(x + w, y + alto * 0.25, junta, alto * 0.55);
+      const x = Math.round(t.x + v * lv);
+      ctx.drawImage(carro(n, { frente: v === 0, cola: v === vagones - 1, semilla: v + 3 * (t.n % 4) }), x, y, w, alto);
+      // fuelle entre carros
+      if (v < vagones - 1) { ctx.fillStyle = C.Negro; ctx.fillRect(x + w - p, y + 6 * p, lv - w + 2 * p, 16 * p); ctx.fillStyle = '#3A3A3A'; for (let k = 0; k < 4; k++) ctx.fillRect(x + w + p * 0.5, y + (8 + k * 3.5) * p, lv - w - p, p); }
     }
+    ctx.restore();
+  }
+
+  // Cuerpo al estilo Terraria (P-003): proporción chica, cabeza grande, brazos y piernas que se balancean al caminar.
+  // Tres variantes según el lenguaje: Geométrica (formas rectas), Orgánica (curvas) y Pixel (pixel duro). El cuerpo
+  // mira hacia donde camina; la cabeza (la foto o el personaje de la credencial) no se refleja.
+  // Devuelve la altura del cuello.
+  private cuerpo(ctx: CanvasRenderingContext2D, a: Avatar, s: number): number {
+    const color = CUERPO[a.p.lenguaje], sombra = SOMBRA_CUERPO[a.p.lenguaje];
+    const mueve = !this.quieto && !a.subiendo, sw = mueve ? Math.sin(a.fase * 1.8) : 0;
+    const linea = Math.max(1, 1.6 * s);
+    const K = 1.35; // el cuerpo crece para que la cabeza sea ~40 % del alto, como en Terraria
+    ctx.save(); ctx.scale(a.dir * K, K); ctx.lineJoin = 'round';
+    if (a.p.lenguaje === 'Geométrica') {
+      const pierna = (lado: number, ang: number, tono: string) => {
+        ctx.save(); ctx.translate(lado * 3 * s, -12 * s); ctx.rotate(ang);
+        ctx.fillStyle = tono; ctx.fillRect(-2.6 * s, 0, 5.2 * s, 10 * s);
+        ctx.fillStyle = C.Negro; ctx.fillRect(-2.6 * s, 9.5 * s, 7 * s, 3 * s); ctx.restore();
+      };
+      const brazo = (ang: number, tono: string) => {
+        ctx.save(); ctx.translate(0, -24.5 * s); ctx.rotate(ang);
+        ctx.fillStyle = tono; ctx.fillRect(-2.4 * s, 0, 4.8 * s, 9.5 * s); ctx.strokeStyle = C.Negro; ctx.lineWidth = linea; ctx.strokeRect(-2.4 * s, 0, 4.8 * s, 9.5 * s);
+        ctx.fillStyle = C.Hueso; ctx.fillRect(-2.2 * s, 9.5 * s, 4.4 * s, 3.4 * s); ctx.strokeRect(-2.2 * s, 9.5 * s, 4.4 * s, 3.4 * s); ctx.restore();
+      };
+      brazo(sw * 0.65, sombra); pierna(-1, -sw * 0.5, '#2A2A2A');
+      pierna(1, sw * 0.5, C.Negro);
+      ctx.beginPath(); ctx.moveTo(-7.5 * s, -27 * s); ctx.lineTo(7.5 * s, -27 * s); ctx.lineTo(6 * s, -12 * s); ctx.lineTo(-6 * s, -12 * s); ctx.closePath();
+      ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = C.Negro; ctx.lineWidth = linea; ctx.stroke();
+      ctx.fillStyle = C.Hueso; ctx.beginPath(); ctx.moveTo(-3.5 * s, -27 * s); ctx.lineTo(3.5 * s, -27 * s); ctx.lineTo(0, -22 * s); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = C.Amarillo; ctx.fillRect(2 * s, -20 * s, 3 * s, 3 * s); // insignia
+      ctx.fillStyle = C.Negro; ctx.fillRect(-6.2 * s, -14.5 * s, 12.4 * s, 2.2 * s); // cinturón
+      brazo(-sw * 0.65, color);
+    } else if (a.p.lenguaje === 'Orgánica') {
+      const pierna = (lado: number, f: number, tono: string) => {
+        const pie = lado * 2.5 * s + f * 5 * s;
+        ctx.strokeStyle = tono; ctx.lineWidth = 4.6 * s; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(lado * 3 * s, -13 * s); ctx.quadraticCurveTo(lado * 3 * s + f * 4 * s + 1.5 * s, -6 * s, pie, -1.5 * s); ctx.stroke();
+        ctx.fillStyle = tono; ctx.beginPath(); ctx.ellipse(pie + 1.6 * s, -0.8 * s, 3.6 * s, 2 * s, 0, 0, Math.PI * 2); ctx.fill();
+      };
+      const brazo = (f: number, tono: string) => {
+        const mx = f * 5 * s, my = -16 * s;
+        ctx.strokeStyle = C.Negro; ctx.lineWidth = 5.6 * s; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(0, -24 * s); ctx.quadraticCurveTo(mx * 0.3 - 1.5 * s, -19 * s, mx, my); ctx.stroke();
+        ctx.strokeStyle = tono; ctx.lineWidth = 3.8 * s; ctx.stroke();
+        ctx.fillStyle = C.Hueso; ctx.beginPath(); ctx.arc(mx, my + 0.5 * s, 2.4 * s, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = C.Negro; ctx.lineWidth = linea * 0.8; ctx.stroke();
+      };
+      brazo(sw, sombra); pierna(-1, -sw, '#3A2A1E');
+      pierna(1, sw, '#2A1E14');
+      ctx.beginPath(); ctx.moveTo(-6 * s, -11 * s);
+      ctx.bezierCurveTo(-9.5 * s, -15 * s, -9 * s, -27 * s, -2 * s, -27.5 * s); ctx.quadraticCurveTo(0, -26 * s, 2 * s, -27.5 * s);
+      ctx.bezierCurveTo(9 * s, -27 * s, 9.5 * s, -15 * s, 6 * s, -11 * s); ctx.quadraticCurveTo(0, -9 * s, -6 * s, -11 * s); ctx.closePath();
+      ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = C.Negro; ctx.lineWidth = linea; ctx.stroke();
+      ctx.strokeStyle = 'rgba(244,238,227,.75)'; ctx.lineWidth = Math.max(1, 1.2 * s); ctx.lineCap = 'round'; // hoja bordada
+      ctx.beginPath(); ctx.moveTo(-3 * s, -14 * s); ctx.quadraticCurveTo(-1 * s, -20 * s, 3 * s, -21 * s); ctx.quadraticCurveTo(1.5 * s, -16 * s, -3 * s, -14 * s); ctx.stroke();
+      brazo(-sw, color);
+    } else {
+      // Pixel: grilla dura de 2,6 px (a escala), cuatro cuadros de caminata
+      const p = 2.6 * s, f = mueve ? Math.floor(a.fase * 1.15) % 4 : 0;
+      const R = (cx: number, cy: number, w: number, h: number, c: string) => { ctx.fillStyle = c; ctx.fillRect(Math.round(cx * p), Math.round(cy * p), Math.ceil(w * p), Math.ceil(h * p)); };
+      const pasos = [[0, 0], [1, -1], [0, 0], [-1, 1]][f], brazos = [0, 1, 0, -1][f];
+      // brazo de atrás y pierna de atrás (más oscuros)
+      R(-1 - brazos, -9, 2, 4, C.Negro); R(-1 - brazos, -9, 2, 3, sombra); R(-1 - brazos, -6, 2, 1, '#D9CDB7');
+      R(-2 + pasos[1], -5, 2, 5, '#2A2A2A'); R(-2 + pasos[1], -1, 3, 1, C.Negro);
+      R(0 + pasos[0], -5, 2, 5, C.Negro); R(0 + pasos[0], -1, 3, 1, C.Negro);
+      // torso con contorno, sombra y cinturón
+      R(-3, -11, 6, 7, C.Negro); R(-2.5, -10.5, 5, 6, color); R(1, -10.5, 1.5, 6, sombra); R(-2.5, -10.5, 5, 1, C.Hueso);
+      R(-2.5, -5.5, 5, 1, C.Negro); R(-0.5, -9, 1, 1, C.Amarillo);
+      // brazo de adelante
+      R(0 + brazos, -10, 2, 5, C.Negro); R(0.3 + brazos, -9.7, 1.4, 3.7, color); R(0.3 + brazos, -6, 1.4, 1, C.Hueso);
+      ctx.restore();
+      return -11 * p * K;
+    }
+    ctx.restore();
+    return -27 * s * K;
   }
 
   private avatar(ctx: CanvasRenderingContext2D, a: Avatar, [x, y]: [number, number]) {
     const { u } = this.d;
-    const s = u * (0.9 + a.hondo * 0.25), paso = this.quieto ? 0 : Math.floor(a.fase) % 2;
-    const color = CUERPO[a.p.lenguaje], alto = 38 * s, cabeza = 30 * s;
+    const s = u * (0.9 + a.hondo * 0.25), cabeza = 31 * s;
     ctx.save(); ctx.translate(x, y);
     // sombra
-    ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(0, 0, 14 * s, 4 * s, 0, 0, Math.PI * 2); ctx.fill();
-    if (a.p.lenguaje === 'Pixel') {
-      const p = 4 * s;
-      ctx.fillStyle = C.Negro; ctx.fillRect(-3 * p, -alto, 6 * p, alto - 3 * p);
-      ctx.fillStyle = color; ctx.fillRect(-2.5 * p, -alto + 0.5 * p, 5 * p, alto - 4 * p);
-      ctx.fillStyle = C.Negro;
-      ctx.fillRect(-2 * p, -3 * p - (paso ? p : 0), 1.5 * p, 3 * p + (paso ? p : 0));
-      ctx.fillRect(0.5 * p, -3 * p - (paso ? 0 : p), 1.5 * p, 3 * p + (paso ? 0 : p));
-    } else if (a.p.lenguaje === 'Geométrica') {
-      ctx.fillStyle = C.Negro;
-      const pierna = paso ? 5 * s : -5 * s;
-      ctx.fillRect(-8 * s + pierna * 0.4, -14 * s, 5 * s, 14 * s); ctx.fillRect(3 * s - pierna * 0.4, -14 * s, 5 * s, 14 * s);
-      ctx.fillStyle = color; ctx.strokeStyle = C.Negro; ctx.lineWidth = 2 * s;
-      ctx.beginPath(); ctx.moveTo(-14 * s, -alto); ctx.lineTo(14 * s, -alto); ctx.lineTo(0, -12 * s); ctx.closePath(); ctx.fill(); ctx.stroke();
-    } else {
-      ctx.strokeStyle = C.Negro; ctx.lineWidth = 5 * s; ctx.lineCap = 'round';
-      const b = paso ? 4 * s : -4 * s;
-      ctx.beginPath(); ctx.moveTo(-5 * s, -14 * s); ctx.lineTo(-5 * s + b, -1 * s); ctx.moveTo(5 * s, -14 * s); ctx.lineTo(5 * s - b, -1 * s); ctx.stroke();
-      ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(0, -alto * 0.62, 13 * s, alto * 0.42, 0, 0, Math.PI * 2); ctx.fill();
-    }
+    ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(0, 0, 12 * s, 3.5 * s, 0, 0, Math.PI * 2); ctx.fill();
+    const cuello = this.cuerpo(ctx, a, s), alto = -cuello - cabeza * 0.04;
     // cabeza: la foto (o el personaje) de la credencial, en un círculo
     const cy = -alto - cabeza * 0.45;
     ctx.save();
@@ -800,5 +1158,5 @@ function ajustar(ctx: CanvasRenderingContext2D, texto: string, max: number): str
 
 // Precarga de todos los SVG que usa la escena.
 export const TODAS_LAS_IMAGENES = [
-  ...Object.values(SRC.personaje), SRC.araucaria, SRC.sol, SRC.helecho, SRC.flor, SRC.quisco, ...SRC.vagon, SRC.metro.l1, SRC.metro.l4,
+  ...Object.values(SRC.personaje), SRC.araucaria, SRC.sol, SRC.helecho, SRC.flor, SRC.quisco, ...SRC.vagon, ...Object.values(PIEZAS_TEATRO),
 ];

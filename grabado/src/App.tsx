@@ -17,6 +17,12 @@ import './styles.css';
 
 const CLAVE = 'grabado:afiche';
 const QUIETO = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+// Pixeles reales del canvas: su tamaño en pantalla por la densidad de la pantalla (hasta 3×), para que nada se pixele.
+const DPR = () => Math.min(window.devicePixelRatio || 1, 3);
+const ladoPx = (c: HTMLCanvasElement) => Math.round(c.getBoundingClientRect().width * DPR());
+// T-011: el taco se apoya sobre el papel al aparecer y se levanta al estampar (escala y sombra, 250 ms).
+const MOV_TACO = 250;
+const suave = (k: number) => 1 - Math.pow(1 - k, 3);
 // Tintas: la paleta Línea azul con escalas, sin Hueso (sobre papel blanco o hueso no se vería).
 const TINTAS = LINEA_AZUL.filter(c => c.nombre !== 'Hueso');
 // Cada capa nueva parte con una tinta distinta de las que ya hay.
@@ -83,7 +89,8 @@ export const App: React.FC = () => {
   const caja = useRef<HTMLDivElement>(null);
   const cache = useRef(new CacheCapas());
   const cacheMini = useRef(new CacheCapas());
-  const aparece = useRef<{ inicio: number } | null>(null);
+  // Animación del taco sobre el papel: «apoya» al ponerlo, «levanta» al estampar (con la última vista previa).
+  const animTaco = useRef<{ tipo: 'apoya' | 'levanta'; inicio: number; t?: Transformacion; taco?: string; tinta?: string } | null>(null);
 
   useEffect(() => { document.documentElement.dataset.ui = 'v2'; document.documentElement.dataset.visual = 'Orgánica'; }, []);
   useEffect(() => { cargarTacos().then(setTacos).catch(() => avisar('No pudimos cargar los tacos. Recarga la página.')); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -103,26 +110,19 @@ export const App: React.FC = () => {
   const dibujar = useCallback(() => {
     const c = lienzo.current, { a: af, tacos: t } = vivo.current;
     if (!c || !t) return;
-    const lado = Math.round(c.clientWidth * Math.min(window.devicePixelRatio || 1, 2));
+    const lado = ladoPx(c);
     if (!lado) return;
     if (c.width !== lado) { c.width = c.height = lado; }
     const x = c.getContext('2d')!;
     componerPapel(x, lado, af, t, cache.current);
     cache.current.limpiar(af.capas.map(k => k.id));
-    // la última estampa aparece con un golpe suave (como al levantar el taco)
-    const ap = aparece.current;
-    if (ap) {
-      const k = Math.min(1, (performance.now() - ap.inicio) / 220);
-      c.style.transform = k < 1 ? `scale(${1 - 0.006 * Math.sin(k * Math.PI)})` : '';
-      if (k < 1) requestAnimationFrame(dibujar); else aparece.current = null;
-    }
   }, []);
   useEffect(() => { dibujar(); setVersion(v => v + 1); }, [a, tacos, empezado, dibujar]);
   // El marco va en su propio canvas, del tamaño de toda la hoja; el papel queda encima, al centro.
   const dibujarMarco = useCallback(() => {
     const c = marcoRef.current, { a: af } = vivo.current, id = marcoValido(af.marco);
     if (!c || !id) return;
-    const lado = Math.round(c.clientWidth * Math.min(window.devicePixelRatio || 1, 2));
+    const lado = ladoPx(c);
     if (!lado) return;
     if (c.width !== lado) { c.width = c.height = lado; }
     const x = c.getContext('2d')!;
@@ -132,25 +132,55 @@ export const App: React.FC = () => {
   useEffect(() => { dibujarMarco(); }, [a.marco, a.papel, empezado, dibujarMarco]);
   useEffect(() => {
     const c = lienzo.current, m = marcoRef.current; if (!c) return;
-    const ro = new ResizeObserver(() => { dibujar(); dibujarMarco(); }); ro.observe(c); if (m) ro.observe(m);
+    const ro = new ResizeObserver(() => { dibujar(); dibujarMarco(); pintarPrevia(); }); ro.observe(c); if (m) ro.observe(m);
     return () => ro.disconnect();
   }, [empezado, dibujar, dibujarMarco, a.marco]);
 
-  // Vista previa del taco: translúcida, en la tinta de la capa activa, sobre el papel.
-  useEffect(() => {
+  // Vista previa del taco: translúcida, en la tinta de la capa activa, sobre el papel. Al aparecer se apoya (baja
+  // desde un poco más grande con sombra) y al estampar se levanta y se desvanece, dejando la impresión.
+  const vivoPrevia = useRef({ previa, tacos, taco, tinta: capa.tinta });
+  vivoPrevia.current = { previa, tacos, taco, tinta: capa.tinta };
+  const cuadro = useRef(0);
+  const pintarPrevia = useCallback(() => {
+    cancelAnimationFrame(cuadro.current);
     const c = encima.current; if (!c) return;
-    const lado = Math.round(c.clientWidth * Math.min(window.devicePixelRatio || 1, 2));
+    const lado = ladoPx(c); if (!lado) return;
     if (c.width !== lado) { c.width = c.height = lado; }
     const x = c.getContext('2d')!;
     x.clearRect(0, 0, c.width, c.height);
-    if (!previa || !tacos) return;
-    const t = tacos[taco], s = lado / PAPEL, [w, h] = tamEstampa(t, previa.escala);
-    const img = tacoEntintado(t, w * s, h * s, capa.tinta);
-    x.save(); x.globalAlpha = 0.62;
-    x.translate(previa.x * s, previa.y * s); x.rotate(previa.giro * Math.PI / 180);
-    x.drawImage(img, -img.width / 2, -img.height / 2);
-    x.restore();
-  }, [previa, tacos, taco, capa.tinta]);
+    const v = vivoPrevia.current, an = animTaco.current;
+    if (!v.tacos) return;
+    const k = an ? Math.min(1, (performance.now() - an.inicio) / MOV_TACO) : 1;
+    let tr: Transformacion | null = v.previa, id = v.taco, tinta = v.tinta, escala = 1, alfa = 0.62, sombra = 0;
+    if (an?.tipo === 'apoya' && tr) { const e = suave(k); escala = 1 + 0.12 * (1 - e); sombra = 1 - e; }
+    else if (an?.tipo === 'levanta' && !tr && an.t && an.taco && an.tinta) {
+      const e = suave(k); tr = an.t; id = an.taco; tinta = an.tinta; escala = 1 + 0.08 * e; alfa = 0.5 * (1 - e); sombra = 0.7 * (1 - e) * Math.min(1, k * 4);
+    }
+    if (tr && v.tacos[id]) {
+      const t = v.tacos[id], s = lado / PAPEL, [w, h] = tamEstampa(t, tr.escala);
+      // se rasteriza al tamaño final de este cuadro (ya con la escala de la animación), nunca se agranda un bitmap
+      const img = tacoEntintado(t, w * s * escala, h * s * escala, tinta);
+      x.save(); x.globalAlpha = alfa;
+      x.translate(tr.x * s, tr.y * s); x.rotate(tr.giro * Math.PI / 180);
+      if (sombra > 0) {
+        x.shadowColor = `rgba(0,0,0,${0.32 * sombra})`; x.shadowBlur = 26 * s * sombra; x.shadowOffsetY = 14 * s * sombra;
+      }
+      x.drawImage(img, -img.width / 2, -img.height / 2);
+      x.restore();
+    }
+    if (an && k < 1) cuadro.current = requestAnimationFrame(pintarPrevia);
+    else if (an) animTaco.current = null;
+  }, []);
+  // El taco se apoya al ponerlo en el papel y cuando se cambia por otro con la vista previa abierta.
+  const habiaPrevia = useRef(false);
+  useEffect(() => {
+    const hay = !!previa;
+    if (hay && !QUIETO && !habiaPrevia.current) animTaco.current = { tipo: 'apoya', inicio: performance.now() };
+    habiaPrevia.current = hay;
+  }, [!!previa]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (previa && !QUIETO) animTaco.current = { tipo: 'apoya', inicio: performance.now() }; }, [taco]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { pintarPrevia(); }, [previa, tacos, taco, capa.tinta, pintarPrevia]);
+  useEffect(() => () => cancelAnimationFrame(cuadro.current), []);
 
   // ---------------------------------------------------------------- colocar y estampar
   const enPapel = (ev: React.PointerEvent) => {
@@ -173,7 +203,7 @@ export const App: React.FC = () => {
     cambiarCapa(capa.id, c => ({ ...c, visible: true, estampas: [...c.estampas, e] }));
     ultima.current = { escala: previa.escala, giro: previa.giro };
     setPrevia(null);
-    if (!QUIETO) aparece.current = { inicio: performance.now() };
+    if (!QUIETO) animTaco.current = { tipo: 'levanta', inicio: performance.now(), t: previa, taco, tinta: capa.tinta };
     avisar(oculta ? `${capa.nombre} estaba oculta: la volvimos a mostrar.` : `Estampado en ${capa.nombre}.`);
   };
 

@@ -99,7 +99,7 @@ class Grilla:
 FUENTE = {
     'A': ['.#.', '#.#', '###', '#.#', '#.#'], 'C': ['###', '#..', '#..', '#..', '###'], 'D': ['##.', '#.#', '#.#', '#.#', '##.'],
     'E': ['###', '#..', '##.', '#..', '###'], 'F': ['###', '#..', '##.', '#..', '#..'], 'G': ['###', '#..', '#.#', '#.#', '###'],
-    'H': ['#.#', '#.#', '###', '#.#', '#.#'], 'I': ['###', '.#.', '.#.', '.#.', '###'], 'L': ['#..', '#..', '#..', '#..', '###'], 'Z': ['###', '..#', '.#.', '#..', '###'], 'J': ['..#', '..#', '..#', '#.#', '###'], 'K': ['#.#', '##.', '#..', '##.', '#.#'],
+    'H': ['#.#', '#.#', '###', '#.#', '#.#'], 'B': ['##.', '#.#', '##.', '#.#', '##.'], 'I': ['###', '.#.', '.#.', '.#.', '###'], 'L': ['#..', '#..', '#..', '#..', '###'], 'Z': ['###', '..#', '.#.', '#..', '###'], 'J': ['..#', '..#', '..#', '#.#', '###'], 'K': ['#.#', '##.', '#..', '##.', '#.#'],
     'M': ['#.#', '###', '###', '#.#', '#.#'], 'N': ['###', '#.#', '#.#', '#.#', '#.#'], 'O': ['###', '#.#', '#.#', '#.#', '###'],
     'P': ['###', '#.#', '###', '#..', '#..'], 'R': ['##.', '#.#', '##.', '#.#', '#.#'], 'S': ['###', '#..', '###', '..#', '###'],
     'T': ['###', '.#.', '.#.', '.#.', '.#.'], 'U': ['#.#', '#.#', '#.#', '#.#', '###'], 'V': ['#.#', '#.#', '#.#', '#.#', '.#.'],
@@ -267,10 +267,8 @@ def metro():
     g.rect(162.5, 20, 200, 40, ROJO)                                     # número de la línea, en rojo
     texto(g, 181.25 - ancho_texto('L1') / 2, 23.75, 'L1', HUESO)
     g.rect(Z0, Z0, Z1, Z1, FOTO)
-    # brillo celeste del vidrio y limpiaparabrisas (sobre la foto)
+    # brillo celeste del vidrio (sobre la foto). Sin limpiaparabrisas: la diagonal negra se leía como un error (B-011)
     sobre.rect(Z0, Z0, Z0 + 15, Z0 + 2.5, CELESTE); sobre.rect(Z0, Z0, Z0 + 2.5, Z0 + 12.5, CELESTE)
-    for k in range(9):
-        sobre.rect(60 + k * 5, 190 - k * 2.5, 65 + k * 5, 192.5 - k * 2.5, NEGRO)
     # panel bajo: faros redondos (aro negro, luz amarilla y brillo) y un rombo genérico al centro
     for cx in (52.5, 187.5):
         g.donde(lambda x, y, cx=cx: math.hypot(x - cx, y - 211.25) <= 9, NEGRO, 2.5)
@@ -421,6 +419,107 @@ def senal():
     slap(sobre, roto, arrancado=lambda x, y: (y - 160) * 0.9 - (x - 167.5) * 0.4 - 4, semilla=9)
     return marco('PM06', 'Pixel', 'M06', 'Señal', AZUL, g.paths(sin=(FOTO,)) + t.paths(), sobre.paths() + st.paths())
 
+# ---------------------------------------------------------------- PM01 · propuestas de calle (T-012, en vez de «Pizarra»)
+# Dos opciones para que Amaro elija (F-002: «quitarlo o cambiarlo por algo de la calle»). Ninguna entra a
+# shared/marcos-generados.ts hasta que se elija: `python3 scripts/marcos-generados.py --propuestas <carpeta>` las dibuja
+# como SVG con una foto de muestra. La elegida se suma a la lista de `__main__` con el id PM01 y se saca PM01 de
+# RETIRADOS en shared/marcos.ts.
+
+def tira_peligro(g, cx, cy, largo, ancho, ang, franja=7.5):
+    """Cinta de peligro girada: franjas amarillas y negras a 45° de su eje."""
+    a = math.radians(ang); co, si = math.cos(a), math.sin(a); u = g.u
+    for j in range(g.n):
+        for i in range(g.n):
+            x, y = (i + 0.5) * u - cx, (j + 0.5) * u - cy
+            lu, lv = x * co + y * si, -x * si + y * co
+            if abs(lv) <= ancho / 2 and abs(lu) <= largo / 2:
+                g.c[j][i] = AMARILLO if int((lu + lv + 1000) // franja) % 2 else NEGRO
+
+def afiche():
+    """Opción A · Afiche pegado: un afiche de papel engrudado en un muro de ladrillo, sobre otro viejo medio arrancado.
+    La foto es la imagen del afiche; arriba el título, abajo las tiras para arrancar (como los avisos de los postes),
+    dos ya arrancadas. Cinta de embalaje en las esquinas de arriba y la esquina de abajo despegada."""
+    g, sobre, t = Grilla(), Grilla(), Grilla(1.25)
+    # muro de ladrillos rosados con cantería morada
+    g.rect(0, 0, 240, 240, MORADO)
+    for k, y in enumerate(range(0, 240, 15)):
+        for x in range(-20 if k % 2 else 0, 240, 40):
+            g.rect(x + 2.5, y + 2.5, x + 37.5, y + 12.5, ROSA)
+    # afiche viejo amarillo (asoma arriba a la derecha), arrancado: queda el papel pegado
+    def viejo(s):
+        s.rect(140, 0, 240, 110, AMARILLO)
+        texto(s, 165, 10, 'XX', NEGRO, 2)
+    slap(g, viejo, borde=0, arrancado=lambda x, y: (x - 150) * -0.5 + (y - 95) * 0.9 + 22, semilla=21, contorno=False)
+    # el afiche: papel hueso con sombra negra
+    g.rect(27.5, 10, 217.5, 237.5, NEGRO)
+    g.rect(25, 7.5, 215, 235, HUESO)
+    # título arriba y la imagen (la foto) con borde negro
+    texto(g, 120 - ancho_texto('SOMOS DISENO') / 2, 25, 'SOMOS DISENO', NEGRO)
+    g.rect(Z0 - 2.5, Z0 - 2.5, Z1 + 2.5, Z1 + 2.5, NEGRO)
+    g.rect(Z0, Z0, Z1, Z1, FOTO)
+    # tiras para arrancar: 8 tiras con texto chico; la 3 y la 6 ya no están
+    g.rect(25, 200, 215, 202.5, NEGRO)
+    for k in range(8):
+        x0 = 25 + k * 23.75
+        if k in (2, 5):
+            g.rect(x0 + 2.5, 202.5, x0 + 23.75, 207.5, PAPEL_PEGADO)
+            g.rect(x0 + 2.5, 207.5, x0 + 23.75, 235, ROSA)
+            continue
+        if k:
+            g.rect(x0, 202.5, x0 + 2.5, 235, NEGRO)          # el corte entre tiras
+        chico(t, x0 + 10, 207.5, 'S', AZUL); chico(t, x0 + 10, 216.25, 'D', AZUL); chico(t, x0 + 10, 225, '2', AZUL)
+    g.contorno(NEGRO, de=(HUESO, PAPEL_PEGADO), fuera_de=(ROSA, MORADO))
+    # cinta de embalaje en las esquinas de arriba (encima de todo)
+    cinta(sobre, 30, 12, 34, 10, -40, semilla=22)
+    cinta(sobre, 210, 12, 34, 10, 40, semilla=23)
+    return marco('PM01', 'Pixel', 'M01', 'Afiche', MORADO, g.paths(sin=(FOTO,)) + t.paths(), sobre.paths())
+
+def obra():
+    """Opción B · Obra: la foto asoma por un hueco de una valla de obra (planchas de zinc pintadas), con una barrera
+    de franjas y su baliza abajo, el letrero «ZONA EN OBRA» arriba y una cinta de peligro cruzando una esquina de la foto."""
+    g, sobre = Grilla(), Grilla()
+    # valla de zinc: ondas verticales azul y lapislázuli, con uniones y tornillos
+    g.rect(0, 0, 240, 240, AZUL)
+    for x in range(0, 240, 10):
+        g.rect(x + 5, 0, x + 7.5, 240, LAPIS)
+    for x in range(0, 240, 60):
+        g.rect(x, 0, x + 2.5, 240, NEGRO)
+        for y in (12.5, 117.5, 222.5):
+            g.rect(x + 5, y, x + 7.5, y + 2.5, HUESO)
+    # el hueco: borde negro y la foto
+    g.rect(Z0 - 5, Z0 - 5, Z1 + 5, Z1 + 5, NEGRO)
+    g.rect(Z0, Z0, Z1, Z1, FOTO)
+    # letrero arriba: amarillo con borde negro
+    g.rect(57.5, 10, 182.5, 37.5, NEGRO)
+    g.rect(60, 12.5, 180, 35, AMARILLO)
+    texto(g, 120 - ancho_texto('ZONA EN OBRA') / 2, 17.5, 'ZONA EN OBRA', NEGRO)
+    # barrera abajo: tablón de franjas sobre dos patas, con una baliza amarilla
+    for x in (40, 192.5):
+        g.rect(x, 205, x + 7.5, 237.5, HUESO)
+        g.rect(x - 7.5, 232.5, x + 15, 237.5, HUESO)
+    bar = Grilla(); tira_peligro(bar, 120, 212.5, 220, 17.5, 0, franja=10)
+    for j in range(bar.n):
+        for i in range(bar.n):
+            if bar.c[j][i] is not None:
+                g.c[j][i] = bar.c[j][i]
+    g.rect(200, 185, 215, 202.5, AMARILLO); g.rect(197.5, 200, 217.5, 205, NEGRO)  # baliza
+    g.rect(202.5, 187.5, 205, 192.5, '#FFFFFF')
+    g.contorno(NEGRO, de=(HUESO, AMARILLO), fuera_de=(AZUL, LAPIS))
+    # cinta de peligro cruzando la esquina de abajo a la izquierda de la foto (encima)
+    tira_peligro(sobre, 40, 168, 96, 12.5, 45)
+    sobre.contorno(NEGRO)
+    return marco('PM01', 'Pixel', 'M01', 'Obra', AZUL, g.paths(sin=(FOTO,)), sobre.paths())
+
+def svg_muestra(m):
+    """El marco como SVG con una foto de muestra (silueta) en la zona, para ver la propuesta."""
+    capas = ''.join(f'<path d="{d}" fill="{c}"/>' for d, c in m['paths'])
+    encima = ''.join(f'<path d="{d}" fill="{c}"/>' for d, c in m['encima'])
+    foto = (f'<clipPath id="z"><path d="{m["zona"]}"/></clipPath><g clip-path="url(#z)">'
+            f'<rect x="{Z0}" y="{Z0}" width="{Z1 - Z0}" height="{Z1 - Z0}" fill="{CELESTE}"/>'
+            f'<circle cx="120" cy="105" r="28" fill="{AZUL}"/><ellipse cx="120" cy="200" rx="58" ry="52" fill="{AZUL}"/></g>')
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="720" height="720" shape-rendering="crispEdges">'
+            f'<rect width="240" height="240" fill="{m["bg"]}"/>{capas}{foto}{encima}</svg>')
+
 # ---------------------------------------------------------------- vectores (Geométrica y Orgánica)
 def poli(pts):
     return 'M' + 'L'.join(f'{num(x)} {num(y)}' for x, y in pts) + 'Z'
@@ -553,6 +652,13 @@ def leer_figma():
     return json.loads(s[s.index('['):s.rindex(']') + 1])
 
 if __name__ == '__main__':
+    import sys
+    if len(sys.argv) == 3 and sys.argv[1] == '--propuestas':  # T-012: dibuja las opciones de PM01 sin tocar el .ts
+        for m in (afiche(), obra()):
+            ruta = os.path.join(sys.argv[2], f"propuesta-{m['name'].lower()}.svg")
+            open(ruta, 'w', encoding='utf-8').write(svg_muestra(m))
+            print(ruta)
+        sys.exit()
     figma = leer_figma()
     marcos = [estallido(), diamante(), diamante_organico(figma), vinilo(), ventana(), metro(), senal()]
     salida = os.path.join(os.path.dirname(__file__), '..', 'shared', 'marcos-generados.ts')

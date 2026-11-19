@@ -40,7 +40,8 @@ function estampar(ctx: CanvasRenderingContext2D, c: HTMLCanvasElement, x: number
 }
 
 // ——— Pinta: tú (16 × 16, mira a la derecha) ———
-// Gorro celeste con borde lapislázuli, cara hueso, polerón azul, pantalón lapislázuli, zapatillas hueso y la lata rosa.
+// Gorro celeste con borde lapislázuli, cara hueso, polerón azul, pantalón lapislázuli, zapatillas hueso y, en la mano,
+// la lata de spray rosa (B-007: sin la mejilla rosa bajo el ojo, que se leía como una lágrima).
 const PINTA_CABEZA: Filas = [
   '.....kkkkkk.....',
   '....kcccccwck...',
@@ -49,29 +50,41 @@ const PINTA_CABEZA: Filas = [
   '...knhhhhhhhhk..',
   '...knhhhkhhkhk..',
   '...khhhhkhhkhk..',
-  '...khhhhhhhrhk..',
+  '...khhhhhhhhhk..',
   '....kkhhhhhhk...',
 ];
+// El polerón; 'h' es la mano que sostiene la lata (más arriba al lanzar y al saltar).
 const PINTA_CUERPO: Record<'quieto' | 'lanza' | 'arriba', Filas> = {
   quieto: [
     '...kaaaaaaaak...',
-    '..kaaAaaaaaaakk.',
-    '..kaAkaaaaaakrrk',
-    '..kAAkaaaaahkrrk',
+    '..kaaAaaaaaaak..',
+    '..kaAkaaaaaahk..',
+    '..kAAkaaaaaahk..',
   ],
   lanza: [
-    '...kaaaaaaaakkk.',
-    '..kaaAaaaaaaahrk',
-    '..kaAkaaaaaaakrk',
+    '...kaaaaaaaak...',
+    '..kaaAaaaaaahk..',
+    '..kaAkaaaaaaak..',
     '..kAAkaaaaaaak..',
   ],
   arriba: [
-    '...kaaaaaaaakrrk',
-    '..kaaAaaaaaakrrk',
-    '..kaAkaaaaaaahk.',
+    '...kaaaaaaahk...',
+    '..kaaAaaaaaaak..',
+    '..kaAkaaaaaaak..',
     '..kAAkaaaaaaak..',
   ],
 };
+// La lata de spray en la mano (4 × 6, columnas 12 a 15): válvula, hombro metálico, cuerpo rosa con brillo y la mano ('h') que la agarra.
+// Se superpone al cuerpo y las piernas; ' ' deja ver lo de abajo. `arriba` es la fila de la válvula.
+const LATA_MANO: Filas = [
+  ' kk ',
+  'kssk',
+  'kwrk',
+  'hrrk',
+  'krrk',
+  'kkkk',
+];
+const LATA_ARRIBA: Record<Pose, number> = { quieto: 9, camina1: 9, camina2: 9, golpe: 9, lanza: 8, salta: 8 };
 const PINTA_PIERNAS: Record<'quieto' | 'paso' | 'junto' | 'salto', Filas> = {
   junto: ['.....kllllk.....', '....kkhhhhkk....', '....khhhhhhhk...'],
   quieto: [
@@ -91,13 +104,20 @@ const PINTA_PIERNAS: Record<'quieto' | 'paso' | 'junto' | 'salto', Filas> = {
   ],
 };
 export type Pose = 'quieto' | 'camina1' | 'camina2' | 'salta' | 'lanza' | 'golpe';
+function conLata(filas: Filas, p: Pose): Filas {
+  const y0 = LATA_ARRIBA[p];
+  return filas.map((f, j) => {
+    const l = LATA_MANO[j - y0];
+    if (!l) return f;
+    return f.slice(0, 12) + [...l].map((ch, i) => (ch === ' ' ? f[12 + i] : ch)).join('');
+  });
+}
 function filasPinta(p: Pose): Filas {
   const cuerpo = p === 'lanza' ? PINTA_CUERPO.lanza : p === 'salta' ? PINTA_CUERPO.arriba : PINTA_CUERPO.quieto;
-  const piernas = p === 'salta' ? PINTA_PIERNAS.salto : p === 'camina1' ? PINTA_PIERNAS.paso : PINTA_PIERNAS.quieto;
+  const piernas = p === 'salta' ? PINTA_PIERNAS.salto : p === 'camina1' ? PINTA_PIERNAS.paso : p === 'camina2' ? PINTA_PIERNAS.junto : PINTA_PIERNAS.quieto;
   let cabeza = PINTA_CABEZA;
   if (p === 'golpe') cabeza = cabeza.map((f, j) => (j === 5 || j === 6 ? '...khhhhwhhwhk..' : f)); // ojos en blanco
-  if (p === 'camina2') return [...cabeza, ...cuerpo, ...PINTA_PIERNAS.junto];
-  return [...cabeza, ...cuerpo, ...piernas];
+  return conLata([...cabeza, ...cuerpo, ...piernas], p);
 }
 export function lienzoPinta(p: Pose = 'quieto'): HTMLCanvasElement {
   const filas = filasPinta(p);
@@ -196,18 +216,77 @@ export const INACAPIN: Filas = [
   '....kkkkkk.kkkkkk...',
   '....hhhhhh.hhhhhh...',
 ];
-export interface OpcionesInacapin { boca?: boolean; blanco?: boolean; ojos?: 'x' | 'feliz' | 'enojo' | null; paso?: 0 | 1 | 2; silueta?: string }
+// B-009: el Inacapín camina con las piernas completas y los brazos, y tiene cara de enojado. Todo sale de la grilla
+// de Figma de arriba, sin arte nuevo: el cuerpo (filas 0–13), el guante (columnas 0–3), la mano de atrás (18–19) y las
+// piernas con sus zapatillas se separan y se vuelven a armar en cada cuadro, en una grilla de 22 × 20 (un margen de 1 a
+// cada lado para que el guante y los pies se puedan mover).
+export type PasoInacapin = 0 | 1 | 2 | 3 | 4;
+export interface OpcionesInacapin { boca?: boolean; blanco?: boolean; ojos?: 'x' | 'feliz' | 'enojo' | null; paso?: PasoInacapin; silueta?: string }
+// Cuadros de la caminata (mira a la izquierda: «adelante» es x menor). base: fila del borde de abajo del cuerpo (14 =
+// el cuerpo baja 1 al apoyar); pies: columna de cada pie (pierna de adelante, de atrás) y si va en el aire; guante y
+// mano: desplazamiento (dx, dy). Los brazos van al revés que las piernas.
+interface CuadroInacapin { base: number; adelante: [number, number]; atras: [number, number]; guante: [number, number]; mano: number }
+const CAMINATA: Record<PasoInacapin, CuadroInacapin> = {
+  0: { base: 13, adelante: [6, 0], atras: [12, 0], guante: [0, 0], mano: 0 },
+  1: { base: 13, adelante: [4, 1], atras: [12, 0], guante: [1, 0], mano: -1 },  // da el paso: pie de adelante en el aire
+  2: { base: 14, adelante: [4, 0], atras: [14, 0], guante: [1, 1], mano: 0 },   // apoya: piernas abiertas, cuerpo abajo
+  3: { base: 13, adelante: [6, 0], atras: [13, 1], guante: [-1, -1], mano: 1 }, // la de atrás se levanta y viene
+  4: { base: 14, adelante: [6, 0], atras: [12, 0], guante: [-1, 0], mano: 0 },  // apoya de nuevo
+};
+const GUANTE = ['.kk.', 'khhk', 'khhh', 'khhk', '.kk.']; // columnas 0–3, desde la fila 6
+const MANO = ['kk', 'hk', 'hk', 'hk', 'kk'];             // columnas 18–19, desde la fila 7
+const PIERNA = 'kRk', ANCHO_INACAPIN = 22;
+
+export function filasInacapin(o: OpcionesInacapin = {}): Filas {
+  const q = CAMINATA[o.paso ?? 0];
+  // Cuerpo sin el guante ni la mano.
+  let cuerpo = INACAPIN.slice(0, 14).map((f, j) => {
+    let r = f;
+    if (j >= 6 && j <= 10) r = '....' + r.slice(4);
+    if (j >= 7 && j <= 11) r = r.slice(0, 18) + '..';
+    return r;
+  });
+  const fila = (j: number, cols: number[], ch: string) => { const a = [...cuerpo[j]]; for (const i of cols) a[i] = ch; cuerpo[j] = a.join(''); };
+  // El libro se abre (boca): la franja de la «i» se separa y se ve el interior hueso.
+  if (o.boca) cuerpo = cuerpo.map((f, j) => (j >= 6 && j <= 12 ? f.slice(0, 13) + (j === 6 || j === 12 ? 'kk' : 'hh') + f.slice(15) : f));
+  if (o.ojos === 'x') { cuerpo[2] = '....kRkRkRRkRkRRRk..'; cuerpo[3] = '....kRRkRRRRkRRRRk..'; cuerpo[4] = '....kRkRkRRkRkRRRk..'; }
+  else if (o.ojos === 'feliz') { cuerpo[3] = '....kRRkkRRRkkRRRk..'; cuerpo[4] = '....kRkRRkRkRRkRRk..'; cuerpo[5] = '....kRRRRkkkRRRRRk..'; }
+  else {
+    // Enojado siempre (B-009).
+    // Cejas en diagonal que bajan hacia el centro, sobre los ojos, y boca hacia abajo.
+    fila(1, [6, 14], 'k'); fila(2, [7, 8, 12, 13], 'k');
+    fila(5, [9, 10], 'k'); fila(6, [8, 11], 'k');
+    if (o.ojos === 'enojo') { fila(3, [7, 12], 'k'); fila(2, [9, 11], 'k'); } // furioso (carga, embiste, ruge): ojos entrecerrados
+  }
+  const g = Array.from({ length: 20 }, () => Array<string>(ANCHO_INACAPIN).fill('.'));
+  const poner = (x: number, y: number, ch: string) => { if (ch !== '.' && y >= 0 && y < 20 && x + 1 >= 0 && x + 1 < ANCHO_INACAPIN) g[y][x + 1] = ch; };
+  const baja = q.base - 13;
+  cuerpo.forEach((f, j) => [...f].forEach((ch, i) => poner(i, j + baja, ch)));
+  // Brazos: el guante (adelante) y la mano de atrás. Si el guante se adelanta, la muñeca se estira.
+  const [gx, gy] = q.guante;
+  if (gx < 0) { poner(3, 7 + baja + gy, 'k'); poner(3, 8 + baja + gy, 'h'); poner(3, 9 + baja + gy, 'k'); }
+  GUANTE.forEach((f, j) => [...f].forEach((ch, i) => poner(i + gx, 6 + j + baja + gy, ch)));
+  MANO.forEach((f, j) => [...f].forEach((ch, i) => poner(18 + i, 7 + j + baja + q.mano, ch)));
+  // Piernas completas: van de la cadera (columna fija) al pie, en diagonal; luego la zapatilla. La de atrás, primero.
+  const pierna = (cadera: number, [pie, aire]: [number, number], adelante: boolean) => {
+    const filas = 16 - aire - q.base;
+    for (let k = 0; k < filas; k++) {
+      const x = Math.round(cadera + ((pie - cadera) * (k + 1)) / filas);
+      [...PIERNA].forEach((ch, i) => poner(x + i, q.base + 1 + k, ch));
+    }
+    const y = 17 - aire, [a, b] = adelante ? [pie - 2, pie + 3] : [pie - 1, pie + 4];
+    for (let x = pie - 1; x <= pie + 3; x++) poner(x, y, 'k');
+    for (let x = a; x <= b; x++) { poner(x, y + 1, 'k'); poner(x, y + 2, 'h'); }
+  };
+  pierna(12, q.atras, false);
+  pierna(6, q.adelante, true);
+  return g.map(f => f.join(''));
+}
+
 // `rojo` (0 a 1): cuánto color recuperó. Mira a la izquierda en el sprite (el guante va adelante).
 export function lienzoInacapin(rojo: number, o: OpcionesInacapin = {}): HTMLCanvasElement {
   const n = Math.round(rojo * 18) / 18;
-  let filas = INACAPIN.slice();
-  // El libro se abre (boca): la franja de la «i» se separa y se ve el interior hueso.
-  if (o.boca) filas = filas.map((f, j) => (j >= 6 && j <= 12 ? f.slice(0, 13) + (j === 6 || j === 12 ? 'kk' : 'hh') + f.slice(15) : f));
-  if (o.ojos === 'x') { filas[2] = '....kRkRkRRkRkRRRk..'; filas[3] = '....kRRkRRRRkRRRRk..'; filas[4] = '....kRkRkRRkRkRRRk..'; }
-  if (o.ojos === 'feliz') { filas[3] = '....kRRkkRRRkkRRRk..'; filas[4] = '....kRkRRkRkRRkRRk..'; filas[5] = '....kRRRRkkkRRRRRk..'; }
-  if (o.ojos === 'enojo') { filas[2] = '....kRkkRRRkkRRRRk..'; }
-  if (o.paso === 1) { filas[14] = '.....kRk....kRk.....'; filas[15] = '.....kRk....kRk.....'; }
-  if (o.paso === 2) { filas[14] = '.......kRk.kRk......'; filas[15] = '.......kRk.kRk......'; }
+  const filas = filasInacapin(o);
   const alto = filas.length, borde = alto - n * alto;
   const gris = { R: '#8F8F8A', h: '#C9C9C4' } as Record<string, string>;
   const tramado = (i: number, j: number) => (i + j) % 2 === 0;
@@ -221,8 +300,9 @@ export function lienzoInacapin(rojo: number, o: OpcionesInacapin = {}): HTMLCanv
   });
 }
 // Dibuja el Inacapín con los pies en (pieX, pieY) px, de `alto` px de alto. `mira`: 1 derecha.
+// La grilla mide 22 de ancho (el sprite de Figma, 20, más el margen): el ancho sale de esa proporción.
 export function dibujarInacapin(ctx: CanvasRenderingContext2D, pieX: number, pieY: number, alto: number, mira: 1 | -1, rojo: number, o: OpcionesInacapin = {}, aplasta = 1) {
-  const ancho = alto, h = alto * aplasta, w = ancho * (1 + (1 - aplasta) * 0.6);
+  const ancho = (alto * ANCHO_INACAPIN) / 20, h = alto * aplasta, w = ancho * (1 + (1 - aplasta) * 0.6);
   // El sprite mira a la izquierda (guante adelante): se refleja para mirar a la derecha.
   estampar(ctx, lienzoInacapin(rojo, o), pieX - w / 2, pieY - h, w, h, mira > 0);
 }
