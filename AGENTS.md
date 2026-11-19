@@ -9,7 +9,7 @@ Hub de experiencias interactivas de Somos Diseño para tablet (horizontal) y pan
 | Carpeta | Experiencia | Lenguaje |
 |---|---|---|
 | `index.html` + `shared/` | Hub, layout, fuentes e íconos compartidos | — |
-| `fotomaton/` | Fotomatón CMYK | los tres |
+| `fotomaton/` | Cabina de fotos (antes «Fotomatón CMYK») | los tres |
 | `taller-mosaicos/` | Taller de Mosaicos | Geométrica |
 | `loops/` | Teatro de Papel | Orgánica |
 | `graffiti/` | Graffiti y Tags | Pixel |
@@ -91,6 +91,8 @@ Las experiencias son **herramientas de diseño** con la anatomía de Figma UI3 y
 
 ## Trabajo en paralelo (Pipe, Amaro y sus agentes)
 Desde nov 2026 dos personas iteran la plataforma, cada una con su propio agente de IA, sobre este mismo repo. Estas reglas valen para cualquier agente y mandan sobre «Propiedad de archivos» cuando choquen.
+
+**Desde el 20 nov 2026 son cuatro:** Amaro y Pipe planean y coordinan; Thomas (carril Experiencias) y Basti (carril Plataforma) ejecutan con sus agentes. Flujo, carriles, colas, bitácora y prompts de inicio: [`docs/equipo/README.md`](docs/equipo/README.md). Ramas `thomas/<tema>` y `basti/<tema>`; mergean Amaro o Pipe.
 
 1. **El repo es la fuente de la verdad.** Lo conversado en un chat no existe hasta que está escrito aquí. Si un cambio toca una regla del juego, una pantalla o una decisión de `docs/plans/`, primero se escribe en un plan (nuevo o el existente) y después se construye. Las decisiones vigentes no se reabren por iniciativa del agente: si el humano pide algo que choca con un plan, el agente lo dice antes de tocar código.
 2. **Una rama y un PR por cambio. Nada directo a `main`.** Rama `<persona>/<tema>` (ej. `amaro/portales-camara`, `pipe/hub-realtime`). El otro humano revisa y mergea; el merge lo aprieta una persona, no un agente.

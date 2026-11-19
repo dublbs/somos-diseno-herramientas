@@ -17,6 +17,10 @@
   h2 { margin: 0 0 10px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
   p { margin: 0; color: var(--muted); }
   .grupo { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .tarjeta { display: grid; gap: 4px; background: var(--surface); border: 2px solid var(--ink); color: var(--ink); text-decoration: none; min-height: 88px; }
+  .tarjeta > a:first-child { display: grid; gap: 4px; color: inherit; text-decoration: none; }
+  .tarjeta > a:first-child:hover, .tarjeta > a:first-child:focus-visible { color: var(--accent); }
+  .respaldo { font-size: 13px; color: var(--muted); text-decoration: underline; }
   a.tarjeta { display: grid; gap: 4px; padding: 16px; background: var(--surface); border: 2px solid var(--ink); color: var(--ink); text-decoration: none; min-height: 88px; }
   a.tarjeta:hover, a.tarjeta:focus-visible { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
   a.tarjeta:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -35,9 +39,9 @@
   </header>
 
   <div class="grupo">
-    <a class="tarjeta" href="../hub-estacion/dist/?prueba=0"><b>Flip · HUB en vivo</b><span>La pantalla grande. Solo personas reales.</span></a>
+    <div class="tarjeta"><a href="../hub-estacion/dist/"><b>Flip · HUB en vivo</b><span>La pantalla grande. Solo personas reales.</span></a><a class="respaldo" href="../hub-estacion/dist/?galeria">Si el HUB falla: galería de respaldo</a></div>
     <a class="tarjeta" href="../admin/dist/"><b>PC madre</b><span>Panel del staff. Pide cuenta de staff.</span></a>
-    <a class="tarjeta" href="../"><b>Tablets · experiencias</b><span>El menú que ve el visitante en la tablet.</span></a>
+    <div class="tarjeta"><a href="../"><b>Tablets · experiencias</b><span>El menú que ve el visitante en la tablet.</span></a><a class="respaldo" href="../?staff">Para el staff: menú con credencial y HUB</a></div>
     <a class="tarjeta" href="../credencial/dist/"><b>Celular · credencial</b><span>Lo que ve el visitante en su celular.</span></a>
   </div>
 
