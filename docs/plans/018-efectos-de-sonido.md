@@ -48,7 +48,22 @@ Pedido de Amaro:
 - [x] S-1 · `shared/sonido.ts` (motor y efectos) y `BotonSonido` en `shared/ui/`.
 - [x] S-2 · Hora punta: efectos por evento del motor y por cambio de estado (paso, lata, fin, llegada, victoria).
 - [x] S-3 · Graffiti: siseo continuo del spray y efectos de cada herramienta.
-- [ ] S-4 · Cabina: cuenta y obturador (carril de Thomas).
-- [ ] S-5 · Grabado: taco y prensa (carril de Thomas).
-- [ ] S-6 · Credencial: vibración al ganar un timbre (carril de Basti).
-- [ ] S-7 · Mosaicos y Teatro, si se decide.
+- [x] S-4 · Cabina:
+  - bip en cada número de la cuenta, obturador y revelado;
+  - clic al prender o apagar una placa;
+  - «Llévatela» lista.
+- [x] S-5 · Grabado: el taco se apoya, la prensa al estampar, entintar al cambiar de tinta y «Llévatelo».
+- [x] S-6 · Credencial: **ya vibraba** (`Timbrado`, `BarraTimbres`, `Afiches`, `Juego`, `Flyer`). No hizo falta cambiar
+  nada.
+- [x] S-7 · Mosaicos:
+  - «clac» muy suave al poner;
+  - giro al girar o reflejar, y borrar;
+  - Multiplicar, Sorpréndeme y «Llévatelo».
+- [x] S-7 · Teatro (Amaro lo pidió el 23 nov; Felipe lo revisa en el PR):
+  - papel al sumar una pieza y quitar al sacarla;
+  - telón al cambiar de escenario y en Sorpréndeme;
+  - el video o la tarjeta listos.
+  - El video exportado sigue sin audio.
+
+Todas las experiencias con sonido llevan `BotonSonido` en la barra superior. Audioreactiva, HUB y PC madre quedan sin
+efectos (ver el análisis).
