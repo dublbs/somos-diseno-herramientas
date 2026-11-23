@@ -5,6 +5,8 @@ import { MARCOS, porId, type Visual } from './data/marcos';
 import { TINTAS } from './data/tintas';
 import { Panel } from './components/Panel';
 import { Boton, useAviso } from '../../shared/ui/Herramienta';
+import { BotonSonido } from '../../shared/ui/BotonSonido';
+import { sonar } from '../../shared/sonido';
 import { abrirCamaraEnToque, type Lado } from './hooks/useCamara';
 import type { Cara } from './lib/cara';
 import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
@@ -43,7 +45,7 @@ export function App() {
   const archivo = useRef<HTMLInputElement>(null);
   const [marcoMostrado, cambiando] = useRetardo(marcoId, RETARDO_MARCO);
   const [revelando, setRevelando] = useState(false), inicioRevelado = useRef(0);
-  const revelar = () => { inicioRevelado.current = performance.now(); setRevelando(true); };
+  const revelar = () => { inicioRevelado.current = performance.now(); setRevelando(true); sonar('revelado'); };
 
   useEffect(() => { document.documentElement.dataset.visual = visual; }, [visual]);
   const miniaturas = useMemo(() => {
@@ -80,13 +82,13 @@ export function App() {
   };
 
   const hacerTarjeta = () => exportarTarjeta(marcoMostrado, foto!.c, celda, TINTAS[tinta], foto!.cara, { apagadas: tienePlacas(porId(marcoMostrado).visual) ? apagadas : [] });
-  const alternarPlaca = (canal: string) => setApagadas(a => (a.includes(canal) ? a.filter(x => x !== canal) : [...a, canal]));
+  const alternarPlaca = (canal: string) => { sonar('placa'); setApagadas(a => (a.includes(canal) ? a.filter(x => x !== canal) : [...a, canal])); };
   // Al cambiar de tinta cambian las placas (4, 2 o 1): vuelven todas a prenderse.
   const cambiarTinta = (k: string) => { setTinta(k); setApagadas([]); };
 
   const llevatela = async () => {
     setOcupado(true);
-    try { setTarjeta(await hacerTarjeta()); setPaso('qr'); otorgarCreacion('fotomaton'); }
+    try { setTarjeta(await hacerTarjeta()); sonar('exito'); setPaso('qr'); otorgarCreacion('fotomaton'); }
     catch { setAviso('No pudimos preparar la tarjeta.'); } finally { setOcupado(false); }
   };
 
@@ -119,10 +121,10 @@ export function App() {
       foto={paso !== 'camara' && !revelando ? foto : null} vivo={paso === 'camara' ? vivo : undefined}
       camara={paso === 'camara' ? { lado, setLado, alSubir: subir } : undefined} />
   );
-  const restablecerEl = paso === 'camara'
+  const restablecerEl = <><BotonSonido />{paso === 'camara'
     ? <Boton icono="restart_alt" texto="Restablecer" variante="fantasma" onClick={restablecer} />
     : <Boton icono="restart_alt" texto={armado ? '¿Borrar la foto?' : 'Restablecer'} variante={armado ? 'peligro' : 'fantasma'}
-        onClick={() => (armado ? restablecer() : setArmado(true))} />;
+        onClick={() => (armado ? restablecer() : setArmado(true))} />}</>;
   const input = <input ref={archivo} type="file" accept="image/*" capture="user" style={{ display: 'none' }} onChange={alArchivo} />;
   const avisoEl = <Quiosco app="fotomaton" />;
 

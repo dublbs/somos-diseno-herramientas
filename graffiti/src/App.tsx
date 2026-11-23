@@ -10,6 +10,8 @@ import { crearTarjeta } from './lib/exportar';
 import { Lienzo } from './components/Lienzo';
 import { PreviaPincel } from './components/PreviaPincel';
 import { Llevatela } from '../../shared/ui/Llevatela';
+import { BotonSonido } from '../../shared/ui/BotonSonido';
+import { siseo, sonar, type Continuo } from '../../shared/sonido';
 import { Confirmar } from '../../shared/ui/Kit';
 import {
   BarraFlotante, BarritaSeleccion, Boton, GrillaBiblioteca, LienzoAjustado, Manijas, MarcoHerramienta, Muestra, SeccionPanel, Segmento,
@@ -69,6 +71,27 @@ export const App: React.FC = () => {
   const rodar = useRef({ ux: 1, uy: 0, s: 0 }); // eje del rodillo y distancia recorrida
   const suave = useRef<[number, number] | null>(null); // el plumón sigue al dedo suavizado (como el suavizado de Photoshop)
   const transformando = useRef(false); // el gesto de manijas sobre el sticker elegido ya guardó su paso
+  // Sonido del trazo (plan 018): el spray sisea mientras el dedo está abajo; rodillo, plumón y borrador suenan al moverse.
+  const sonTrazo = useRef<{ son: Continuo | null; calma: number }>({ son: null, calma: 0 });
+  const empezarSonido = (h: Herramienta) => {
+    const t = sonTrazo.current;
+    t.son?.parar();
+    t.son = h === 'spray' ? siseo(6500, 0.7, 0.08)
+      : h === 'rodillo' ? siseo(420, 0.6, 0.14, 'lowpass')
+      : h === 'plumon' ? siseo(3200, 5, 0.05)
+      : h === 'borrar' ? siseo(1100, 0.8, 0.07)
+      : null;
+    if (h !== 'spray') t.son?.volumen(0.15); // quieto suena poco; al mover sube
+  };
+  const moverSonido = () => {
+    const t = sonTrazo.current;
+    if (!t.son || actual.current.herr === 'spray') return;
+    t.son.volumen(1);
+    clearTimeout(t.calma);
+    t.calma = window.setTimeout(() => t.son?.volumen(0.15), 90);
+  };
+  const pararSonido = () => { const t = sonTrazo.current; clearTimeout(t.calma); t.son?.parar(); t.son = null; };
+  useEffect(() => pararSonido, []);
   const trazoGuardo = useRef(false); // el trazo en curso ya guardó su paso (para descartarlo si resulta ser un gesto)
   const lienzoRef = useRef<HTMLDivElement | null>(null);
   const redibujar = () => setVersion(v => v + 1);
@@ -161,7 +184,7 @@ export const App: React.FC = () => {
   const rehacer = () => { setNuevo(null); setElegido(null); moverHistorial(adelante, atras); };
   // Con 2 dedos se deshace y con 3 se rehace (kit v2): lo que alcanzó a pintar el primer dedo se descarta.
   const anularTrazo = () => {
-    pos.current = null; suave.current = null;
+    pos.current = null; suave.current = null; pararSonido();
     if (!trazoGuardo.current) return;
     trazoGuardo.current = false;
     const d = atras.current.pop();
@@ -199,6 +222,7 @@ export const App: React.FC = () => {
     if (!s) return;
     guardarHistorial();
     dibujo.current.stickers.push(s);
+    sonar('sticker');
     setNuevo(null);
     redibujar();
   };
@@ -226,6 +250,7 @@ export const App: React.FC = () => {
     if (elegido === null || !dibujo.current.stickers[elegido]) return;
     guardarHistorial();
     dibujo.current.stickers = dibujo.current.stickers.filter((_, i) => i !== elegido);
+    sonar('quitar');
     setElegido(null);
     redibujar();
     avisar('Sticker eliminado. ↶ lo trae de vuelta.');
@@ -244,6 +269,7 @@ export const App: React.FC = () => {
     guardarHistorial();
     const d = Math.max(3, COLS * 0.04);
     dibujo.current.stickers = [...dibujo.current.stickers, { ...e, x: Math.min(COLS - 1, e.x + d), y: Math.min(FILAS - 1, e.y + d) }];
+    sonar('pop');
     setElegido(dibujo.current.stickers.length - 1);
     redibujar();
   };
@@ -290,6 +316,7 @@ export const App: React.FC = () => {
     else if (herr === 'plumon') { suave.current = [x, y]; plumon(dibujo.current, x, y, radioPlumon + 1, color, mascara); } // la tinta se acumula al apoyar
     else pintar(x, y);
     redibujar();
+    empezarSonido(herr);
     if (herr === 'spray') bucleSpray();
   };
 
@@ -306,6 +333,7 @@ export const App: React.FC = () => {
     else linea(x0, y0, x, y, pintar);
     pos.current = [x, y];
     if (herr === 'spray') revisarGoteo(x, y);
+    moverSonido();
     redibujar();
     animarChorros();
   };
@@ -319,13 +347,14 @@ export const App: React.FC = () => {
       redibujar();
     }
     suave.current = null; pos.current = null; trazoGuardo.current = false;
+    pararSonido();
   };
 
-  const vaciar = () => { setNuevo(null); setElegido(null); guardarHistorial(); chorros.current = []; carga.current.fill(0); dibujo.current = nuevoDibujo(); redibujar(); };
+  const vaciar = () => { sonar('quitar'); setNuevo(null); setElegido(null); guardarHistorial(); chorros.current = []; carga.current.fill(0); dibujo.current = nuevoDibujo(); redibujar(); };
   const exportar = async () => {
     if (nuevo) pegarSticker();
     setElegido(null);
-    try { setTarjeta(await crearTarjeta(muro, dibujo.current)); otorgarCreacion('graffiti'); enviarAlInventario(); }
+    try { setTarjeta(await crearTarjeta(muro, dibujo.current)); sonar('exito'); otorgarCreacion('graffiti'); enviarAlInventario(); }
     catch { avisar('No se pudo crear la tarjeta. Inténtalo de nuevo.'); }
   };
   // Con una persona jugando en la mesa, la miniatura del muro llega al inventario de su credencial (plan 010 §2b).
@@ -412,7 +441,7 @@ export const App: React.FC = () => {
     <SeccionPanel titulo="Color">
       <div className="h-muestras colores" role="radiogroup" aria-label="Color">
         {PALETA.map((c, i) => <Muestra key={c.id} color={c.hex} nombre={c.nombre} activa={color === i + 1}
-          onClick={() => { setColor(i + 1); if (herr === 'stencil') setHerr('spray'); }} />)}
+          onClick={() => { setColor(i + 1); if (herr === 'spray' || herr === 'stencil') sonar('agitar'); if (herr === 'stencil') setHerr('spray'); }} />)}
       </div>
     </SeccionPanel>
   );
@@ -443,9 +472,9 @@ export const App: React.FC = () => {
       barrita={<BarritaSeleccion etiqueta="Stencil"
         acciones={[
           { icono: 'layers', etiqueta: puesta.capa === 1 ? 'Pasar a la capa 2 · detalle' : 'Volver a la capa 1 · silueta', onClick: () => setPuesta(p => p && { ...p, capa: p.capa === 1 ? 2 : 1 }) },
-          { icono: 'delete', etiqueta: 'Quitar plantilla', peligro: true, onClick: () => setPuesta(null) },
+          { icono: 'delete', etiqueta: 'Quitar plantilla', peligro: true, onClick: () => { sonar('quitar'); setPuesta(null); } },
         ]}
-        onConfirmar={() => { setHerr('spray'); avisar('Listo: pinta encima del stencil.'); }} />} />
+        onConfirmar={() => { sonar('plantilla'); setHerr('spray'); avisar('Listo: pinta encima del stencil.'); }} />} />
   );
   const mPegado = pegado && medidaSticker(pegado.id);
   const manijasPegado = herr === 'sticker' && pegado && mPegado && (
@@ -475,6 +504,7 @@ export const App: React.FC = () => {
         titulo="Graffiti y Tags"
         ayuda={activa.ayuda}
         historia={{ deshacer, rehacer, puedeDeshacer: pasos.atras > 0, puedeRehacer: pasos.adelante > 0 }}
+        acciones={<BotonSonido />}
         primario={{ texto: 'Llévatelo', icono: 'ios_share', onClick: exportar, disabled: vacio }}
         herramientas={<BarraFlotante herramientas={HERRAMIENTAS} activa={herr} onElegir={elegirHerramienta} />}
         panel={<>{seccionHerramienta}{seccionColor}{seccionStencilPuesto}{seccionMuro}</>}

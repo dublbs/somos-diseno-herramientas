@@ -4,6 +4,7 @@ import type { Cara } from '../lib/cara';
 import { Lienzo } from './Lienzo';
 import { Disparador } from './Disparador';
 import { Boton, LienzoAjustado, MarcoHerramienta } from '../../../shared/ui/Herramienta';
+import { sonar } from '../../../shared/sonido';
 
 // La vista en vivo se dibuja a 600 px como máximo (la tablet la escala); la foto final sale a resolución completa.
 const VIVO_MAX = 600;
@@ -28,10 +29,10 @@ export function Camara({ lado, marco, celda, tinta, apagadas, vivo, alFoto, alSu
 
   const disparar = () => {
     if (cuenta || cam !== 'lista') return;
-    let n = 3; setCuenta(n);
+    let n = 3; setCuenta(n); sonar('cuenta');
     intervalo.current = window.setInterval(() => {
-      n--; if (n > 0) { setCuenta(n); return; }
-      window.clearInterval(intervalo.current); setCuenta(0); setFlash(true);
+      n--; if (n > 0) { setCuenta(n); sonar('cuenta'); return; }
+      window.clearInterval(intervalo.current); setCuenta(0); setFlash(true); sonar('obturador');
       const { foto, cara } = capturar();
       espera.current = window.setTimeout(() => alFoto(foto, cara), 380);
     }, 750);

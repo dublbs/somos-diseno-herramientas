@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { otorgarCreacion } from '../../../shared/juego';
+import { sonar } from '../../../shared/sonido';
+import { BotonSonido } from '../../../shared/ui/BotonSonido';
 import { archivosColor, archivosDe, escalaInicial, limitarEscala, pieza } from '../escenario/piezas';
 import { cargarLote } from '../escenario/recursos';
 import { ESCENARIOS, escenario, posicionNueva } from '../escenario/escenarios';
@@ -222,6 +224,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
     const it: Item = { uid, tipo, escala, espejo: false, variante: 0, x: pos.x, y: pos.y };
     actualizar(l => [...l, it]);
     setSel(uid);
+    sonar('papel');
   };
 
   const quitar = useCallback(() => {
@@ -230,6 +233,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
     registrar();
     actualizar(l => l.filter(i => i.uid !== u));
     setSel(null);
+    sonar('quitar');
   }, [actualizar, registrar]);
 
   const alFrente = () => { registrar(); actualizar(l => { const it = l.find(i => i.uid === vivo.current.sel); return it ? [...l.filter(i => i !== it), it] : l; }); };
@@ -237,7 +241,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
   const vaciar = () => { registrar(); actualizar(() => []); setSel(null); };
 
   const sorprender = () => {
-    registrar();
+    registrar(); sonar('telon');
     const nuevas: Item[] = sorprendeme(vivo.current.escId, uidSig.current, MAX_PIEZAS).map(it => ({
       ...it,
       destino: pieza(it.tipo).movil ? { x: Math.max(30, Math.min(210, it.x + (it.espejo ? -60 : 60))), y: it.y } : undefined,
@@ -319,6 +323,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
     c.width = c.height = RESOLUCION_CANVAS;
     dibujarEscenario(c.getContext('2d')!, RESOLUCION_CANVAS, vivo.current.items, relojRef.current, vivo.current.fondo, vivo.current.borde);
     onExportar(c);
+    sonar('exito');
     otorgarCreacion('teatro');
   };
 
@@ -346,7 +351,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
       });
       dibujarEscenario(ectx, RESOLUCION_CANVAS, lista, 0, fondo, conBorde);
       const png = (await exportarTarjetaMotion(escena, titulo, 'Lenguaje Orgánica')) ?? blob;
-      onVideo(png, { blob, ext, seg });
+      onVideo(png, { blob, ext, seg }); sonar('exito');
       otorgarCreacion('teatro');
     } catch (e) {
       setErrorVideo(e instanceof Error ? e.message : 'No se pudo grabar el loop.');
@@ -387,6 +392,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
       ayuda={ayuda}
       historia={{ deshacer, rehacer, puedeDeshacer: puedeDeshacer && !ocupado, puedeRehacer: puedeRehacer && !ocupado }}
       acciones={<>
+        <BotonSonido />
         <Boton icono="auto_awesome" texto="Sorpréndeme" onClick={sorprender} disabled={!listo || ocupado} />
         {grabable && <Boton icono="image" texto="Tarjeta" etiqueta="Descargar la tarjeta PNG" onClick={exportar} disabled={sinPiezas || ocupado} />}
       </>}
@@ -463,7 +469,7 @@ export const EscenarioOrganico: React.FC<Props> = ({ onExportar, onVideo, onGrab
             siguen arriba de todo (regla de pantalla: propiedades arriba). */}
         <SeccionPanel titulo="Escenario">
           <div className="escenarios">
-            <Segmento etiqueta="Escenario" valor={escId} onCambiar={id => { setEscId(id); setSel(null); }}
+            <Segmento etiqueta="Escenario" valor={escId} onCambiar={id => { sonar('telon'); setEscId(id); setSel(null); }}
               opciones={ESCENARIOS.map(e => ({ valor: e.id, icono: ICONO_ESC[e.id], texto: e.nombre, disabled: ocupado }))} />
           </div>
         </SeccionPanel>

@@ -7,6 +7,8 @@ import {
 } from '../../shared/ui/Herramienta';
 import { Quiosco, Tutorial, useTutorialVisto } from '../../shared/ui/Tutorial';
 import { Llevatela } from '../../shared/ui/Llevatela';
+import { BotonSonido } from '../../shared/ui/BotonSonido';
+import { sonar } from '../../shared/sonido';
 import { TACOS, cargarTacos, miniaturaTaco, tacoEntintado, tacoPorId, type TacoListo } from './lib/tacos';
 import {
   CacheCapas, MARCOS_AFICHE, MAX_CAPAS, PAPEL, PAPELES, TACO_BASE, componer, componerPapel, lienzoMarco, margenMarco, marcoValido,
@@ -175,10 +177,11 @@ export const App: React.FC = () => {
   const habiaPrevia = useRef(false);
   useEffect(() => {
     const hay = !!previa;
+    if (hay && !habiaPrevia.current) sonar('taco'); // el taco se apoya en el papel (también con movimiento reducido)
     if (hay && !QUIETO && !habiaPrevia.current) animTaco.current = { tipo: 'apoya', inicio: performance.now() };
     habiaPrevia.current = hay;
   }, [!!previa]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (previa && !QUIETO) animTaco.current = { tipo: 'apoya', inicio: performance.now() }; }, [taco]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (previa) sonar('taco'); if (previa && !QUIETO) animTaco.current = { tipo: 'apoya', inicio: performance.now() }; }, [taco]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { pintarPrevia(); }, [previa, tacos, taco, capa.tinta, pintarPrevia]);
   useEffect(() => () => cancelAnimationFrame(cuadro.current), []);
 
@@ -202,7 +205,7 @@ export const App: React.FC = () => {
     const oculta = !capa.visible;
     cambiarCapa(capa.id, c => ({ ...c, visible: true, estampas: [...c.estampas, e] }));
     ultima.current = { escala: previa.escala, giro: previa.giro };
-    setPrevia(null);
+    setPrevia(null); sonar('prensa');
     if (!QUIETO) animTaco.current = { tipo: 'levanta', inicio: performance.now(), t: previa, taco, tinta: capa.tinta };
     avisar(oculta ? `${capa.nombre} estaba oculta: la volvimos a mostrar.` : `Estampado en ${capa.nombre}.`);
   };
@@ -250,7 +253,7 @@ export const App: React.FC = () => {
     if (!tacos || !total) return;
     setPrevia(null);
     const blob = await tarjeta((x, lado) => componer(x, lado, a, tacos), ['Mi afiche', 'por capas']);
-    setLlevar(blob);
+    setLlevar(blob); sonar('exito');
     if (lienzo.current) publicar('grabado', { png: miniatura(lienzo.current, 160) }, jugador()?.codigo ?? null).catch(() => { /* sin red */ });
     otorgarCreacion('grabado');
   };
@@ -297,7 +300,7 @@ export const App: React.FC = () => {
 
     <SeccionPanel titulo={`Tinta de ${capa.nombre}`}>
       <SelectorColor valor={capa.tinta} colores={TINTAS} pasos={5} etiqueta="Tinta"
-        onCambiar={hex => { if (hex.toUpperCase() !== capa.tinta.toUpperCase()) cambiarCapa(capa.id, c => ({ ...c, tinta: hex })); }} />
+        onCambiar={hex => { if (hex.toUpperCase() !== capa.tinta.toUpperCase()) { sonar('entintar'); cambiarCapa(capa.id, c => ({ ...c, tinta: hex })); } }} />
       <Segmento etiqueta={`Cómo se imprime ${capa.nombre}`} valor={capa.mezcla}
         onCambiar={m => cambiarCapa(capa.id, c => ({ ...c, mezcla: m }))}
         opciones={[{ valor: true, texto: 'Se mezcla', icono: 'invert_colors' }, { valor: false, texto: 'Tapa', icono: 'flip_to_front' }]} />
@@ -345,6 +348,7 @@ export const App: React.FC = () => {
       deshacer: () => { historial.deshacer(); setPrevia(null); }, rehacer: () => { historial.rehacer(); setPrevia(null); },
       puedeDeshacer: historial.puedeDeshacer, puedeRehacer: historial.puedeRehacer,
     }}
+      acciones={<BotonSonido />}
       primario={{ texto: 'Llévatelo', onClick: exportar, disabled: vacio || !tacos }}
       herramientas={barraTacos} panel={panel} anchoPanel={340} altoPanelVertical="40%" aviso={aviso}>
       <LienzoAjustado ref={caja} proporcion={1} className={'hoja' + (marcoActivo ? ' con-marco' : '')}>
