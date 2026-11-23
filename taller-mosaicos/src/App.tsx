@@ -15,6 +15,8 @@ import {
 } from './data/formas';
 import { leerStorage, guardarStorage } from './lib/almacen';
 import { Llevatela } from '../../shared/ui/Llevatela';
+import { BotonSonido } from '../../shared/ui/BotonSonido';
+import { sonar } from '../../shared/sonido';
 import { Lienzo, pintarCelda } from './components/Lienzo';
 import { PanelMosaicos } from './components/Panel';
 import { BarraFlotante, Boton, MarcoHerramienta, useAviso, useGestosHistorial, useHistorial, type DefHerramienta } from '../../shared/ui/Herramienta';
@@ -113,6 +115,9 @@ export const App: React.FC = () => {
     const clave = `${x},${y}`;
     const celActual = celdas[clave];
 
+    // Sonido muy suave (plan 018): se repite en cada celda del trazo; `sonar` no lo repite antes de 40 ms.
+    if (herramienta === 'poner') sonar('clac');
+    else if (celActual) sonar(herramienta === 'borrar' ? 'borrar' : 'giro');
     switch (herramienta) {
       case 'poner': {
         setCeldas({
@@ -200,6 +205,7 @@ export const App: React.FC = () => {
   };
 
   const ejecutarOp = (op: string) => {
+    sonar('multiplicar');
     if (!sel) return;
     const nuevas = { ...celdas };
 
@@ -413,7 +419,7 @@ export const App: React.FC = () => {
 
     const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/png'));
     if (!blob) { setEstadoMsg('No pudimos preparar la imagen.'); return; }
-    setLlevar(blob);
+    setLlevar(blob); sonar('exito');
     publicar('mosaico', { png: miniatura(canvas, 200) }, jugador()?.codigo ?? null).catch(() => { /* sin red */ });
     otorgarCreacion('mosaicos');
   };
@@ -453,7 +459,7 @@ export const App: React.FC = () => {
         anchoPanel={320}
         ayuda={AYUDA[herramienta]}
         historia={{ deshacer, rehacer, puedeDeshacer: historial.puedeDeshacer, puedeRehacer: historial.puedeRehacer }}
-        acciones={<Boton icono="shuffle" texto="Sorpréndeme" onClick={() => generarMosaico()} />}
+        acciones={<><BotonSonido /><Boton icono="shuffle" texto="Sorpréndeme" onClick={() => { sonar('multiplicar'); generarMosaico(); }} /></>}
         primario={{ texto: 'Llévatelo', icono: 'ios_share', onClick: exportarPNG }}
         herramientas={<BarraFlotante herramientas={HERRAMIENTAS} activa={herramienta} onElegir={(h) => { setHerramienta(h); if (h !== 'seleccionar') setSel(null); }} />}
         aviso={estadoMsg}
