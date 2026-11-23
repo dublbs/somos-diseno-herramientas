@@ -6,11 +6,12 @@ import { Llevatela } from '../../shared/ui/Llevatela';
 import { avanzarCruce, META, mover, nuevoCruce, type Cruce } from './juego/cruce';
 import { avanzarAnden, bajar, lanzarA, nuevoAnden, saltar, VIDAS, type Anden } from './juego/anden';
 import { avanzarJefe, bajarJ, GOLPES_JEFE, lanzarJ, nuevoJefe, proximoColor, saltarJ, VIDAS_JEFE, type Jefe } from './juego/jefe';
-import { HUESO, NOMBRE_PINTURA, TIROS_POR_LATA, type Pieza } from './juego/comun';
+import { HUESO, NOMBRE_PINTURA, TIROS_POR_LATA, type Evento, type Pieza, type TipoEvento } from './juego/comun';
 import { dibujarCruce, type Imagenes } from './juego/dibujoCruce';
 import { dibujarAnden } from './juego/dibujoAnden';
 import { dibujarJefe, retratoInacapin } from './juego/dibujoJefe';
-import { LLEGADA_MS } from './juego/llegada';
+import { escenaLlegada, LLEGADA_MS } from './juego/llegada';
+import { alCambiarSonido, ponerSonido, sonar, sonidoActivo, type Efecto } from '../../shared/sonido';
 import { lienzoPinta } from './juego/personajes';
 import { dibujarMural, miniaturaMural } from './juego/mural';
 import { crearTarjeta, type Resumen } from './juego/tarjeta';
@@ -122,6 +123,14 @@ const Reglas: React.FC<{ nivel: Nivel }> = ({ nivel }) => nivel === 'jefe' ? (
   </ul>
 );
 
+// Efectos de sonido (plan 018): cada evento del motor suena una vez. El motor no cambia; solo se leen sus eventos.
+const SONIDO_EVENTO: Record<TipoEvento, Efecto> = {
+  pinta: 'pinta', bola: 'bola', rompe: 'rompe', rebota: 'rebota', golpe: 'golpe', salpica: 'salpica',
+  aterriza: 'aterriza', escupe: 'escupe', embiste: 'embiste', escapa: 'escapa', dano: 'dano',
+};
+const oidos = new WeakSet<Evento>();
+const sonarEventos = (eventos: Evento[]) => { for (const ev of eventos) if (!oidos.has(ev)) { oidos.add(ev); sonar(SONIDO_EVENTO[ev.tipo]); } };
+
 export const App: React.FC = () => {
   const [visto, marcarVisto] = useTutorialVisto('juego');
   const lienzo = useRef<HTMLCanvasElement>(null);
@@ -146,6 +155,10 @@ export const App: React.FC = () => {
   const [mejor, setMejor] = useState(leerMejor);
   const [sumado, setSumado] = useState(false);
   const [llevar, setLlevar] = useState<Blob | null>(null); // «Llévatela» con QR (plan 011)
+  const [sonido, setSonido] = useState(sonidoActivo);
+  useEffect(() => alCambiarSonido(setSonido), []);
+  // Lo último que sonó por cambio de estado (fin, llegada, piezas, aterrizaje del Inacapín). Se reinicia con la partida.
+  const oido = useRef({ fin: false, llego: false, juntadas: 0, aterrizo: false, finA: false, finJ: false });
 
   // B-006: <html data-ui="v2" data-visual="Pixel"> ya viene en index.html; esto solo lo asegura si se cargó otra página antes.
   useEffect(() => { const h = document.documentElement; h.dataset.visual = 'Pixel'; h.dataset.ui = 'v2'; }, []);
@@ -186,7 +199,7 @@ export const App: React.FC = () => {
   // Andén limpio: llega el Inacapín (escena corta, sin controles) y después empieza la pelea. Un toque la adelanta.
   const llegaJefe = () => {
     jefe.current = nuevoJefe(coloresJefe(cruce.current.latas, anden.current?.juntadas ?? []));
-    llegadaMs.current = 0; setEtapa('llegada');
+    llegadaMs.current = 0; oido.current.aterrizo = false; sonar('llegaJefe'); setEtapa('llegada');
   };
   const enfrentarJefe = () => { setEtapa(e => (e === 'llegada' ? 'jefe' : e)); setIntro(false); setPausa(false); };
   // El toque que salta la escena no cuenta en los primeros 0,4 s: así no la salta el mismo dedo que limpió el andén.
@@ -214,17 +227,23 @@ export const App: React.FC = () => {
       const mando = Math.round(190 * (c && c.clientWidth ? c.width / c.clientWidth : 1)); // alto de los controles (en vertical van bajo la arena)
       if (j && nivel === 'jefe' && etapa === 'llegada') {
         llegadaMs.current += Math.min(dt, 100);
+        if (!oido.current.aterrizo && escenaLlegada(llegadaMs.current, q).aterrizo) { oido.current.aterrizo = true; sonar('aterriza'); }
         if (llegadaMs.current >= LLEGADA_MS) enfrentarJefe();
         if (ctx) dibujarJefe(ctx, c!.width, c!.height, j, img.current, t, q, mando, llegadaMs.current);
       } else if (j && nivel === 'jefe') {
         if (corre && etapa === 'jefe') {
           avanzarJefe(j, dt);
+          sonarEventos(j.eventos);
+          if (j.fin && !oido.current.finJ) { oido.current.finJ = true; sonar(j.fin === 'victoria' ? 'victoria' : 'derrota'); }
           if (j.fin) terminar(j.fin === 'victoria' ? '¡Le devolviste el color!' : '¡El Inacapín te dejó gris!');
         }
         if (ctx) dibujarJefe(ctx, c!.width, c!.height, j, img.current, t, q, mando);
       } else if (a && nivel === 'anden') {
         if (corre && etapa === 'anden') {
           avanzarAnden(a, dt);
+          sonarEventos(a.eventos);
+          if (a.juntadas.length > oido.current.juntadas) { oido.current.juntadas = a.juntadas.length; sonar('pieza'); }
+          if (a.fin && !oido.current.finA) { oido.current.finA = true; sonar('derrota'); }
           if (a.fin) terminar('¡Un Gris te borró!');
           else if (a.limpio) llegaJefe();
         }
@@ -233,6 +252,13 @@ export const App: React.FC = () => {
         const e = cruce.current;
         if (corre && etapa === 'cruce') {
           avanzarCruce(e, dt);
+          if (e.fin && !oido.current.fin) {
+            oido.current.fin = true;
+            if (e.fin === 'atropellado') { sonar('bocina'); sonar('choque'); }
+            else if (e.fin === 'tren') { sonar('metro'); sonar('choque'); }
+            else sonar('tarde');
+          }
+          if (e.llego && !oido.current.llego) { oido.current.llego = true; sonar('llego'); }
           // Al chocar o llegar, la tarjeta espera un momento: se ve el aplastón o la entrada al metro.
           if (e.fin || e.llego) espera.current += dt;
           if (espera.current > ESPERA_FIN) {
@@ -281,21 +307,24 @@ export const App: React.FC = () => {
     if (etapa === 'cruce') {
       const e = cruce.current;
       if (x === 'lanzar') return;
+      const { x: x0, y: y0 } = e.jugador, latas0 = e.latas.length;
       mover(e, x === 'izq' ? -1 : x === 'der' ? 1 : 0, x === 'arriba' ? 1 : x === 'abajo' ? -1 : 0); // el bucle ve si chocaste
+      if (e.latas.length > latas0) sonar('lata');
+      else if (e.jugador.x !== x0 || e.jugador.y !== y0) sonar('paso');
     } else if (etapa === 'anden' && anden.current) {
       const a = anden.current;
       if (x === 'izq') a.teclas.izq = true;
       else if (x === 'der') a.teclas.der = true;
-      else if (x === 'arriba') saltar(a);
-      else if (x === 'abajo') bajar(a);
-      else lanzarA(a);
+      else if (x === 'arriba') { const s0 = a.jugador.suelo; saltar(a); if (s0 && !a.jugador.suelo) sonar('salto'); }
+      else if (x === 'abajo') { const y0 = a.jugador.y; bajar(a); if (a.jugador.y !== y0) sonar('bajar'); }
+      else { const t0 = a.tiros.length; lanzarA(a); if (a.tiros.length > t0) sonar('lanzar'); }
     } else if (etapa === 'jefe' && jefe.current) {
       const j = jefe.current;
       if (x === 'izq') j.teclas.izq = true;
       else if (x === 'der') j.teclas.der = true;
-      else if (x === 'arriba') saltarJ(j);
-      else if (x === 'abajo') bajarJ(j);
-      else lanzarJ(j);
+      else if (x === 'arriba') { const s0 = j.jugador.suelo; saltarJ(j); if (s0 && !j.jugador.suelo) sonar('salto'); }
+      else if (x === 'abajo') { const y0 = j.jugador.y; bajarJ(j); if (j.jugador.y !== y0) sonar('bajar'); }
+      else { const t0 = j.tiros.length; lanzarJ(j); if (j.tiros.length > t0) sonar('lanzar'); }
     }
   }, [corre, etapa, terminar]);
   const soltar = useCallback((x: Accion) => {
@@ -347,6 +376,7 @@ export const App: React.FC = () => {
 
   const reiniciar = () => {
     cruce.current = nuevoCruce(); anden.current = null; jefe.current = null; camara.current = 0; espera.current = 0; setLlevar(null);
+    oido.current = { fin: false, llego: false, juntadas: 0, aterrizo: false, finA: false, finJ: false };
     setEtapa('cruce'); setIntro(true); setPausa(false); setPuntos(0); setResumen(null); setSumado(false); setMotivo('');
     setHud({ latas: [], tiros: 0, piezas: 0, vidas: VIDAS, golpes: 0, color: HUESO });
   };
@@ -376,6 +406,10 @@ export const App: React.FC = () => {
         <p className="hp-puntaje" aria-live="polite"><span className="hp-etq">Puntaje</span> <b>{puntos}</b></p>
         <button type="button" className="hp-btn" onClick={() => setPausa(p => !p)} disabled={!enJuego || intro} aria-label={pausa ? 'Seguir' : 'Pausa'}>
           <span className="material-symbols-outlined" aria-hidden="true">{pausa ? 'play_arrow' : 'pause'}</span><span className="hp-ocultable">{pausa ? 'Seguir' : 'Pausa'}</span>
+        </button>
+        <button type="button" className="hp-btn" onClick={() => ponerSonido(!sonido)} aria-pressed={sonido}
+          aria-label={sonido ? 'Silenciar los efectos de sonido' : 'Activar los efectos de sonido'} title={sonido ? 'Silenciar' : 'Activar sonido'}>
+          <span className="material-symbols-outlined" aria-hidden="true">{sonido ? 'volume_up' : 'volume_off'}</span>
         </button>
         <button type="button" className="hp-btn" onClick={reiniciar} aria-label="Otra vez">
           <span className="material-symbols-outlined" aria-hidden="true">restart_alt</span><span className="hp-ocultable">Otra vez</span>
