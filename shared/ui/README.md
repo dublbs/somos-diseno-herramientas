@@ -159,6 +159,16 @@ radios o sombras fijos para la interfaz.
 superficie blanca, borde gris, radio 10 y DM Sans. `Confirmar` lleva clases `k-`: en un panel v2 prefiere un `Boton`
 con `variante="peligro"` que pida un segundo toque, o `Confirmar` tal cual (se ve neutro).
 
+### Sonido (plan 018)
+- **`shared/sonido.ts`**: efectos sintetizados con Web Audio, sin archivos.
+  - `sonar('pop')` toca un efecto corto; el catálogo de nombres es el objeto `efectos`.
+  - `siseo(f, q, pico)` devuelve un sonido continuo con `volumen(0..1)` y `parar()`.
+  - Se enciende con el primer toque y se pausa con la pestaña oculta.
+- **`BotonSonido`** (`shared/ui/BotonSonido.tsx`): silencia los efectos en ese equipo. Va en `acciones` de
+  `MarcoHerramienta`.
+  - La elección queda guardada en `localStorage` (`sd:sonido`).
+  - `?sonido=0` arranca la app muda.
+
 ---
 
 ## 4. Accesibilidad
