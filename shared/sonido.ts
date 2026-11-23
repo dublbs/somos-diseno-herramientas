@@ -183,6 +183,26 @@ const efectos = {
   borrar: (c: AudioContext) => ruido(c, { dur: 0.08, filtro: 'lowpass', f: 1100, vol: 0.08 }),
   agitar: (c: AudioContext) => { for (let i = 0; i < 3; i++) { ruido(c, { dur: 0.04, f: 4500, q: 5, vol: 0.08, en: i * 0.07 }); tono(c, { f: 2400 + i * 200, dur: 0.03, onda: 'triangle', vol: 0.04, en: i * 0.07 }); } },
   plantilla: (c: AudioContext) => ruido(c, { dur: 0.12, f: 1800, f2: 900, q: 1, vol: 0.1 }),
+
+  // Cabina de fotos
+  cuenta: (c: AudioContext) => tono(c, { f: 880, dur: 0.1, onda: 'sine', vol: 0.16 }),
+  obturador: (c: AudioContext) => { ruido(c, { dur: 0.03, filtro: 'highpass', f: 2500, vol: 0.3 }); ruido(c, { dur: 0.06, f: 1500, q: 2, vol: 0.2, en: 0.07 }); tono(c, { f: 1760, dur: 0.05, onda: 'sine', vol: 0.08 }); },
+  revelado: (c: AudioContext) => { ruido(c, { dur: 0.7, f: 2500, f2: 7000, q: 0.8, vol: 0.05, ataque: 0.3 }); melodia(c, [12, 19, 24], 0.12, 'sine', 0.06); },
+  placa: (c: AudioContext) => tono(c, { f: 1400, dur: 0.03, onda: 'square', vol: 0.05 }),
+
+  // Taller de Grabado
+  taco: (c: AudioContext) => { tono(c, { f: 180, f2: 90, dur: 0.12, onda: 'sine', vol: 0.3 }); ruido(c, { dur: 0.06, filtro: 'lowpass', f: 1600, vol: 0.18 }); },
+  prensa: (c: AudioContext) => { tono(c, { f: 110, f2: 55, dur: 0.3, onda: 'sine', vol: 0.32 }); ruido(c, { dur: 0.25, filtro: 'lowpass', f: 600, vol: 0.15, ataque: 0.02 }); ruido(c, { dur: 0.3, f: 3000, q: 0.7, vol: 0.05, en: 0.15 }); },
+  entintar: (c: AudioContext) => ruido(c, { dur: 0.25, filtro: 'lowpass', f: 700, f2: 350, vol: 0.12, ataque: 0.05 }),
+
+  // Taller de Mosaicos (muy suave: se repite mucho)
+  clac: (c: AudioContext) => { tono(c, { f: 2100, f2: 1700, dur: 0.035, onda: 'triangle', vol: 0.07 }); ruido(c, { dur: 0.025, f: 4500, q: 3, vol: 0.04 }); },
+  giro: (c: AudioContext) => tono(c, { f: 1200, f2: 1500, dur: 0.04, onda: 'triangle', vol: 0.05 }),
+  multiplicar: (c: AudioContext) => melodia(c, [7, 12, 16, 19], 0.035, 'triangle', 0.05),
+
+  // Teatro de Papel
+  papel: (c: AudioContext) => ruido(c, { dur: 0.16, f: 3500, f2: 1800, q: 0.6, vol: 0.07, ataque: 0.02 }),
+  telon: (c: AudioContext) => ruido(c, { dur: 0.4, f: 900, f2: 2600, q: 0.6, vol: 0.07, ataque: 0.1 }),
 };
 export type Efecto = keyof typeof efectos;
 
